@@ -6,6 +6,23 @@
       "id": "gov-001", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#M10",
       "verseId": "verse-002", "cycleNumber": "3", "cycleDurationDays": 90,
       "cycleEndsAt": "2026-09-23T12:00:00Z", "finalized": false, "claimWindowEndsAt": "2026-10-07T12:00:00Z",
+      "governorAddress": { "value": "0x9a6700000000000000000000000000000000a004", "fixtureOnly": true },
+      "incentivizerAddress": { "value": "0x6c5b000000000000000000000000000000000c7b", "fixtureOnly": true },
+      "delegates": 5191,
+      "totalVotingPower": { "raw": "42000000", "decimals": 18 },
+      "myVotes": { "raw": "20000000", "decimals": 18 },
+      "treasuryUAsset": { "raw": "3100000", "decimals": 18 },
+      "rewardRatio": { "raw": "2500", "unit": "bps", "scale": 18 },
+      "cumulativeIncentivePool": { "raw": "705000", "decimals": 18 },
+      "currentCycleVotes": { "total": { "raw": "100000000", "decimals": 18 }, "mine": { "raw": "20000000", "decimals": 18 } },
+      "lastCycle": {
+        "number": "2",
+        "treasuryUAsset": { "raw": "2950000", "decimals": 18 },
+        "remainingRewards": { "raw": "125000", "decimals": 18 },
+        "totalVotes": { "raw": "115000000", "decimals": 18 },
+        "myVotes": { "raw": "22000000", "decimals": 18 },
+        "myClaimable": { "raw": "28500", "decimals": 18 }
+      },
       "proposals": [
         {
           "id": "prop-101", "title": "调整周期激励划拨比例至 30%", "state": "active", "governanceTarget": true,
@@ -20,6 +37,29 @@
           "quorumProgress": { "raw": "0.74", "unit": "ratio", "scale": 18 }, "votingEndsAt": "2026-09-12T12:00:00Z"
         }
       ]
+    },
+    {
+      "id": "gov-002", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-003", "cycleNumber": "7", "cycleDurationDays": 90,
+      "cycleEndsAt": "2026-09-10T12:00:00Z", "finalized": true, "claimWindowEndsAt": "2026-10-08T12:00:00Z",
+      "governorAddress": { "value": "0x9a6700000000000000000000000000000000b005", "fixtureOnly": true },
+      "incentivizerAddress": { "value": "0x6c5b000000000000000000000000000000000d8c", "fixtureOnly": true },
+      "delegates": 3142,
+      "totalVotingPower": { "raw": "28400000", "decimals": 18 },
+      "myVotes": { "raw": "6200000", "decimals": 18 },
+      "treasuryUAsset": { "raw": "2240000", "decimals": 18 },
+      "rewardRatio": { "raw": "2500", "unit": "bps", "scale": 18 },
+      "cumulativeIncentivePool": { "raw": "486000", "decimals": 18 },
+      "currentCycleVotes": { "total": { "raw": "58000000", "decimals": 18 }, "mine": { "raw": "6200000", "decimals": 18 } },
+      "lastCycle": {
+        "number": "6",
+        "treasuryUAsset": { "raw": "2010000", "decimals": 18 },
+        "remainingRewards": { "raw": "74000", "decimals": 18 },
+        "totalVotes": { "raw": "61000000", "decimals": 18 },
+        "myVotes": { "raw": "6800000", "decimals": 18 },
+        "myClaimable": { "raw": "15400", "decimals": 18 }
+      },
+      "proposals": []
     }
   ]
 }

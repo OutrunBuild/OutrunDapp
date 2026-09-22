@@ -122,6 +122,14 @@ export const verseSchema = recordSchema.extend({
   unlock: z.object({
     unlockedAtTx: isoTimeSchema.optional(), // 实际解锁交易时间=保护期起点（genesis.md:52）
   }).optional(),
+  // 锁定中市场活跃快照（发现页锁定卡展示；读链参数——机制口径 OB:memeverse/memecoin-staking.md
+  // （质押收益与国库入账均来自交易费分成）、OB:memeverse/dao-governance.md（uAsset 计费用入 DAO 国库）；
+  // 解锁时间不入快照——由 endTime+FIXED_LOCKUP_DURATION 推导（合约常量）；缺失=UI 显 unavailable 槽位）
+  lockedPhase: z.object({
+    volume24h: amountSchema, // 24h 四池交易量快照（uAsset 计）
+    stakingApy: rateSchema, // 质押年化快照（ratio：5.688=568.8%）
+    treasuryFundUsd: amountSchema, // DAO 国库余额快照（美元计——卡头市值美元口径先例 2026-09-23）
+  }).optional(),
 });
 
 /** positions.json（open-term CDP；redeem 唯一减借——SPEC-S2 L50） */
@@ -178,6 +186,13 @@ export const marketSchema = recordSchema.extend({
   feeState: z.enum(['normal', 'opening-decay', 'dynamic-applied', 'paused-protection']),
   lpShareSample: z.object({ poolShare: rateSchema, pendingFees: amountSchema }).optional(),
   candles: z.array(candleSchema).max(500).optional(), // 主池 K 线样本（固定时间戳，粒度由 brief 指定）
+  volume24h: amountSchema.optional(), // 24h 成交量快照（池维度；缺失=UI 显「以链上读值为准」槽位）
+  apr7d: rateSchema.optional(), // 近 7 日费率年化样本（展示推导值；缺失=槽位）
+  tokenStats: z.object({ // 仅主池条目携带（代币统计条——R-06）
+    totalSupply: amountSchema, // Memecoin 总供应快照
+    holders: z.number().int().positive(), // 持有人数快照
+    tokenAddress: fixtureAddressSchema, // Memecoin CA（fixture 样本，不冒充部署地址）
+  }).optional(),
 });
 
 /** transactions.json（A7–A12 + Type-4/跨链类型） */
@@ -199,6 +214,27 @@ export const governanceSchema = recordSchema.extend({
   cycleEndsAt: isoTimeSchema,
   finalized: z.boolean(),
   claimWindowEndsAt: isoTimeSchema.optional(),
+  // —— 以下为 DAO 标签周期激励面（2026-09-23 四标签详情页）；全部可选：无治理数据的 verse 显示槽位 ——
+  governorAddress: fixtureAddressSchema.optional(), // Governor 合约地址（fixture 样本）
+  incentivizerAddress: fixtureAddressSchema.optional(), // 周期激励合约地址（fixture 样本）
+  delegates: z.number().int().positive().optional(), // 已委托地址数快照
+  totalVotingPower: amountSchema.optional(), // 总票权（sMemecoin 计）
+  myVotes: amountSchema.optional(), // 样本账户当前票权
+  treasuryUAsset: amountSchema.optional(), // 国库 uAsset 余额快照（Governor 托管）
+  rewardRatio: rateSchema.optional(), // 划拨比例（初始 2500bps=25%，治理可改——M10:332-333）
+  cumulativeIncentivePool: amountSchema.optional(), // 累计激励池（reward ledger 余额）
+  currentCycleVotes: z.object({
+    total: amountSchema, // 当期总票数（cast 时刻记入当前周期——M10:337）
+    mine: amountSchema, // 样本账户当期票数
+  }).optional(),
+  lastCycle: z.object({
+    number: uintString,
+    treasuryUAsset: amountSchema, // 上期期末国库
+    remainingRewards: amountSchema, // 未领取滚存（窗口过后并入国库不补发——dao-governance.md:51）
+    totalVotes: amountSchema,
+    myVotes: amountSchema,
+    myClaimable: amountSchema, // 样本账户上期可领（窗口内）
+  }).optional(),
   proposals: z.array(z.object({
     id: idSchema,
     title: z.string(),
@@ -207,6 +243,33 @@ export const governanceSchema = recordSchema.extend({
     quorumProgress: rateSchema,
     votingEndsAt: isoTimeSchema,
   })),
+});
+
+/** staking.json（Memecoin 质押收益库 YieldVault——SPEC-M10 §6 + OB memecoin-staking.md；2026-09-23 四标签详情页） */
+export const stakingSchema = recordSchema.extend({
+  verseId: idSchema,
+  vaultAddress: fixtureAddressSchema, // YieldVault 合约地址（fixture 样本，部署在治理链）
+  totalStaked: amountSchema, // 总质押 Memecoin（快照）
+  assetsPerShare: rateSchema, // 1 份额 ≈ N Memecoin（convertToAssets 含 virtualAssets 缓冲）
+  apy7d: rateSchema, // 近 7 日实绩年化（份额价涨幅年化，链下推导展示值）
+  myShares: amountSchema, // 样本账户份额
+  delegatee: fixtureAddressSchema, // 当前委托对象（Q9：质押时选定，默认自己）
+  pendingRedeems: z.array(z.object({
+    lockedAssets: amountSchema, // 申请时锁定的 Memecoin（申请即固定价值、停增值、票权消失）
+    requestedAt: isoTimeSchema,
+    maturesAt: isoTimeSchema, // REDEEM_DELAY ≈ 1 天；≤ anchor=可提取，> anchor=等待中
+  })), // ≤5 笔（MAX_REDEEM_REQUESTS）；空数组=无待执行
+});
+
+/** pol-positions.json（POL 持仓与估值样本——SPEC-M14 + polend/pt-yt-splitter.md §4 名义价值；2026-09-23） */
+export const polPositionSchema = recordSchema.extend({
+  verseId: idSchema,
+  polAddress: fixtureAddressSchema, // POL 合约地址（fixture 样本）
+  polSupply: amountSchema, // POL 总供应
+  uAssetPerPol: rateSchema, // 每 1 POL 对应主池 uAsset 侧数量（名义价值 = 2× 此值——全范围简化）
+  marketPricePerPol: rateSchema, // POL/uAsset 池市场价（相对名义价值溢价/折价）
+  myPol: amountSchema, // 样本账户 POL 余额
+  claimablePol: amountSchema, // 未入池剩余可领（解锁后按比例领取——four-pools.md:25）
 });
 
 /** accounts.json（§6.2 九态 + §11.2 形态） */
@@ -262,6 +325,8 @@ export const usrVaultsFile = fixtureFile(usrVaultSchema);
 export const bridgeMessagesFile = fixtureFile(bridgeMessageSchema);
 export const transactionsFile = fixtureFile(transactionSchema);
 export const governanceFile = fixtureFile(governanceSchema);
+export const stakingFile = fixtureFile(stakingSchema);
+export const polPositionsFile = fixtureFile(polPositionSchema);
 export const accountsFile = fixtureFile(accountRecordSchema);
 export const notificationsFile = fixtureFile(notificationSchema);
 export const scenariosFile = z.object({ items: z.array(scenarioSchema) });

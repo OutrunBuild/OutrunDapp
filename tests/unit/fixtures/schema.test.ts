@@ -8,6 +8,7 @@ import { dirname, join } from 'node:path';
 import {
   chainsFile, assetsFile, versesFile, marketsFile, positionsFile, psmFile,
   usrVaultsFile, bridgeMessagesFile, transactionsFile, governanceFile,
+  stakingFile, polPositionsFile,
   accountsFile, notificationsFile, participationsFile, yieldSourcesFile,
   createConfigFile, scenariosFile, scenarioIdSchema, fixtureAddressSchema, CHAIN_IDS,
 } from '../../../fixtures/schema';
@@ -20,6 +21,7 @@ const files = {
   'data/markets.json': marketsFile, 'data/positions.json': positionsFile, 'data/psm.json': psmFile,
   'data/usr-vaults.json': usrVaultsFile, 'data/bridge-messages.json': bridgeMessagesFile,
   'data/transactions.json': transactionsFile, 'data/governance.json': governanceFile,
+  'data/staking.json': stakingFile, 'data/pol-positions.json': polPositionsFile,
   'data/accounts.json': accountsFile, 'data/notifications.json': notificationsFile,
   'data/participations.json': participationsFile, 'data/yield-sources.json': yieldSourcesFile,
   'data/create-config.json': createConfigFile,

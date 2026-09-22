@@ -26,12 +26,12 @@
       "sha256": "a925c93f9db5d52f3fa0447f6af343672753715c61d4414179762e7a317f2298"
     },
     "fixtures/data/governance.json": {
-      "bytes": 1202,
-      "sha256": "d233d6255b53df41ac1fe66fc16526ac75644b71b5638ee28b94da52fef3a423"
+      "bytes": 3607,
+      "sha256": "53578771ae78e41b580d7288e9fc5c79726bb9e213321d26b1d1a89b013944d9"
     },
     "fixtures/data/markets.json": {
-      "bytes": 13525,
-      "sha256": "31e11c88e32a0713664d45bf1d168a63efb64a607b42812df98ca32a655e1619"
+      "bytes": 72103,
+      "sha256": "f7111879872a7181f11aed9e14eb6b07bba8b56a652e9147d1b6c798ca8d1abf"
     },
     "fixtures/data/notifications.json": {
       "bytes": 566,
@@ -40,6 +40,10 @@
     "fixtures/data/participations.json": {
       "bytes": 1647,
       "sha256": "4df938a5abd1f829aeb419fc14ef7d7e80914c57a9f8f15dedb78c1ed2e9d868"
+    },
+    "fixtures/data/pol-positions.json": {
+      "bytes": 1201,
+      "sha256": "149a87fa8d6fca21592c0c9261d204534c99b0a934b7de6f215cbfe2d831281f"
     },
     "fixtures/data/positions.json": {
       "bytes": 1362,
@@ -53,6 +57,10 @@
       "bytes": 895,
       "sha256": "5c32bae27b32cdbfb2a093e9119d2afbe17c35ad9660dcc4614b2024b928ef79"
     },
+    "fixtures/data/staking.json": {
+      "bytes": 1762,
+      "sha256": "02b704c440c044f38930b4995428f6ed50e6f98c2428f75dd1d5d9ea7f61704f"
+    },
     "fixtures/data/transactions.json": {
       "bytes": 1758,
       "sha256": "f62d556711a7993ba9f48acc767eff364ea37681715556d8fb39c3dda30af6eb"
@@ -62,16 +70,16 @@
       "sha256": "0dc65c55e4e3a8dc1cdd95cbf4092135c89c751b61c94b1675231ea77af573c7"
     },
     "fixtures/data/verses.json": {
-      "bytes": 60025,
-      "sha256": "8d17f0bf35a3ba6f0f85d5b9ba2b3dd4280303895c6a7fa84941a5015520ef7b"
+      "bytes": 63227,
+      "sha256": "fbc7a4671fa0b4b075b210a7a26784061e11e63f0c7c289313bc73345c02efc1"
     },
     "fixtures/data/yield-sources.json": {
       "bytes": 615,
       "sha256": "60f5aebfe0be13a21645e90f59d86a9e06ca8e0a8d2053fc43c1f279f091b1c6"
     },
     "fixtures/index.ts": {
-      "bytes": 1411,
-      "sha256": "172e15ed1c8f797b502f96cfc0da577076b77aad4fb4cc7ec60b2f99ae502276"
+      "bytes": 1531,
+      "sha256": "5df72ad532749de52f9df51f983c392996841e296514c5368c3c0c6ccc962f94"
     },
     "fixtures/inspector/index.html": {
       "bytes": 15533,
@@ -86,8 +94,8 @@
       "sha256": "5000d69cf015242b449fc5bc8abb3e295f7a0436492606649c18ee407b982b6a"
     },
     "fixtures/invariants/lifecycle.json": {
-      "bytes": 4207,
-      "sha256": "af58a3b36edd64690f6c30f7f5e129202d7542e2f3868d1657686dd39a2c8534"
+      "bytes": 4246,
+      "sha256": "4a9a2747bb15879453ee2042838c028320343a6d67cd687d077f03d1fa8091b4"
     },
     "fixtures/invariants/state-scenarios.json": {
       "bytes": 3114,
@@ -98,8 +106,8 @@
       "sha256": "e88f59e2e200092f7ba2be06baf3e355b73e2c82d1981cf98fc6d369454c9d8d"
     },
     "fixtures/schema.ts": {
-      "bytes": 13226,
-      "sha256": "460b411e4b6f0cbe6c824656eb777e77bad5d018ac2da12cd9b213820fb9fe3e"
+      "bytes": 17822,
+      "sha256": "32bba2350faf305ab183db67cb40b03a677d6110a0829bbf15f4991f45ff2336"
     },
     "fixtures/manifest.json": {
       "bytes": 0,

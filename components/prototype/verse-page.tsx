@@ -6,10 +6,14 @@ import { DiscordIcon, TelegramIcon, XIcon } from './brand-icons'
 import { Button } from '@/components/ui/button'
 import {
   getPrototypeChains,
+  getPrototypeGovernanceState,
   getPrototypeParticipations,
   getPrototypeParticipationOptions,
+  getPrototypePolPosition,
   getPrototypeSnapshot,
+  getPrototypeStaking,
   getPrototypeVerse,
+  getPrototypeVerseTrade,
   type Locale,
   type PrototypeParticipation,
   type PrototypeVerse,
@@ -19,6 +23,7 @@ import { OutrunShell } from './app-shell'
 import { ChainLogoMark } from './chain-icons'
 import { getCopy } from './copy'
 import { ParticipationPanel } from './participation-panel'
+import { DaoPanel, LiquidityPanel, PolPanel } from './verse-tab-panels'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   formatAmount,
@@ -30,6 +35,9 @@ import {
   SourceRef,
   StageBadge,
 } from './signal-ui'
+import { VerseTabs } from './verse-tabs'
+import { VerseTradeDesk } from './verse-trade-desk'
+import { VaultPanel } from './verse-vault-panel'
 
 function CurrentAction({ verse, locale }: { verse: PrototypeVerse; locale: Locale }) {
   const copy = getCopy(locale)
@@ -92,7 +100,7 @@ export function VersePage({ locale, verseId }: { locale: Locale; verseId: string
   if (!verse) notFound()
   const copy = getCopy(locale)
   const participationOptions = getPrototypeParticipationOptions(verse.raiseAsset)
-  // Fast Mode 达标判定：双口径任一达标（预购与债务本金不计入——lifecycle.md:35-49）
+  // Fast Genesis 达标判定：双口径任一达标（预购与债务本金不计入——lifecycle.md:35-49）
   const thresholdMet = verse.normalProgress >= 100 || verse.leverageProgress >= 100
   // Refund 是结算态：不渲染参与工作台/资金池/通用时间线，收敛为单一退款结算面板
   const isRefund = verse.stage === 'refund'
@@ -110,6 +118,12 @@ export function VersePage({ locale, verseId }: { locale: Locale; verseId: string
         participation.verseId === verse.id && participation.owner === snapshot.sampleAccount.address,
     )
     .reduce((sum, participation) => sum + participation.amount, 0)
+  // locked/unlocked 交易台与四标签数据（缺失→面板槽位态）
+  const trade = getPrototypeVerseTrade(verse.id)
+  if (!trade) notFound()
+  const staking = getPrototypeStaking(verse.id)
+  const polPosition = getPrototypePolPosition(verse.id)
+  const governance = getPrototypeGovernanceState(verse.id)
 
   return (
     <OutrunShell
@@ -131,7 +145,7 @@ export function VersePage({ locale, verseId }: { locale: Locale; verseId: string
             <h1>{verse.name}</h1>
             <div className="verse-identity__badges">
               <StageBadge stage={verse.stage} locale={locale} />
-              {verse.fastGenesis ? <FastBadge label={copy.verse.fastMode} /> : null}
+              {verse.fastGenesis ? <FastBadge label={copy.verse.fastGenesis} /> : null}
             </div>
           </div>
           {verse.description ? <p className="verse-identity__desc">{verse.description}</p> : null}
@@ -182,7 +196,9 @@ export function VersePage({ locale, verseId }: { locale: Locale; verseId: string
         <SourceRef value={verse.sourceRef} id={verse.id} />
       </header>
 
-      {!isRefund ? (
+      {/* 创世期保留双门槛判定卡；locked/unlocked 改走交易台+四标签（Q1 用户裁定 2026-09-23：
+          成功判定/当前可以做什么/指标卡三块移除，信息由统计条与四标签覆盖） */}
+      {verse.stage === 'genesis' ? (
         <section className="threshold-panel ax-glow-card" aria-labelledby="threshold-title">
         <div className="threshold-panel__intro">
           <h2 id="threshold-title">{copy.verse.successTitle}</h2>
@@ -190,8 +206,8 @@ export function VersePage({ locale, verseId }: { locale: Locale; verseId: string
           {verse.fastGenesis ? (
             <p className="threshold-panel__fast" data-reached={thresholdMet || undefined}>
               {thresholdMet
-                ? `${copy.verse.fastModeReached}. ${copy.verse.fastModeReachedNote}`
-                : copy.verse.fastModeNote}
+                ? `${copy.verse.fastGenesisReached}. ${copy.verse.fastGenesisReachedNote}`
+                : copy.verse.fastGenesisNote}
             </p>
           ) : null}
           <dl>
@@ -258,47 +274,27 @@ export function VersePage({ locale, verseId }: { locale: Locale; verseId: string
           )}
           <SourceRef value={verse.sourceRef} id={verse.id} />
         </section>
-      ) : (
-        <>
+      ) : verse.stage === 'genesis' ? (
         <div className="verse-workbench" id="participate">
         <section className="workbench-primary ax-glow-card" aria-labelledby="participation-title">
           {/* 创世态标题/描述删除（2026-09-22 用户裁定：与右侧「当前可以做什么」完全重复）；sr-only h2 维持 section 大纲 */}
-          {verse.stage === 'genesis' ? (
-            <h2 id="participation-title" className="sr-only">
-              {copy.verse.participateTitle}
-            </h2>
-          ) : (
-            <SectionHeading title={copy.verse.currentAction} />
-          )}
-          {verse.stage === 'genesis' ? (
-            <ParticipationPanel
-              locale={locale}
-              raiseAsset={participationOptions.raiseAsset}
-              reserves={participationOptions.reserves}
-              yieldSourceRegistry={participationOptions.yieldSourceRegistry}
-              creditAsset={participationOptions.creditAsset}
-              normalRaised={verse.normalRaised}
-              preorderRaised={verse.preorderRaised}
-              preorderCapacityRatio={verse.preorderCapacityRatio}
-              leverageInterestRate={verse.leverageInterestRate}
-              leverageDebtCap={verse.leverageDebtCap}
-              leverageInterestRaised={verse.leverageInterest}
-              sourceRef={verse.sourceRef}
-            />
-          ) : (
-            <div className="stage-action-state">
-              <StageBadge stage={verse.stage} locale={locale} />
-              <p>
-                {verse.stage === 'locked'
-                  ? copy.verse.lockedAction
-                  : verse.stage === 'unlocked'
-                    ? copy.verse.unlockedAction
-                    : copy.verse.refundAction}
-              </p>
-              <Button disabled>{copy.verse.actionCta}</Button>
-              <SourceRef value={verse.sourceRef} id={verse.id} />
-            </div>
-          )}
+          <h2 id="participation-title" className="sr-only">
+            {copy.verse.participateTitle}
+          </h2>
+          <ParticipationPanel
+            locale={locale}
+            raiseAsset={participationOptions.raiseAsset}
+            reserves={participationOptions.reserves}
+            yieldSourceRegistry={participationOptions.yieldSourceRegistry}
+            creditAsset={participationOptions.creditAsset}
+            normalRaised={verse.normalRaised}
+            preorderRaised={verse.preorderRaised}
+            preorderCapacityRatio={verse.preorderCapacityRatio}
+            leverageInterestRate={verse.leverageInterestRate}
+            leverageDebtCap={verse.leverageDebtCap}
+            leverageInterestRaised={verse.leverageInterest}
+            sourceRef={verse.sourceRef}
+          />
         </section>
 
         <div className="workbench-secondary">
@@ -335,6 +331,18 @@ export function VersePage({ locale, verseId }: { locale: Locale; verseId: string
           </section>
         </div>
       </div>
+      ) : (
+        /* locked / unlocked：交易台持久区 + 四标签（2026-09-23 用户裁定） */
+        <>
+          <VerseTradeDesk locale={locale} verse={verse} trade={trade} />
+          <VerseTabs locale={locale}>
+            {{
+              liquidity: <LiquidityPanel locale={locale} trade={trade} />,
+              pol: <PolPanel locale={locale} verse={verse} pol={polPosition} />,
+              vault: <VaultPanel locale={locale} verse={verse} staking={staking} />,
+              dao: <DaoPanel locale={locale} verse={verse} governance={governance} />,
+            }}
+          </VerseTabs>
         </>
       )}
 

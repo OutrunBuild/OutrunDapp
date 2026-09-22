@@ -1,0 +1,26 @@
+{
+  "seed": "seed-001",
+  "generatedFrom": "fixtures/data/seed.json",
+  "items": [
+    {
+      "id": "polp-001", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#M14",
+      "verseId": "verse-002",
+      "polAddress": { "value": "0x5d4f000000000000000000000000000000003f4a", "fixtureOnly": true },
+      "polSupply": { "raw": "22000000", "decimals": 18 },
+      "uAssetPerPol": { "raw": "0.62", "unit": "ratio", "scale": 18 },
+      "marketPricePerPol": { "raw": "1.05", "unit": "ratio", "scale": 18 },
+      "myPol": { "raw": "15247.89", "decimals": 18 },
+      "claimablePol": { "raw": "0", "decimals": 18 }
+    },
+    {
+      "id": "polp-002", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#M14",
+      "verseId": "verse-003",
+      "polAddress": { "value": "0x5d4f000000000000000000000000000000004f4a", "fixtureOnly": true },
+      "polSupply": { "raw": "19500000", "decimals": 18 },
+      "uAssetPerPol": { "raw": "0.58", "unit": "ratio", "scale": 18 },
+      "marketPricePerPol": { "raw": "0.93", "unit": "ratio", "scale": 18 },
+      "myPol": { "raw": "42310.5", "decimals": 18 },
+      "claimablePol": { "raw": "1234.56", "decimals": 18 }
+    }
+  ]
+}

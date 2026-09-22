@@ -2410,7 +2410,7 @@ svg {
   background: var(--color-warning);
 }
 
-/* Fast Mode 徽章：青色功能信号（非阶段色），结构与 stage-badge 一致 */
+/* Fast Genesis 徽章：青色功能信号（非阶段色），结构与 stage-badge 一致 */
 .fast-badge {
   display: inline-flex;
   min-block-size: calc(var(--space-4) + var(--space-2));
@@ -2645,7 +2645,7 @@ svg {
   color: var(--color-text-secondary);
 }
 
-/* Fast Mode 状态行：默认随 intro 文案，达标后转青色功能信号 */
+/* Fast Genesis 状态行：默认随 intro 文案，达标后转青色功能信号 */
 .threshold-panel__fast[data-reached='true'] {
   color: var(--or-cyan);
 }
@@ -2797,6 +2797,705 @@ svg {
 
 .refund-settle__empty {
   color: var(--color-text-secondary);
+}
+
+/* ==========================================================================
+   四标签交易台（2026-09-23 用户裁定：locked/unlocked 详情页 = 头卡 + 统计条/K线/Swap
+   持久区 + Liquidity/POL/Yield Vault/DAO 四标签；参照 demo 信息结构、视觉走本设计系统）
+   ========================================================================== */
+
+/* 交易台持久区：图/表左（大）+ Swap 右 */
+.verse-desk {
+  display: grid;
+  grid-template-columns: minmax(0, 1.9fr) minmax(calc(var(--space-8) * 3.2), 1.1fr);
+  gap: var(--space-4);
+  margin-block-start: var(--space-4);
+  align-items: start;
+}
+
+.verse-desk__main {
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* 代币统计条 */
+.token-strip {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-signal);
+  background: var(--color-surface);
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--chamfer-panel)) 0,
+    100% var(--chamfer-panel),
+    100% 100%,
+    0 100%
+  );
+}
+
+.token-strip__price {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+.token-strip__price strong {
+  font-size: var(--text-xl, 1.25rem);
+}
+
+.token-strip__price [data-trend='up'] {
+  color: var(--color-success);
+}
+
+.token-strip__price [data-trend='down'] {
+  color: var(--color-danger);
+}
+
+.token-strip__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+}
+
+.token-strip__chips div {
+  display: grid;
+  gap: 2px;
+}
+
+.token-strip__chips dt {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs, 0.75rem);
+}
+
+.token-strip__chips dd {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+.token-strip__ca {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+}
+
+.token-strip__copy {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border: 1px solid var(--color-border);
+  color: var(--or-cyan);
+  background: var(--color-surface-inset);
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+/* K 线（粒度式学币安——Q3 用户裁定；1m/5m/15m 标「同步中」） */
+.candle-chart {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-signal);
+  background: var(--color-surface);
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--chamfer-panel)) 0,
+    100% var(--chamfer-panel),
+    100% 100%,
+    0 100%
+  );
+}
+
+.candle-chart__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.candle-chart__pair {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.candle-chart__pair span {
+  color: var(--color-text-secondary);
+  font-family: var(--font-data);
+}
+
+.candle-chart__granularity {
+  border-block-end: 1px solid var(--color-border);
+}
+
+.candle-chart__granularity [data-slot='toggle-group-item'] {
+  min-block-size: var(--row-height);
+  padding-inline: var(--space-2);
+  font-family: var(--font-data);
+}
+
+.candle-chart__granularity [data-slot='toggle-group-item'][data-pressed] {
+  color: var(--accent-primary);
+  box-shadow: inset 0 -2px 0 var(--accent-primary);
+}
+
+.candle-chart__svg {
+  inline-size: 100%;
+  block-size: 240px;
+}
+
+.candle-chart__svg .candle--up line,
+.candle-chart__svg .candle--up rect {
+  stroke: var(--color-success);
+  fill: var(--color-success);
+}
+
+.candle-chart__svg .candle--down line,
+.candle-chart__svg .candle--down rect {
+  stroke: var(--color-danger);
+  fill: var(--color-danger);
+}
+
+.candle-chart__empty {
+  display: grid;
+  place-items: center;
+  min-block-size: 240px;
+  color: var(--color-text-secondary);
+}
+
+.candle-chart__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  color: var(--color-text-secondary);
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Swap 面板 */
+.swap-panel {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-signal);
+  background: var(--color-surface);
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--chamfer-panel)) 0,
+    100% var(--chamfer-panel),
+    100% 100%,
+    0 100%
+  );
+}
+
+.swap-panel__field {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-inset);
+}
+
+.swap-panel__field-head {
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs, 0.75rem);
+}
+
+.swap-panel__field-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.swap-panel__field-row input,
+.swap-panel__output {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  font-size: 1rem;
+}
+
+.swap-panel__output {
+  display: block;
+  padding: var(--space-2) var(--space-1);
+  color: var(--color-text-secondary);
+}
+
+.swap-panel__token {
+  display: grid;
+  justify-items: end;
+  gap: var(--space-1);
+}
+
+.swap-panel__quick {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.swap-panel__quick button {
+  padding: 1px var(--space-2);
+  border: 1px solid var(--color-border);
+  color: var(--or-cyan);
+  background: transparent;
+  font-size: var(--text-xs, 0.75rem);
+}
+
+.swap-panel__flip {
+  justify-self: center;
+  margin-block: calc(-1 * var(--space-2));
+  padding: var(--space-1);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-raised);
+  color: var(--or-cyan);
+  position: relative;
+  z-index: 1;
+}
+
+.swap-panel__details {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.swap-panel__details div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.swap-panel__details dt {
+  color: var(--color-text-secondary);
+}
+
+.swap-panel__details dd {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.swap-panel__note {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs, 0.75rem);
+}
+
+.swap-panel__cta {
+  justify-self: stretch;
+}
+
+/* 四标签容器 */
+.verse-tabs {
+  margin-block-start: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-signal);
+  background: var(--color-surface);
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--chamfer-panel)) 0,
+    100% var(--chamfer-panel),
+    100% 100%,
+    0 100%
+  );
+}
+
+.verse-tabs__bar {
+  inline-size: 100% !important;
+  border-block-end: 1px solid var(--color-border);
+}
+
+.verse-tabs__bar [data-slot='toggle-group-item'] {
+  flex: 1;
+  min-block-size: var(--control-height);
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--color-text-secondary) !important;
+}
+
+.verse-tabs__bar [data-slot='toggle-group-item'][data-pressed] {
+  color: var(--accent-primary) !important;
+  box-shadow: inset 0 -2px 0 var(--accent-primary);
+}
+
+.verse-tabs__panel {
+  margin-block-start: var(--space-4);
+}
+
+/* 面板通用 */
+.panel-note {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs, 0.75rem);
+}
+
+.ax-slot {
+  color: var(--or-cyan);
+}
+
+/* Liquidity */
+.liquidity-panel {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.liquidity-panel__overview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-6);
+}
+
+.liquidity-panel__overview dt {
+  color: var(--color-text-secondary);
+}
+
+.liquidity-panel__overview dd {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+.liquidity-panel__pools {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-3);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.pool-card {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-inset);
+}
+
+.pool-card__head {
+  display: grid;
+  gap: 2px;
+}
+
+.pool-card__head span {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs, 0.75rem);
+}
+
+.pool-card__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+}
+
+.pool-card__stats dt {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs, 0.75rem);
+}
+
+/* POL */
+.pol-panel {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.pol-panel__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-6);
+}
+
+.pol-panel__stats dt {
+  color: var(--color-text-secondary);
+}
+
+.pol-panel__wallet {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-inset);
+}
+
+.pol-panel__wallet > div {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.pol-panel__wallet span {
+  color: var(--color-text-secondary);
+}
+
+.pol-panel__actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-3);
+}
+
+.pol-action {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-inset);
+}
+
+.pol-action p {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs, 0.75rem);
+}
+
+/* Yield Vault */
+.vault-panel {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.vault-panel__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-6);
+}
+
+.vault-panel__stats dt {
+  color: var(--color-text-secondary);
+}
+
+.vault-panel__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: var(--space-4);
+}
+
+.vault-panel__lists {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+}
+
+.vault-panel__lists ul {
+  display: grid;
+  gap: var(--space-1);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.vault-panel__lists li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-inset);
+}
+
+.vault-panel__lists li [data-state='ready'] {
+  color: var(--color-success);
+}
+
+.vault-panel__lists li [data-state='waiting'] {
+  color: var(--color-warning);
+}
+
+.vault-actions {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-inset);
+}
+
+.vault-actions__bar [data-slot='toggle-group-item'] {
+  min-block-size: var(--control-height);
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--color-text-secondary) !important;
+}
+
+.vault-actions__bar [data-slot='toggle-group-item'][data-pressed] {
+  color: var(--accent-primary) !important;
+  box-shadow: inset 0 -2px 0 var(--accent-primary);
+}
+
+.vault-actions__form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.vault-actions__field {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.vault-actions__field-head {
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs, 0.75rem);
+}
+
+.vault-actions__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.vault-actions__row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.vault-actions__token {
+  font-family: var(--font-data);
+}
+
+.vault-actions__delegate {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.vault-actions__delegate-option {
+  padding: 2px var(--space-3);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.vault-actions__delegate-option[data-selected='true'] {
+  border-color: var(--or-cyan);
+  color: var(--or-cyan);
+}
+
+.vault-actions__preview {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px dashed var(--color-border);
+}
+
+.vault-actions__preview span:last-child {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+/* DAO */
+.dao-panel {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.dao-panel__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 0.9fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.dao-panel__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-6);
+}
+
+.dao-panel__stats dt {
+  color: var(--color-text-secondary);
+}
+
+.dao-panel__tally {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-inset);
+}
+
+.dao-panel__tally p {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs, 0.75rem);
+}
+
+.dao-panel__cycles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-4);
+}
+
+.cycle-card {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-inset);
+}
+
+.cycle-card[data-current] {
+  border-color: var(--color-border-signal);
+}
+
+.cycle-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.cycle-card header span {
+  color: var(--color-text-secondary);
+  font-family: var(--font-data);
+}
+
+.cycle-card dl {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.cycle-card dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.cycle-card dt {
+  color: var(--color-text-secondary);
+}
+
+.cycle-card dd {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.cycle-card__foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.cycle-card__foot span {
+  color: var(--color-text-secondary);
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 1024px) {
+  .verse-desk,
+  .vault-panel__grid,
+  .dao-panel__head {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .workbench-primary {
@@ -4472,6 +5171,17 @@ svg {
   font-weight: 700;
   color: var(--stage-color);
   text-shadow: 1px 1px 0 color-mix(in srgb, var(--accent-echo) 45%, transparent);
+}
+
+/* 锁定卡一句话描述（fixture description，缺失不渲染）：两行截断防长句撑高卡身 */
+.economy-card__description {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.5;
 }
 
 .economy-card__chains {

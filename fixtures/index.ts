@@ -15,6 +15,8 @@ import usrVaults from './data/usr-vaults.json';
 import bridgeMessages from './data/bridge-messages.json';
 import transactions from './data/transactions.json';
 import governance from './data/governance.json';
+import staking from './data/staking.json';
+import polPositions from './data/pol-positions.json';
 import accounts from './data/accounts.json';
 import notifications from './data/notifications.json';
 import participations from './data/participations.json';
@@ -24,5 +26,5 @@ import scenarios from './scenarios/states.json';
 
 export const fixtureData = {
   chains, assets, verses, markets, positions, psm, usrVaults,
-  bridgeMessages, transactions, governance, accounts, notifications, participations, yieldSources, createConfig, scenarios,
+  bridgeMessages, transactions, governance, staking, polPositions, accounts, notifications, participations, yieldSources, createConfig, scenarios,
 } as const;
