@@ -1,0 +1,109 @@
+{
+  "note": "fixture 冻结清单；自身条目 hash=self 不递归；重建：node scripts/write-fixture-manifest.mjs（输出确定性字节）",
+  "items": {
+    "fixtures/README.md": {
+      "bytes": 1896,
+      "sha256": "fb753d22697c528f97e0ff3bf195dfff74eead132f4c3338d9ea32554f3c3a6c"
+    },
+    "fixtures/data/accounts.json": {
+      "bytes": 1361,
+      "sha256": "b1846a2459999591de269a210dad0dc163a719b51151f2da81f0147939a51395"
+    },
+    "fixtures/data/assets.json": {
+      "bytes": 4718,
+      "sha256": "f574c2ba0ba85b0554e79ec7dfdfc9bb510947b24ad0b63ad0c49c97658c673d"
+    },
+    "fixtures/data/bridge-messages.json": {
+      "bytes": 1548,
+      "sha256": "f8b8bbf9a81f49c8ee9fb14632e8d19f8e9205cb56a50c6b6afed2099fbb7448"
+    },
+    "fixtures/data/chains.json": {
+      "bytes": 1154,
+      "sha256": "75579f74c99ccbcd3b5042f94511bf279e423ca2c012c302286e625a2b2fe825"
+    },
+    "fixtures/data/create-config.json": {
+      "bytes": 429,
+      "sha256": "a925c93f9db5d52f3fa0447f6af343672753715c61d4414179762e7a317f2298"
+    },
+    "fixtures/data/governance.json": {
+      "bytes": 1202,
+      "sha256": "d233d6255b53df41ac1fe66fc16526ac75644b71b5638ee28b94da52fef3a423"
+    },
+    "fixtures/data/markets.json": {
+      "bytes": 13525,
+      "sha256": "31e11c88e32a0713664d45bf1d168a63efb64a607b42812df98ca32a655e1619"
+    },
+    "fixtures/data/notifications.json": {
+      "bytes": 566,
+      "sha256": "7dd51c37fb181d00dfff427a69676d127bd17e1f98fa8444362d089322a85d7d"
+    },
+    "fixtures/data/participations.json": {
+      "bytes": 1647,
+      "sha256": "4df938a5abd1f829aeb419fc14ef7d7e80914c57a9f8f15dedb78c1ed2e9d868"
+    },
+    "fixtures/data/positions.json": {
+      "bytes": 1362,
+      "sha256": "f6328bc6e05c7c7beed80037a128bfbd9f0ceb2b74d26681d84541752130bd5c"
+    },
+    "fixtures/data/psm.json": {
+      "bytes": 1967,
+      "sha256": "7bbd2f298d3a7f986187f6192539826f759442c5b621c8ef8077b8fae3eeebc0"
+    },
+    "fixtures/data/seed.json": {
+      "bytes": 895,
+      "sha256": "5c32bae27b32cdbfb2a093e9119d2afbe17c35ad9660dcc4614b2024b928ef79"
+    },
+    "fixtures/data/transactions.json": {
+      "bytes": 1758,
+      "sha256": "f62d556711a7993ba9f48acc767eff364ea37681715556d8fb39c3dda30af6eb"
+    },
+    "fixtures/data/usr-vaults.json": {
+      "bytes": 1091,
+      "sha256": "0dc65c55e4e3a8dc1cdd95cbf4092135c89c751b61c94b1675231ea77af573c7"
+    },
+    "fixtures/data/verses.json": {
+      "bytes": 60025,
+      "sha256": "8d17f0bf35a3ba6f0f85d5b9ba2b3dd4280303895c6a7fa84941a5015520ef7b"
+    },
+    "fixtures/data/yield-sources.json": {
+      "bytes": 615,
+      "sha256": "60f5aebfe0be13a21645e90f59d86a9e06ca8e0a8d2053fc43c1f279f091b1c6"
+    },
+    "fixtures/index.ts": {
+      "bytes": 1411,
+      "sha256": "172e15ed1c8f797b502f96cfc0da577076b77aad4fb4cc7ec60b2f99ae502276"
+    },
+    "fixtures/inspector/index.html": {
+      "bytes": 15533,
+      "sha256": "3af198b4d410b41ffa8840c9b124d317b3515961d6bb6ac7e527df0532d7980b"
+    },
+    "fixtures/invariants/amounts.json": {
+      "bytes": 3317,
+      "sha256": "2270e0c23166674423d90317815d02a0bcbe3783349a33c43967bd022f3253b1"
+    },
+    "fixtures/invariants/cross-chain.json": {
+      "bytes": 2406,
+      "sha256": "5000d69cf015242b449fc5bc8abb3e295f7a0436492606649c18ee407b982b6a"
+    },
+    "fixtures/invariants/lifecycle.json": {
+      "bytes": 4207,
+      "sha256": "af58a3b36edd64690f6c30f7f5e129202d7542e2f3868d1657686dd39a2c8534"
+    },
+    "fixtures/invariants/state-scenarios.json": {
+      "bytes": 3114,
+      "sha256": "f3cacd92b63461ce60d685763a6c6d22671bfb71af5fbb3bc98a192327081cd0"
+    },
+    "fixtures/scenarios/states.json": {
+      "bytes": 3462,
+      "sha256": "e88f59e2e200092f7ba2be06baf3e355b73e2c82d1981cf98fc6d369454c9d8d"
+    },
+    "fixtures/schema.ts": {
+      "bytes": 13226,
+      "sha256": "460b411e4b6f0cbe6c824656eb777e77bad5d018ac2da12cd9b213820fb9fe3e"
+    },
+    "fixtures/manifest.json": {
+      "bytes": 0,
+      "sha256": "self"
+    }
+  }
+}

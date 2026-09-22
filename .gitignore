@@ -1,0 +1,64 @@
+# v0 runtime files
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.tsx
+
+# Compiler files
+output/
+
+node_modules
+
+# Docs
+docs/superpowers
+docs/audits
+docs/review
+docs/prompts
+
+# Dotenv files (keep the committed template)
+.env
+.env.*
+!.env.example
+
+# pnpm
+pnpm-error.log
+
+# Editor and OS files
+.DS_Store
+.idea
+
+# Vscode file
+.vscode
+.history
+
+#node.js
+.deps
+node_modules/
+
+.worktrees/
+
+# Pi agent runtime artifacts
+.pi-glla/
+
+skills/
+# skill symlinks (git treats symlinks as files, so skills/ above doesn't match them)
+/.agents/skills
+/.zcode/skills
+/.claude/skills
+/.codex/skills
+/.pi/skills
+/.dsh/skills
+lcov.info
+
+# docs/design/brand
+# docs/design/logo-variants
+# docs/design/references
+
+# Next.js
+.next/
+next-env.d.ts
+.env*.local
+
+docs/review
+docs/runbooks
+docs/prototype
+docs/page-briefs

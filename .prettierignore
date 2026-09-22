@@ -1,0 +1,29 @@
+node_modules
+.next
+out
+coverage
+.agents
+.claude
+.dsh
+.pi
+.zcode
+.vercel
+playwright-report
+test-results
+docs/design/references/visual
+docs/design/references/product-ux
+docs/design/references/inbox
+docs/design/logo-*
+docs/runbooks/references
+scripts/generate-logo-*.mjs
+# 阶段 2 起补充：证据文档与确定性数据不进格式门禁（字节冻结优先）；代码（scripts/tests/lib）进
+docs
+DESIGN.md
+PRODUCT.md
+components
+fixtures
+.impeccable
+pnpm-lock.yaml
+
+# Next 生成物（next-env.d.ts 由 next build 自动生成，不入格式域）
+next-env.d.ts

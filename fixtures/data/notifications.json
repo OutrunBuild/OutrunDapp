@@ -1,0 +1,14 @@
+{
+  "seed": "seed-001",
+  "generatedFrom": "fixtures/data/seed.json",
+  "items": [
+    {
+      "id": "ntf-001", "scenario": ["normal"], "sourceRef": "docs/architecture.md#2",
+      "kind": "toast", "messageKey": "tx-success.toast（跨链已发出——到账与落位状态见交易中心）", "at": "2026-09-16T11:55:10Z"
+    },
+    {
+      "id": "ntf-002", "scenario": ["user-rejected"], "sourceRef": "docs/architecture.md#10",
+      "kind": "toast", "messageKey": "tx-rejected.toast（已取消——草稿已保留）", "at": "2026-09-16T11:57:00Z"
+    }
+  ]
+}

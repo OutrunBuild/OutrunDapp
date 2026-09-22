@@ -1,0 +1,24 @@
+{
+  "seed": "seed-001",
+  "generatedFrom": "fixtures/data/seed.json",
+  "items": [
+    { "id": "asset-001", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#OB", "symbol": "UETH", "kind": "uasset", "decimals": 18, "anchorNote": "锚定 ETH，随 ETH 波动，非法币稳定币（glossary A）", "address": { "value": "0xaaaaaaa000000000000000000000000000000001", "fixtureOnly": true } },
+    { "id": "asset-002", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#OB", "symbol": "UUSD", "kind": "uasset", "decimals": 18, "anchorNote": "锚定 USD", "address": { "value": "0xaaaaaaa000000000000000000000000000000002", "fixtureOnly": true } },
+    { "id": "asset-003", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#OB", "symbol": "UBNB", "kind": "uasset", "decimals": 18, "anchorNote": "锚定 BNB，随 BNB 波动，非法币稳定币（glossary A）", "address": { "value": "0xaaaaaaa000000000000000000000000000000003", "fixtureOnly": true } },
+    { "id": "asset-011", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#S8", "symbol": "USDC", "kind": "reserve", "decimals": 6, "address": { "value": "0xbbbbbbb000000000000000000000000000000011", "fixtureOnly": true } },
+    { "id": "asset-012", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#S8", "symbol": "USDT", "kind": "reserve", "decimals": 6, "address": { "value": "0xbbbbbbb000000000000000000000000000000012", "fixtureOnly": true } },
+    { "id": "asset-013", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#S8", "symbol": "ETH", "kind": "reserve", "decimals": 18, "address": { "value": "0xbbbbbbb000000000000000000000000000000013", "fixtureOnly": true } },
+    { "id": "asset-014", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#S8", "symbol": "BNB", "kind": "reserve", "decimals": 18, "address": { "value": "0xbbbbbbb000000000000000000000000000000014", "fixtureOnly": true } },
+    { "id": "asset-021", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#S6", "symbol": "wstETH", "kind": "sy", "decimals": 18, "address": { "value": "0xccccccc000000000000000000000000000000021", "fixtureOnly": true } },
+    { "id": "asset-022", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#S6", "symbol": "sUSDe", "kind": "sy", "decimals": 18, "address": { "value": "0xccccccc000000000000000000000000000000022", "fixtureOnly": true } },
+    { "id": "asset-023", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#S6", "symbol": "stETH", "kind": "sy", "decimals": 18, "address": { "value": "0xccccccc000000000000000000000000000000023", "fixtureOnly": true } },
+    { "id": "asset-024", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#S6", "symbol": "aETH", "kind": "sy", "decimals": 18, "address": { "value": "0xccccccc000000000000000000000000000000024", "fixtureOnly": true } },
+    { "id": "asset-031", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#OB", "symbol": "MOON", "kind": "memecoin", "decimals": 18, "address": { "value": "0xddddddd000000000000000000000000000000031", "fixtureOnly": true } },
+    { "id": "asset-032", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#OB", "symbol": "PEPE2", "kind": "memecoin", "decimals": 18, "address": { "value": "0xddddddd000000000000000000000000000000032", "fixtureOnly": true } },
+    { "id": "asset-033", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#OB", "symbol": "WOJAK", "kind": "memecoin", "decimals": 18, "address": { "value": "0xddddddd000000000000000000000000000000033", "fixtureOnly": true } },
+    { "id": "asset-041", "scenario": ["usr-rate-zero", "usr-share-growth", "usr-capped"], "sourceRef": "docs/page-briefs/source-map.md#S9", "symbol": "suETH", "kind": "share", "decimals": 18, "address": { "value": "0xeeeeeee000000000000000000000000000000041", "fixtureOnly": true } },
+    { "id": "asset-042", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#S9", "symbol": "suUSD", "kind": "share", "decimals": 18, "address": { "value": "0xeeeeeee000000000000000000000000000000042", "fixtureOnly": true } },
+    { "id": "asset-043", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#S9", "symbol": "suBNB", "kind": "share", "decimals": 18, "address": { "value": "0xeeeeeee000000000000000000000000000000043", "fixtureOnly": true } },
+    { "id": "asset-051", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#OB", "symbol": "GenesisCredit", "kind": "credit", "decimals": 18, "address": { "value": "0xffffffff00000000000000000000000000000051", "fixtureOnly": true } }
+  ]
+}

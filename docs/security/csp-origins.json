@@ -1,0 +1,51 @@
+{
+  "version": 2,
+  "directives": {
+    "default-src": ["'self'"],
+    "script-src": ["'self'", "'strict-dynamic'", "https://challenges.cloudflare.com"],
+    "style-src": ["'self'", "'unsafe-inline'"],
+    "img-src": ["'self'", "data:", "blob:"],
+    "font-src": ["'self'"],
+    "object-src": ["'none'"],
+    "base-uri": ["'self'"],
+    "form-action": ["'self'"],
+    "frame-ancestors": ["'none'"],
+    "child-src": [
+      "https://auth.privy.io",
+      "https://verify.walletconnect.com",
+      "https://verify.walletconnect.org",
+      "https://challenges.cloudflare.com"
+    ],
+    "frame-src": [
+      "https://auth.privy.io",
+      "https://verify.walletconnect.com",
+      "https://verify.walletconnect.org",
+      "https://challenges.cloudflare.com"
+    ],
+    "connect-src": [
+      "'self'",
+      "https://auth.privy.io",
+      "wss://relay.walletconnect.com",
+      "wss://relay.walletconnect.org",
+      "wss://www.walletlink.org",
+      "https://*.rpc.privy.systems",
+      "https://explorer-api.walletconnect.com"
+    ],
+    "worker-src": ["'self'"],
+    "manifest-src": ["'self'"]
+  },
+  "noncePolicy": {
+    "directive": "script-src",
+    "requestHeader": "x-nonce",
+    "encoding": "base64",
+    "minimumEncodedLength": 20,
+    "required": true,
+    "perRequest": true
+  },
+  "runtimeOrigins": {
+    "rpc": "exact origins from the six-chain Zod config",
+    "graph": "exact origins from the six-chain subgraph config",
+    "sentry": "origin parsed from the configured Sentry DSN",
+    "analytics": "disabled unless explicitly added and reviewed"
+  }
+}

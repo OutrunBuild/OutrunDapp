@@ -1,0 +1,24 @@
+{
+  "seed": "seed-001",
+  "generatedFrom": "fixtures/data/seed.json",
+  "items": [
+    {
+      "id": "pos-001", "scenario": ["normal", "cdp-debt-redeem"], "sourceRef": "docs/page-briefs/source-map.md#S2",
+      "chainId": 1, "owner": { "value": "0x1111111000000000000000000000000000000001", "fixtureOnly": true },
+      "collateral": { "assetId": "asset-021", "amount": { "raw": "12.5", "decimals": 18 } },
+      "debt": { "raw": "12.5", "decimals": 18 }, "yieldSource": "Lido", "noMaturity": true
+    },
+    {
+      "id": "pos-002", "scenario": ["cdp-partial-redeem"], "sourceRef": "docs/page-briefs/source-map.md#S3",
+      "chainId": 8453, "owner": { "value": "0x1111111000000000000000000000000000000001", "fixtureOnly": true },
+      "collateral": { "assetId": "asset-022", "amount": { "raw": "6000", "decimals": 18 } },
+      "debt": { "raw": "6000", "decimals": 18 }, "yieldSource": "Ethena", "noMaturity": true
+    },
+    {
+      "id": "pos-003", "scenario": ["cdp-insufficient-uasset", "zero-position"], "sourceRef": "docs/page-briefs/source-map.md#S1",
+      "chainId": 56, "owner": { "value": "0x1111111000000000000000000000000000000001", "fixtureOnly": true },
+      "collateral": { "assetId": "asset-021", "amount": { "raw": "3", "decimals": 18 } },
+      "debt": { "raw": "3", "decimals": 18 }, "yieldSource": "Lido", "noMaturity": true
+    }
+  ]
+}

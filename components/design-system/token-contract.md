@@ -1,0 +1,43 @@
+# Token 契约（Stage-01 步骤 10）
+
+> `tokens.css` 是全站唯一颜色/字体/间距/动效来源。本文件定义命名、来源、使用边界。任何页面/组件不得裸写颜色、字号、间距、阴影值。
+
+## 1. 人工决策溯源（decision-log.md）
+
+| Token 组 | 决议 | 锁定值 |
+|---|---|---|
+| 品牌锚 6 色 + 站点黑 | 001/004（brand/logo-spec.md） | `--logo-yellow #FCEE0A` 等，页面不得覆盖、不得改色 |
+| 表面/文本/反馈 | 002 P2 冷石墨 | `--color-surface #12141B`；正文 `#E6E9F0` 15.14:1；成功 `#35E08E`；危险 `#FF5468` |
+| 密度 | 003 T2 均衡 | 行高 44px / 正文 14px；T1(36)/T3(56) 仅限注明的局部区域 |
+| 字标 | 004 | brand/ 包唯一基准；字标 ≥96px 宽，<150px 用 symbol；浅底 mono；禁改色/拉伸/裁切 |
+| 方向与去极客 | 001 + 001-A | 等宽仅数据字段；无 KERNEL/DELEGATED 等符号；文案消费化 |
+| 复古未来主义签名层 | 010（r10 提取） | HUD 网格（44/22px 青线）/品红回声轨（-72px 位移回声）/CRT 扫描线/信号脉冲 1.4s/斜切三档（≤8/10/12px）/glow 分层开关 `[data-glow=on]`/卡片青 tinted chrome/字体身份（Saira Condensed+IBM Plex Sans/Mono） |
+
+## 2. 使用边界（硬规则）
+
+1. **数据层文本零 glow**：`text-shadow`/发光禁止用于数字、表格、正文；glow 仅结构记号与强调层（导航激活条/斜切记号/CTA/卡片青微光），由 `[data-glow=on]` 统一开关，off 全站仍 AA（010 修订——r10 部署实测该开关体系）。
+2. **tabular-nums 强制**：一切数字字段（价格/收益率/余额/数量/百分比/区块/时间戳）必须 `--font-data` + `tabular-nums`（`[data-numeric]` 类或等价机制）。
+3. **品红限界**：`--accent-echo` 仅大字号（≥20px）、徽章、图形回声层；正文与小字号禁用（对比 5.19~5.89:1 档，且决议定为图形语言）。
+4. **青色限界**：链接与 focus ring 专用；禁大面积色块（logo-spec §2）。
+5. **单一 focus 语言**：`:focus-visible` 2px `--or-cyan` 外环，全站唯一，不得自造。
+6. **渐变禁令**（负面清单，010 例外清单收窄）：渐变不得作按钮默认装饰、不得使用日落渐变（D2 桥接物未采纳）；**例外**=010 签名纹理层（HUD 网格线、主区品红 135° 角部洗色 `--echo-wash-magenta`、CRT 扫描线）——仅限 tokens.css `.ax-*` 签名层定义的纹理，组件不得自造渐变。
+7. **斜切三档体系**（010 修订）：UI 件 ≤ `--chamfer` 8px；表格/卡片容器单角 `--chamfer-panel` 10px；KPI/斜杠记号对角双切 `--chamfer-card` 12px（`clip-path`，切角容器圆角=0）。
+8. **双语文案**：页面单语言渲染，zh/en 经 `/{locale}` 切换，默认 en（决议 001-B；architecture §2 修订挂起中）；禁止同页混排双语标签。
+9. **字号硬线**：中文正文基准 `--text-base` 16px、阅读文本 ≥ `--text-sm` 14px、标签 ≥ `--text-xs` 12px（决议 013 全量上调：11/12/14/16 → 12/14/16/18；001-A 的 ≥14px 硬线由 013 收紧）。
+10. **reduced-motion**：唯一装饰动效「回声确认」（120ms 品红错位闪烁）降级为静态双描边；其余动效仅服务状态反馈。
+
+## 3. 命名约定
+
+- `--color-*` 语义色（bg/surface/text/feedback/border）
+- `--accent-*` 强调语义（primary/echo/link）
+- `--logo-*`/`--or-cyan`/`--site-black` 品牌锚（只读）
+- `--font-{display,body,data}`、`--text-{xs..xl}`、`--space-{1..8}`、`--row-height*`、`--z-*`
+- 组件只引用上述 token；新需求先扩 token 再用（阶段 2 起 PR 审查项）
+
+## 4. 字族（010 终选，r10 部署实证）
+
+`--font-display=Saira Condensed`（窄体复古未来主义，600/700）、`--font-body=IBM Plex Sans`、`--font-data=IBM Plex Mono`、中文 Noto Sans SC——均经 next/font 自托管（满足自托管约束），非默认 Inter。display 窄体大标题是 010 复古未来主义强化的组成部分；正文/导航/按钮仍为常规无衬线（去极客结构）。D2/D3 方向遗留字体变量无消费者，禁引入。
+
+## 5. 变更流程
+
+token 修改 = 设计真相变更：走 decision-log 新决议或步骤 13 差异轮；禁止实现期顺手改值。

@@ -1,0 +1,34 @@
+{
+  "seed": "seed-001",
+  "generatedFrom": "fixtures/data/seed.json",
+  "items": [
+    {
+      "id": "psm-001", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#S8",
+      "chainId": 1, "uAssetId": "asset-002", "reserveId": "asset-011",
+      "tin": { "raw": "10", "unit": "bps", "scale": 4 }, "tout": { "raw": "10", "unit": "bps", "scale": 4 },
+      "stockCap": { "raw": "5000000", "decimals": 18 }, "netMinted": { "raw": "3100000", "decimals": 18 },
+      "reserveAvailable": { "raw": "4100000", "decimals": 6 }
+    },
+    {
+      "id": "psm-002", "scenario": ["psm-stockcap-full"], "sourceRef": "docs/page-briefs/source-map.md#S8",
+      "chainId": 8453, "uAssetId": "asset-001", "reserveId": "asset-013",
+      "tin": { "raw": "10", "unit": "bps", "scale": 4 }, "tout": { "raw": "10", "unit": "bps", "scale": 4 },
+      "stockCap": { "raw": "2000000", "decimals": 18 }, "netMinted": { "raw": "1999999.999999", "decimals": 18 },
+      "reserveAvailable": { "raw": "900000", "decimals": 18 }
+    },
+    {
+      "id": "psm-003", "scenario": ["psm-reserve-depleted"], "sourceRef": "docs/page-briefs/source-map.md#S8",
+      "chainId": 56, "uAssetId": "asset-003", "reserveId": "asset-014",
+      "tin": { "raw": "10", "unit": "bps", "scale": 4 }, "tout": { "raw": "10", "unit": "bps", "scale": 4 },
+      "stockCap": { "raw": "1000000", "decimals": 18 }, "netMinted": { "raw": "400000", "decimals": 18 },
+      "reserveAvailable": { "raw": "0", "decimals": 18 }
+    },
+    {
+      "id": "psm-004", "scenario": ["psm-dust-quote-zero"], "sourceRef": "docs/page-briefs/source-map.md#S8",
+      "chainId": 1, "uAssetId": "asset-002", "reserveId": "asset-012",
+      "tin": { "raw": "10", "unit": "bps", "scale": 4 }, "tout": { "raw": "10", "unit": "bps", "scale": 4 },
+      "stockCap": { "raw": "5000000", "decimals": 18 }, "netMinted": { "raw": "1000000", "decimals": 18 },
+      "reserveAvailable": { "raw": "3000000", "decimals": 6 }
+    }
+  ]
+}

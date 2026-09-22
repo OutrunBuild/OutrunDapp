@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Component Contract Preview — Stage-01 Step 11</title>
+<meta name="theme-color" content="#0A0A10">
+<link rel="stylesheet" href="../../../components/design-system/tokens.css">
+<style>
+body{background:var(--color-bg);color:var(--color-text);font-family:var(--font-body);font-size:var(--text-base);margin:0;padding:40px;line-height:1.65}
+h1{font-family:var(--font-display);font-size:var(--text-xl);margin:0 0 4px}
+.note{color:var(--color-text-secondary);font-size:var(--text-sm);margin-bottom:8px;max-width:900px}
+h2{font-size:var(--text-md);color:var(--color-text-secondary);letter-spacing:.06em;margin:44px 0 12px;font-weight:500}
+h2 small{color:var(--color-text-tertiary);font-weight:400}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--space-4)}
+.card.scrollx{overflow-x:auto}
+.card h3{margin:0 0 10px;font-size:var(--text-sm);color:var(--color-text-secondary);font-weight:500;letter-spacing:.08em}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.num,[data-numeric]{font-family:var(--font-data);font-variant-numeric:tabular-nums}
+/* controls */
+.btn{display:inline-flex;align-items:center;justify-content:center;height:var(--control-height);padding:0 18px;font-family:var(--font-body);font-size:var(--text-base);font-weight:600;border:0;cursor:pointer;border-radius:0}
+.btn.p{background:var(--accent-primary);color:var(--site-black);clip-path:polygon(var(--chamfer) 0,100% 0,calc(100% - var(--chamfer)) 100%,0 100%)}
+.btn.p:disabled{background:var(--color-disabled-bg);color:var(--color-text-secondary)}
+.btn.s{background:transparent;color:var(--accent-link);border:1px solid var(--color-disabled-border)}
+input.amt{background:var(--color-surface-inset);border:1px solid var(--color-border);color:var(--color-text);height:var(--control-height);padding:0 12px;font-family:var(--font-data);font-variant-numeric:tabular-nums;font-size:var(--text-base);border-radius:var(--radius-sm);width:150px}
+input.amt.err{border-color:var(--color-danger)}
+.fieldmsg{font-size:var(--text-sm);color:var(--color-danger)}
+.linkish{color:var(--color-text-tertiary);font-size:var(--text-sm)}
+.maxlink{color:var(--accent-link);font-size:var(--text-sm);cursor:pointer}
+/* selectors */
+.trigger{display:inline-flex;align-items:center;gap:8px;background:var(--color-surface-inset);border:1px solid var(--color-border);height:var(--control-height);padding:0 12px;border-radius:var(--radius-sm);cursor:pointer;color:var(--color-text)}
+.dot{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700}
+.listbox{margin-top:6px;border:1px solid var(--color-border);border-radius:var(--radius-sm);background:var(--color-surface);overflow:hidden;width:240px}
+.listbox .li{display:flex;justify-content:space-between;padding:10px 12px;font-size:var(--text-sm)}
+.listbox .li[aria-selected="true"]{background:var(--color-surface-raised);box-shadow:inset 2px 0 0 var(--accent-primary)}
+.listbox .li .bal{color:var(--color-text-secondary)}
+.badge{font-size:var(--text-xs);border:1px solid var(--accent-echo);color:var(--accent-echo);padding:1px 8px;letter-spacing:.1em}
+.badge.ok{border-color:var(--color-success);color:var(--color-success)}
+.badge.warn{border-color:var(--color-warning);color:var(--color-warning)}
+.badge.muted{border-color:var(--color-border-strong);color:var(--color-text-secondary)}
+.chainbadge{font-size:var(--text-xs);background:var(--color-warning);color:var(--site-black);padding:1px 6px;font-weight:700}
+/* stage */
+.stage{display:flex;gap:0;align-items:center;margin:8px 0}
+.stg{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:86px}
+.stg .b{width:14px;height:14px;border-radius:50%;border:2px solid var(--color-border-strong)}
+.stg.done .b{background:var(--color-success);border-color:var(--color-success)}
+.stg.cur .b{background:var(--accent-primary);border-color:var(--accent-primary);box-shadow:0 0 0 4px rgba(252,238,10,.15)}
+.stg .t{font-size:var(--text-xs);color:var(--color-text-secondary)}
+.stg.cur .t{color:var(--accent-primary);font-weight:600}
+.stgln{flex:1;height:2px;background:var(--color-border);margin-bottom:20px}
+.stgln.done{background:var(--color-success)}
+/* table */
+table.tb{width:100%;border-collapse:collapse}
+.tb th{font-size:var(--text-xs);color:var(--color-text-secondary);text-align:left;font-weight:500;padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--color-border-strong)}
+.tb td{padding:0 var(--space-3);height:var(--row-height);border-bottom:1px solid var(--color-border);font-size:var(--text-base)}
+.tb td.n{font-family:var(--font-data);font-variant-numeric:tabular-nums;text-align:right}
+.up{color:var(--color-success)}.dn{color:var(--color-danger)}
+.sync{font-size:var(--text-xs);color:var(--color-warning)}
+.addr{font-family:var(--font-data);font-size:var(--text-sm);background:var(--color-surface-inset);padding:2px 8px;border-radius:4px;border:1px solid var(--color-border)}
+/* review */
+.rev{border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--space-4)}
+.rrow{display:flex;justify-content:space-between;padding:5px 0;font-size:var(--text-sm)}
+.rrow .k{color:var(--color-text-secondary)}
+.rrow .v{font-family:var(--font-data);font-variant-numeric:tabular-nums}
+.rrow .v.warn{color:var(--color-danger)}
+.fee{border-top:1px dashed var(--color-border);margin-top:8px;padding-top:8px;font-size:var(--text-sm);color:var(--color-text-secondary)}
+/* tx steps */
+.steps{display:flex;flex-direction:column;gap:6px}
+.step{display:flex;gap:10px;align-items:center;font-size:var(--text-sm);color:var(--color-text-tertiary)}
+.step.done{color:var(--color-text-secondary)}
+.step.cur{color:var(--color-text)}
+.step .ic{width:8px;height:8px;border-radius:50%;background:var(--color-border-strong)}
+.step.done .ic{background:var(--color-success)}
+.step.cur .ic{background:var(--accent-primary);box-shadow:0 0 0 3px rgba(252,238,10,.15)}
+/* account caps */
+.acc{display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--color-border);border-radius:var(--radius-sm)}
+.acc.warn{border-color:var(--color-warning)}
+/* empty */
+.empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:26px;text-align:center}
+.anchor-sq{width:36px;height:36px;border:1px solid var(--accent-primary);position:relative;background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(252,238,10,.08) 3px 4px)}
+.echo{position:relative;font-family:var(--font-display);font-size:var(--text-lg);color:var(--accent-primary)}
+.echo::after{content:attr(data-t);position:absolute;left:3px;top:2px;color:var(--accent-echo);opacity:.45;z-index:-1}
+.aria-demo{font-size:var(--text-xs);color:var(--color-text-tertiary);border:1px dashed var(--color-border);padding:6px 10px;border-radius:4px}
+.toast{background:var(--color-surface-raised);border:1px solid var(--color-border-strong);border-radius:var(--radius-sm);padding:8px 14px;font-size:var(--text-sm);box-shadow:var(--shadow-raised)}
+
+.linkbtn{background:none;border:0;padding:0;color:var(--accent-link);cursor:pointer;font:inherit;text-decoration:underline;text-underline-offset:3px}
+.skip{position:absolute;left:-9999px;top:0;background:var(--accent-primary);color:var(--site-black);padding:8px 14px;z-index:1200;font-weight:600}
+.skip:focus{left:8px;top:8px}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<main id="main"><h1>Component contract preview</h1>
+<p class="note">Stage-01 Step-11 · 10 个领域组件的关键状态静态预览（token 驱动，零依赖）。键盘走查：Tab/Shift+Tab 全页；Esc 于弹层；状态文案见 state-matrix.md。reduced-motion 下唯一品牌 moment 降级为静态双描边。</p>
+
+<h2>1 · AmountInput <small>校验/余额/dust 域</small></h2>
+<div class="grid">
+  <div class="card"><h3>DEFAULT / FOCUS</h3>
+    <label for="a1" style="font-size:var(--text-sm);color:var(--color-text-secondary)">You pay</label><br>
+    <div class="row" style="margin-top:6px"><input id="a1" class="amt" value="95.50" aria-label="amount to pay"><span class="linkish">≈ $95.50</span></div>
+    <div class="row" style="margin-top:8px"><span class="linkish">Balance: <span class="num">1,204.30 POL</span></span><span class="maxlink">Max</span></div>
+  </div>
+  <div class="card"><h3>ERROR · exceeds balance</h3>
+    <input class="amt err" value="2,000.00" aria-invalid="true" aria-label="amount to pay"><br>
+    <div class="fieldmsg" style="margin-top:6px">Amount exceeds your balance · <span class="maxlink">Use max</span></div>
+  </div>
+  <div class="card"><h3>DUST 域（PSM）</h3>
+    <input class="amt err" value="0.000001" aria-invalid="true" aria-label="amount"><br>
+    <div class="fieldmsg" style="margin-top:6px">Amount too small to convert</div>
+    <div class="linkish" style="margin-top:4px">Fee would leave nothing to swap</div>
+  </div>
+</div>
+
+<h2>2 · AssetSelector / ChainSelector <small>listbox 键盘模式</small></h2>
+<div class="grid">
+  <div class="card"><h3>ASSET · open + selected</h3>
+    <div class="trigger"><span class="dot" style="background:var(--accent-primary);color:var(--site-black)">U</span>UUSD <span class="linkish num">1,204.30</span> ▾</div>
+    <div class="listbox" role="listbox" aria-label="select asset">
+      <div class="li" role="option" aria-selected="true"><span>UUSD <span class="linkish">USD anchor</span></span><span class="bal num">1,204.30</span></div>
+      <div class="li" role="option"><span>UETH</span><span class="bal num">0.42</span></div>
+      <div class="li" role="option" aria-disabled="true" style="opacity:.45"><span>PT-SEP26 <span class="badge muted">Paused</span></span><span class="bal num">4,200</span></div>
+    </div>
+  </div>
+  <div class="card"><h3>CHAIN · testnet mode + wrong network</h3>
+    <div class="row"><div class="trigger"><span class="dot" style="background:#627EEA"></span>Ethereum <span class="chainbadge">TESTNET</span> ▾</div></div>
+    <div class="row" style="margin-top:10px"><div class="trigger" style="border-color:var(--color-warning)"><span class="dot" style="background:#F6851B"></span>BNB Chain <span class="badge warn">Wrong network</span></div></div>
+    <div class="linkish" style="margin-top:6px">Switch clears your draft — you'll confirm first.</div>
+  </div>
+</div>
+
+<h2>3 · TokenPair + VerseStage <small>生命周期（双门槛独立）</small></h2>
+<div class="grid">
+  <div class="card"><h3>TOKENPAIR</h3>
+    <div class="row">
+      <span class="dot" style="background:var(--accent-primary);color:var(--site-black)">S</span><span class="dot" style="background:var(--accent-echo);margin-left:-6px">S</span>
+      <b>SOLSTICE/UUSD</b><span class="badge">SEP-26</span>
+    </div>
+    <div class="row" style="margin-top:8px"><span class="linkish">Ends in </span><span class="num" style="color:var(--color-warning)">2d 4h</span></div>
+  </div>
+  <div class="card"><h3>VERSESTAGE · Locked（当前）</h3>
+    <div class="stage">
+      <div class="stg done"><div class="b"></div><div class="t">Genesis</div></div><div class="stgln done"></div>
+      <div class="stg cur"><div class="b"></div><div class="t">Locked</div></div><div class="stgln"></div>
+      <div class="stg"><div class="b"></div><div class="t">Refund</div></div><div class="stgln"></div>
+      <div class="stg"><div class="b"></div><div class="t">Unlocked</div></div>
+    </div>
+    <div class="rrow"><span class="k">Regular funding</span><span class="v up">100% of target</span></div>
+    <div class="rrow"><span class="k">Leverage interest</span><span class="v" style="color:var(--color-warning)">78% of target</span></div>
+    <div class="linkish">Two separate goals — reached independently.</div>
+  </div>
+</div>
+
+<h2>4 · PositionTable <small>T2 44px · 展开 · 同步徽章 · 复制</small></h2>
+<div class="card scrollx" style="max-width:860px">
+  <div class="row" style="justify-content:space-between;margin-bottom:6px">
+    <h3 style="margin:0">POL POSITIONS</h3><span class="sync">Syncing · 2m behind · chain data is source of truth</span>
+  </div>
+  <table class="tb">
+    <tr><th>Pair</th><th style="text-align:right">Balance</th><th style="text-align:right">Value</th><th style="text-align:right">24h</th><th>Status</th><th></th></tr>
+    <tr><td>SOLSTICE/UUSD <span class="badge">SEP-26</span></td><td class="n">4,200.00</td><td class="n">4,132.11</td><td class="n up">+2.41%</td><td><span class="badge ok">Unlocked</span></td><td><button class="btn s" style="height:32px;padding:0 12px;font-size:var(--text-sm)">Details</button></td></tr>
+    <tr><td>NIGHTGRID/UUSD <span class="badge">DEC-26</span></td><td class="n">8,900.00</td><td class="n">9,004.80</td><td class="n dn">−0.86%</td><td><span class="badge">Locked</span></td><td><button class="btn s" style="height:32px;padding:0 12px;font-size:var(--text-sm)">Details</button></td></tr>
+  </table>
+  <div class="row" style="margin-top:10px"><span class="addr">0x742d…f19c</span><span class="linkish">Copy</span><span class="aria-demo">aria-sort on headers · Enter toggles row</span></div>
+</div>
+
+<h2>5 · TransactionReview <small>审阅 + 费率分解 + 模拟态</small></h2>
+<div class="grid">
+  <div class="card"><h3>REVIEW · ready</h3>
+    <div class="rev">
+      <div class="rrow"><span class="k">Sell</span><span class="v">4,800.00 YT (SEP-26)</span></div>
+      <div class="rrow"><span class="k">Minimum received</span><span class="v">95.50 POL</span></div>
+      <div class="rrow"><span class="k">Price protection</span><span class="v warn">0.0199 POL (−4.2%)</span></div>
+      <div class="rrow"><span class="k">Deadline</span><span class="v">120s</span></div>
+      <div class="fee">Base 1.00% · Impact 0.42% · Volatility 0.10% · Decay 0.00% — <span style="color:var(--accent-link)">fee breakdown</span></div>
+      <div class="row" style="margin-top:12px"><button class="btn p">Sign &amp; broadcast</button><button class="btn s">Cancel</button></div>
+    </div>
+  </div>
+  <div class="card"><h3>SIMULATING（禁用+状态）</h3>
+    <div class="rev" aria-live="polite">
+      <div class="rrow"><span class="k">Simulating your transaction…</span><span class="v" style="color:var(--color-text-secondary)">step 4 of 8</span></div>
+      <div class="row" style="margin-top:12px"><button class="btn p" disabled>Sign &amp; broadcast</button><button class="btn s">Cancel</button></div>
+      <div class="linkish" style="margin-top:6px">Nothing is sent until the simulation passes.</div>
+    </div>
+  </div>
+  <div class="card"><h3>ERROR · quote expired</h3>
+    <div class="rev" style="border-color:var(--color-danger)">
+      <div class="rrow"><span class="k" style="color:var(--color-danger);font-weight:600">Quote expired</span></div>
+      <div class="linkish">The price moved while you were away.</div>
+      <div class="row" style="margin-top:10px"><button class="btn s">Refresh quote</button><button class="btn s">Cancel</button></div>
+    </div>
+  </div>
+</div>
+
+<h2>6 · TransactionStatus <small>§7 十一态示例段</small></h2>
+<div class="grid">
+  <div class="card"><h3>IN PROGRESS</h3>
+    <div class="steps">
+      <div class="step done"><span class="ic"></span>Prepared</div>
+      <div class="step done"><span class="ic"></span>Authorization approved</div>
+      <div class="step done"><span class="ic"></span>Simulation passed</div>
+      <div class="step cur"><span class="ic"></span>Waiting for your signature…</div>
+      <div class="step"><span class="ic"></span>Submitted</div>
+      <div class="step"><span class="ic"></span>Confirming</div>
+    </div>
+    <div class="linkish" style="margin-top:8px">aria-live=assertive · every step is text</div>
+  </div>
+  <div class="card"><h3>CROSS-CHAIN · message pending</h3>
+    <div class="steps">
+      <div class="step done"><span class="ic"></span>Confirmed on Ethereum</div>
+      <div class="step cur"><span class="ic"></span>Waiting for Base…</div>
+    </div>
+    <div class="row" style="margin-top:8px"><span class="addr">0x91ab…3f07</span><span class="linkish">Source tx ≠ delivery — hold tight.</span></div>
+  </div>
+  <div class="card"><h3>REJECTED（非错误语气）</h3>
+    <div class="acc"><span class="badge muted">Cancelled</span><span class="linkish">Request cancelled in your wallet</span></div>
+    <div class="row" style="margin-top:8px"><button class="btn s">Try again</button></div>
+  </div>
+  <div class="card"><h3>CONFIRMED · 回声确认（唯一品牌 moment）</h3>
+    <div class="row"><span class="echo" data-t="SETTLED">SETTLED</span><span class="badge ok">+312.08 UUSD</span></div>
+    <div class="linkish" style="margin-top:6px">120ms echo flash → reduced-motion: static double outline</div>
+  </div>
+</div>
+
+<h2>7 · AccountCapability <small>九态示例</small></h2>
+<div class="grid">
+  <div class="card"><h3>DISCONNECTED</h3><div class="acc"><span class="badge muted">Not connected</span><button class="btn p" style="height:36px">Connect wallet</button></div><div class="linkish" style="margin-top:6px">Browse freely — connect to trade.</div></div>
+  <div class="card"><h3>STANDARD EOA</h3><div class="acc"><span class="badge warn">Standard wallet</span><span class="linkish">Trading needs a one-time upgrade</span></div><button class="btn s" style="margin-top:8px">Upgrade account</button></div>
+  <div class="card"><h3>SMART ACCOUNT READY</h3><div class="acc"><span class="badge ok">Smart account</span><span class="linkish">ETH · Base · BNB</span></div><div class="linkish" style="margin-top:6px">Swap failed ≠ not enabled — states stay separate.</div></div>
+  <div class="card"><h3>UNSUPPORTED</h3><div class="acc warn"><span class="badge warn">Unknown contract</span><span class="linkish">Replace the link to trade — no bypass.</span></div><button class="btn s" style="margin-top:8px">Replace delegation</button></div>
+</div>
+
+<h2>8 · EmptyState <small>品牌锚唯一纹理位</small></h2>
+<div class="grid">
+  <div class="card"><h3>EMPTY</h3>
+    <div class="empty"><div class="anchor-sq"></div><b>No POL positions yet</b><span class="linkish">Provide liquidity to earn fees</span><button class="btn s">Browse memeverse</button></div>
+  </div>
+  <div class="card"><h3>UNDEPLOYED (D5)</h3>
+    <div class="empty"><div class="anchor-sq" style="border-color:var(--color-border-strong)"></div><b>Not available on this chain yet</b><span class="linkish">Coming with the next deployment</span><button class="btn s">Switch chain</button></div>
+  </div>
+  <div class="card"><h3>PAUSED (D4)</h3>
+    <div class="acc warn" style="justify-content:flex-start"><span class="badge warn">Paused</span><span class="linkish">Swaps are paused by governance. Your funds are safe; reading stays live.</span></div>
+  </div>
+</div>
+
+<h2>9 · Toast / i18n / focus 演示</h2>
+<div class="row">
+  <div class="toast">Copied <span class="addr">0x742d…f19c</span></div>
+  <span class="aria-demo">single-language page · switch zh/EN in header (default en)</span>
+  <button type="button" class="linkbtn">Focusable link → cyan ring</button>
+  <button class="btn s" style="height:36px">Tab me</button>
+</div>
+
+<p class="note" style="margin-top:40px">走查清单：Tab 全链焦点可见性 · 弹层 Esc/焦点还原 · 徽章恒带文本 · 数字列等宽无 glow · 错误均含恢复动作 · 中文态（?lang=zh）另行整页验证（阶段 3）。</p>
+</main>
+</body>

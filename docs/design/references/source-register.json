@@ -1,0 +1,290 @@
+{
+  "version": 1,
+  "frozenAt": "2026-09-15",
+  "rubric": "docs/design/references/source-eligibility-rubric.md",
+  "captureProtocol": {
+    "tool": "playwright 1.62.1 (chromium, headful under WSLg; user-local NSS/NSPR libs)",
+    "locale": "en-US",
+    "reducedMotion": "reduce",
+    "viewports": ["1440x900", "390x844"],
+    "settle": "2000ms + per-source extra wait (see extraWaitMs)",
+    "consent": "auto-dismiss common cookie/consent banners",
+    "captureMode": "headful-chromium-playwright-1.62.1",
+    "supplement": "desktop-full.png = slow-scroll then fullPage capture (step-4 learning aid, not the protocol frame)"
+  },
+  "counts": {
+    "verifiedTotal": 9,
+    "directStyle": ["VS-001", "VS-002", "VS-003", "VS-004"],
+    "webDesignCase": ["VS-005", "VS-006", "VS-007", "VS-008", "VS-009"],
+    "fusionCases": ["VS-009"],
+    "gate": { "required": { "total": 6, "direct": 4, "case": 2 }, "met": true }
+  },
+  "sources": [
+    {
+      "sourceId": "VS-001",
+      "title": "The Midnight | Official Website",
+      "owner": "The Midnight (band official site)",
+      "url": "https://themidnightofficial.com/",
+      "category": "direct-style",
+      "dominantSubstyle": "synthwave",
+      "substyleTag": null,
+      "captureDate": "2026-09-15",
+      "license": "reference-only",
+      "externalToolUpload": "denied",
+      "extraWaitMs": 0,
+      "screenshots": {
+        "desktop": "visual/VS-001-desktop.png",
+        "mobile": "visual/VS-001-mobile.png",
+        "desktopFull": "visual/VS-001-desktop-full.png"
+      },
+      "sha256": {
+        "desktop": "fb990f5fde4d573fac6f3d70982dad6c89fa33240c455dad4f974d68018606f0",
+        "mobile": "9ade1747b174f9877d950fe04c33522e2aafc28089bb177ef825ef967b442f83",
+        "desktopFull": "2604f2822727a0980239dbe3663a04015b0e124931caf8b8702b541e2c772a30"
+      },
+      "observationGoals": "synthwave hero 光源与暗部层次、日落渐变用法边界、字形气质、全页节奏",
+      "forbiddenBrandElements": "乐队 logo、专辑封面艺术、照片素材、全部文案",
+      "retention": "retain"
+    },
+    {
+      "sourceId": "VS-002",
+      "title": "Cyberpunk 2077 Official Site",
+      "owner": "CD PROJEKT RED",
+      "url": "https://www.cyberpunk.net/us/en/",
+      "category": "direct-style",
+      "dominantSubstyle": "cyberpunk",
+      "substyleTag": null,
+      "captureDate": "2026-09-15",
+      "license": "reference-only",
+      "externalToolUpload": "denied",
+      "extraWaitMs": 2000,
+      "captureNotes": "first mobile capture hit Cookiebot overlay; consent auto-dismissed then recaptured",
+      "screenshots": {
+        "desktop": "visual/VS-002-desktop.png",
+        "mobile": "visual/VS-002-mobile.png",
+        "desktopFull": "visual/VS-002-desktop-full.png"
+      },
+      "sha256": {
+        "desktop": "9172051e9f4bff8be97c55085d2320a48686c512baf91bbca135432ed7078780",
+        "mobile": "811de516b366f09e83cecada552dc3009ca7caddfa8f47f608179e56cb4235ab",
+        "desktopFull": "e1b82db31556f6acef64ece57a95d7c44e06525cc4cf8879ac8a5c8e31c69eed"
+      },
+      "observationGoals": "高对比暗底、霓虹光源分配、磨损/噪点材质、显示字形、电影化构图",
+      "forbiddenBrandElements": "CDPR logo、Cyberpunk 2077 商标、角色/键视艺术、全部文案",
+      "retention": "retain"
+    },
+    {
+      "sourceId": "VS-003",
+      "title": "Cyberpunk: Edgerunners 2 Official Site",
+      "owner": "CD PROJEKT RED / TRIGGER",
+      "url": "https://www.cyberpunk.net/zh-cn/edgerunners2",
+      "category": "direct-style",
+      "dominantSubstyle": "cyberpunk",
+      "substyleTag": "anime-inflected",
+      "captureDate": "2026-09-15",
+      "license": "reference-only",
+      "externalToolUpload": "denied",
+      "extraWaitMs": 3000,
+      "captureNotes": "2026-09-15 复审发现 mobile 被 Cookiebot(Usercentrics 中文) 遮挡；以 --host-resolver-rules 屏蔽 consent.cookiebot.com 后双视口重捕（弹窗不加载，比点击更可复现），复审目检通过",
+      "screenshots": {
+        "desktop": "visual/VS-003-desktop.png",
+        "mobile": "visual/VS-003-mobile.png",
+        "desktopFull": "visual/VS-003-desktop-full.png"
+      },
+      "sha256": {
+        "desktop": "2461927ecf11ee5f3f701812cf510538dc46c085987f0837828afe14305f9fec",
+        "mobile": "83c77a2d5423b7975ce1dec0472e01452271d24766e23bc068d99856c5feb62d",
+        "desktopFull": "157ee2d60857da6392349d14327c62187e4cec3700d1a47a98871a658a13cfc9"
+      },
+      "observationGoals": "动画语汇与 cyberpunk 的融合、中文排印在暗底霓虹下的处理、版式张力",
+      "forbiddenBrandElements": "Edgerunners 角色/商标、动画剧照、全部文案",
+      "retention": "retain"
+    },
+    {
+      "sourceId": "VS-004",
+      "title": "Neon Dystopia",
+      "owner": "neondystopia.com（编辑部，署名 Scum；WordPress/CoverNews 主题）",
+      "url": "https://www.neondystopia.com/",
+      "category": "direct-style",
+      "dominantSubstyle": "cyberpunk",
+      "substyleTag": "editorial",
+      "captureDate": "2026-09-15",
+      "license": "reference-only",
+      "externalToolUpload": "denied",
+      "extraWaitMs": 0,
+      "evidenceForDirect": "高对比暗底/霓虹点缀 ✓、杂志网格结构 ✓、明确 cyberpunk 叙事语汇 ✓（5 项中 3 项）",
+      "screenshots": {
+        "desktop": "visual/VS-004-desktop.png",
+        "mobile": "visual/VS-004-mobile.png",
+        "desktopFull": "visual/VS-004-desktop-full.png"
+      },
+      "sha256": {
+        "desktop": "8aa68b731eb700db6fa251ce16ca53a9c824308022d8cda61a8028145c69cc4e",
+        "mobile": "704c15222855374857e49ae76e71ac4f13220a6eb19eaa3d0aa682580a0c6d6e",
+        "desktopFull": "69000aacc264d972f70db6e4ae15c868b5d0952c2aad8fcc44272936cbee7977"
+      },
+      "observationGoals": "暗底编辑排版、霓虹点缀的克制用法、列表信息密度、内容型站点如何保持单一系统",
+      "forbiddenBrandElements": "站点 logo、文章插图/照片、全部文案",
+      "retention": "retain"
+    },
+    {
+      "sourceId": "VS-005",
+      "title": "Cyberpunk Interactive 3D Desk",
+      "owner": "Introvigne Thibault（Awwwards Honorable Mention, 2025-05-23）",
+      "url": "https://3dcyberroom.vercel.app/",
+      "caseReferenceUrl": "https://www.awwwards.com/sites/cyberpunk-interactive-3d-desk",
+      "category": "web-design-case",
+      "dominantSubstyle": "cyberpunk",
+      "substyleTag": null,
+      "captureDate": "2026-09-15",
+      "license": "reference-only",
+      "externalToolUpload": "denied",
+      "extraWaitMs": 12000,
+      "captureNotes": "WebGL 需有头渲染；桌面端 +12s 完成场景加载；无头仅 loading 计数器",
+      "observableStructure": "门户式落地（移动端卡片+CTA）、3D 场景入口、加载进度态",
+      "screenshots": {
+        "desktop": "visual/VS-005-desktop.png",
+        "mobile": "visual/VS-005-mobile.png"
+      },
+      "sha256": {
+        "desktop": "d411f4caa5ea84980d2a788282b8316815f05505835c50d00315fe60d9002f29",
+        "mobile": "da72579d0f2a34f01cd0630bed0766b3858844208739bc2a12b600a2c8676caf"
+      },
+      "observationGoals": "3D 门户/加载态、霓虹粉青配色在深底的分配、像素/终端字形",
+      "forbiddenBrandElements": "站点全部画面内容（作者作品）",
+      "retention": "retain"
+    },
+    {
+      "sourceId": "VS-006",
+      "title": "2bit.chat — Video conferencing from 1989",
+      "owner": "Swaraj Singh 等（Awwwards Nominee，2026-09；详情页 awwwards.com/sites/2bit-chat）",
+      "url": "https://2bit.chat/",
+      "caseReferenceUrl": "https://www.awwwards.com/sites/2bit-chat",
+      "category": "web-design-case",
+      "dominantSubstyle": "other-retro-futurist",
+      "substyleTag": "retro-terminal",
+      "captureDate": "2026-09-15",
+      "license": "reference-only",
+      "externalToolUpload": "denied",
+      "extraWaitMs": 3000,
+      "observableStructure": "顶部导航+分屏工作台结构、表单/输入、复古 UI 控件态",
+      "screenshots": {
+        "desktop": "visual/VS-006-desktop.png",
+        "mobile": "visual/VS-006-mobile.png",
+        "desktopFull": "visual/VS-006-desktop-full.png"
+      },
+      "sha256": {
+        "desktop": "2a96a0431cdd008253ed3e23aa52f92a1c94b00e1d1c19aa2d645ccc6842fe05",
+        "mobile": "e46c50704aee1759f3be989f8f386b632396efd901064a8fbaf813c1c94997b4",
+        "desktopFull": "2a96a0431cdd008253ed3e23aa52f92a1c94b00e1d1c19aa2d645ccc6842fe05"
+      },
+      "captureNotes": "站点单屏无滚动，full 与 desktop 同帧同 hash",
+      "observationGoals": "单色 CRT 终端隐喻的界面化（非装饰化）、控件态设计、复古 UI 的可访问性边界",
+      "forbiddenBrandElements": "站点 logo、界面像素资产、全部文案",
+      "retention": "retain"
+    },
+    {
+      "sourceId": "VS-007",
+      "title": "FWA Wire",
+      "owner": "Rob FWA（Awwwards Nominee，2026-08-24；外链 thefwa.net）",
+      "url": "https://thefwa.net/",
+      "caseReferenceUrl": "https://www.awwwards.com/sites/fwa-wire",
+      "category": "web-design-case",
+      "dominantSubstyle": "other-retro-futurist",
+      "substyleTag": "retro-brutalist-terminal",
+      "captureDate": "2026-09-15",
+      "license": "reference-only",
+      "externalToolUpload": "denied",
+      "extraWaitMs": 6000,
+      "captureNotes": "Cloudflare 前置，有头真实指纹可通过；滚动注入触发防护，full 截图 unavailable",
+      "observableStructure": "终端式新swire 列表、条目层级、raw-UI 排版",
+      "screenshots": {
+        "desktop": "visual/VS-007-desktop.png",
+        "mobile": "visual/VS-007-mobile.png"
+      },
+      "sha256": {
+        "desktop": "0341c8b5c9e870c50a0a338ff9bdabf9ab04eabeb4d1a56d056e90e62f10fca8",
+        "mobile": "2c700251c48b9c384858d9e3aaf811113d0509807c002d45f388c0f8d671231e"
+      },
+      "observationGoals": "终端排版的密度与层级、去算法化的内容节律、raw 材质的信息可读性",
+      "forbiddenBrandElements": "FWA 商标、站点全部文案",
+      "retention": "retain"
+    },
+    {
+      "sourceId": "VS-008",
+      "title": "SVAROG — Neon Noir case study",
+      "owner": "SVAROG (digital media studio; live Framer site)",
+      "url": "https://svarog.framer.website/neon-noir",
+      "category": "web-design-case",
+      "dominantSubstyle": "other-retro-futurist",
+      "substyleTag": "neon-noir",
+      "captureDate": "2026-09-15",
+      "license": "reference-only",
+      "externalToolUpload": "denied",
+      "extraWaitMs": 0,
+      "captureNotes": "轮次 2 补充检索（审计补强）；neon-noir 无 synthwave 元素，非 fusion-case",
+      "observableStructure": "案例叙事页：导航+大标题+主图+CTA",
+      "screenshots": {
+        "desktop": "visual/VS-008-desktop.png",
+        "mobile": "visual/VS-008-mobile.png"
+      },
+      "sha256": {
+        "desktop": "2afba0126747efafdc4a706c67d2249505caecf9b6e5673bdbd180ede0119501",
+        "mobile": "ca24c160f5b0028d3e070d3b691737149ad2b9eb0cd9d1792da77a04ee11d542"
+      },
+      "observationGoals": "neon-noir 单强调色克制用法、黑底金属质感、案例叙事结构",
+      "forbiddenBrandElements": "SVAROG 品牌、页面全部内容",
+      "retention": "retain"
+    },
+    {
+      "sourceId": "VS-009",
+      "title": "Radical Icons",
+      "owner": "Jack McDade（One Page Love 评审页 onepagelove.com/radical-icons 可追溯）",
+      "url": "https://radicalicons.com",
+      "caseReferenceUrl": "https://onepagelove.com/radical-icons",
+      "category": "web-design-case",
+      "dominantSubstyle": "synthwave",
+      "substyleTag": "fusion-case-lite",
+      "fusionCaseRationale": "synthwave 主导（日落紫粉渐变、透视网格、霓虹重影标题）与 cyberpunk 底色（暗底、等宽终端字）同页和谐共存，层级不互抢——runbook 定义的 fusion-case（轻度，如实标注）",
+      "captureDate": "2026-09-15",
+      "license": "reference-only",
+      "externalToolUpload": "denied",
+      "extraWaitMs": 0,
+      "captureNotes": "轮次 2 补充检索；OPL 同标签另两案例站已死（nkfrv.com 444 / starbornwanderers.com 000），仅本站存活",
+      "observableStructure": "单页营销落地：hero+图标网格预览+购买 CTA",
+      "screenshots": {
+        "desktop": "visual/VS-009-desktop.png",
+        "mobile": "visual/VS-009-mobile.png"
+      },
+      "sha256": {
+        "desktop": "a20d75a91ad17407cf3b08101405cdee7d6226f30a5cb9f6cf68e5b746f8c423",
+        "mobile": "f992bbb17cd41c7149c9221b5cf14080444952c824ed642c841badb036ad451f"
+      },
+      "observationGoals": "synthwave×cyberpunk 融合的实际先例：渐变只进 hero、数据/列表区暗底等宽、霓虹重影只做标题强调",
+      "forbiddenBrandElements": "Radical Icons 图标资产、站点全部文案",
+      "retention": "retain"
+    }
+  ],
+  "excluded": [
+    {
+      "id": "GAL-behance",
+      "url": "https://www.behance.net/search/projects?search=synthwave%20web%20design",
+      "reason": "发现入口（gallery）；匿名可访问（10,000+ 结果），项目卡无可追溯独立原始站 URL，未逐案核验前不计入"
+    },
+    {
+      "id": "GAL-pinterest",
+      "url": "https://www.pinterest.com/search/pins/?q=synthwave%20web%20design",
+      "reason": "发现入口；匿名登录墙（links: 0，正文空），blocked（anonymous）"
+    },
+    {
+      "id": "GAL-styleshift",
+      "url": "https://styleshift.design/styles/synthwave",
+      "reason": "风格索引（reference-index）；可访问且含 principles 文案，但未提供可逐项打开的原始案例站清单，自身不计入"
+    },
+    {
+      "id": "CASE-neutomni",
+      "url": "https://www.awwwards.com/sites/neutomni",
+      "reason": "作者可追溯，但原始项目 URL 仅指向 Webflow 模板聚合页，非独立原始站，排除"
+    }
+  ]
+}

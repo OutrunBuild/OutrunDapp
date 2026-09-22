@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0A0A10">
+<title>最终来源索引 — Stage-01 冻结</title>
+<style>
+:root{color-scheme:dark}
+body{background:#0A0A10;color:#E6E9F0;font-family:system-ui,"Noto Sans SC",sans-serif;margin:0;padding:32px;font-size:14px;line-height:1.75}
+h1{font-size:20px}h2{font-size:15px;margin:34px 0 10px;color:#9AA3B5}
+.note{color:#8791A4;font-size:12px;max-width:900px}
+a{color:#00F0FF;text-decoration:none}a:hover{text-decoration:underline}
+table{border-collapse:collapse;width:100%;max-width:1000px;font-size:12.5px}
+th{color:#8791A4;text-align:left;border-bottom:1px solid #3A3F52;padding:7px 10px;font-weight:500}
+td{border-bottom:1px solid #262A38;padding:7px 10px;vertical-align:top}
+.mono{font-family:ui-monospace,monospace}
+.row{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+figure{margin:0;border:1px solid #262A38;border-radius:8px;overflow:hidden;background:#12141B}
+img{width:100%;display:block;aspect-ratio:16/10;object-fit:cover;object-position:top}
+figcaption{font-size:12px;padding:8px 10px;color:#9AA3B5}
+.badge{font-size:10px;border:1px solid #FF06B5;color:#FF06B5;padding:1px 6px;margin-left:6px}
+</style>
+</head>
+<body>
+<h1>Stage-01 最终来源索引（final-index）</h1>
+<p class="note">冻结于 final-artifacts.sha256。抽查路径：视觉来源（下表 VS）→ 交易 UX 来源（PU）→ 决策截图（review/v0-revisions）→ token preview。所有 VS/PU 均有原站 URL、双视口截图、SHA256、授权状态（source-register.json）。</p>
+
+<h2>视觉审美来源（9 · 4 direct + 5 case · fusion-case-lite=VS-009）</h2>
+<div class="row">
+<figure><img src="visual/VS-001-desktop.png" alt="The Midnight synthwave hero"><figcaption><a href="https://themidnightofficial.com/">VS-001 The Midnight</a> · synthwave</figcaption></figure>
+<figure><img src="visual/VS-002-desktop.png" alt="Cyberpunk 2077 dark worn sections"><figcaption><a href="https://www.cyberpunk.net/us/en/">VS-002 Cyberpunk 2077</a> · cyberpunk（D1 主导来源）</figcaption></figure>
+<figure><img src="visual/VS-007-desktop.png" alt="FWA Wire terminal newswire"><figcaption><a href="https://thefwa.net/">VS-007 FWA Wire</a> · retro-terminal</figcaption></figure>
+<figure><img src="visual/VS-009-desktop.png" alt="Radical Icons synthwave cyberpunk fusion"><figcaption><a href="https://radicalicons.com/">VS-009 Radical Icons</a><span class="badge">fusion-case-lite</span></figcaption></figure>
+</div>
+<p class="note">其余：VS-003 Edgerunners2 / VS-004 Neon Dystopia / VS-005 3D Desk / VS-006 2bit.chat / VS-008 SVAROG——详见 <a href="visual-source-index.html">visual-source-index.html</a>。</p>
+
+<h2>交易 UX 来源（10 · 仅 UX，禁作视觉来源）</h2>
+<table>
+<tr><th>ID</th><th>站点</th><th>观察要点</th><th>对应路由</th></tr>
+<tr><td class="mono">PU-000</td><td><a href="https://demo.outrun.build/memeverse/26/detail">Outrun 旧版 demo</a>（过时产物非真相源）</td><td>三段式 IA/五 Tab/Swap 审阅行（历史参照）</td><td>/memeverse/[verseId]</td></tr>
+<tr><td class="mono">PU-002/d</td><td><a href="https://www.letsbonk.fun/">letsbonk</a></td><td>过滤标签+卡片网格；迁移横幅+MC 进度</td><td>/memeverse、/[verseId]</td></tr>
+<tr><td class="mono">PU-003 系</td><td><a href="https://four.meme/en/ranking">four.meme</a></td><td>表格型列表；四阶段生命周期指示器；创建表单</td><td>/memeverse、/create、/[verseId]</td></tr>
+<tr><td class="mono">PU-004</td><td><a href="https://app.pendle.finance/">Pendle</a></td><td>到期日一级维度/APY 列</td><td>/pol</td></tr>
+<tr><td class="mono">PU-005</td><td><a href="https://jup.ag/">Jupiter</a></td><td>双输入+可展开审阅</td><td>/trade</td></tr>
+<tr><td class="mono">PU-006/d</td><td><a href="https://www.jito.network/">Jito</a></td><td>TVL/APY 指标卡（防 hero-metric 套版）</td><td>/portfolio、/stake</td></tr>
+<tr><td class="mono">PU-007/d</td><td><a href="https://app.spark.finance/">Spark</a></td><td>多资产 APY 看板+存款上限</td><td>/portfolio 嵌入（USR）</td></tr>
+<tr><td class="mono">PU-008</td><td><a href="https://sunpump.meme/">SunPump</a>（备用）</td><td>列表+创建入口</td><td>/memeverse</td></tr>
+<tr><td class="mono">PU-009/d</td><td><a href="https://www.ponsfamily.com/launchpad">ponsfamily</a>（用户手动截图）</td><td>Create/Graduated Tab+计数；Market/Limit/Orders；降级横幅</td><td>/memeverse、/[verseId]</td></tr>
+</table>
+
+<h2>决策与固化证据</h2>
+<table>
+<tr><th>项</th><th>路径</th></tr>
+<tr><td>四轴决策链</td><td class="mono">docs/design/decision-log.md（001 方向 D1+去极客 / 002 P2 / 003 T2 / 004 字标）</td></tr>
+<tr><td>v0 方向/轴选择证据</td><td class="mono">docs/design/review/v0-revisions/outrundapp-vercel-*.png、axis-*.png（revision 链 r2/r3）</td></tr>
+<tr><td>token 固化</td><td class="mono">components/design-system/tokens.css · docs/design/review/token-preview.html</td></tr>
+<tr><td>组件契约</td><td class="mono">docs/design/review/component-contract-preview.html</td></tr>
+<tr><td>QA/差异轮</td><td class="mono">docs/design/qa-round-00.md · diff-round-01.md</td></tr>
+</table>
+<p class="note">保留状态：全部 retain（references/retention-log.md）。清理需用户批准。</p>
+</body>
+</html>

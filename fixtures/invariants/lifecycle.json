@@ -1,0 +1,52 @@
+{
+  "domain": "lifecycle",
+  "sourceRefs": ["docs/page-briefs/source-map.md#M7", "docs/page-briefs/source-map.md#M9", "docs/page-briefs/source-map.md#M13"],
+  "rules": [
+    {
+      "id": "stage-gates",
+      "rule": "开放操作按阶段门控：参与创世（普通/杠杆）+预购=仅创世期；退款领取=仅退款态；领 YT/辅助池分成/LP 费/加池/预购领取/触发费分发/质押=锁定期起；拆分/合并=仅锁定期；公开交易=锁定期起（解锁 24h 保护窗内暂停）；烧 POL 赎回/PT 赎回/YT 残值=解锁期起",
+      "evidence": "OB memeverse/lifecycle.md#L10-18",
+      "check": "verse-002（locked）断言拆分入口可用；verse-003（unlocked+保护窗内）断言拆分禁用、公开交易禁用、赎回系列可用"
+    },
+    {
+      "id": "dual-threshold",
+      "rule": "成功判定：普通资金 ≥ 最低额度 或 杠杆利息 ≥ 最低额度（两门槛独立、金额不相加；预购资金与杠杆债务本金不计入）",
+      "evidence": "OB memeverse/lifecycle.md#L35-49",
+      "check": "verse-001 断言进度=两口径取更接近者且分列展示；verse-004（双口径均未达）断言进入退款态"
+    },
+    {
+      "id": "atomic-unlock-settle",
+      "rule": "解锁与结算同一笔交易原子完成；失败整笔回滚、保持锁定、可重试；不出现「解锁成功但结算失败」中间态文案",
+      "evidence": "SPEC-M6 verse/accounting.md#L110 + OB polend.md#L32（决议 C9）"
+    },
+    {
+      "id": "protection-window",
+      "rule": "24h 保护期从实际进入 Unlocked 的交易时间起算（非计划时间）；窗口内四池暂停公开交易、退出按静态储备与份额执行、先后顺序不影响他人本金；窗口起点=unlockedAtTx",
+      "evidence": "OB memeverse/genesis.md#L40-52",
+      "check": "verse-003.unlockedAtTx=2026-09-16T11:30Z 断言保护期止于 2026-09-17T11:30Z 且倒计时显示"
+    },
+    {
+      "id": "refund-once",
+      "rule": "退款领取每地址一次；退给参与记录的受益人（非付款方）",
+      "evidence": "OB memeverse/lifecycle.md#L83-87"
+    },
+    {
+      "id": "preorder-window",
+      "rule": "预购窗口=创世期间（与创世同窗口，非独立前置窗口——决议 007 用户纠正）；预购容量=(普通资金+杠杆债务本金)×70%×容量比例；一键预购个人上限=创世资金按面值折算 uAsset×70%×容量比例",
+      "evidence": "OB memeverse/lifecycle.md#L10-18 + preorder.md#L15-19",
+      "check": "verse-001（容量比例 0.8）断言一键预购上限=输入折算 uAsset×70%×0.8 实时显示并拦截超限；verse-022（创世态但 fixture 缺容量比例）断言仅显「以链上读值为准」槽位、不拦截"
+    },
+    {
+      "id": "governance-epoch",
+      "rule": "周期时长=合约常量 CYCLE_DURATION（v1 固定 90 天，勘误：非部署参数——decision-log 决议 007 勘误）；UI 读链显示真实值、文案不硬编码；finalize permissionless（任何人可调），领取窗口≥CYCLE_DURATION；窗口过后未领并入国库不补发",
+      "evidence": "SPEC-M10 governance-yield-details.md#L361 + OB dao-governance.md#L47-51（决议 PD-09/C4）",
+      "check": "gov-001（90 天、finalized=false）断言显示读链周期值与触发结算入口"
+    },
+    {
+      "id": "fast-genesis",
+      "rule": "Fast Mode（快速创世，glossary B；UI 命名=用户裁定 2026-09-23）：genesis.fastGenesis=true 时，普通资金或杠杆利息任一达标（≥最低成功额度，预购与债务本金不计入——dual-threshold 同口径）即可在截止前触发阶段推进提前结束创世；未开启/字段缺省=false：提前达标也等截止",
+      "evidence": "OB memeverse/lifecycle.md#L51-54 + SPEC-M9 state-machines.md#L33-35（表单侧=SPEC-M8 registration-details）",
+      "check": "verse-020（fastGenesis=true、普通资金 190 万≥180 万阈值）断言判定卡显示「已达标 · 待推进」且 Discovery 创世模式筛选命中；verse-022（fastGenesis=true 未达标）断言仅显示 Fast Mode 说明行；verse-001（无标记）断言不出现 Fast Mode 徽章"
+    }
+  ]
+}

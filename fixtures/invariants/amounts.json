@@ -1,0 +1,62 @@
+{
+  "domain": "amounts",
+  "sourceRefs": ["docs/page-briefs/source-map.md#S8", "docs/page-briefs/source-map.md#S9", "docs/page-briefs/source-map.md#S2"],
+  "rules": [
+    {
+      "id": "amt-shape",
+      "rule": "amount = { raw: decimal-string, decimals: 0..18 }；rate = { raw, unit: bps|ppm|ratio, scale }；nonce/blockNumber = 非负整数字符串（无 decimals）",
+      "enforcedBy": "fixtures/schema.ts（Zod 拒绝错误形状）"
+    },
+    {
+      "id": "psm-mint-out",
+      "rule": "mint 到账 = 面值(输入) × (1 − tin)，tin 以 bps 记（10 bps = 0.1%）；quote 返 0（dust 域）= 不可执行，UI 必须禁发",
+      "evidence": "SPEC-S8 psm/peg-stability-module.md#L37（tin 作用域）+#L31（零输出守卫）",
+      "check": "psm-004 场景断言：quote 输出 0 时 inspector 显示「不可执行」而非 0.00"
+    },
+    {
+      "id": "psm-redeem-out",
+      "rule": "redeem 到手 = 面值(输入) × (1 − tout)（销毁面值与付出面值之差 = tout 费）",
+      "evidence": "SPEC-S8#L38"
+    },
+    {
+      "id": "psm-headroom",
+      "rule": "mint 侧单笔约束 = stockCap − netMinted（headroom）；headroom ≤ 0 → mint 禁用；redeem 不受 stockCap 限制但受储备余额限制（储备枯竭=面值退出关闭）",
+      "evidence": "SPEC-S8#L27+#L48",
+      "check": "psm-002（headroom≈0）断言 mint 禁用；psm-003（reserve=0）断言 redeem 关闭"
+    },
+    {
+      "id": "usr-shares",
+      "rule": "shares = assets × 1e18 / accrualIndex；assets = shares × accrualIndex / 1e18（accrualIndex 为当期有效指数（外推投影），floor 取整）",
+      "evidence": "SPEC-S9 usr/usr-vaults.md#L22",
+      "check": "usr-001 断言：同秒 preview 与执行一致；index>1e18 时同资产铸得份额 < 面值"
+    },
+    {
+      "id": "usr-rate-zero",
+      "rule": "usrRate=0 → f=1e18，指数不动（存取照常、份额不增值）；非零下限 SECONDS_PER_YEAR（防静默冻指）",
+      "evidence": "SPEC-S9#L17-L19+#L48",
+      "check": "usr-002 断言：份额价恒 1:1，UI 显示未激活"
+    },
+    {
+      "id": "usr-cap-clamp",
+      "rule": "accrualIndex ← max(当前值, min(外推值, 实际余额×1e18/totalSupply))，单调不降；UI 只显示 preview 实值",
+      "evidence": "SPEC-S9#L29",
+      "check": "usr-003（capped=true）断言：份额价不再随时间线性增长"
+    },
+    {
+      "id": "cdp-par-mint",
+      "rule": "面值（价值平价）铸造：债务=铸出 uAsset 面值；v1 无 LTV 缩放、无利率乘数",
+      "evidence": "SPEC-S1 router-and-user-flows.md#§6表 + SPEC-S2 position/accounting.md#§10.3"
+    },
+    {
+      "id": "cdp-redeem-proportional",
+      "rule": "redeem(positionId, syRedeemed)：全赎 → 归还债务=position.debt 且取回全部抵押（含息）；部分赎回 → 双腿按比例销债，剩余仓位存续；无增借入口（drawUAsset 已删除）",
+      "evidence": "SPEC-S3 state-machines.md#§3 + SPEC-S2#L50",
+      "check": "pos-002 断言部分赎回后剩余债务=debt×(1−比例)；pos-003 断言余额不足时禁用并提示需等值 uAsset"
+    },
+    {
+      "id": "lp-split",
+      "rule": "LP 费分成：无推荐人 65/35，有推荐人 65/25/10",
+      "evidence": "OB memeverse/hook.md#L64-67"
+    }
+  ]
+}

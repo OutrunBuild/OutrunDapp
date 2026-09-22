@@ -1,0 +1,14 @@
+{
+  "name": "typescript",
+  "version": "6.0.2",
+  "private": true,
+  "description": "双编译器桥（architecture §3）：程序化 API=@typescript/typescript6 6.0.2（供 typescript-eslint），CLI=typescript 7.0.2（供 tsc 与 next build useTypeScriptCli）",
+  "main": "lib/typescript.js",
+  "bin": {
+    "tsc": "bin/tsc"
+  },
+  "dependencies": {
+    "@typescript/typescript6": "npm:@typescript/typescript6@6.0.2",
+    "typescript7": "npm:typescript@7.0.2"
+  }
+}

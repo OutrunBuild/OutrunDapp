@@ -1,0 +1,8 @@
+packages:
+  - '.'
+  - 'vendor/typescript-bridge'
+overrides:
+  '@typescript/old': npm:typescript@6.0.2
+allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true

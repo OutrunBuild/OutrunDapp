@@ -1,0 +1,33 @@
+{
+  "seed": "seed-001",
+  "generatedFrom": "fixtures/data/seed.json",
+  "items": [
+    {
+      "id": "ysrc-001",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#S6",
+      "name": "Lido",
+      "assetIds": [
+        "asset-013",
+        "asset-021",
+        "asset-023"
+      ],
+      "anchor": "ETH"
+    },
+    {
+      "id": "ysrc-002",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#S6",
+      "name": "Aave",
+      "assetIds": [
+        "asset-013",
+        "asset-024"
+      ],
+      "anchor": "ETH"
+    }
+  ]
+}

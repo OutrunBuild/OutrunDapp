@@ -1,0 +1,32 @@
+{
+  "seed": "seed-001",
+  "generatedFrom": "fixtures/data/seed.json",
+  "items": [
+    {
+      "id": "acct-001", "scenario": ["normal", "external-eoa", "wrong-network"], "sourceRef": "docs/architecture.md#6",
+      "address": { "value": "0x1111111000000000000000000000000000000001", "fixtureOnly": true },
+      "walletKind": "external-eoa",
+      "perChain": [
+        { "chainId": 1, "state": "kernel-delegated", "implementation": "0x9999999000000000000000000000000000000091" },
+        { "chainId": 8453, "state": "delegation-pending" },
+        { "chainId": 56, "state": "connected-eoa" }
+      ]
+    },
+    {
+      "id": "acct-002", "scenario": ["embedded-eoa", "zero-balance"], "sourceRef": "docs/architecture.md#6",
+      "address": { "value": "0x2222222000000000000000000000000000000002", "fixtureOnly": true },
+      "walletKind": "embedded-eoa",
+      "perChain": [
+        { "chainId": 1, "state": "authorization-requested" }
+      ]
+    },
+    {
+      "id": "acct-003", "scenario": ["unsupported-delegation"], "sourceRef": "docs/architecture.md#6",
+      "address": { "value": "0x3333333000000000000000000000000000000003", "fixtureOnly": true },
+      "walletKind": "external-eoa",
+      "perChain": [
+        { "chainId": 8453, "state": "unsupported-delegation", "implementation": "0x7777777000000000000000000000000000000077" }
+      ]
+    }
+  ]
+}

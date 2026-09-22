@@ -1,0 +1,3 @@
+{
+  "installCommand": "node scripts/bootstrap-pnpm.mjs"
+}

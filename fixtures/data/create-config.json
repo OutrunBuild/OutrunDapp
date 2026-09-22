@@ -1,0 +1,21 @@
+{
+  "seed": "seed-001",
+  "generatedFrom": "fixtures/data/seed.json",
+  "items": [
+    {
+      "id": "cfg-001",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M8",
+      "minDurationDays": 1,
+      "maxDurationDays": 3,
+      "lockupDays": 365,
+      "remoteDeployFee": {
+        "raw": "0.001",
+        "decimals": 18
+      },
+      "quoteState": "pending-manifest"
+    }
+  ]
+}

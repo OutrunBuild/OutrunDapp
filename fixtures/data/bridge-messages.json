@@ -1,0 +1,32 @@
+{
+  "seed": "seed-001",
+  "generatedFrom": "fixtures/data/seed.json",
+  "items": [
+    {
+      "id": "bm-001", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#M11",
+      "fromChain": 8453, "toChain": 1, "assetId": "asset-001",
+      "amount": { "raw": "5.5", "decimals": 18 }, "sentAt": "2026-09-16T11:40:00Z", "stage": "sent"
+    },
+    {
+      "id": "bm-002", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#M11",
+      "fromChain": 1, "toChain": 8453, "assetId": "asset-002",
+      "amount": { "raw": "1200", "decimals": 18 }, "sentAt": "2026-09-16T10:15:00Z", "stage": "delivered"
+    },
+    {
+      "id": "bm-003", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#M11",
+      "fromChain": 56, "toChain": 8453, "assetId": "asset-031",
+      "amount": { "raw": "80000", "decimals": 18 }, "sentAt": "2026-09-16T09:00:00Z", "stage": "settled"
+    },
+    {
+      "id": "bm-004", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#M11",
+      "fromChain": 1, "toChain": 8453, "assetId": "asset-032",
+      "amount": { "raw": "3000", "decimals": 18 }, "sentAt": "2026-09-16T08:30:00Z", "stage": "stranded"
+    },
+    {
+      "id": "bm-005", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#M11",
+      "fromChain": 1, "toChain": 56, "assetId": "asset-001",
+      "amount": { "raw": "2.123456789", "decimals": 18 }, "sentAt": "2026-09-16T07:00:00Z", "stage": "settled",
+      "remainderOnSource": { "raw": "0.000000789", "decimals": 18 }
+    }
+  ]
+}

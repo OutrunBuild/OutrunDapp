@@ -1,0 +1,25 @@
+{
+  "seed": "seed-001",
+  "generatedFrom": "fixtures/data/seed.json",
+  "items": [
+    {
+      "id": "gov-001", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-002", "cycleNumber": "3", "cycleDurationDays": 90,
+      "cycleEndsAt": "2026-09-23T12:00:00Z", "finalized": false, "claimWindowEndsAt": "2026-10-07T12:00:00Z",
+      "proposals": [
+        {
+          "id": "prop-101", "title": "调整周期激励划拨比例至 30%", "state": "active", "governanceTarget": true,
+          "quorumProgress": { "raw": "0.62", "unit": "ratio", "scale": 18 }, "votingEndsAt": "2026-09-19T12:00:00Z"
+        },
+        {
+          "id": "prop-102", "title": "国库资产多元化：纳入 sUSDe 收益来源", "state": "active", "governanceTarget": false,
+          "quorumProgress": { "raw": "0.31", "unit": "ratio", "scale": 18 }, "votingEndsAt": "2026-09-21T12:00:00Z"
+        },
+        {
+          "id": "prop-103", "title": "更换执行者奖励比例参数", "state": "passed", "governanceTarget": false,
+          "quorumProgress": { "raw": "0.74", "unit": "ratio", "scale": 18 }, "votingEndsAt": "2026-09-12T12:00:00Z"
+        }
+      ]
+    }
+  ]
+}

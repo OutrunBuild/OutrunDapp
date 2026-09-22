@@ -1,0 +1,15 @@
+#!/usr/bin/env node
+// tsc → TS 7.0.2 CLI。lib/tsc.js 不在 exports 清单内，
+// 经包目录绝对 file:// 路径导入（非包说明符导入，不触发 exports 限制）。
+const { createRequire } = require('node:module');
+const { pathToFileURL } = require('node:url');
+const path = require('node:path');
+
+const req = createRequire(__filename);
+const pkgDir = path.dirname(req.resolve('typescript7/package.json'));
+const entry = path.join(pkgDir, 'lib', 'tsc.js');
+
+import(pathToFileURL(entry).href).catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

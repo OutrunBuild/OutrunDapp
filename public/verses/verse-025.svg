@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Meme Cannon cover">
+  <defs>
+    <mask id="slats">
+      <rect width="512" height="512" fill="#fff"/>
+      <rect x="0" y="238" width="512" height="6" fill="#000"/>
+      <rect x="0" y="256" width="512" height="8" fill="#000"/>
+      <rect x="0" y="276" width="512" height="10" fill="#000"/>
+      <rect x="0" y="298" width="512" height="12" fill="#000"/>
+      <rect x="0" y="322" width="512" height="512" fill="#000"/>
+    </mask>
+  </defs>
+  <rect width="512" height="512" fill="#0D0F15"/>
+  <circle cx="256" cy="238" r="150" fill="#00F0FF" opacity="0.10"/>
+  <circle cx="256" cy="238" r="112" fill="#00F0FF" opacity="0.55" mask="url(#slats)"/>
+  <g stroke="#00F0FF" stroke-opacity="0.30" stroke-width="2" fill="none">
+    <line x1="0" y1="322" x2="512" y2="322"/>
+    <line x1="0" y1="346" x2="512" y2="346"/>
+    <line x1="0" y1="378" x2="512" y2="378"/>
+    <line x1="0" y1="420" x2="512" y2="420"/>
+    <line x1="0" y1="474" x2="512" y2="474"/>
+    <line x1="256" y1="322" x2="256" y2="512"/>
+    <line x1="160" y1="322" x2="96" y2="512"/>
+    <line x1="352" y1="322" x2="416" y2="512"/>
+    <line x1="64" y1="322" x2="-64" y2="512"/>
+    <line x1="448" y1="322" x2="576" y2="512"/>
+  </g>
+  <text x="256" y="258" text-anchor="middle" fill="#E6E9F0" font-family="ui-monospace, 'IBM Plex Mono', Menlo, monospace" font-size="58" font-weight="700" letter-spacing="6">MCAN</text>
+  <rect x="24" y="486" width="464" height="2" fill="#00F0FF" opacity="0.6"/>
+</svg>

@@ -1,0 +1,45 @@
+{
+  "domain": "cross-chain",
+  "sourceRefs": ["docs/page-briefs/source-map.md#M11", "docs/page-briefs/source-map.md#M12"],
+  "rules": [
+    {
+      "id": "three-stages",
+      "rule": "跨链三阶段（发送/到账/落位）各自独立成败，不得混谈；落位（份额到账）才是质押类完成；「发送成功」「到账成功」「落位成功」是三件不同的事",
+      "evidence": "OB memeverse/omnichain.md#L31-51（决议 PD-10：详情承载于交易中心）",
+      "check": "bm-002（delivered 未 settled）断言不得显示为完成；bm-003 才可显示成功"
+    },
+    {
+      "id": "stranded-recovery",
+      "rule": "滞留态（已发出未落位）=资金不丢失；受益人可调 settlePendingCompose 兜底结算；不撤销已成功的 source send",
+      "evidence": "SPEC-M11 interoperation-details.md#§3.5",
+      "check": "bm-004 断言显示「资金不丢+手动恢复」入口而非错误红"
+    },
+    {
+      "id": "decimal-remainder",
+      "rule": "跨链按 6 位小数精度传递：非整数倍金额的余数在同一交易退回源链（remainderOnSource）；退款量以实际烧毁量（amountSentLD）为准",
+      "evidence": "SPEC-M11#§4.2 + OB outstake/omnichain.md#L7",
+      "check": "bm-005 断言 remainder=0.000000789 且 UI 明示「尾数留在源链」"
+    },
+    {
+      "id": "dust-reject",
+      "rule": "亚尘金额（< decimalConversionRate）被 DustAmount() 前置拒绝：零资金移动、零跨链费损失；quoteOft.amountReceivedLD==0 作发送前预检",
+      "evidence": "SPEC-M11#§4.4",
+      "check": "发送表单输入 0.0000000005 断言禁发+提示（零费用损失说明）"
+    },
+    {
+      "id": "rate-limit",
+      "rule": "速率限制：超额度部分暂卡（资金不丢）；暂停期已发出的仍会到账、新发起受阻",
+      "evidence": "OB outstake/omnichain.md#L12-23"
+    },
+    {
+      "id": "fee-native",
+      "rule": "跨链消息费以源链原生代币按系统报价支付（发送前 quote 展示）",
+      "evidence": "OB outstake/omnichain.md#L5"
+    },
+    {
+      "id": "gov-chain-hub",
+      "rule": "治理链=该 Verse 质押/收益分配/DAO 投票枢纽；跨链质押目标=治理链；quote 无法预知目标链 vault 状态（静默降级风险须在确认卡披露）",
+      "evidence": "OB memeverse/omnichain.md#L13 + SPEC-M11#§4.3"
+    }
+  ]
+}

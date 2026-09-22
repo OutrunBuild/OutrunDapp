@@ -1,0 +1,75 @@
+{
+  "seed": "seed-001",
+  "generatedFrom": "fixtures/data/seed.json",
+  "items": [
+    {
+      "id": "part-001",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "verseId": "verse-001",
+      "owner": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "kind": "normal",
+      "amount": {
+        "raw": "12000",
+        "decimals": 18
+      }
+    },
+    {
+      "id": "part-002",
+      "scenario": [
+        "normal",
+        "zero-balance"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "verseId": "verse-004",
+      "owner": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "kind": "normal",
+      "amount": {
+        "raw": "15000",
+        "decimals": 18
+      }
+    },
+    {
+      "id": "part-003",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "verseId": "verse-004",
+      "owner": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "kind": "leverage",
+      "amount": {
+        "raw": "45000",
+        "decimals": 18
+      }
+    },
+    {
+      "id": "part-004",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "verseId": "verse-004",
+      "owner": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "kind": "preorder",
+      "amount": {
+        "raw": "8000",
+        "decimals": 18
+      }
+    }
+  ]
+}

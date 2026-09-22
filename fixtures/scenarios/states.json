@@ -1,0 +1,26 @@
+{
+  "items": [
+    { "id": "normal", "label": "正常", "expectation": "全数据集默认态，无降级横幅", "affects": ["verse-001", "verse-002", "verse-003", "verse-004", "pos-001", "psm-001", "usr-001", "bm-001", "bm-002", "bm-003", "tx-001", "tx-005", "gov-001", "acct-001", "mkt-001"] },
+    { "id": "zero-balance", "label": "零余额", "expectation": "A14 空态+获取入口（引导非空白）", "affects": ["acct-002", "verse-004"] },
+    { "id": "zero-position", "label": "零仓位", "expectation": "Portfolio 仓位区空态+参与入口", "affects": ["pos-003"] },
+    { "id": "paused", "label": "暂停", "expectation": "B1 写操作禁用+原因+恢复说明", "affects": ["verse-002", "mkt-002"] },
+    { "id": "undeployed", "label": "未部署", "expectation": "B2 入口禁用（结构化 undeployed，禁零地址）", "affects": ["chain-006"] },
+    { "id": "rpc-fail", "label": "RPC 故障", "expectation": "A15 区块级错误+重试；单链失败不拖垮他链", "affects": ["chain-006"] },
+    { "id": "index-lag", "label": "索引落后>120s", "expectation": "B3 聚合标同步中；RPC 实时值照常不变", "affects": ["chain-006"] },
+    { "id": "wrong-network", "label": "错误网络", "expectation": "A3 禁写+切换引导；无签名请求", "affects": ["acct-001", "verse-001"] },
+    { "id": "external-eoa", "label": "外部 EOA", "expectation": "C1 形态标识+原地址启用说明", "affects": ["acct-001"] },
+    { "id": "embedded-eoa", "label": "内置 EOA", "expectation": "C2 形态标识+独立入口说明", "affects": ["acct-002"] },
+    { "id": "user-rejected", "label": "用户拒签", "expectation": "B4 回表单草稿保留；toast「已取消」非失败", "affects": ["tx-007", "ntf-002"] },
+    { "id": "unsupported-delegation", "label": "不支持的委托", "expectation": "C3 先替换提示+读取保留", "affects": ["acct-003"] },
+    { "id": "tx-failure", "label": "交易失败", "expectation": "A12 解码错误+恢复动作；Swap失败≠未启用提示", "affects": ["tx-006", "mkt-002"] },
+    { "id": "psm-stockcap-full", "label": "PSM 铸造额度用尽", "expectation": "headroom≈0 → mint 禁用+剩余额度", "affects": ["psm-002"] },
+    { "id": "psm-reserve-depleted", "label": "PSM 储备枯竭", "expectation": "面值退出关闭+说明；mint 照常", "affects": ["psm-003"] },
+    { "id": "psm-dust-quote-zero", "label": "PSM dust 域报价返 0", "expectation": "禁发（不可执行态，非 0.00）", "affects": ["psm-004"] },
+    { "id": "usr-rate-zero", "label": "USR 未激活", "expectation": "存取照常+份额不增值+未激活标识", "affects": ["usr-002", "asset-041"] },
+    { "id": "usr-capped", "label": "USR 封顶钳制", "expectation": "份额价不再线性增长（preview 实值为准）", "affects": ["usr-003"] },
+    { "id": "usr-share-growth", "label": "USR 份额计息", "expectation": "指数>1e18；同资产铸得份额<面值", "affects": ["usr-001"] },
+    { "id": "cdp-debt-redeem", "label": "CDP 全额赎回", "expectation": "归还等值 uAsset+取回含息抵押；无到期文案", "affects": ["pos-001"] },
+    { "id": "cdp-partial-redeem", "label": "CDP 部分赎回", "expectation": "双腿按比例销债，剩余仓位存续", "affects": ["pos-002"] },
+    { "id": "cdp-insufficient-uasset", "label": "CDP 赎回余额不足", "expectation": "禁用+需等值 uAsset 提示+桥回入口", "affects": ["pos-003"] }
+  ]
+}

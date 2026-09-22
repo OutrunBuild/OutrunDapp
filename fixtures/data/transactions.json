@@ -1,0 +1,39 @@
+{
+  "seed": "seed-001",
+  "generatedFrom": "fixtures/data/seed.json",
+  "items": [
+    {
+      "id": "tx-001", "scenario": ["normal"], "sourceRef": "docs/architecture.md#7",
+      "chainId": 1, "kind": "kernel-batch", "state": "reviewing", "nonce": "41"
+    },
+    {
+      "id": "tx-002", "scenario": ["normal"], "sourceRef": "docs/architecture.md#7",
+      "chainId": 1, "kind": "kernel-batch", "state": "awaiting-signature", "nonce": "41"
+    },
+    {
+      "id": "tx-003", "scenario": ["normal"], "sourceRef": "docs/architecture.md#7",
+      "chainId": 8453, "kind": "type4-first-delegation", "state": "submitting", "nonce": "12",
+      "submittedAt": "2026-09-16T11:55:00Z"
+    },
+    {
+      "id": "tx-004", "scenario": ["normal"], "sourceRef": "docs/architecture.md#7",
+      "chainId": 8453, "kind": "cross-chain-send", "state": "confirming", "nonce": "77",
+      "submittedAt": "2026-09-16T11:50:00Z", "blockNumber": "22334455"
+    },
+    {
+      "id": "tx-005", "scenario": ["normal"], "sourceRef": "docs/architecture.md#7",
+      "chainId": 1, "kind": "kernel-batch", "state": "success", "nonce": "40",
+      "submittedAt": "2026-09-16T11:20:00Z", "blockNumber": "11223344"
+    },
+    {
+      "id": "tx-006", "scenario": ["tx-failure"], "sourceRef": "docs/architecture.md#7",
+      "chainId": 56, "kind": "kernel-batch", "state": "failure", "nonce": "9",
+      "submittedAt": "2026-09-16T11:10:00Z", "blockNumber": "55667788",
+      "errorMsg": "tx-error.slippage-exceeded（实际到账低于设定的最低到账数量——调整后重试）"
+    },
+    {
+      "id": "tx-007", "scenario": ["user-rejected"], "sourceRef": "docs/architecture.md#10",
+      "chainId": 1, "kind": "kernel-batch", "state": "user-rejected", "nonce": "41"
+    }
+  ]
+}

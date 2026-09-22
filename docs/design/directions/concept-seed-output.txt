@@ -1,0 +1,124 @@
+DIRECTION CONCEPT SEED (key: 2d63e869; mode: operate; source: api; approved pool: c3b204a1eed6; 306/564 human-approved; rerun with --scope direction --mode operate --from 2d63e869 --candidate-count 7 to reproduce this roll against this catalog revision)
+ASSIGNED INDEX: 4
+  After ordering the grounded directions by resonance, build candidate
+  4 of your own grounded list; the assignment never points at a
+  challenger. The assignment is the roll, not a suggestion: your top-ranked
+  direction is what every run would ship, so the script decides which grounded
+  direction gets built. Each direction joins a durable visual system to a
+  concrete expression for the requested first surface, decided as one. It must
+  survive the current task plus navigation, quiet and dense content,
+  interaction and state, and a substantially different future surface. In an
+  attended run, present the assigned direction fully committed and offer
+  re-roll. You may add ONE card for your top-ranked grounded candidate when
+  it is not the assigned direction, kicker IMPECCABLE’S PICK, with an honest risk line
+  naming its familiarity; one pick card, never a ranked lineup, and the pick
+  never takes the lead position. When the assignment IS your top candidate,
+  there is no pick card. Re-roll yourself only
+  on named factual grounds, when the assignment cannot carry the product's
+  truth or task; taste is never grounds.
+  The assignment exists to refuse the model's ranking rut, never to outrank
+  the user or the brief. Never expose assignment metadata in user-facing labels.
+CHALLENGERS:
+  1. an industrial streetwear grammar, ordinary words set in straight quotation marks, zip-tie tags left on, diagonal hazard stripes crossing white cotton and black nylon
+     SOURCE ID: textiles-weave-drape-fashion-industrial-quote-grammar
+     CREATIVE SPARK: You lift a jacket and the zip-tie tag clacks against the hanger; across the back, giant caps in straight quotes name the obvious, and a hazard stripe runs diagonally under the fluorescent light of the stockroom.
+     SYSTEM GRAMMAR:
+       - Palette/material: stockroom white cotton and black nylon as ground and ink, black-on-white hazard diagonals for structure, safety orange zip-tie tags as the accent
+       - Type/composition: bold industrial caps inside straight quotation marks naming the obvious, label plates set square on the grid like stenciled crates
+       - Topology/navigation: every zone is labeled with its literal quoted name, wayfinding is reading, and the hazard stripe runs diagonally under whatever matters
+       - Controls/state: the active item keeps its orange zip tie on, toggles read "ON" and "OFF" in quotes, disabled things take the diagonal stripe across them
+       - Responsive/motion: stripes hold 45 degrees at every width while label plates stack; motion is a tag swinging once on selection
+     WEB LEVERAGE: css repeating-linear-gradient hazard stripes at 45deg, generated content wrapping every label in straight quotes via ::before and ::after
+     QUALITY BAR: board https://impeccable.style/worlds/cards/textiles-weave-drape-fashion-industrial-quote-grammar.webp · hero https://impeccable.style/worlds/cards/textiles-weave-drape-fashion-industrial-quote-grammar-hero.webp
+  2. a technical deep dive down a volcanic island wall, where one small diver leaves the turquoise surface, crosses a cold blue thermocline, and enters a mesophotic garden of black coral, glass sponges, and falling marine snow
+     SOURCE ID: rivers-tides-ocean-depths-mesophotic-deep-dive
+     CREATIVE SPARK: At forty meters the last warm red drains from the diver's gloves; a lamp clicks on, revealing black-coral branches and white particles falling past a wall with no visible floor.
+     SYSTEM GRAMMAR:
+       - Palette/material: abyssal ink blue deepening by dive stage as the ground, chalk-white marine snow as particle texture, one thermocline cyan band marking the active depth
+       - Type/composition: monospaced dive-computer digits for depth and gas beside quiet grotesk notes, one vertical depth axis ruling every line of copy
+       - Topology/navigation: Descend through surface, thermocline, reef ledge, mesophotic wall, turnaround depth, ascent stops, and the vertical route home.
+       - Controls/state: Descend, hover, illuminate, mark, turn, and ascend with daylight, cooling, dark, gas-limited, decompression, and surfaced states.
+       - Responsive/motion: Pair the vertical dive profile with selected close views; stop drift and bubbles under
+     WEB LEVERAGE: A synchronized depth-and-time scrub can change light, color, sound, species, and ascent obligations together, while any observation remains pinned to its exact depth and dive phase.
+     QUALITY BAR: board https://impeccable.style/worlds/cards/rivers-tides-ocean-depths-mesophotic-deep-dive.webp · hero https://impeccable.style/worlds/cards/rivers-tides-ocean-depths-mesophotic-deep-dive-hero.webp
+  3. a nixie-tube laboratory counter, where stacked digits glow orange inside glass envelopes and every count arrives as visible plasma
+     SOURCE ID: signals-instruments-nixie-laboratory-counter
+     CREATIVE SPARK: Inside each glass tube ten metal numerals nest; the lit one hovers orange, and a count change is a tiny change of physical depth.
+     SYSTEM GRAMMAR:
+       - Palette/material: neon orange digit glow inside clear glass envelopes, blackened steel chassis as ground, hairline anode mesh gray; the lit digit is the only warm accent
+       - Type/composition: stacked metal numerals of one engineered digit form, each tube a fixed decimal place; labels sit as engraved caps on the panel below the banks
+       - Topology/navigation: quantities are the interface; each metric owns a tube bank with fixed digit positions.
+       - Controls/state: value changes cross-fade between physical digit layers; overflow and reset are visible mechanical events.
+       - Responsive/motion: banks drop to essential digits on phones; digit transitions are single cross-fades under
+     WEB LEVERAGE: Layered DOM digits with depth-true cross-fades render tube physics in pure CSS.
+     QUALITY BAR: board https://impeccable.style/worlds/cards/signals-instruments-nixie-laboratory-counter.webp · hero https://impeccable.style/worlds/cards/signals-instruments-nixie-laboratory-counter-hero.webp
+  4. an early one-bit desktop, dithered gray patterns standing in for every tone, window chrome with title bars and close boxes, marching-ants selections, and 32-pixel icons drawn from two colors
+     SOURCE ID: medium-native-one-bit-desktop
+     CREATIVE SPARK: You drag a window and its gray dither shears into moire as it moves; the trash can's lid pops open pixel by pixel, and the marching ants around your selection never stop walking.
+     SYSTEM GRAMMAR:
+       - Palette/material: black and white pixels only, ordered stipple dithers standing in for every gray, selection inverting to solid black over a fifty-percent dither ground
+       - Type/composition: bold Chicago-style pixel caps in title bars over small Geneva-style labels, windows composing as overlapping rectangles with one-pixel black chrome
+       - Topology/navigation: overlapping windows on one desktop plane, folders opening into new windows while a zoom rectangle animates the lineage between them
+       - Controls/state: pressing inverts, dragging shows a dotted outline, selections wear marching ants; dimmed dither means disabled and a checkmark marks the chosen item
+       - Responsive/motion: windows tile edge to edge on small screens at whole-pixel scale
+     WEB LEVERAGE: image-rendering pixelated canvas keeps dithers crisp at integer scale, and CSS steps() animation drives the marching-ants selection border
+     QUALITY BAR: board https://impeccable.style/worlds/cards/medium-native-one-bit-desktop.webp · hero https://impeccable.style/worlds/cards/medium-native-one-bit-desktop-hero.webp
+  5. A saturated green field with a floating white capsule bar riding above it, an oversized grotesque headline set flush-left, and a flat vector cast spilling across the lower right. Below, a huge cream panel rises with a 48px top radius, carrying green circular icon wells.
+     SOURCE ID: sd-seedbed-lobes
+     CREATIVE SPARK: One colour owns the whole viewport, and the interface floats on top of it as detached white lozenges. Nothing is inset; everything is a pill or a rounded slab hovering over the green, so the page reads as objects on a lawn rather than boxes in a grid.
+     SYSTEM GRAMMAR:
+       - Palette/material: Ground #82CC5C; ink #2F3130 (never #000); white #FFFFFF capsules; cream panel #F2EFE3; accent tomato #F0574C, cobalt #1B8FF5, yellow #F5D42B.
+       - Type/composition: One grotesque (Poppins/Inter-like) at two weights: 500 nav, 600 display 88px/0.95 with tight -2% tracking; body 22px/1.45; flush-left, no centring.
+       - Topology/navigation: Floating capsule bar at 24px inset, 999px radius, split into a nav pill plus a detached CTA pill; content panels are full-bleed slabs with 48px top corners.
+       - Controls/state: Buttons are white pills with a 40px green disc holding a chevron; hamburger is a green circle; avatar a blue circle. Colour lives in the disc, never the label.
+       - Responsive/motion: Scroll swells a green lobe; chip crosses its capsule on hover; 0.4s overshoot.
+     WEB LEVERAGE: Pill navigation detaches from the page edge; scroll-linked blob scaling and hover chip travel inside a capsule are cheap in CSS and impossible in print.
+     QUALITY BAR: board https://impeccable.style/worlds/cards/sd-seedbed-lobes.webp · hero https://impeccable.style/worlds/cards/sd-seedbed-lobes-hero.webp
+  6. a music festival lineup sheet where every act is set in the same face and the entire hierarchy is carried by size and line breaks alone, headliners spanning the width and the smallest names packed into a justified block at the foot
+     SOURCE ID: posters-covers-sleeves-festival-lineup-poster
+     CREATIVE SPARK: No pictures at all, just names, and you can tell exactly who matters most from across the room purely by how big they are.
+     SYSTEM GRAMMAR:
+       - Palette/material: one saturated ground with a single contrasting ink, no imagery whatsoever, and the type doing every job on the sheet
+       - Type/composition: one condensed face at eight sizes, headliners spanning full width, and the long tail justified into a dense block at the foot
+       - Topology/navigation: billing is the only structure, so navigation moves down through decreasing importance
+       - Controls/state: controls are names, the active one inverts out of the ground, and sold-out days take a struck rule across their block
+       - Responsive/motion: names rebreak to keep the block justified at any width, and motion is a size step as billing changes
+     WEB LEVERAGE: responsive justified type blocks that rebreak at any width, billing-rank state, and size-step transitions
+     QUALITY BAR: board https://impeccable.style/worlds/cards/posters-covers-sleeves-festival-lineup-poster.webp · hero https://impeccable.style/worlds/cards/posters-covers-sleeves-festival-lineup-poster-hero.webp
+Fuse each challenger before judging it: the challenger supplies the form
+  and its system grammar, the product supplies every fact, and clarity wins
+  conflicts. Weigh the fused result against the assigned direction on exactly
+  two axes, audience identification and product clarity. Losing to strong
+  grounded material is a valid outcome; beating a thin or tool-monoculture
+  list is the point. A fused challenger that wins both axes becomes the build.
+  Close the weighing with a verdict per challenger, decided before any
+  borrowing is considered: wins (beats the assigned direction on both axes),
+  competitive (holds one axis), or declined (loses both). A declined
+  challenger is not spent: name the one discipline of its system the assigned
+  direction lacks, and raise the assigned direction to match before
+  presenting it. A donation transfers ambition and system discipline, never
+  the challenger's clothes; one world owns the page. Write each raise as its
+  own named line on the presented direction, and carry every verdict, kept
+  line, and raise into the decision page payload.
+When you can view images, open the QUALITY BAR board and hero for any
+challenger you weigh seriously and for the world you build. They exist as a
+craft bar, the finish level and commitment the build is expected to reach,
+never as a mockup to copy; your surface serves this product, not that render.
+PRODUCT.md and explicit incumbent brand commitments constrain every direction.
+The seed never chooses exact colors, fonts, tokens, or a user preference, and
+it never permits the world and first surface to be selected independently.
+The CREATIVE SPARK is a complete visual system, not a theme or decorative
+reference. Translate every supplied system rule into the product: palette and
+material, type and composition, topology, controls and states, and adaptation.
+Keep the source's visible character, scale, rhythm, and interaction instead of
+reducing vivid grammar to generic nouns. When the source is already a credible
+interface language, commit to it across navigation, content, controls, and
+states. Otherwise keep a literal carrier only when it becomes functional.
+Ambitious motion, spatial media, or interaction is welcome when it strengthens
+the product without weakening semantics, performance, or fallback behavior.
+AFTER THE CHOICE, run exactly one command and follow what it prints (do not suppress its output; do not write page code before it):
+  node .agents/skills/impeccable/scripts/build-phase.mjs start --direction 2d63e869 --kind <assigned|pick|challenger|canon> [--chosen <challenger-id>]
+  It records the choice (anonymous: card kind plus catalog id; skipped under DO_NOT_TRACK / IMPECCABLE_NO_TELEMETRY) and opens the build phases: on a comp-led build the comp round is the first gate (three comps, one approved) and no page code is written before it closes; on a code-led build it prints the contract step. A build without this state file is a build the finish reviewer treats as having skipped the round.
+A user- or brief-pinned decision beats the roll, always.
+ASSIGNED INDEX (restated for truncated readers): 4. Build candidate
+4 of your own grounded list; seed key 2d63e869.

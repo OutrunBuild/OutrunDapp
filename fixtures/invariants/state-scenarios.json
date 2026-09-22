@@ -1,0 +1,28 @@
+{
+  "domain": "state-scenarios",
+  "sourceRefs": ["docs/page-briefs/state-catalog.md#A", "docs/page-briefs/state-catalog.md#B", "docs/page-briefs/state-catalog.md#C"],
+  "rules": [
+    { "id": "sc-normal", "check": "全数据集默认态：各页正常渲染，无降级横幅" },
+    { "id": "sc-zero-balance", "check": "资产/输入区显示 A14 Empty + 获取入口（引导而非空白）；acct-002 断言" },
+    { "id": "sc-zero-position", "check": "Portfolio 仓位区空态 + 参与入口；pos-003 持有者视图断言" },
+    { "id": "sc-paused", "check": "对应写操作禁用 + B1 说明（原因与恢复：等待解除）；verse-002/市场保护窗断言" },
+    { "id": "sc-undeployed", "check": "B2：选项禁用（结构化 undeployed，不显示零地址）；chain-006 相关入口断言" },
+    { "id": "sc-rpc-fail", "check": "A15：区块级错误 + 重试；单链失败不拖垮其他链（Portfolio 分区隔离断言）" },
+    { "id": "sc-index-lag", "check": "B3：聚合/历史标「同步中」；余额/授权/回执（RPC）照常且数值不变；无陈旧索引判成功的路径" },
+    { "id": "sc-wrong-network", "check": "A3：写操作禁用 + 原因 + 切换引导；无签名请求发出；acct-001 断言" },
+    { "id": "sc-external-eoa", "check": "acct-001：外部钱包形态标识 + 原地址启用说明" },
+    { "id": "sc-embedded-eoa", "check": "acct-002：内置账户形态 + 独立入口说明（§6.2）" },
+    { "id": "sc-user-rejected", "check": "B4：回表单草稿保留；toast 口径「已取消」非失败；tx-007/ntf-002 断言" },
+    { "id": "sc-unsupported-delegation", "check": "C3：acct-003 显示「检测到不匹配的执行代码，先替换」+ 读取保留" },
+    { "id": "sc-tx-failure", "check": "A12：tx-006 解码错误（滑点）+ 恢复动作（调整重试）；「Swap 失败≠未启用智能账户」提示" },
+    { "id": "sc-psm-stockcap-full", "check": "psm-002：headroom≈0 → mint 禁用+剩余额度展示；redeem 照常" },
+    { "id": "sc-psm-reserve-depleted", "check": "psm-003：储备=0 → 面值退出关闭+说明；mint 照常（若 headroom 有）" },
+    { "id": "sc-psm-dust-quote-zero", "check": "psm-004：quote 返 0 → 禁发（不可执行态，非 0.00 显示）" },
+    { "id": "sc-usr-rate-zero", "check": "usr-002：未激活标识 + 存取可用 + 份额价恒 1:1" },
+    { "id": "sc-usr-capped", "check": "usr-003：封顶钳制域份额价不再线性增长（以 preview 实值为准）" },
+    { "id": "sc-usr-share-growth", "check": "usr-001：份额价随时间增长（指数>1e18）+ 同资产铸得份额<面值" },
+    { "id": "sc-cdp-debt-redeem", "check": "pos-001：全赎预览=归还 12.5 UETH 债务+取回 12.5 wstETH（含息）；「无到期·随时可赎·需主动」文案" },
+    { "id": "sc-cdp-partial-redeem", "check": "pos-002：部分赎回双腿按比例，剩余仓位存续" },
+    { "id": "sc-cdp-insufficient-uasset", "check": "pos-003：余额不足 → 禁用+「需先持有等值 uAsset（创世投入仍在四池）」+ 桥回入口" }
+  ]
+}

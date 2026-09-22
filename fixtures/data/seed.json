@@ -1,0 +1,26 @@
+{
+  "id": "seed-001",
+  "purpose": "确定性 fixture 种子：锚定全部 ID 前缀、时间基线与数值基线；禁 Math.random/Date.now/运行时 UUID（runbook 步骤 9）",
+  "timeAnchor": "2026-09-16T12:00:00Z",
+  "idPrefixes": {
+    "chain": "chain",
+    "asset": "asset",
+    "verse": "verse",
+    "position": "pos",
+    "psm": "psm",
+    "usrVault": "usr",
+    "bridgeMessage": "bm",
+    "transaction": "tx",
+    "governance": "gov",
+    "account": "acct",
+    "notification": "ntf",
+    "yieldSource": "ysrc",
+    "createConfig": "cfg"
+  },
+  "sourceRefPolicy": "docs/architecture.md#<section> 或 docs/page-briefs/source-map.md#<M/S id>；禁绝对路径",
+  "sourceMap": {
+    "memeverseCommit": "3cdb8046380bf1af8ae57a04be5e92c086834567",
+    "outstakeCommit": "731541109f058e6df1dc042d8fa65b8221e12bcb",
+    "outrunbookCommit": "da1f10e5ded8d040b12bff66fa5bca8e8a8fdec2"
+  }
+}

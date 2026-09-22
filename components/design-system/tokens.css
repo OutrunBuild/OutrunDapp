@@ -1,0 +1,264 @@
+/* ============================================================
+   Outrun Design Tokens — Stage-01 Step-10 固化
+   唯一 token 源。页面/组件不得裸写颜色、字号、间距（token-contract.md 约束）。
+
+   人工决策依据（decision-log.md）：
+   - 001 方向=D1 暗端信号台 + 去极客化修订 + 双语=locale 切换默认 en
+   - 002 palette=P2 冷石墨（表面 #12141B / 成功 #35E08E / 危险 #FF5468）
+   - 003 density=T2 均衡（表格行高 44px / 正文 14px）
+   - 004 字标=brand/ 包唯一基准（96px 最小宽 / <150px 用 symbol）
+   - 010 复古未来主义强化（去极客结构保留）：HUD 网格/品红回声轨/CRT 扫描线/
+     信号脉冲/斜切体系（UI 8px·大卡 12px）/glow 分层开关——提取自 r10 部署
+     outrun-phi.vercel.app（证据 docs/design/review/r10-css-extract.css）
+   ============================================================ */
+
+:root {
+  /* ---------- 品牌锚（logo-spec.md §2/§10 · 页面不得覆盖） ---------- */
+  --logo-yellow: #FCEE0A;          /* 唯一主光源：激活/主 CTA/关键读数 */
+  --logo-magenta-bright: #FF06B5;  /* 回声：徽章/斜切条；仅大字号与图形 */
+  --logo-magenta-high: #EE17AE;
+  --logo-magenta-mid: #B11884;
+  --logo-magenta-dark: #760F57;
+  --or-cyan: #00F0FF;              /* 链接 / focus ring；禁大面积 */
+  --site-black: #0A0A10;           /* 站点深色底（品牌锚） */
+
+  /* ---------- 背景与表面（002 P2 冷石墨） ---------- */
+  --color-bg: var(--site-black);
+  --color-surface: #12141B;        /* P2 冷灰阶表面（实测正文 15.14:1） */
+  --color-surface-raised: #171A23; /* 卡片/弹层抬升层（同族冷灰，档差克制） */
+  --color-surface-inset: #0D0F15;  /* 内嵌区（代码/地址块） */
+
+  /* ---------- 文本（on surface 实测） ---------- */
+  --color-text: #E6E9F0;           /* 正文 15.14:1 AAA */
+  --color-text-secondary: #9AA3B5; /* 次级 7.25:1 AAA */
+  --color-text-tertiary: #8791A4;  /* 三级 5.80:1 AA（占位/辅助） */
+
+  /* ---------- 反馈（002 P2） ---------- */
+  --color-success: #35E08E;        /* 10.69:1 AAA */
+  --color-danger: #FF5468;         /* 5.89:1 AA */
+  --color-warning: #F4B74A;        /* 步骤10 细节权（AA 档预警色） */
+
+  --color-disabled-bg: #2A2E3D;    /* disabled 控件底（步骤10 细节权，实测次级文 5.32:1） */
+  --color-disabled-border: #2A4A52; /* 次按钮描边（青族暗档） */
+
+  /* ---------- 边框 ---------- */
+  --color-border: #262A38;         /* 冷灰阶边框（默认 1px） */
+  --color-border-strong: #3A3F52;  /* hover/激活边框 */
+
+  /* ---------- 强调语义（01 决议：黄=唯一主光） ---------- */
+  --accent-primary: var(--logo-yellow);
+  --accent-echo: var(--logo-magenta-bright);  /* 回声层专用，正文禁用 */
+  --accent-link: var(--or-cyan);
+
+  /* ---------- 字体角色（010 终选：r10 部署已定，next/font 自托管） ----------
+     display=Saira Condensed（复古未来主义窄体大标题 600/700）；
+     body=IBM Plex Sans；data=IBM Plex Mono（tabular-nums）；中文 Noto Sans SC。
+     桥接：next/font CSS 变量（design-system/fonts.ts 挂载）优先，家族名兜底——
+     修复 v0 产出曾发生的字体断链（globals 引用悬空回落系统字体）。 */
+  --font-display: var(--font-d1-display, 'Saira Condensed'), 'Noto Sans SC', system-ui, sans-serif;
+  --font-body: var(--font-d1-body, 'IBM Plex Sans'), 'Noto Sans SC', system-ui, sans-serif;
+  --font-data: var(--font-plex-mono, 'IBM Plex Mono'), ui-monospace, 'Noto Sans SC', monospace;
+  --display-title: clamp(30px, calc(1em + 22px), 44px); /* .ax-title（fs 相对） */
+  --display-tracking: 0.015em;
+  --font-weight-semibold: 600; /* 强调字重（v0 悬空引用修复） */
+  --label-tracking: 0.045em; /* 标签字距（v0 精修吸收，2026-09-19 迁移） */
+
+  /* ---------- 字号层级（003 T2：正文 14px 基准） ---------- */
+  --text-xs: 12px;        /* 标签/辅助（013：11→12，非大写中文标签可读性） */
+  --text-sm: 14px;        /* 次级正文/卡片描述（013：12→14） */
+  --text-base: 16px;      /* 正文基准（013：14→16，用户裁定全量执行；001-A 硬线 ≥14 由 013 收紧为基准 16） */
+  --text-md: 18px;        /* 导语/强调（013：16→18，保持与 base 的层级差） */
+  --text-lg: 20px;
+  --text-xl: 28px;
+  --text-num-lg: 22px;    /* KPI 读数 */
+
+  /* ---------- 密度（003 T2 均衡） ---------- */
+  --row-height: 44px;     /* 表格行高（T2 锁定） */
+  --row-height-compact: 36px;  /* T1 档：仅 /pol、/portfolio 高密度区局部允许 */
+  --row-height-relaxed: 56px;  /* T3 档：仅营销/新手引导区局部允许 */
+  --control-height: 40px; /* 按钮/输入 */
+
+  /* ---------- 间距（8px 基线网格） ---------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* ---------- 圆角与斜切（001-A + 010 三档斜切体系） ---------- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --chamfer: 8px;         /* UI 件（按钮/芯片；导航实测 7px，≤8px 档） */
+  --chamfer-panel: 10px;  /* 表格/卡片容器单角（.ax-table-wrap/.ax-card） */
+  --chamfer-card: 12px;   /* KPI/斜杠记号对角双切（切角容器圆角=0） */
+
+  /* ---------- 阴影（数据层文本零 glow；阴影仅抬升层） ---------- */
+  --shadow-raised: 0 2px 12px rgba(0, 0, 0, 0.45), 0 8px 32px rgba(0, 0, 0, 0.25);
+  /* glow（010 分层开关 [data-glow=on]，off=全站零 glow 仍 AA）：
+     仅结构记号与强调层引用，数据文本禁用 */
+  --glow-nav-active: 0 0 10px 1px rgba(252, 238, 10, 0.55);
+  --glow-cta: drop-shadow(0 0 10px rgba(252, 238, 10, 0.35));
+  --glow-card-cyan: drop-shadow(0 0 12px rgba(0, 240, 255, 0.06));
+  --glow-echo-rail: 0 0 14px rgba(255, 6, 181, 0.7);
+
+  /* ---------- 复古未来主义纹理层（010，r10 提取；alpha 用部署精确 8 位 hex） ---------- */
+  --grid-cyan-outer: #00f0ff09; /* 全站 44px 网格线（alpha≈3.5%） */
+  --grid-cyan-inner: #00f0ff06; /* 主区加密 22px 网格线（alpha≈2.4%） */
+  --grid-size-outer: 44px;
+  --grid-size-inner: 22px;
+  --echo-wash-magenta: #ff06b50e; /* 主区 135° 角部品红洗色（alpha≈5.5%） */
+  --scanline-white: #ffffff05; /* CRT 3-4px 周期扫描线（screen 叠层，alpha≈2%） */
+
+  /* ---------- 精修信号线与表面（决议 012；修复 v0 精修悬空引用 2026-09-19） ---------- */
+  --line-accent: 2px; /* 黄主信号线宽（精修纪律：霓虹线收敛为黄 2px 主信号） */
+  --line-echo: 1px; /* 品红错位回声线宽 */
+  --color-surface-header: #14161fe6; /* sticky 顶栏独立半透明表面（§3.1，≈90%） */
+  --color-surface-navigation: #101219f2; /* 侧栏导航面（更深，≈95%） */
+  --color-border-signal-strong: #00f0ff5c; /* 青描边强档（hover/分隔，≈36%） */
+  --inset-light-yellow: #fcee0a2e; /* 黄版 inset 顶光（与青版同 alpha 档） */
+  --shadow-header: 0 8px 24px rgba(0, 0, 0, 0.45); /* 顶栏结构阴影（不叠 glow） */
+
+  /* ---------- 卡片信号 chrome（010，r10 提取） ---------- */
+  --color-border-signal: #00f0ff38; /* KPI/表格/卡片青 tinted 描边（alpha≈22%） */
+  --inset-light-cyan: #00f0ff2e; /* KPI 顶缘青 inset 光（alpha≈18%） */
+  --color-surface-kpi: #14141ce0; /* KPI 卡面（≈#14141C @88%） */
+  --cta-hover: #fff45c; /* 主 CTA hover 亮黄 */
+  --color-border-accent: #fcee0a99; /* 黄 tinted 强调描边（生命周期卡，alpha≈60%） */
+
+  /* ---------- 层级 ---------- */
+  --z-base: 0;
+  --z-raised: 10;
+  --z-sticky: 100;
+  --z-overlay: 1000;
+  --z-toast: 1100;
+
+  /* ---------- Motion（001：回声确认；010：+信号脉冲） ---------- */
+  --motion-fast: 120ms;         /* 回声确认时长上限 */
+  --motion-base: 200ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --signal-pulse-duration: 1.4s; /* live 青点脉冲周期（steps(2,end)，010） */
+}
+
+/* 数据数字：全部数字字段强制（可读性红线 1） */
+[data-numeric], .num {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 复古未来主义签名层（010）——只此一处定义，组件按 class 引用 ---------- */
+
+/* CRT 扫描线：全站静态叠层，pointer-events:none，不参与对比度计算 */
+.ax-scanlines {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 3px,
+    var(--scanline-white) 3px 4px
+  );
+}
+
+/* HUD 网格底：外层 44px 全站 + 主区加密 22px（组件挂 .ax-hud-inner） */
+.ax-hud {
+  background-color: var(--color-bg);
+  background-image: linear-gradient(var(--grid-cyan-outer) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-cyan-outer) 1px, transparent 1px);
+  background-size: var(--grid-size-outer) var(--grid-size-outer);
+}
+.ax-hud-inner {
+  background-image: linear-gradient(135deg, var(--echo-wash-magenta), transparent 28%),
+    linear-gradient(var(--grid-cyan-inner) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-cyan-inner) 1px, transparent 1px);
+  background-size: auto, var(--grid-size-inner) var(--grid-size-inner),
+    var(--grid-size-inner) var(--grid-size-inner);
+}
+
+/* 品红错位回声轨：侧栏右缘（.ax-echo-rail）与标题条签名线（.ax-echo-bar，决议 014 几何化统一） */
+.ax-echo-rail {
+  background-image: linear-gradient(rgba(255, 6, 181, 0.08), transparent 24%);
+}
+.ax-echo-bar {
+  position: relative;
+}
+/* 标题条签名线：青信号贴区块底边框、右端锚定内容缘，向左渐变消隐（衰减即终点）；
+   品红回声下移 1px 扫描线 + 左移滞后、长度减半——与顶栏地平线同一几何，消除箱影拼缝 */
+.ax-echo-bar::after {
+  content: "";
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-end: calc(-1 * var(--line-echo));
+  inline-size: calc(var(--space-8) * 4);
+  block-size: var(--line-echo);
+  background: linear-gradient(
+    to left,
+    var(--or-cyan) 0%,
+    color-mix(in srgb, var(--or-cyan) 42%, transparent) 52%,
+    transparent 94%
+  );
+}
+.ax-echo-bar::before {
+  content: "";
+  position: absolute;
+  inset-inline-end: var(--space-6);
+  inset-block-end: calc(-2 * var(--line-echo));
+  inline-size: calc(var(--space-8) * 2);
+  block-size: var(--line-echo);
+  background: linear-gradient(
+    to left,
+    color-mix(in srgb, var(--accent-echo) 52%, transparent),
+    transparent 88%
+  );
+}
+@media (max-width: 30rem) {
+  .ax-echo-bar::after {
+    inline-size: calc(var(--space-8) * 2);
+  }
+  .ax-echo-bar::before {
+    inline-size: var(--space-8);
+  }
+}
+
+/* glow 分层开关（010）：data-glow=off/remove 时全部签名 glow 失效，站点仍 AA
+   2026-09-20 用户裁定：CTA 黄色光晕（--glow-cta）移除——hover 黄边不符合背板语言，品红回声独立成立 */
+[data-glow='on'] .ax-glow-nav {
+  box-shadow: var(--glow-nav-active);
+}
+[data-glow='on'] .ax-glow-card {
+  filter: var(--glow-card-cyan);
+}
+
+/* 信号脉冲（010）：live 指示青点；reduced-motion 下由全局策略降级静态 */
+@keyframes ax-signal-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+.ax-signal-dot {
+  width: 5px;
+  height: 5px;
+  background: var(--or-cyan);
+  animation: var(--signal-pulse-duration) steps(2, end) infinite ax-signal-pulse;
+}
+
+/* focus（红线 4）：青色 2px 外环，全站唯一 focus 语言 */
+:focus-visible {
+  outline: 2px solid var(--or-cyan);
+  outline-offset: 2px;
+}
+
+/* reduced-motion（红线 4）：装饰动效全停；状态反馈保留——仅非位移属性、短时长，
+   满足 impeccable audit「不得摧毁有用反馈」：位移/布局过渡在此策略下自动失效 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 100ms !important;
+    transition-property: opacity, color, background-color, border-color, box-shadow, outline-color !important;
+    scroll-behavior: auto !important;
+  }
+}

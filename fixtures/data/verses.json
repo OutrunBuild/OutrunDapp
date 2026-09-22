@@ -1,0 +1,2456 @@
+{
+  "seed": "seed-001",
+  "generatedFrom": "fixtures/data/seed.json",
+  "items": [
+    {
+      "id": "verse-001",
+      "scenario": [
+        "normal",
+        "wrong-network"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "name": "Moon Verse",
+      "symbol": "MOON",
+      "stage": "genesis",
+      "governanceChain": 1,
+      "createdAt": "2026-08-20T08:00:00Z",
+      "participants": 1204,
+      "description": "The original launchpad economy: community-owned liquidity, zero team allocation, fair launch from block one.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.moonverse.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/moonverse"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "24000000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "1000000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "820000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "160000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "240000",
+          "decimals": 18
+        },
+        "endsAt": "2026-09-20T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "2000000",
+          "decimals": 18
+        },
+        "preorderCapacityRatio": {
+          "raw": "0.8",
+          "unit": "ratio",
+          "scale": 1
+        }
+      }
+    },
+    {
+      "id": "verse-002",
+      "scenario": [
+        "normal",
+        "paused"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M7",
+      "name": "Pepe II",
+      "symbol": "PEPE2",
+      "stage": "locked",
+      "governanceChain": 8453,
+      "createdAt": "2025-08-20T08:00:00Z",
+      "participants": 876,
+      "description": "The sequel to the frogpocalypse — deeper liquidity, faster pools, same degen energy.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.pepeii.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/pepeii"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/pepeii"
+        },
+        {
+          "kind": "discord",
+          "url": "https://discord.gg/pepeii"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "15000000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "500000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "610000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "90000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "120000",
+          "decimals": 18
+        },
+        "endsAt": "2025-10-01T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "1000000",
+          "decimals": 18
+        }
+      }
+    },
+    {
+      "id": "verse-003",
+      "scenario": [
+        "normal",
+        "tx-failure"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M6",
+      "name": "Wojak Fund",
+      "symbol": "WOJAK",
+      "stage": "unlocked",
+      "governanceChain": 56,
+      "createdAt": "2025-06-15T08:00:00Z",
+      "participants": 2109,
+      "description": "A feelsgoodman economy for the perpetually downtrodden; owns its liquidity, not its sadness.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.wojakfund.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/wojakfund"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/wojakfund"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "10800000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "300000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "340000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "40000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "0",
+          "decimals": 18
+        },
+        "endsAt": "2025-09-01T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "600000",
+          "decimals": 18
+        }
+      },
+      "unlock": {
+        "unlockedAtTx": "2026-09-16T11:30:00Z"
+      }
+    },
+    {
+      "id": "verse-004",
+      "scenario": [
+        "normal",
+        "zero-balance"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "name": "Failed Launch",
+      "symbol": "FLOP",
+      "stage": "refund",
+      "governanceChain": 1,
+      "createdAt": "2026-07-11T08:00:00Z",
+      "participants": 431,
+      "description": "Failed raises deserve second chances. FLOP refunds in full and relaunches with community treasury.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.failedlaunch.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/failedlaunch"
+        },
+        {
+          "kind": "discord",
+          "url": "https://discord.gg/failedlaunch"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "22400000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "800000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "210000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "10000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "0",
+          "decimals": 18
+        },
+        "endsAt": "2026-09-10T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "1600000",
+          "decimals": 18
+        }
+      }
+    },
+    {
+      "id": "verse-005",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "name": "Circuit Doge",
+      "symbol": "CDOGE",
+      "stage": "genesis",
+      "governanceChain": 8453,
+      "createdAt": "2026-09-10T09:00:00Z",
+      "participants": 342,
+      "description": "The chain-dog runs on six chains at once — one economy, omnichain from day zero.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.circuitdoge.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/circuitdoge"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/circuitdoge"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "12000000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "500000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "82000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "40000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "60000",
+          "decimals": 18
+        },
+        "endsAt": "2026-09-17T08:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "1000000",
+          "decimals": 18
+        },
+        "preorderCapacityRatio": {
+          "raw": "1",
+          "unit": "ratio",
+          "scale": 0
+        }
+      }
+    },
+    {
+      "id": "verse-006",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "name": "Neon Koi",
+      "symbol": "NKOI",
+      "stage": "genesis",
+      "governanceChain": 56,
+      "createdAt": "2026-09-12T10:00:00Z",
+      "participants": 1287,
+      "description": "Neon koi swimming through four pools; calm mechanics, aggressive yields.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.neonkoi.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/neonkoi"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/neonkoi"
+        },
+        {
+          "kind": "discord",
+          "url": "https://discord.gg/neonkoi"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "60000000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "2000000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "1400000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "600000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "300000",
+          "decimals": 18
+        },
+        "endsAt": "2026-09-22T18:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "4000000",
+          "decimals": 18
+        },
+        "preorderCapacityRatio": {
+          "raw": "0.6",
+          "unit": "ratio",
+          "scale": 1
+        }
+      }
+    },
+    {
+      "id": "verse-007",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "name": "Retro Wolf",
+      "symbol": "RWOLF",
+      "stage": "genesis",
+      "governanceChain": 1,
+      "createdAt": "2026-09-14T08:00:00Z",
+      "participants": 156,
+      "description": "The pack hunts together: stake, mint, and farm in one coordinated economy.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.retrowolf.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/retrowolf"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "28800000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "800000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "120000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "10000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "0",
+          "decimals": 18
+        },
+        "endsAt": "2026-09-19T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "1600000",
+          "decimals": 18
+        },
+        "preorderCapacityRatio": {
+          "raw": "1.2",
+          "unit": "ratio",
+          "scale": 1
+        }
+      }
+    },
+    {
+      "id": "verse-008",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "name": "Volt Bunny",
+      "symbol": "VBUN",
+      "stage": "genesis",
+      "governanceChain": 8453,
+      "createdAt": "2026-09-08T12:00:00Z",
+      "participants": 2104,
+      "description": "Volt-charged bunny hop across chains; principal-protected genesis with upside hops.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.voltbunny.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/voltbunny"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/voltbunny"
+        },
+        {
+          "kind": "discord",
+          "url": "https://discord.gg/voltbunny"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "42000000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "1500000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "1600000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "200000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "450000",
+          "decimals": 18
+        },
+        "endsAt": "2026-09-24T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "3000000",
+          "decimals": 18
+        },
+        "preorderCapacityRatio": {
+          "raw": "0.75",
+          "unit": "ratio",
+          "scale": 2
+        }
+      }
+    },
+    {
+      "id": "verse-009",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M7",
+      "name": "Mecha Ape",
+      "symbol": "MAPE",
+      "stage": "locked",
+      "governanceChain": 1,
+      "createdAt": "2026-08-01T12:00:00Z",
+      "participants": 3187,
+      "description": "Maple-leaf memecoin with four-pool syrup: main market, POL, PT and yield all flowing.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.mechaape.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/mechaape"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/mechaape"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "24000000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "1000000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "2400000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "300000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "500000",
+          "decimals": 18
+        },
+        "endsAt": "2026-08-20T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "2000000",
+          "decimals": 18
+        }
+      }
+    },
+    {
+      "id": "verse-010",
+      "scenario": [
+        "paused"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M7",
+      "name": "Ghost Pixel",
+      "symbol": "GPXL",
+      "stage": "locked",
+      "governanceChain": 56,
+      "createdAt": "2026-08-20T12:00:00Z",
+      "participants": 874,
+      "description": "Pixel-perfect launch economics — every reserve on-chain, every pool composable.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.ghostpixel.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/ghostpixel"
+        },
+        {
+          "kind": "discord",
+          "url": "https://discord.gg/ghostpixel"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "18000000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "600000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "655000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "65000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "90000",
+          "decimals": 18
+        },
+        "endsAt": "2026-09-02T09:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "1200000",
+          "decimals": 18
+        }
+      }
+    },
+    {
+      "id": "verse-011",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M7",
+      "name": "Sudoku Shib",
+      "symbol": "SSHB",
+      "stage": "locked",
+      "governanceChain": 8453,
+      "createdAt": "2026-08-28T12:00:00Z",
+      "participants": 493,
+      "description": "Static shock therapy for dead liquidity; POL keeps the heart beating.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.sudokushib.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/sudokushib"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/sudokushib"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "14400000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "400000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "610000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "10000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "40000",
+          "decimals": 18
+        },
+        "endsAt": "2026-09-10T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "800000",
+          "decimals": 18
+        }
+      }
+    },
+    {
+      "id": "verse-012",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M6",
+      "name": "Laser Cat",
+      "symbol": "LCAT",
+      "stage": "unlocked",
+      "governanceChain": 1,
+      "createdAt": "2026-06-30T12:00:00Z",
+      "participants": 2689,
+      "description": "Laser cat eyes on the exit liquidity — no rugs, funds locked, POL owned by the economy.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.lasercat.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/lasercat"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/lasercat"
+        },
+        {
+          "kind": "discord",
+          "url": "https://discord.gg/lasercat"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "25200000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "900000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "1300000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "120000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "150000",
+          "decimals": 18
+        },
+        "endsAt": "2026-07-15T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "1800000",
+          "decimals": 18
+        }
+      },
+      "unlock": {
+        "unlockedAtTx": "2026-07-15T18:00:00Z"
+      }
+    },
+    {
+      "id": "verse-013",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M6",
+      "name": "Cyber Frog",
+      "symbol": "CFROG",
+      "stage": "unlocked",
+      "governanceChain": 56,
+      "createdAt": "2026-07-20T12:00:00Z",
+      "participants": 1544,
+      "description": "Chain-frog bridging six ecosystems; genesis stakes mint at par, refunds in full.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.cyberfrog.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/cyberfrog"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "16800000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "700000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "760000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "30000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "60000",
+          "decimals": 18
+        },
+        "endsAt": "2026-08-05T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "1400000",
+          "decimals": 18
+        }
+      },
+      "unlock": {
+        "unlockedAtTx": "2026-08-05T14:30:00Z"
+      }
+    },
+    {
+      "id": "verse-014",
+      "scenario": [
+        "tx-failure"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M6",
+      "name": "Astro Pigeon",
+      "symbol": "APIG",
+      "stage": "unlocked",
+      "governanceChain": 8453,
+      "createdAt": "2026-05-28T12:00:00Z",
+      "participants": 933,
+      "description": "Anon piggy bank with transparent reserves; the first pig that lets you audit the sty.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.astropigeon.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/astropigeon"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/astropigeon"
+        },
+        {
+          "kind": "discord",
+          "url": "https://discord.gg/astropigeon"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "9000000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "300000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "330000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "15000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "25000",
+          "decimals": 18
+        },
+        "endsAt": "2026-06-12T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "600000",
+          "decimals": 18
+        }
+      },
+      "unlock": {
+        "unlockedAtTx": "2026-06-12T10:00:00Z"
+      }
+    },
+    {
+      "id": "verse-015",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "name": "Rug Radar",
+      "symbol": "RRAD",
+      "stage": "refund",
+      "governanceChain": 56,
+      "createdAt": "2026-08-25T12:00:00Z",
+      "participants": 388,
+      "description": "Radiation-proof launch: principal conservation and a 24-hour protection window.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.rugradar.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/rugradar"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/rugradar"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "27000000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "750000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "210000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "5000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "0",
+          "decimals": 18
+        },
+        "endsAt": "2026-09-05T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "1500000",
+          "decimals": 18
+        }
+      }
+    },
+    {
+      "id": "verse-016",
+      "scenario": [
+        "zero-balance"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "name": "Dust Pony",
+      "symbol": "DPNY",
+      "stage": "refund",
+      "governanceChain": 1,
+      "createdAt": "2026-08-15T12:00:00Z",
+      "participants": 201,
+      "description": "Doomed pony, undoomed economics — refunds in full if the herd does not show up.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.dustpony.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/dustpony"
+        },
+        {
+          "kind": "discord",
+          "url": "https://discord.gg/dustpony"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "14000000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "500000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "90000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "2000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "8000",
+          "decimals": 18
+        },
+        "endsAt": "2026-08-28T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "1000000",
+          "decimals": 18
+        }
+      }
+    },
+    {
+      "id": "verse-017",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "name": "Magma Toad",
+      "symbol": "MTOAD",
+      "stage": "genesis",
+      "governanceChain": 56,
+      "createdAt": "2026-09-13T09:30:00Z",
+      "participants": 621,
+      "description": "Magma toad sits on four pools of liquidity; touches fire, keeps principal.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.magmatoad.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/magmatoad"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/magmatoad"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "15600000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "650000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "390000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "52000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "120000",
+          "decimals": 18
+        },
+        "endsAt": "2026-09-21T15:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "1300000",
+          "decimals": 18
+        },
+        "preorderCapacityRatio": {
+          "raw": "0.9",
+          "unit": "ratio",
+          "scale": 1
+        }
+      }
+    },
+    {
+      "id": "verse-018",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "name": "Static Ape",
+      "symbol": "SAPE",
+      "stage": "genesis",
+      "governanceChain": 8453,
+      "createdAt": "2026-09-11T14:00:00Z",
+      "participants": 1102,
+      "description": "A monad-sporting ape with composability credentials and omnichain minting.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.staticape.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/staticape"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/staticape"
+        },
+        {
+          "kind": "discord",
+          "url": "https://discord.gg/staticape"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "36000000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "1200000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "700000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "90000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "220000",
+          "decimals": 18
+        },
+        "endsAt": "2026-09-23T09:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "2400000",
+          "decimals": 18
+        },
+        "preorderCapacityRatio": {
+          "raw": "1",
+          "unit": "ratio",
+          "scale": 0
+        }
+      }
+    },
+    {
+      "id": "verse-019",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "name": "Pixel Falcon",
+      "symbol": "PFAL",
+      "stage": "genesis",
+      "governanceChain": 1,
+      "createdAt": "2026-09-13T18:00:00Z",
+      "participants": 487,
+      "description": "Pink falcon dives into genesis at par value; wings out at unlock with the four-pool wind.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.pixelfalcon.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/pixelfalcon"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "32400000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "900000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "180000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "36000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "50000",
+          "decimals": 18
+        },
+        "endsAt": "2026-09-20T18:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "1800000",
+          "decimals": 18
+        },
+        "preorderCapacityRatio": {
+          "raw": "0.5",
+          "unit": "ratio",
+          "scale": 1
+        }
+      }
+    },
+    {
+      "id": "verse-020",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "name": "Chrome Bull",
+      "symbol": "CBULL",
+      "stage": "genesis",
+      "governanceChain": 56,
+      "createdAt": "2026-09-09T10:00:00Z",
+      "participants": 1755,
+      "description": "Chrome bull charges through thresholds — Fast Mode enabled, ends when the herd is big enough.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.chromebull.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/chromebull"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/chromebull"
+        },
+        {
+          "kind": "discord",
+          "url": "https://discord.gg/chromebull"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "50400000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "1800000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "1900000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "150000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "380000",
+          "decimals": 18
+        },
+        "endsAt": "2026-09-25T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "3600000",
+          "decimals": 18
+        },
+        "preorderCapacityRatio": {
+          "raw": "1.1",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "fastGenesis": true
+      }
+    },
+    {
+      "id": "verse-021",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "name": "Vapor Fox",
+      "symbol": "VFOX",
+      "stage": "genesis",
+      "governanceChain": 8453,
+      "createdAt": "2026-09-15T08:00:00Z",
+      "participants": 98,
+      "description": "Void fox farms the gaps between six chains: stake any yield source, mint uAsset at par, and let dual thresholds end genesis early. Collateral keeps earning while the herd gathers, principal stays protected after unlock, liquidity is fully community-owned.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.vaporfox.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/vaporfox"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/vaporfox"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "10800000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "450000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "24000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "3000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "0",
+          "decimals": 18
+        },
+        "endsAt": "2026-09-26T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "900000",
+          "decimals": 18
+        },
+        "preorderCapacityRatio": {
+          "raw": "0.7",
+          "unit": "ratio",
+          "scale": 1
+        }
+      }
+    },
+    {
+      "id": "verse-022",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "name": "Bitwave Otter",
+      "symbol": "BWOT",
+      "stage": "genesis",
+      "governanceChain": 1,
+      "createdAt": "2026-09-12T16:00:00Z",
+      "participants": 842,
+      "description": "Bitwolf of thestreet: dual-threshold genesis, community-owned POL, no team bags.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.bitwaveotter.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/bitwaveotter"
+        },
+        {
+          "kind": "discord",
+          "url": "https://discord.gg/bitwaveotter"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "16500000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "550000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "440000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "110000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "90000",
+          "decimals": 18
+        },
+        "endsAt": "2026-09-18T20:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "1100000",
+          "decimals": 18
+        },
+        "fastGenesis": true
+      }
+    },
+    {
+      "id": "verse-023",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M7",
+      "name": "Turbo Toad",
+      "symbol": "TTOAD",
+      "stage": "locked",
+      "governanceChain": 8453,
+      "createdAt": "2026-09-01T12:00:00Z",
+      "participants": 821,
+      "description": " Turbo toad treasury: leveraged genesis without liquidation risk.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.turbotoad.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/turbotoad"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/turbotoad"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "18720000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "520000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "540000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "30000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "70000",
+          "decimals": 18
+        },
+        "endsAt": "2026-08-30T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "1040000",
+          "decimals": 18
+        }
+      }
+    },
+    {
+      "id": "verse-024",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M7",
+      "name": "Ghost Runner",
+      "symbol": "GRUN",
+      "stage": "locked",
+      "governanceChain": 1,
+      "createdAt": "2026-08-18T12:00:00Z",
+      "participants": 1930,
+      "description": "Grundoon digs deep into PT and YT; settlement residual flows to the patient.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.ghostrunner.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/ghostrunner"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/ghostrunner"
+        },
+        {
+          "kind": "discord",
+          "url": "https://discord.gg/ghostrunner"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "22400000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "800000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "1250000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "180000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "260000",
+          "decimals": 18
+        },
+        "endsAt": "2026-09-01T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "1600000",
+          "decimals": 18
+        }
+      }
+    },
+    {
+      "id": "verse-025",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M7",
+      "name": "Meme Cannon",
+      "symbol": "MCAN",
+      "stage": "locked",
+      "governanceChain": 56,
+      "createdAt": "2026-08-25T12:00:00Z",
+      "participants": 664,
+      "description": "Mechanical can on six wheels — omnichain OFT with shared depth on day one.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.memecannon.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/memecannon"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "10800000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "450000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "380000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "45000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "52000",
+          "decimals": 18
+        },
+        "endsAt": "2026-09-08T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "900000",
+          "decimals": 18
+        }
+      }
+    },
+    {
+      "id": "verse-026",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M7",
+      "name": "Pixel Pirate",
+      "symbol": "PPIX",
+      "stage": "locked",
+      "governanceChain": 8453,
+      "createdAt": "2026-09-05T12:00:00Z",
+      "participants": 1452,
+      "description": "Portrait pixel art economy where the DAO owns the canvas and the liquidity.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.pixelpirate.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/pixelpirate"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/pixelpirate"
+        },
+        {
+          "kind": "discord",
+          "url": "https://discord.gg/pixelpirate"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "27000000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "900000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "1400000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "140000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "310000",
+          "decimals": 18
+        },
+        "endsAt": "2026-09-12T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "1800000",
+          "decimals": 18
+        }
+      }
+    },
+    {
+      "id": "verse-027",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M7",
+      "name": "Night Rider",
+      "symbol": "NRDR",
+      "stage": "locked",
+      "governanceChain": 1,
+      "createdAt": "2026-08-08T12:00:00Z",
+      "participants": 2276,
+      "description": "Neon raider with transparent treasuries; every pool quote auditable on-chain.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.nightrider.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/nightrider"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/nightrider"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "39600000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "1100000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "1350000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "210000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "180000",
+          "decimals": 18
+        },
+        "endsAt": "2026-08-25T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "2200000",
+          "decimals": 18
+        }
+      }
+    },
+    {
+      "id": "verse-028",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M7",
+      "name": "Chrome Crab",
+      "symbol": "CCRB",
+      "stage": "locked",
+      "governanceChain": 56,
+      "createdAt": "2026-09-03T12:00:00Z",
+      "participants": 539,
+      "description": "Carbon-crab walks sideways through volatility; principal stays forward-facing.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.chromecrab.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/chromecrab"
+        },
+        {
+          "kind": "discord",
+          "url": "https://discord.gg/chromecrab"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "10640000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "380000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "300000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "8000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "21000",
+          "decimals": 18
+        },
+        "endsAt": "2026-09-06T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "760000",
+          "decimals": 18
+        }
+      }
+    },
+    {
+      "id": "verse-029",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M6",
+      "name": "Solar Hamster",
+      "symbol": "SHAM",
+      "stage": "unlocked",
+      "governanceChain": 8453,
+      "createdAt": "2026-06-20T12:00:00Z",
+      "participants": 2011,
+      "description": "The sham that is not a sham: fully collateralized, fully refundable, fully on-chain.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.solarhamster.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/solarhamster"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/solarhamster"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "16800000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "700000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "980000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "90000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "140000",
+          "decimals": 18
+        },
+        "endsAt": "2026-07-08T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "1400000",
+          "decimals": 18
+        }
+      },
+      "unlock": {
+        "unlockedAtTx": "2026-07-08T16:00:00Z"
+      }
+    },
+    {
+      "id": "verse-030",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M6",
+      "name": "Disco Dino",
+      "symbol": "DDINO",
+      "stage": "unlocked",
+      "governanceChain": 1,
+      "createdAt": "2026-05-30T12:00:00Z",
+      "participants": 2874,
+      "description": "Dedicated dino staked through genesis; collateral keeps earning while it sleeps.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.discodino.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/discodino"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/discodino"
+        },
+        {
+          "kind": "discord",
+          "url": "https://discord.gg/discodino"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "18000000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "600000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "940000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "70000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "110000",
+          "decimals": 18
+        },
+        "endsAt": "2026-06-18T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "1200000",
+          "decimals": 18
+        }
+      },
+      "unlock": {
+        "unlockedAtTx": "2026-06-18T15:00:00Z"
+      }
+    },
+    {
+      "id": "verse-031",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M6",
+      "name": "Retro Racer",
+      "symbol": "RRAC",
+      "stage": "unlocked",
+      "governanceChain": 56,
+      "createdAt": "2026-07-10T12:00:00Z",
+      "participants": 1188,
+      "description": "Raccoon racetrack economics: four pools, one finish line, zero hidden fees.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.retroracer.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/retroracer"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "12600000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "350000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "405000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "22000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "38000",
+          "decimals": 18
+        },
+        "endsAt": "2026-08-02T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "700000",
+          "decimals": 18
+        }
+      },
+      "unlock": {
+        "unlockedAtTx": "2026-08-02T18:30:00Z"
+      }
+    },
+    {
+      "id": "verse-032",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M6",
+      "name": "Nova Newt",
+      "symbol": "NNEWT",
+      "stage": "unlocked",
+      "governanceChain": 8453,
+      "createdAt": "2026-04-18T12:00:00Z",
+      "participants": 1697,
+      "description": "Newtinance is inevitable — slow, steady, principal-conserving.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.novanewt.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/novanewt"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/novanewt"
+        },
+        {
+          "kind": "discord",
+          "url": "https://discord.gg/novanewt"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "14000000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "500000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "720000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "55000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "80000",
+          "decimals": 18
+        },
+        "endsAt": "2026-05-10T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "1000000",
+          "decimals": 18
+        }
+      },
+      "unlock": {
+        "unlockedAtTx": "2026-05-10T20:00:00Z"
+      }
+    },
+    {
+      "id": "verse-033",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M6",
+      "name": "Laser Llama",
+      "symbol": "LLAM",
+      "stage": "unlocked",
+      "governanceChain": 1,
+      "createdAt": "2026-03-25T12:00:00Z",
+      "participants": 3320,
+      "description": "The llama carries yield across bridges so you do not have to.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.laserllama.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/laserllama"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/laserllama"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "24000000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "1000000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "1550000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "130000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "260000",
+          "decimals": 18
+        },
+        "endsAt": "2026-04-20T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "2000000",
+          "decimals": 18
+        }
+      },
+      "unlock": {
+        "unlockedAtTx": "2026-04-21T09:00:00Z"
+      }
+    },
+    {
+      "id": "verse-034",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M6",
+      "name": "Bass Boost",
+      "symbol": "BBST",
+      "stage": "unlocked",
+      "governanceChain": 56,
+      "createdAt": "2026-06-05T12:00:00Z",
+      "participants": 942,
+      "description": "Boosted beast economy with Fast Mode: thresholds end the genesis early.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.bassboost.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/bassboost"
+        },
+        {
+          "kind": "discord",
+          "url": "https://discord.gg/bassboost"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "8400000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "280000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "318000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "14000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "26000",
+          "decimals": 18
+        },
+        "endsAt": "2026-06-28T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "560000",
+          "decimals": 18
+        }
+      },
+      "unlock": {
+        "unlockedAtTx": "2026-06-28T17:00:00Z"
+      }
+    },
+    {
+      "id": "verse-035",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "name": "Sad Whale",
+      "symbol": "SWHL",
+      "stage": "refund",
+      "governanceChain": 1,
+      "createdAt": "2026-07-02T12:00:00Z",
+      "participants": 512,
+      "description": "Slow whale surfaces only for audited launches and full refunds.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.sadwhale.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/sadwhale"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/sadwhale"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "32400000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "900000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "260000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "15000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "30000",
+          "decimals": 18
+        },
+        "endsAt": "2026-08-02T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "1800000",
+          "decimals": 18
+        }
+      }
+    },
+    {
+      "id": "verse-036",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "name": "Flat Frog",
+      "symbol": "FFROG",
+      "stage": "refund",
+      "governanceChain": 56,
+      "createdAt": "2026-07-20T12:00:00Z",
+      "participants": 344,
+      "description": "Fortune frog flips four pools; settlement residual shared pro rata.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.flatfrog.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/flatfrog"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/flatfrog"
+        },
+        {
+          "kind": "discord",
+          "url": "https://discord.gg/flatfrog"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "16800000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "600000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "120000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "9000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "14000",
+          "decimals": 18
+        },
+        "endsAt": "2026-08-15T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "1200000",
+          "decimals": 18
+        }
+      }
+    },
+    {
+      "id": "verse-037",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "name": "Cold Fusion",
+      "symbol": "CFUS",
+      "stage": "refund",
+      "governanceChain": 8453,
+      "createdAt": "2026-06-28T12:00:00Z",
+      "participants": 276,
+      "description": "Confused fusion of memes with very clear mechanics — read the briefs.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.coldfusion.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/coldfusion"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "10800000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "450000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "84000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "4000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "6000",
+          "decimals": 18
+        },
+        "endsAt": "2026-07-30T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "900000",
+          "decimals": 18
+        }
+      }
+    },
+    {
+      "id": "verse-038",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "name": "Dead Pixel",
+      "symbol": "DPXL",
+      "stage": "refund",
+      "governanceChain": 1,
+      "createdAt": "2026-06-10T12:00:00Z",
+      "participants": 187,
+      "description": "Deprecated pixel, revived economy: community POL, locked liquidity, live counts.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.deadpixel.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/deadpixel"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/deadpixel"
+        },
+        {
+          "kind": "discord",
+          "url": "https://discord.gg/deadpixel"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "9000000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "300000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "41000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "3000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "5000",
+          "decimals": 18
+        },
+        "endsAt": "2026-07-12T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "600000",
+          "decimals": 18
+        }
+      }
+    },
+    {
+      "id": "verse-039",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "name": "Low Tide",
+      "symbol": "LTIDE",
+      "stage": "refund",
+      "governanceChain": 56,
+      "createdAt": "2026-05-15T12:00:00Z",
+      "participants": 233,
+      "description": "Low tide reveals the liquidity; high tide rides the four-pool current.",
+      "socials": [
+        {
+          "kind": "website",
+          "url": "https://www.lowtide.example"
+        },
+        {
+          "kind": "x",
+          "url": "https://x.com/lowtide"
+        },
+        {
+          "kind": "telegram",
+          "url": "https://t.me/lowtide"
+        }
+      ],
+      "projectedMarketCap": {
+        "raw": "14400000",
+        "decimals": 18
+      },
+      "genesis": {
+        "minSuccessThreshold": {
+          "raw": "400000",
+          "decimals": 18
+        },
+        "normalRaised": {
+          "raw": "96000",
+          "decimals": 18
+        },
+        "leverageInterest": {
+          "raw": "6000",
+          "decimals": 18
+        },
+        "preorderRaised": {
+          "raw": "12000",
+          "decimals": 18
+        },
+        "endsAt": "2026-06-20T12:00:00Z",
+        "leverageInterestRate": {
+          "raw": "0.2",
+          "unit": "ratio",
+          "scale": 1
+        },
+        "leverageDebtCap": {
+          "raw": "800000",
+          "decimals": 18
+        }
+      }
+    }
+  ]
+}
