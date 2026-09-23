@@ -182,11 +182,14 @@ export function SwapPanel({
           <dd data-numeric>{minReceived != null ? `${minReceived.toFixed(6)} ${buySymbol}` : '--'}</dd>
         </div>
         <div>
+          <dt>{copy.maxSlippage}</dt>
+          <dd data-numeric>{slippage}%</dd>
+        </div>
+        <div>
           <dt>{copy.route}</dt>
           <dd>{copy.routeValue}</dd>
         </div>
       </dl>
-      {!valid ? <p className="swap-panel__hint">{copy.swapDetailsHint}</p> : null}
       <Button className="swap-panel__cta" disabled title={copy.swapCta}>
         {copy.swapCta}
       </Button>

@@ -398,7 +398,6 @@ const en = {
       route: 'Route',
       routeValue: 'Primary pool · direct',
       deadline: 'Deadline',
-      swapDetailsHint: 'Enter an amount to see swap details',
       swapCta: 'Connect Wallet',
       // —— 标签 ——
       tabLiquidity: 'Liquidity',
@@ -952,7 +951,6 @@ const zh: typeof en = {
       route: '路径',
       routeValue: '主池 · 直连',
       deadline: '截止时间',
-      swapDetailsHint: '输入金额后查看兑换详情',
       swapCta: '连接钱包',
       tabLiquidity: 'Liquidity',
       tabPol: 'POL',
