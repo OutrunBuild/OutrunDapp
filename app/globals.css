@@ -2807,7 +2807,7 @@ svg {
 /* 交易台持久区：图/表左（大）+ Swap 右 */
 .verse-desk {
   display: grid;
-  grid-template-columns: minmax(0, 1.9fr) minmax(calc(var(--space-8) * 3.2), 1.1fr);
+  grid-template-columns: minmax(0, 2.2fr) minmax(calc(var(--space-8) * 3.2), 0.9fr);
   gap: var(--space-4);
   margin-block-start: var(--space-4);
   align-items: stretch;
