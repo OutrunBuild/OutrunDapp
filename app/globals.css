@@ -3263,8 +3263,8 @@ svg {
   );
 }
 
-/* 桌面级卡签名表面（三卡共用）：静态随机雨线铺满整卡（2026-09-23 用户裁定：
-   头部斜线带废弃——雨线竖直、随机分布、静止、覆盖全卡非仅头部）+ 品红角部洗色；
+/* 桌面级卡签名表面（三卡共用）：静态斜雨线铺满整卡（2026-09-23 用户裁定：雨线斜向
+   8°–16° 随机、密集、静止、整卡覆盖）；SVG 数据 URI 撒线，品红角部洗色保留；
    clip-path 建立层叠上下文，z-index:-1 落在卡底之上、内容之下 */
 .trade-chart::before,
 .swap-panel::before,
@@ -3276,46 +3276,13 @@ svg {
   pointer-events: none;
   background-image:
     linear-gradient(135deg, rgba(255, 6, 181, 0.14), transparent 40%),
-    linear-gradient(to bottom, rgba(0, 240, 255, 0.15), rgba(0, 240, 255, 0.03) 64%, transparent),
-    linear-gradient(to bottom, rgba(0, 240, 255, 0.1), rgba(0, 240, 255, 0.02) 60%, transparent),
-    linear-gradient(to bottom, rgba(0, 240, 255, 0.13), rgba(0, 240, 255, 0.03) 68%, transparent),
-    linear-gradient(to bottom, rgba(0, 240, 255, 0.08), rgba(0, 240, 255, 0.02) 55%, transparent),
-    linear-gradient(to bottom, rgba(0, 240, 255, 0.12), rgba(0, 240, 255, 0.02) 62%, transparent),
-    linear-gradient(to bottom, rgba(0, 240, 255, 0.16), rgba(0, 240, 255, 0.04) 66%, transparent),
-    linear-gradient(to bottom, rgba(0, 240, 255, 0.09), rgba(0, 240, 255, 0.02) 58%, transparent),
-    linear-gradient(to bottom, rgba(0, 240, 255, 0.13), rgba(0, 240, 255, 0.03) 64%, transparent),
-    linear-gradient(to bottom, rgba(0, 240, 255, 0.1), rgba(0, 240, 255, 0.02) 60%, transparent),
-    linear-gradient(to bottom, rgba(0, 240, 255, 0.12), rgba(0, 240, 255, 0.03) 62%, transparent),
-    linear-gradient(to bottom, rgba(0, 240, 255, 0.15), rgba(0, 240, 255, 0.03) 66%, transparent),
-    linear-gradient(to bottom, rgba(0, 240, 255, 0.08), rgba(0, 240, 255, 0.02) 55%, transparent);
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='900' viewBox='0 0 1200 900'%3E%3Cg stroke='%2300f0ff' stroke-width='1'%3E%3Cline x1='30' y1='20' x2='72' y2='220' opacity='.14'/%3E%3Cline x1='95' y1='300' x2='121' y2='450' opacity='.09'/%3E%3Cline x1='160' y1='120' x2='220' y2='360' opacity='.16'/%3E%3Cline x1='230' y1='520' x2='249' y2='640' opacity='.08'/%3E%3Cline x1='300' y1='60' x2='342' y2='240' opacity='.12'/%3E%3Cline x1='370' y1='380' x2='440' y2='640' opacity='.1'/%3E%3Cline x1='445' y1='180' x2='472' y2='320' opacity='.18'/%3E%3Cline x1='520' y1='620' x2='535' y2='730' opacity='.08'/%3E%3Cline x1='590' y1='40' x2='637' y2='260' opacity='.13'/%3E%3Cline x1='660' y1='330' x2='700' y2='490' opacity='.1'/%3E%3Cline x1='730' y1='130' x2='788' y2='380' opacity='.15'/%3E%3Cline x1='800' y1='540' x2='823' y2='670' opacity='.09'/%3E%3Cline x1='870' y1='240' x2='921' y2='430' opacity='.12'/%3E%3Cline x1='940' y1='60' x2='972' y2='210' opacity='.17'/%3E%3Cline x1='1000' y1='420' x2='1036' y2='650' opacity='.1'/%3E%3Cline x1='1070' y1='150' x2='1112' y2='320' opacity='.13'/%3E%3Cline x1='1130' y1='500' x2='1157' y2='640' opacity='.08'/%3E%3Cline x1='1180' y1='30' x2='1226' y2='230' opacity='.12'/%3E%3Cline x1='55' y1='600' x2='83' y2='730' opacity='.09'/%3E%3Cline x1='275' y1='700' x2='294' y2='810' opacity='.07'/%3E%3Cline x1='640' y1='700' x2='680' y2='850' opacity='.08'/%3E%3Cline x1='960' y1='700' x2='983' y2='820' opacity='.09'/%3E%3Cline x1='420' y1='20' x2='438' y2='150' opacity='.11'/%3E%3Cline x1='760' y1='20' x2='786' y2='140' opacity='.14'/%3E%3Cline x1='1150' y1='250' x2='1190' y2='410' opacity='.1'/%3E%3Cline x1='140' y1='750' x2='156' y2='850' opacity='.07'/%3E%3Cline x1='890' y1='800' x2='918' y2='920' opacity='.08'/%3E%3Cline x1='500' y1='460' x2='518' y2='560' opacity='.12'/%3E%3C/g%3E%3C/svg%3E");
   background-size:
     100% 100%,
-    1px 170px,
-    1px 110px,
-    1px 205px,
-    1px 90px,
-    1px 150px,
-    1px 120px,
-    1px 190px,
-    1px 100px,
-    1px 140px,
-    1px 210px,
-    1px 110px,
-    1px 160px;
+    100% 100%;
   background-position:
     0 0,
-    6% 2%,
-    14% 44%,
-    23% 12%,
-    31% 63%,
-    38% 28%,
-    47% 6%,
-    55% 48%,
-    63% 18%,
-    71% 58%,
-    79% 4%,
-    86% 38%,
-    93% 66%;
+    0 0;
   background-repeat: no-repeat;
 }
 
