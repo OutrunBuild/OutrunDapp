@@ -32,7 +32,7 @@ export function VerseTradeDesk({
               第二行 左=大字价格+涨跌、右=CA 胶囊 */}
           <div className="token-strip" data-numeric>
             <div className="token-strip__row">
-              <strong className="token-strip__symbol">{verse.symbol}</strong>
+              <strong className="token-strip__symbol ax-glitch-text">{verse.symbol}</strong>
               <dl className="token-strip__chips">
                 <div>
                   <dt>{copy.marketCap}:</dt>
@@ -67,6 +67,7 @@ export function VerseTradeDesk({
                 <strong>${stats.price != null ? stats.price.toFixed(6) : copy.onChainSlot}</strong>
                 {stats.change24h != null ? (
                   <span data-trend={stats.change24h >= 0 ? 'up' : 'down'}>
+                    {stats.change24h >= 0 ? '+' : ''}
                     {formatPercent(stats.change24h, locale)}%
                   </span>
                 ) : null}
