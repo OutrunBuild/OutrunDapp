@@ -18,12 +18,6 @@ function Slot({ children }: { children: React.ReactNode }) {
 /** Liquidity 标签：四池总览 + 池卡（four-pools.md:9-14；APR/量=样本+读链槽位） */
 export function LiquidityPanel({ locale, trade }: { locale: Locale; trade: PrototypeVerseTrade }) {
   const copy = getCopy(locale).verseDesk
-  const roleKeys = {
-    main: copy.poolRoleMain,
-    'pol-uasset': copy.poolRolePolUasset,
-    'pt-uasset': copy.poolRolePtUasset,
-    'pt-pol': copy.poolRolePtPol,
-  } as const
   const volumeTotal = trade.tokenStats.volume24h
 
   return (
@@ -47,7 +41,6 @@ export function LiquidityPanel({ locale, trade }: { locale: Locale; trade: Proto
               <strong data-numeric>
                 {pool.baseSymbol}/{pool.quoteSymbol}
               </strong>
-              <span>{roleKeys[pool.pool]}</span>
             </div>
             <dl className="pool-card__stats" data-numeric>
               <div>
@@ -79,7 +72,6 @@ export function LiquidityPanel({ locale, trade }: { locale: Locale; trade: Proto
           </li>
         ))}
       </ul>
-      <p className="panel-note">{copy.auxFeeNote}</p>
       <SourceRef value="docs/page-briefs/source-map.md#M5" />
     </div>
   )
