@@ -2875,6 +2875,24 @@ svg {
   );
 }
 
+/* 悬停气泡内容：全称/完整数值/口径说明 */
+.token-strip__tip {
+  display: grid;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.token-strip__tip i {
+  font-style: normal;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+.token-strip__tip small {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
+
 .token-strip__chips dt {
   color: var(--color-text-secondary);
   font-size: var(--text-xs, 0.75rem);
