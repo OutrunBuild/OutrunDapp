@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowDownUp, Info, Settings2 } from 'lucide-react'
+import { ArrowUpDown, Info, Settings2 } from 'lucide-react'
 
 import type { Locale } from '@/lib/data/prototype-repository'
 
@@ -169,7 +169,7 @@ export function SwapPanel({
         onClick={() => setDirection(direction === 'uasset-to-meme' ? 'meme-to-uasset' : 'uasset-to-meme')}
         aria-label={`${sellSymbol} ⇄ ${buySymbol}`}
       >
-        <ArrowDownUp aria-hidden="true" />
+        <ArrowUpDown aria-hidden="true" size={18} />
       </button>
       <div className="swap-panel__field">
         <div className="swap-panel__field-head">

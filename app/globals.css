@@ -3181,15 +3181,28 @@ svg {
   font-size: var(--text-xs, 0.75rem);
 }
 
+/* 方向翻转：无边框裸符号，卡面同色遮线底；静态灰（避开满屏青），hover/聚焦才转青+180° */
 .swap-panel__flip {
   justify-self: center;
   margin-block: calc(-1 * var(--space-2));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: var(--space-1);
-  border: 1px solid var(--color-border-strong);
-  background: var(--color-surface-raised);
-  color: var(--or-cyan);
+  border: 0;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
   position: relative;
   z-index: 1;
+  transition:
+    color var(--motion-fast) var(--ease-out),
+    transform var(--motion-base) var(--ease-out);
+}
+
+.swap-panel__flip:hover,
+.swap-panel__flip:focus-visible {
+  color: var(--or-cyan);
+  transform: rotate(180deg);
 }
 
 .swap-panel__details {
