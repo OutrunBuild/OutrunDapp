@@ -24,53 +24,56 @@ export function VerseTradeDesk({
   const stats = trade.tokenStats
 
   return (
-    <section className="verse-desk" aria-label={copy.chartTitle}>
+    <section className="verse-desk" aria-label={verse.symbol}>
       <div className="verse-desk__main">
-        <div className="token-strip" data-numeric>
-          <div className="token-strip__price">
-            <strong>{stats.price != null ? stats.price.toFixed(6) : copy.onChainSlot}</strong>
-            {stats.change24h != null ? (
-              <span data-trend={stats.change24h >= 0 ? 'up' : 'down'}>
-                {formatPercent(stats.change24h, locale)}%
-              </span>
+        {/* 统计条+K线同卡（2026-09-23 用户裁定：不再拆两张卡） */}
+        <div className="trade-chart" data-numeric>
+          <div className="token-strip">
+            <div className="token-strip__price">
+              <strong>{stats.price != null ? stats.price.toFixed(6) : copy.onChainSlot}</strong>
+              {stats.change24h != null ? (
+                <span data-trend={stats.change24h >= 0 ? 'up' : 'down'}>
+                  {formatPercent(stats.change24h, locale)}%
+                </span>
+              ) : null}
+            </div>
+            <dl className="token-strip__chips">
+              <div>
+                <dt>{copy.marketCap}</dt>
+                <dd>{stats.marketCap != null ? formatMarketCap(stats.marketCap) : copy.onChainSlot}</dd>
+              </div>
+              <div>
+                <dt>{copy.liquidity}</dt>
+                <dd>{formatMarketCap(stats.liquidity)}</dd>
+              </div>
+              <div>
+                <dt>{copy.volume24h}</dt>
+                <dd>{stats.volume24h != null ? formatMarketCap(stats.volume24h) : copy.onChainSlot}</dd>
+              </div>
+              <div>
+                <dt>{copy.holders}</dt>
+                <dd>{stats.holders != null ? formatAmount(stats.holders, locale, true) : copy.onChainSlot}</dd>
+              </div>
+              <div>
+                <dt>{copy.totalSupply}</dt>
+                <dd>
+                  {stats.totalSupply != null ? formatMarketCap(stats.totalSupply) : copy.onChainSlot}
+                </dd>
+              </div>
+            </dl>
+            {stats.tokenAddress ? (
+              <div className="token-strip__ca">
+                <span>{copy.contract}</span>
+                <CopyAddress locale={locale} value={stats.tokenAddress} />
+              </div>
             ) : null}
           </div>
-          <dl className="token-strip__chips">
-            <div>
-              <dt>{copy.marketCap}</dt>
-              <dd>{stats.marketCap != null ? formatMarketCap(stats.marketCap) : copy.onChainSlot}</dd>
-            </div>
-            <div>
-              <dt>{copy.liquidity}</dt>
-              <dd>{formatMarketCap(stats.liquidity)}</dd>
-            </div>
-            <div>
-              <dt>{copy.volume24h}</dt>
-              <dd>{stats.volume24h != null ? formatMarketCap(stats.volume24h) : copy.onChainSlot}</dd>
-            </div>
-            <div>
-              <dt>{copy.holders}</dt>
-              <dd>{stats.holders != null ? formatAmount(stats.holders, locale, true) : copy.onChainSlot}</dd>
-            </div>
-            <div>
-              <dt>{copy.totalSupply}</dt>
-              <dd>
-                {stats.totalSupply != null ? formatMarketCap(stats.totalSupply) : copy.onChainSlot}
-              </dd>
-            </div>
-          </dl>
-          {stats.tokenAddress ? (
-            <div className="token-strip__ca">
-              <span>{copy.contract}</span>
-              <CopyAddress locale={locale} value={stats.tokenAddress} />
-            </div>
-          ) : null}
+          <CandleChart
+            candles={trade.candles}
+            locale={locale}
+            pairLabel={`${verse.symbol}/${verse.raiseAsset}`}
+          />
         </div>
-        <CandleChart
-          candles={trade.candles}
-          locale={locale}
-          pairLabel={`${verse.symbol}/${verse.raiseAsset}`}
-        />
       </div>
       <div className="verse-desk__side">
         <SwapPanel

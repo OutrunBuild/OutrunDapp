@@ -12,6 +12,8 @@ const GRANULARITIES = ['1m', '5m', '15m', '1h', '4h', '1d', '1w'] as const
 type Granularity = (typeof GRANULARITIES)[number]
 /** 每根聚合蜡烛吸收的 1h 蜡烛数 */
 const AGGREGATE: Partial<Record<Granularity, number>> = { '1h': 1, '4h': 4, '1d': 24, '1w': 168 }
+/** 视口最多渲染蜡烛数（1h 原始 168 根过密——只显示最近 96 根；粗粒度天然低于上限） */
+const MAX_CANDLES = 96
 
 function aggregate(candles: PrototypeCandle[], size: number): PrototypeCandle[] {
   const out: PrototypeCandle[] = []
@@ -28,6 +30,7 @@ function aggregate(candles: PrototypeCandle[], size: number): PrototypeCandle[] 
   return out
 }
 
+/** 主池蜡烛图（无框版本：渲染在 .trade-chart 面板内部，与统计条同卡——2026-09-23 用户裁定合并） */
 export function CandleChart({
   candles,
   locale,
@@ -42,11 +45,11 @@ export function CandleChart({
 
   const series = useMemo(() => {
     const size = AGGREGATE[granularity]
-    return size ? aggregate(candles, size) : []
+    if (!size) return []
+    const visible = candles.slice(-MAX_CANDLES * size)
+    return aggregate(visible, size)
   }, [candles, granularity])
 
-  const last = candles.at(-1)
-  const first = candles[0]
   const range = useMemo(() => {
     if (!series.length) return null
     const lo = Math.min(...series.map((c) => c.l))
@@ -57,15 +60,12 @@ export function CandleChart({
   const W = 640
   const H = 240
   const PAD = 8
-  const bodyW = Math.max(1.5, (W - PAD * 2) / series.length / 2.4)
+  const AXIS_W = 64
+  const bodyW = Math.max(1.5, (W - AXIS_W - PAD * 2) / series.length / 2.4)
 
   return (
     <div className="candle-chart">
-      <div className="candle-chart__head">
-        <div className="candle-chart__pair">
-          <strong>{copy.chartTitle}</strong>
-          <span>{pairLabel}</span>
-        </div>
+      <div className="candle-chart__bar">
         <ToggleGroup
           className="candle-chart__granularity"
           value={[granularity]}
@@ -75,7 +75,12 @@ export function CandleChart({
           aria-label={copy.granularity}
         >
           {GRANULARITIES.map((item) => (
-            <ToggleGroupItem key={item} value={item} disabled={!AGGREGATE[item]} title={AGGREGATE[item] ? undefined : copy.syncing}>
+            <ToggleGroupItem
+              key={item}
+              value={item}
+              disabled={!AGGREGATE[item]}
+              title={AGGREGATE[item] ? undefined : copy.syncing}
+            >
               {item}
             </ToggleGroupItem>
           ))}
@@ -90,7 +95,7 @@ export function CandleChart({
           aria-label={`${pairLabel} OHLC`}
         >
           {series.map((candle, i) => {
-            const x = PAD + ((W - PAD * 2) / series.length) * (i + 0.5)
+            const x = PAD + ((W - AXIS_W - PAD * 2) / series.length) * (i + 0.5)
             const y = (v: number) => PAD + (1 - (v - range.lo) / range.span) * (H - PAD * 2)
             const up = candle.c >= candle.o
             const top = y(Math.max(candle.o, candle.c))
@@ -98,27 +103,24 @@ export function CandleChart({
             return (
               <g key={candle.t} className={up ? 'candle--up' : 'candle--down'}>
                 <line x1={x} x2={x} y1={y(candle.h)} y2={y(candle.l)} strokeWidth="1" />
-                <rect
-                  x={x - bodyW / 2}
-                  y={top}
-                  width={bodyW}
-                  height={Math.max(1, bottom - top)}
-                />
+                <rect x={x - bodyW / 2} y={top} width={bodyW} height={Math.max(1, bottom - top)} />
               </g>
             )
           })}
+          {[range.hi, (range.hi + range.lo) / 2, range.lo].map((price, i) => (
+            <text
+              key={i}
+              className="candle-chart__axis"
+              x={W - AXIS_W + 6}
+              y={PAD + 4 + ((H - PAD * 2) / 2) * i}
+            >
+              {price.toFixed(6)}
+            </text>
+          ))}
         </svg>
       ) : (
         <div className="candle-chart__empty">{copy.syncing}</div>
       )}
-      {last && first ? (
-        <div className="candle-chart__meta" data-numeric>
-          <span>O {first.o.toFixed(6)}</span>
-          <span>H {last.h.toFixed(6)}</span>
-          <span>L {last.l.toFixed(6)}</span>
-          <span>C {last.c.toFixed(6)}</span>
-        </div>
-      ) : null}
     </div>
   )
 }

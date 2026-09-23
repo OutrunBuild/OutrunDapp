@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowDownUp } from 'lucide-react'
+import { ArrowDownUp, Settings2 } from 'lucide-react'
 
 import type { Locale } from '@/lib/data/prototype-repository'
 
@@ -9,12 +9,14 @@ import { getCopy } from './copy'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
-/** 原型滑点默认（R-06：常态 0.5%；开池/保护期预填更高——本样本 verse 均为常态） */
-const SLIPPAGE_DEFAULT = 0.005
+/** 滑点/截止默认与预设档（R-06：常态默认 0.5%；demo 参照档位 0.1/0.5/1.0 与 10/20/30 分钟） */
+const SLIPPAGE_PRESETS = [0.1, 0.5, 1] as const
+const DEADLINE_PRESETS = [10, 20, 30] as const
 
 /**
- * 标准 Swap 窗口（Q&A 口径：方向切换 Memecoin↔uAsset、双向金额、Half/Max、参考价、
- * 报价≠保证成交、费率读链槽位；原型只演示 ViewModel，CTA=连接钱包，不伪造链上成功）。
+ * 标准 Swap 窗口（2026-09-23 用户修订：右上角设置按钮收滑点/截止；详情行只留
+ * 参考价/价格影响/最低到账/路径；静态说明文案删除——demo 同构）。
+ * 原型只演示 ViewModel：CTA=连接钱包禁用，不伪造链上成功。
  */
 export function SwapPanel({
   locale,
@@ -31,26 +33,87 @@ export function SwapPanel({
   const copy = getCopy(locale).verseDesk
   const [direction, setDirection] = useState<'meme-to-uasset' | 'uasset-to-meme'>('uasset-to-meme')
   const [amount, setAmount] = useState('')
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [slippage, setSlippage] = useState<number>(0.5)
+  const [deadlineMin, setDeadlineMin] = useState<number>(10)
 
   const parsed = Number(amount)
   const valid = Number.isFinite(parsed) && parsed > 0
-  // 原型报价：按主池参考价线性换算（滑点/动态费以执行读链为准——D4/D5 槽位口径）
+  // 原型报价：按主池参考价线性换算（滑点/动态费以执行读链为准）
   const quote =
-    direction === 'uasset-to-meme'
-      ? valid
-        ? parsed / price
-        : null
-      : valid
-        ? parsed * price
-        : null
-  const minReceived =
-    quote != null ? quote * (1 - SLIPPAGE_DEFAULT) : null
+    direction === 'uasset-to-meme' ? (valid ? parsed / price : null) : valid ? parsed * price : null
+  const minReceived = quote != null ? quote * (1 - slippage / 100) : null
   const sellSymbol = direction === 'uasset-to-meme' ? uAssetSymbol : memecoinSymbol
   const buySymbol = direction === 'uasset-to-meme' ? memecoinSymbol : uAssetSymbol
 
   return (
     <section className="swap-panel ax-glow-card" aria-labelledby="swap-title">
-      <h2 id="swap-title">{copy.swapTitle}</h2>
+      <div className="swap-panel__head">
+        <h2 id="swap-title">{copy.swapTitle}</h2>
+        <button
+          type="button"
+          className="swap-panel__settings-toggle"
+          aria-expanded={settingsOpen}
+          aria-label={copy.settingsTitle}
+          onClick={() => setSettingsOpen(!settingsOpen)}
+        >
+          <Settings2 aria-hidden="true" />
+        </button>
+      </div>
+      {settingsOpen ? (
+        <div className="swap-settings">
+          <div className="swap-settings__row">
+            <span>{copy.maxSlippage}</span>
+            <div className="swap-settings__options">
+              {SLIPPAGE_PRESETS.map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  data-selected={slippage === preset}
+                  onClick={() => setSlippage(preset)}
+                >
+                  {preset}%
+                </button>
+              ))}
+              <Input
+                className="swap-settings__custom numeric-input"
+                inputMode="decimal"
+                aria-label={`${copy.maxSlippage} %`}
+                value={slippage}
+                onChange={(event) => {
+                  const next = Number(event.target.value.replace(/[^\d.]/g, ''))
+                  setSlippage(Number.isFinite(next) && next >= 0 ? next : 0)
+                }}
+              />
+            </div>
+          </div>
+          <div className="swap-settings__row">
+            <span>{copy.deadline}</span>
+            <div className="swap-settings__options">
+              {DEADLINE_PRESETS.map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  data-selected={deadlineMin === preset}
+                  onClick={() => setDeadlineMin(preset)}
+                >
+                  {preset}
+                </button>
+              ))}
+              <Input
+                className="swap-settings__custom numeric-input"
+                inputMode="numeric"
+                aria-label={`${copy.deadline} min`}
+                value={deadlineMin}
+                onChange={(event) => {
+                  const next = Number(event.target.value.replace(/[^\d]/g, ''))
+                  setDeadlineMin(Number.isFinite(next) && next > 0 ? next : 1)
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className="swap-panel__field">
         <div className="swap-panel__field-head">
           <span>{copy.swapSell}</span>
@@ -112,20 +175,11 @@ export function SwapPanel({
           <dd data-numeric>{minReceived != null ? `${minReceived.toFixed(6)} ${buySymbol}` : '--'}</dd>
         </div>
         <div>
-          <dt>{copy.maxSlippage}</dt>
-          <dd data-numeric>0.5%</dd>
-        </div>
-        <div>
           <dt>{copy.route}</dt>
           <dd>{copy.routeValue}</dd>
         </div>
-        <div>
-          <dt>{copy.deadline}</dt>
-          <dd>{copy.deadlineValue}</dd>
-        </div>
       </dl>
-      <p className="swap-panel__note">{valid ? copy.swapRateNote : copy.swapDetailsHint}</p>
-      <p className="swap-panel__note">{copy.swapFeeNote}</p>
+      {!valid ? <p className="swap-panel__hint">{copy.swapDetailsHint}</p> : null}
       <Button className="swap-panel__cta" disabled title={copy.swapCta}>
         {copy.swapCta}
       </Button>
