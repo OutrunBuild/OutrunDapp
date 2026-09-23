@@ -36,15 +36,19 @@ export function VerseTradeDesk({
               <dl className="token-strip__chips">
                 <div>
                   <dt>{copy.marketCap}:</dt>
-                  <dd>{stats.marketCap != null ? formatMarketCap(stats.marketCap) : copy.onChainSlot}</dd>
+                  <dd>
+                    {stats.marketCap != null ? `$${formatMarketCap(stats.marketCap)}` : copy.onChainSlot}
+                  </dd>
                 </div>
                 <div>
                   <dt>{copy.liquidity}:</dt>
-                  <dd>{formatMarketCap(stats.liquidity)}</dd>
+                  <dd>${formatMarketCap(stats.liquidity)}</dd>
                 </div>
                 <div>
                   <dt>{copy.volume24h}:</dt>
-                  <dd>{stats.volume24h != null ? formatMarketCap(stats.volume24h) : copy.onChainSlot}</dd>
+                  <dd>
+                    {stats.volume24h != null ? `$${formatMarketCap(stats.volume24h)}` : copy.onChainSlot}
+                  </dd>
                 </div>
                 <div>
                   <dt>{copy.holders}:</dt>
@@ -60,8 +64,7 @@ export function VerseTradeDesk({
             </div>
             <div className="token-strip__row token-strip__row--main">
               <div className="token-strip__price">
-                <strong>{stats.price != null ? stats.price.toFixed(6) : copy.onChainSlot}</strong>
-                <span aria-hidden="true">{verse.raiseAsset}</span>
+                <strong>${stats.price != null ? stats.price.toFixed(6) : copy.onChainSlot}</strong>
                 {stats.change24h != null ? (
                   <span data-trend={stats.change24h >= 0 ? 'up' : 'down'}>
                     {formatPercent(stats.change24h, locale)}%
