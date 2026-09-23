@@ -2821,22 +2821,14 @@ svg {
 /* 统计条+K线合并卡（2026-09-23 用户裁定：一张卡） */
 .trade-chart {
   position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: var(--space-4);
   padding: var(--space-5);
-  border: 1px solid var(--color-border-signal);
-  background: var(--color-surface);
   box-shadow:
-    inset 0 1px 0 rgba(0, 240, 255, 0.32),
-    inset 0 -1px 0 rgba(255, 6, 181, 0.28);
-  clip-path: polygon(
-    0 0,
-    calc(100% - var(--chamfer-panel)) 0,
-    100% var(--chamfer-panel),
-    100% 100%,
-    0 100%
-  );
+    0 24px 48px rgba(0, 0, 0, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* 代币统计条（卡内无框；排列按参照页：第一行 代币名+单行胶囊，第二行 价格+CA） */
@@ -3123,21 +3115,13 @@ svg {
 
 .swap-panel {
   position: relative;
+  isolation: isolate;
   display: grid;
   gap: var(--space-3);
   padding: var(--space-5);
-  border: 1px solid var(--color-border-signal);
-  background: var(--color-surface);
   box-shadow:
-    inset 0 1px 0 rgba(0, 240, 255, 0.32),
-    inset 0 -1px 0 rgba(255, 6, 181, 0.28);
-  clip-path: polygon(
-    0 0,
-    calc(100% - var(--chamfer-panel)) 0,
-    100% var(--chamfer-panel),
-    100% 100%,
-    0 100%
-  );
+    0 24px 48px rgba(0, 0, 0, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .swap-panel__field {
@@ -3247,13 +3231,34 @@ svg {
 /* 四标签容器 */
 .verse-tabs {
   position: relative;
+  isolation: isolate;
   margin-block-start: var(--space-5);
   padding: var(--space-5);
-  border: 1px solid var(--color-border-signal);
-  background: var(--color-surface);
   box-shadow:
-    inset 0 1px 0 rgba(0, 240, 255, 0.32),
-    inset 0 -1px 0 rgba(255, 6, 181, 0.28);
+    0 24px 48px rgba(0, 0, 0, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* 桌面级卡签名表面 = 方案B「雨夜材质」（2026-09-23 用户拍板，demo /design-review/card-surface）：
+   ::before 湿边缘方向描边（青上亮→下暗渐隐，含切角斜边，z-2）
+   ::after  卡面层 = surface + 顶缘光渗 + 品红角部洗 + 噪点镀膜（feTurbulence 5% 烤进 SVG，z-1）
+   卡体：isolation 建层叠上下文（负 z 伪元素压在内容之下），外投影悬浮；
+   hover 通电（描边/光渗/角洗增亮）。雨线、均匀顶光、底缘品红线、HUD 角标废弃 */
+.trade-chart::before,
+.swap-panel::before,
+.verse-tabs::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background: linear-gradient(
+    165deg,
+    rgba(0, 240, 255, 0.5),
+    rgba(0, 240, 255, 0.12) 36%,
+    rgba(255, 255, 255, 0.06) 70%,
+    transparent
+  );
   clip-path: polygon(
     0 0,
     calc(100% - var(--chamfer-panel)) 0,
@@ -3263,41 +3268,47 @@ svg {
   );
 }
 
-/* 桌面级卡签名表面（三卡共用）：静态斜雨线铺满整卡（2026-09-23 用户裁定：雨线斜向
-   8°–16° 随机、密集、静止、整卡覆盖）；SVG 数据 URI 撒线，品红角部洗色保留；
-   clip-path 建立层叠上下文，z-index:-1 落在卡底之上、内容之下 */
-.trade-chart::before,
-.swap-panel::before,
-.verse-tabs::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image:
-    linear-gradient(135deg, rgba(255, 6, 181, 0.14), transparent 40%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='900' viewBox='0 0 1200 900'%3E%3Cg stroke='%2300f0ff' stroke-width='1'%3E%3Cline x1='30' y1='20' x2='72' y2='220' opacity='.14'/%3E%3Cline x1='95' y1='300' x2='121' y2='450' opacity='.09'/%3E%3Cline x1='160' y1='120' x2='220' y2='360' opacity='.16'/%3E%3Cline x1='230' y1='520' x2='249' y2='640' opacity='.08'/%3E%3Cline x1='300' y1='60' x2='342' y2='240' opacity='.12'/%3E%3Cline x1='370' y1='380' x2='440' y2='640' opacity='.1'/%3E%3Cline x1='445' y1='180' x2='472' y2='320' opacity='.18'/%3E%3Cline x1='520' y1='620' x2='535' y2='730' opacity='.08'/%3E%3Cline x1='590' y1='40' x2='637' y2='260' opacity='.13'/%3E%3Cline x1='660' y1='330' x2='700' y2='490' opacity='.1'/%3E%3Cline x1='730' y1='130' x2='788' y2='380' opacity='.15'/%3E%3Cline x1='800' y1='540' x2='823' y2='670' opacity='.09'/%3E%3Cline x1='870' y1='240' x2='921' y2='430' opacity='.12'/%3E%3Cline x1='940' y1='60' x2='972' y2='210' opacity='.17'/%3E%3Cline x1='1000' y1='420' x2='1036' y2='650' opacity='.1'/%3E%3Cline x1='1070' y1='150' x2='1112' y2='320' opacity='.13'/%3E%3Cline x1='1130' y1='500' x2='1157' y2='640' opacity='.08'/%3E%3Cline x1='1180' y1='30' x2='1226' y2='230' opacity='.12'/%3E%3Cline x1='55' y1='600' x2='83' y2='730' opacity='.09'/%3E%3Cline x1='275' y1='700' x2='294' y2='810' opacity='.07'/%3E%3Cline x1='640' y1='700' x2='680' y2='850' opacity='.08'/%3E%3Cline x1='960' y1='700' x2='983' y2='820' opacity='.09'/%3E%3Cline x1='420' y1='20' x2='438' y2='150' opacity='.11'/%3E%3Cline x1='760' y1='20' x2='786' y2='140' opacity='.14'/%3E%3Cline x1='1150' y1='250' x2='1190' y2='410' opacity='.1'/%3E%3Cline x1='140' y1='750' x2='156' y2='850' opacity='.07'/%3E%3Cline x1='890' y1='800' x2='918' y2='920' opacity='.08'/%3E%3Cline x1='500' y1='460' x2='518' y2='560' opacity='.12'/%3E%3C/g%3E%3C/svg%3E");
-  background-size:
-    100% 100%,
-    100% 100%;
-  background-position:
-    0 0,
-    0 0;
-  background-repeat: no-repeat;
-}
-
 .trade-chart::after,
 .swap-panel::after,
 .verse-tabs::after {
   content: '';
   position: absolute;
-  inset-block-start: 8px;
-  inset-inline-start: 8px;
-  inline-size: 12px;
-  block-size: 12px;
+  inset: 1px;
+  z-index: -1;
   pointer-events: none;
-  border-block-start: 2px solid var(--or-cyan);
-  border-inline-start: 2px solid var(--or-cyan);
+  background-color: var(--color-surface);
+  background-image:
+    linear-gradient(180deg, rgba(0, 240, 255, 0.07), transparent 26%),
+    linear-gradient(135deg, rgba(255, 6, 181, 0.1), transparent 34%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--chamfer-panel) + 1px) 0,
+    100% calc(var(--chamfer-panel) - 1px),
+    100% 100%,
+    0 100%
+  );
+}
+
+.trade-chart:hover::before,
+.swap-panel:hover::before,
+.verse-tabs:hover::before {
+  background: linear-gradient(
+    165deg,
+    rgba(0, 240, 255, 0.8),
+    rgba(0, 240, 255, 0.2) 36%,
+    rgba(255, 255, 255, 0.08) 70%,
+    transparent
+  );
+}
+
+.trade-chart:hover::after,
+.swap-panel:hover::after,
+.verse-tabs:hover::after {
+  background-image:
+    linear-gradient(180deg, rgba(0, 240, 255, 0.11), transparent 28%),
+    linear-gradient(135deg, rgba(255, 6, 181, 0.13), transparent 34%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
 }
 
 .verse-tabs__bar {
