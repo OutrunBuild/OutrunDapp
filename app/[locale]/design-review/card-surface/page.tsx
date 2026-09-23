@@ -149,11 +149,12 @@ export default async function CardSurfaceReviewPage({ params }: Props) {
         {card(
           'b',
           '雨夜材质',
-          '方向性湿边缘描边（上亮下暗）+ feTurbulence 噪点 + 图表区洇光 + 悬浮投影',
+          '方向性湿边缘描边（上亮下暗）+ feTurbulence 噪点 + 顶缘光渗 + 品红角洗 + 悬浮投影',
         )}
-        {card('c', '洇光极简', 'B 减噪点减品红：只留洇光与渐变描边，最轻的雨夜')}
+        {card('c', '洇光极简', 'B 减噪点减品红：顶缘光渗 + 渐变描边，最轻的雨夜')}
         {card('d', '线框高反差', '白色方向性发丝边 + 深投影，无任何彩色，纯 Linear 学派')}
       </div>
+      <div className="ax-scanlines" aria-hidden="true" />
     </main>
   );
 }
@@ -229,7 +230,7 @@ const css = `
 .cs-card--b .cs-card__inner-bg {
   background-color: var(--color-surface);
   background-image:
-    radial-gradient(560px 240px at 34% 58%, rgba(0,240,255,0.08), transparent 62%),
+    linear-gradient(180deg, rgba(0,240,255,0.07), transparent 26%),
     linear-gradient(135deg, rgba(255,6,181,0.1), transparent 34%);
 }
 .cs-card--b .cs-card__grain {
@@ -241,7 +242,7 @@ const css = `
 }
 .cs-card--b:hover .cs-card__inner-bg {
   background-image:
-    radial-gradient(560px 240px at 34% 58%, rgba(0,240,255,0.13), transparent 62%),
+    linear-gradient(180deg, rgba(0,240,255,0.11), transparent 28%),
     linear-gradient(135deg, rgba(255,6,181,0.13), transparent 34%);
 }
 
@@ -258,7 +259,7 @@ const css = `
 }
 .cs-card--c .cs-card__inner-bg {
   background-color: var(--color-surface);
-  background-image: radial-gradient(560px 240px at 34% 58%, rgba(0,240,255,0.07), transparent 62%);
+  background-image: linear-gradient(180deg, rgba(0,240,255,0.06), transparent 24%);
 }
 .cs-card--c:hover .cs-card__inner::before {
   background: linear-gradient(165deg, rgba(0,240,255,0.62), rgba(0,240,255,0.16) 38%, transparent 74%);

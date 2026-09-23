@@ -1,6 +1,15 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  CandlestickSeries,
+  ColorType,
+  createChart,
+  type CandlestickData,
+  type IChartApi,
+  type ISeriesApi,
+  type UTCTimestamp,
+} from 'lightweight-charts'
 
 import type { Locale, PrototypeCandle, PrototypeFineCandles } from '@/lib/data/prototype-repository'
 
@@ -30,7 +39,23 @@ function aggregate(candles: PrototypeCandle[], size: number): PrototypeCandle[] 
   return out
 }
 
-/** 主池蜡烛图（无框版本：渲染在 .trade-chart 面板内部，与统计条同卡——2026-09-23 用户裁定合并） */
+/** 渲染层不自造颜色/字体——运行时从设计 token 读（2026-09-23 用户裁定：K线用 TradingView 开源 Lightweight Charts，不重复造轮子） */
+function cssVar(name: string): string {
+  if (typeof window === 'undefined') return 'transparent'
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || 'transparent'
+}
+
+function toChartData(candles: PrototypeCandle[]): CandlestickData<UTCTimestamp>[] {
+  return candles.map((candle) => ({
+    time: (Date.parse(candle.t) / 1000) as UTCTimestamp,
+    open: candle.o,
+    high: candle.h,
+    low: candle.l,
+    close: candle.c,
+  }))
+}
+
+/** 主池蜡烛图（Lightweight Charts 渲染在 .trade-chart 面板内部，与统计条同卡） */
 export function CandleChart({
   candles,
   fineCandles,
@@ -44,6 +69,9 @@ export function CandleChart({
 }) {
   const copy = getCopy(locale).verseDesk
   const [granularity, setGranularity] = useState<Granularity>('1h')
+  const containerRef = useRef<HTMLDivElement>(null)
+  const chartRef = useRef<IChartApi | null>(null)
+  const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
 
   const series = useMemo(() => {
     if (granularity === '1m' || granularity === '5m' || granularity === '15m') {
@@ -54,32 +82,50 @@ export function CandleChart({
     return aggregate(candles.slice(-MAX_CANDLES * size), size)
   }, [candles, fineCandles, granularity])
 
-  const range = useMemo(() => {
-    if (!series.length) return null
-    const lo = Math.min(...series.map((c) => c.l))
-    const hi = Math.max(...series.map((c) => c.h))
-    return { lo, hi, span: hi - lo || hi * 0.01 }
-  }, [series])
-
-  /* 绘图区实测尺寸（ResizeObserver）：两卡等高时 K 线纵向填满、按真实像素重绘，非均匀拉伸 */
-  const plotRef = useRef<HTMLDivElement>(null)
-  const [plot, setPlot] = useState<{ w: number; h: number } | null>(null)
   useEffect(() => {
-    const el = plotRef.current
+    const el = containerRef.current
     if (!el) return
-    const observer = new ResizeObserver(() => {
-      const rect = el.getBoundingClientRect()
-      setPlot({ w: Math.round(rect.width), h: Math.round(rect.height) })
+    const chart = createChart(el, {
+      autoSize: true,
+      layout: {
+        background: { type: ColorType.Solid, color: 'transparent' },
+        textColor: cssVar('--color-text-secondary'),
+        fontFamily: cssVar('--font-data'),
+        attributionLogo: false,
+      },
+      grid: {
+        vertLines: { color: cssVar('--grid-cyan-inner') },
+        horzLines: { color: cssVar('--grid-cyan-inner') },
+      },
+      rightPriceScale: { borderVisible: false },
+      timeScale: { borderVisible: false, timeVisible: true, secondsVisible: false },
+      crosshair: {
+        vertLine: { color: 'rgba(0, 240, 255, 0.35)', labelBackgroundColor: cssVar('--color-surface-raised') },
+        horzLine: { color: 'rgba(0, 240, 255, 0.35)', labelBackgroundColor: cssVar('--color-surface-raised') },
+      },
     })
-    observer.observe(el)
-    return () => observer.disconnect()
+    const up = cssVar('--color-success')
+    const down = cssVar('--color-danger')
+    const candleSeries = chart.addSeries(CandlestickSeries, {
+      upColor: up,
+      downColor: down,
+      wickUpColor: up,
+      wickDownColor: down,
+      borderVisible: false,
+    })
+    chartRef.current = chart
+    seriesRef.current = candleSeries
+    return () => {
+      chart.remove()
+      chartRef.current = null
+      seriesRef.current = null
+    }
   }, [])
 
-  const W = plot?.w ?? 640
-  const H = plot?.h ?? 240
-  const PAD = 8
-  const AXIS_W = 64
-  const bodyW = Math.max(1.5, (W - AXIS_W - PAD * 2) / series.length / 2.4)
+  useEffect(() => {
+    seriesRef.current?.setData(toChartData(series))
+    chartRef.current?.timeScale().fitContent()
+  }, [series])
 
   return (
     <div className="candle-chart">
@@ -99,40 +145,8 @@ export function CandleChart({
           ))}
         </ToggleGroup>
       </div>
-      {series.length > 0 && range ? (
-        <div className="candle-chart__plot" ref={plotRef}>
-          <svg
-            className="candle-chart__svg"
-            viewBox={`0 0 ${W} ${H}`}
-            preserveAspectRatio="none"
-            role="img"
-            aria-label={`${pairLabel} OHLC`}
-          >
-            {series.map((candle, i) => {
-              const x = PAD + ((W - AXIS_W - PAD * 2) / series.length) * (i + 0.5)
-              const y = (v: number) => PAD + (1 - (v - range.lo) / range.span) * (H - PAD * 2)
-              const up = candle.c >= candle.o
-              const top = y(Math.max(candle.o, candle.c))
-              const bottom = y(Math.min(candle.o, candle.c))
-              return (
-                <g key={candle.t} className={up ? 'candle--up' : 'candle--down'}>
-                  <line x1={x} x2={x} y1={y(candle.h)} y2={y(candle.l)} strokeWidth="1" />
-                  <rect x={x - bodyW / 2} y={top} width={bodyW} height={Math.max(1, bottom - top)} />
-                </g>
-              )
-            })}
-            {[range.hi, (range.hi + range.lo) / 2, range.lo].map((price, i) => (
-              <text
-                key={i}
-                className="candle-chart__axis"
-                x={W - AXIS_W + 6}
-                y={PAD + 4 + ((H - PAD * 2) / 2) * i}
-              >
-                {price.toFixed(6)}
-              </text>
-            ))}
-          </svg>
-        </div>
+      {series.length > 0 ? (
+        <div className="candle-chart__plot" ref={containerRef} aria-label={`${pairLabel} OHLC`} role="img" />
       ) : (
         <div className="candle-chart__empty">{copy.syncing}</div>
       )}
