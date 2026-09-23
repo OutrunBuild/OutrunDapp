@@ -37,11 +37,9 @@ export function LiquidityPanel({ locale, trade }: { locale: Locale; trade: Proto
       <ul className="liquidity-panel__pools">
         {trade.pools.map((pool) => (
           <li key={pool.id} className="pool-card" data-pool={pool.pool}>
-            <div className="pool-card__head">
-              <strong data-numeric>
-                {pool.baseSymbol}/{pool.quoteSymbol}
-              </strong>
-            </div>
+            <strong className="pool-card__pair" data-numeric>
+              {pool.baseSymbol}/{pool.quoteSymbol}
+            </strong>
             <dl className="pool-card__stats" data-numeric>
               <div>
                 <dt>TVL</dt>
@@ -64,11 +62,9 @@ export function LiquidityPanel({ locale, trade }: { locale: Locale; trade: Proto
                 </dd>
               </div>
             </dl>
-            {pool.pool === 'main' ? (
-              <Button variant="outline" size="sm" disabled title={copy.onChainSlot}>
-                {copy.addLiquidity}
-              </Button>
-            ) : null}
+            <Button variant="outline" size="sm" disabled title={copy.onChainSlot}>
+              {copy.addLiquidity}
+            </Button>
           </li>
         ))}
       </ul>
