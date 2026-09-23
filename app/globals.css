@@ -2953,7 +2953,7 @@ svg {
 }
 
 /* 绘图区弹性吸高（两卡等高时 K 线纵向填满，最小 240 保比例）；
-   toolbar=左缘画线/指标工具列（klinecharts 引擎），holder=图表容器 */
+   legend=OHLC/Vol/MA 悬浮读数（DexScreener 同构），holder=Lightweight Charts 容器 */
 .candle-chart__plot {
   position: relative;
   min-block-size: 240px;
@@ -2964,44 +2964,52 @@ svg {
   inset: 0;
 }
 
-.candle-chart__toolbar {
+.candle-chart__legend {
   position: absolute;
-  inset-block-start: 8px;
+  inset-block-start: 4px;
   inset-inline-start: 4px;
-  /* klinecharts canvas 内联 z-index:2，工具栏必须更高才可点 */
-  z-index: 3;
-  display: grid;
-  gap: 2px;
-  padding: 2px;
-  border: 1px solid var(--color-border);
-  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
-}
-
-.candle-chart__tool {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  inline-size: 28px;
-  block-size: 28px;
-  padding: 0;
-  border: 0;
-  background: transparent;
+  z-index: 1;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  pointer-events: none;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
   color: var(--color-text-secondary);
 }
 
-.candle-chart__tool:hover {
+.candle-chart__legend b {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.candle-chart__legend i {
+  font-style: normal;
+  color: var(--color-text);
+}
+
+.candle-chart__legend i[data-trend='up'] {
+  color: var(--color-success);
+}
+
+.candle-chart__legend i[data-trend='down'] {
+  color: var(--color-danger);
+}
+
+.candle-chart__legend .candle-chart__ma--fast i {
   color: var(--or-cyan);
 }
 
-.candle-chart__tool[data-active='true'] {
-  color: var(--or-cyan);
-  background: color-mix(in srgb, var(--or-cyan) 10%, transparent);
+.candle-chart__legend .candle-chart__ma--slow i {
+  color: var(--accent-echo);
 }
 
-.candle-chart__tool-divider {
-  block-size: 1px;
-  margin-block: 2px;
-  background: var(--color-border);
+.candle-chart__svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
 }
 
 .candle-chart__granularity[data-slot='toggle-group'] {
@@ -3017,6 +3025,29 @@ svg {
 .candle-chart__granularity [data-slot='toggle-group-item'][data-pressed] {
   color: var(--accent-primary);
   box-shadow: inset 0 -2px 0 var(--accent-primary);
+}
+
+.candle-chart__svg {
+  inline-size: 100%;
+  block-size: 240px;
+}
+
+.candle-chart__svg .candle--up line,
+.candle-chart__svg .candle--up rect {
+  stroke: var(--color-success);
+  fill: var(--color-success);
+}
+
+.candle-chart__svg .candle--down line,
+.candle-chart__svg .candle--down rect {
+  stroke: var(--color-danger);
+  fill: var(--color-danger);
+}
+
+.candle-chart__axis {
+  fill: var(--color-text-secondary);
+  font-family: var(--font-data);
+  font-size: 12px;
 }
 
 .candle-chart__empty {
