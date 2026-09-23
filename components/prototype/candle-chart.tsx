@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import type { Locale, PrototypeCandle, PrototypeFineCandles } from '@/lib/data/prototype-repository'
 
@@ -61,8 +61,22 @@ export function CandleChart({
     return { lo, hi, span: hi - lo || hi * 0.01 }
   }, [series])
 
-  const W = 640
-  const H = 240
+  /* 绘图区实测尺寸（ResizeObserver）：两卡等高时 K 线纵向填满、按真实像素重绘，非均匀拉伸 */
+  const plotRef = useRef<HTMLDivElement>(null)
+  const [plot, setPlot] = useState<{ w: number; h: number } | null>(null)
+  useEffect(() => {
+    const el = plotRef.current
+    if (!el) return
+    const observer = new ResizeObserver(() => {
+      const rect = el.getBoundingClientRect()
+      setPlot({ w: Math.round(rect.width), h: Math.round(rect.height) })
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  const W = plot?.w ?? 640
+  const H = plot?.h ?? 240
   const PAD = 8
   const AXIS_W = 64
   const bodyW = Math.max(1.5, (W - AXIS_W - PAD * 2) / series.length / 2.4)
@@ -86,37 +100,39 @@ export function CandleChart({
         </ToggleGroup>
       </div>
       {series.length > 0 && range ? (
-        <svg
-          className="candle-chart__svg"
-          viewBox={`0 0 ${W} ${H}`}
-          preserveAspectRatio="none"
-          role="img"
-          aria-label={`${pairLabel} OHLC`}
-        >
-          {series.map((candle, i) => {
-            const x = PAD + ((W - AXIS_W - PAD * 2) / series.length) * (i + 0.5)
-            const y = (v: number) => PAD + (1 - (v - range.lo) / range.span) * (H - PAD * 2)
-            const up = candle.c >= candle.o
-            const top = y(Math.max(candle.o, candle.c))
-            const bottom = y(Math.min(candle.o, candle.c))
-            return (
-              <g key={candle.t} className={up ? 'candle--up' : 'candle--down'}>
-                <line x1={x} x2={x} y1={y(candle.h)} y2={y(candle.l)} strokeWidth="1" />
-                <rect x={x - bodyW / 2} y={top} width={bodyW} height={Math.max(1, bottom - top)} />
-              </g>
-            )
-          })}
-          {[range.hi, (range.hi + range.lo) / 2, range.lo].map((price, i) => (
-            <text
-              key={i}
-              className="candle-chart__axis"
-              x={W - AXIS_W + 6}
-              y={PAD + 4 + ((H - PAD * 2) / 2) * i}
-            >
-              {price.toFixed(6)}
-            </text>
-          ))}
-        </svg>
+        <div className="candle-chart__plot" ref={plotRef}>
+          <svg
+            className="candle-chart__svg"
+            viewBox={`0 0 ${W} ${H}`}
+            preserveAspectRatio="none"
+            role="img"
+            aria-label={`${pairLabel} OHLC`}
+          >
+            {series.map((candle, i) => {
+              const x = PAD + ((W - AXIS_W - PAD * 2) / series.length) * (i + 0.5)
+              const y = (v: number) => PAD + (1 - (v - range.lo) / range.span) * (H - PAD * 2)
+              const up = candle.c >= candle.o
+              const top = y(Math.max(candle.o, candle.c))
+              const bottom = y(Math.min(candle.o, candle.c))
+              return (
+                <g key={candle.t} className={up ? 'candle--up' : 'candle--down'}>
+                  <line x1={x} x2={x} y1={y(candle.h)} y2={y(candle.l)} strokeWidth="1" />
+                  <rect x={x - bodyW / 2} y={top} width={bodyW} height={Math.max(1, bottom - top)} />
+                </g>
+              )
+            })}
+            {[range.hi, (range.hi + range.lo) / 2, range.lo].map((price, i) => (
+              <text
+                key={i}
+                className="candle-chart__axis"
+                x={W - AXIS_W + 6}
+                y={PAD + 4 + ((H - PAD * 2) / 2) * i}
+              >
+                {price.toFixed(6)}
+              </text>
+            ))}
+          </svg>
+        </div>
       ) : (
         <div className="candle-chart__empty">{copy.syncing}</div>
       )}
