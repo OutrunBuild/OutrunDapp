@@ -3,61 +3,1579 @@
   "generatedFrom": "fixtures/data/seed.json",
   "items": [
     {
-      "id": "gov-001", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#M10",
-      "verseId": "verse-002", "cycleNumber": "3", "cycleDurationDays": 90,
-      "cycleEndsAt": "2026-09-23T12:00:00Z", "finalized": false, "claimWindowEndsAt": "2026-10-07T12:00:00Z",
-      "governorAddress": { "value": "0x9a6700000000000000000000000000000000a004", "fixtureOnly": true },
-      "incentivizerAddress": { "value": "0x6c5b000000000000000000000000000000000c7b", "fixtureOnly": true },
+      "id": "gov-001",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-002",
+      "cycleNumber": "3",
+      "cycleDurationDays": 90,
+      "cycleEndsAt": "2026-09-23T12:00:00Z",
+      "finalized": false,
+      "claimWindowEndsAt": "2026-10-07T12:00:00Z",
+      "governorAddress": {
+        "value": "0x9a6700000000000000000000000000000000a004",
+        "fixtureOnly": true
+      },
+      "incentivizerAddress": {
+        "value": "0x6c5b000000000000000000000000000000000c7b",
+        "fixtureOnly": true
+      },
       "delegates": 5191,
-      "totalVotingPower": { "raw": "42000000", "decimals": 18 },
-      "myVotes": { "raw": "20000000", "decimals": 18 },
-      "treasuryUAsset": { "raw": "3100000", "decimals": 18 },
-      "rewardRatio": { "raw": "2500", "unit": "bps", "scale": 18 },
-      "cumulativeIncentivePool": { "raw": "705000", "decimals": 18 },
-      "currentCycleVotes": { "total": { "raw": "100000000", "decimals": 18 }, "mine": { "raw": "20000000", "decimals": 18 } },
+      "totalVotingPower": {
+        "raw": "42000000",
+        "decimals": 18
+      },
+      "myVotes": {
+        "raw": "20000000",
+        "decimals": 18
+      },
+      "treasuryUAsset": {
+        "raw": "3100000",
+        "decimals": 18
+      },
+      "rewardRatio": {
+        "raw": "2500",
+        "unit": "bps",
+        "scale": 18
+      },
+      "cumulativeIncentivePool": {
+        "raw": "705000",
+        "decimals": 18
+      },
+      "currentCycleVotes": {
+        "total": {
+          "raw": "100000000",
+          "decimals": 18
+        },
+        "mine": {
+          "raw": "20000000",
+          "decimals": 18
+        }
+      },
       "lastCycle": {
         "number": "2",
-        "treasuryUAsset": { "raw": "2950000", "decimals": 18 },
-        "remainingRewards": { "raw": "125000", "decimals": 18 },
-        "totalVotes": { "raw": "115000000", "decimals": 18 },
-        "myVotes": { "raw": "22000000", "decimals": 18 },
-        "myClaimable": { "raw": "28500", "decimals": 18 }
+        "treasuryUAsset": {
+          "raw": "2950000",
+          "decimals": 18
+        },
+        "remainingRewards": {
+          "raw": "125000",
+          "decimals": 18
+        },
+        "totalVotes": {
+          "raw": "115000000",
+          "decimals": 18
+        },
+        "myVotes": {
+          "raw": "22000000",
+          "decimals": 18
+        },
+        "myClaimable": {
+          "raw": "28500",
+          "decimals": 18
+        }
       },
       "proposals": [
         {
-          "id": "prop-101", "title": "调整周期激励划拨比例至 30%", "state": "active", "governanceTarget": true,
-          "quorumProgress": { "raw": "0.62", "unit": "ratio", "scale": 18 }, "votingEndsAt": "2026-09-19T12:00:00Z"
+          "id": "prop-101",
+          "title": "调整周期激励划拨比例至 30%",
+          "state": "active",
+          "governanceTarget": true,
+          "quorumProgress": {
+            "raw": "0.62",
+            "unit": "ratio",
+            "scale": 18
+          },
+          "votingEndsAt": "2026-09-19T12:00:00Z"
         },
         {
-          "id": "prop-102", "title": "国库资产多元化：纳入 sUSDe 收益来源", "state": "active", "governanceTarget": false,
-          "quorumProgress": { "raw": "0.31", "unit": "ratio", "scale": 18 }, "votingEndsAt": "2026-09-21T12:00:00Z"
+          "id": "prop-102",
+          "title": "国库资产多元化：纳入 sUSDe 收益来源",
+          "state": "active",
+          "governanceTarget": false,
+          "quorumProgress": {
+            "raw": "0.31",
+            "unit": "ratio",
+            "scale": 18
+          },
+          "votingEndsAt": "2026-09-21T12:00:00Z"
         },
         {
-          "id": "prop-103", "title": "更换执行者奖励比例参数", "state": "passed", "governanceTarget": false,
-          "quorumProgress": { "raw": "0.74", "unit": "ratio", "scale": 18 }, "votingEndsAt": "2026-09-12T12:00:00Z"
+          "id": "prop-103",
+          "title": "更换执行者奖励比例参数",
+          "state": "passed",
+          "governanceTarget": false,
+          "quorumProgress": {
+            "raw": "0.74",
+            "unit": "ratio",
+            "scale": 18
+          },
+          "votingEndsAt": "2026-09-12T12:00:00Z"
         }
       ]
     },
     {
-      "id": "gov-002", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#M10",
-      "verseId": "verse-003", "cycleNumber": "7", "cycleDurationDays": 90,
-      "cycleEndsAt": "2026-09-10T12:00:00Z", "finalized": true, "claimWindowEndsAt": "2026-10-08T12:00:00Z",
-      "governorAddress": { "value": "0x9a6700000000000000000000000000000000b005", "fixtureOnly": true },
-      "incentivizerAddress": { "value": "0x6c5b000000000000000000000000000000000d8c", "fixtureOnly": true },
+      "id": "gov-002",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-003",
+      "cycleNumber": "7",
+      "cycleDurationDays": 90,
+      "cycleEndsAt": "2026-09-10T12:00:00Z",
+      "finalized": true,
+      "claimWindowEndsAt": "2026-10-08T12:00:00Z",
+      "governorAddress": {
+        "value": "0x9a6700000000000000000000000000000000b005",
+        "fixtureOnly": true
+      },
+      "incentivizerAddress": {
+        "value": "0x6c5b000000000000000000000000000000000d8c",
+        "fixtureOnly": true
+      },
       "delegates": 3142,
-      "totalVotingPower": { "raw": "28400000", "decimals": 18 },
-      "myVotes": { "raw": "6200000", "decimals": 18 },
-      "treasuryUAsset": { "raw": "2240000", "decimals": 18 },
-      "rewardRatio": { "raw": "2500", "unit": "bps", "scale": 18 },
-      "cumulativeIncentivePool": { "raw": "486000", "decimals": 18 },
-      "currentCycleVotes": { "total": { "raw": "58000000", "decimals": 18 }, "mine": { "raw": "6200000", "decimals": 18 } },
+      "totalVotingPower": {
+        "raw": "28400000",
+        "decimals": 18
+      },
+      "myVotes": {
+        "raw": "6200000",
+        "decimals": 18
+      },
+      "treasuryUAsset": {
+        "raw": "2240000",
+        "decimals": 18
+      },
+      "rewardRatio": {
+        "raw": "2500",
+        "unit": "bps",
+        "scale": 18
+      },
+      "cumulativeIncentivePool": {
+        "raw": "486000",
+        "decimals": 18
+      },
+      "currentCycleVotes": {
+        "total": {
+          "raw": "58000000",
+          "decimals": 18
+        },
+        "mine": {
+          "raw": "6200000",
+          "decimals": 18
+        }
+      },
       "lastCycle": {
         "number": "6",
-        "treasuryUAsset": { "raw": "2010000", "decimals": 18 },
-        "remainingRewards": { "raw": "74000", "decimals": 18 },
-        "totalVotes": { "raw": "61000000", "decimals": 18 },
-        "myVotes": { "raw": "6800000", "decimals": 18 },
-        "myClaimable": { "raw": "15400", "decimals": 18 }
+        "treasuryUAsset": {
+          "raw": "2010000",
+          "decimals": 18
+        },
+        "remainingRewards": {
+          "raw": "74000",
+          "decimals": 18
+        },
+        "totalVotes": {
+          "raw": "61000000",
+          "decimals": 18
+        },
+        "myVotes": {
+          "raw": "6800000",
+          "decimals": 18
+        },
+        "myClaimable": {
+          "raw": "15400",
+          "decimals": 18
+        }
+      },
+      "proposals": []
+    },
+    {
+      "id": "gov-100",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-009",
+      "cycleNumber": "2",
+      "cycleDurationDays": 90,
+      "cycleEndsAt": "2026-10-06T20:13:28.421Z",
+      "finalized": false,
+      "claimWindowEndsAt": "2026-10-20T20:13:28.421Z",
+      "governorAddress": {
+        "value": "0x09a6700000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "incentivizerAddress": {
+        "value": "0x6c5b000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "delegates": 4789,
+      "totalVotingPower": {
+        "raw": "50480636",
+        "decimals": 18
+      },
+      "myVotes": {
+        "raw": "19781543",
+        "decimals": 18
+      },
+      "treasuryUAsset": {
+        "raw": "6706723",
+        "decimals": 18
+      },
+      "rewardRatio": {
+        "raw": "2500",
+        "unit": "bps",
+        "scale": 18
+      },
+      "cumulativeIncentivePool": {
+        "raw": "1542546",
+        "decimals": 18
+      },
+      "currentCycleVotes": {
+        "total": {
+          "raw": "110482214",
+          "decimals": 18
+        },
+        "mine": {
+          "raw": "19781543",
+          "decimals": 18
+        }
+      },
+      "lastCycle": {
+        "number": "1",
+        "treasuryUAsset": {
+          "raw": "6011263",
+          "decimals": 18
+        },
+        "remainingRewards": {
+          "raw": "195690",
+          "decimals": 18
+        },
+        "totalVotes": {
+          "raw": "126561212",
+          "decimals": 18
+        },
+        "myVotes": {
+          "raw": "19180035",
+          "decimals": 18
+        },
+        "myClaimable": {
+          "raw": "33929",
+          "decimals": 18
+        }
+      },
+      "proposals": []
+    },
+    {
+      "id": "gov-101",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-010",
+      "cycleNumber": "10",
+      "cycleDurationDays": 90,
+      "cycleEndsAt": "2026-11-14T13:12:16.734Z",
+      "finalized": false,
+      "claimWindowEndsAt": "2026-11-28T13:12:16.734Z",
+      "governorAddress": {
+        "value": "0x09a6700000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "incentivizerAddress": {
+        "value": "0x6c5b000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "delegates": 1319,
+      "totalVotingPower": {
+        "raw": "40758305",
+        "decimals": 18
+      },
+      "myVotes": {
+        "raw": "19225989",
+        "decimals": 18
+      },
+      "treasuryUAsset": {
+        "raw": "6102742",
+        "decimals": 18
+      },
+      "rewardRatio": {
+        "raw": "2500",
+        "unit": "bps",
+        "scale": 18
+      },
+      "cumulativeIncentivePool": {
+        "raw": "1403631",
+        "decimals": 18
+      },
+      "currentCycleVotes": {
+        "total": {
+          "raw": "78730316",
+          "decimals": 18
+        },
+        "mine": {
+          "raw": "19225989",
+          "decimals": 18
+        }
+      },
+      "lastCycle": {
+        "number": "9",
+        "treasuryUAsset": {
+          "raw": "5454156",
+          "decimals": 18
+        },
+        "remainingRewards": {
+          "raw": "267906",
+          "decimals": 18
+        },
+        "totalVotes": {
+          "raw": "79959587",
+          "decimals": 18
+        },
+        "myVotes": {
+          "raw": "22104940",
+          "decimals": 18
+        },
+        "myClaimable": {
+          "raw": "36740",
+          "decimals": 18
+        }
+      },
+      "proposals": []
+    },
+    {
+      "id": "gov-102",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-011",
+      "cycleNumber": "3",
+      "cycleDurationDays": 90,
+      "cycleEndsAt": "2026-11-25T16:49:37.451Z",
+      "finalized": false,
+      "claimWindowEndsAt": "2026-12-09T16:49:37.451Z",
+      "governorAddress": {
+        "value": "0x09a6700000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "incentivizerAddress": {
+        "value": "0x6c5b000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "delegates": 6439,
+      "totalVotingPower": {
+        "raw": "46099657",
+        "decimals": 18
+      },
+      "myVotes": {
+        "raw": "5031572",
+        "decimals": 18
+      },
+      "treasuryUAsset": {
+        "raw": "4265200",
+        "decimals": 18
+      },
+      "rewardRatio": {
+        "raw": "2500",
+        "unit": "bps",
+        "scale": 18
+      },
+      "cumulativeIncentivePool": {
+        "raw": "980996",
+        "decimals": 18
+      },
+      "currentCycleVotes": {
+        "total": {
+          "raw": "65873297",
+          "decimals": 18
+        },
+        "mine": {
+          "raw": "5031572",
+          "decimals": 18
+        }
+      },
+      "lastCycle": {
+        "number": "2",
+        "treasuryUAsset": {
+          "raw": "3783272",
+          "decimals": 18
+        },
+        "remainingRewards": {
+          "raw": "204283",
+          "decimals": 18
+        },
+        "totalVotes": {
+          "raw": "77680229",
+          "decimals": 18
+        },
+        "myVotes": {
+          "raw": "4540841",
+          "decimals": 18
+        },
+        "myClaimable": {
+          "raw": "23701",
+          "decimals": 18
+        }
+      },
+      "proposals": []
+    },
+    {
+      "id": "gov-103",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-012",
+      "cycleNumber": "14",
+      "cycleDurationDays": 90,
+      "cycleEndsAt": "2026-09-06T01:43:04.189Z",
+      "finalized": true,
+      "claimWindowEndsAt": "2026-09-20T01:43:04.189Z",
+      "governorAddress": {
+        "value": "0x09a6700000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "incentivizerAddress": {
+        "value": "0x6c5b000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "delegates": 3549,
+      "totalVotingPower": {
+        "raw": "63406387",
+        "decimals": 18
+      },
+      "myVotes": {
+        "raw": "15159694",
+        "decimals": 18
+      },
+      "treasuryUAsset": {
+        "raw": "5142384",
+        "decimals": 18
+      },
+      "rewardRatio": {
+        "raw": "2500",
+        "unit": "bps",
+        "scale": 18
+      },
+      "cumulativeIncentivePool": {
+        "raw": "1182748",
+        "decimals": 18
+      },
+      "currentCycleVotes": {
+        "total": {
+          "raw": "108456216",
+          "decimals": 18
+        },
+        "mine": {
+          "raw": "15159694",
+          "decimals": 18
+        }
+      },
+      "lastCycle": {
+        "number": "13",
+        "treasuryUAsset": {
+          "raw": "4778155",
+          "decimals": 18
+        },
+        "remainingRewards": {
+          "raw": "308183",
+          "decimals": 18
+        },
+        "totalVotes": {
+          "raw": "116893818",
+          "decimals": 18
+        },
+        "myVotes": {
+          "raw": "16364608",
+          "decimals": 18
+        },
+        "myClaimable": {
+          "raw": "31960",
+          "decimals": 18
+        }
+      },
+      "proposals": []
+    },
+    {
+      "id": "gov-104",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-013",
+      "cycleNumber": "3",
+      "cycleDurationDays": 90,
+      "cycleEndsAt": "2026-08-11T16:35:51.543Z",
+      "finalized": true,
+      "claimWindowEndsAt": "2026-08-25T16:35:51.543Z",
+      "governorAddress": {
+        "value": "0x09a6700000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "incentivizerAddress": {
+        "value": "0x6c5b000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "delegates": 5278,
+      "totalVotingPower": {
+        "raw": "48589697",
+        "decimals": 18
+      },
+      "myVotes": {
+        "raw": "10659523",
+        "decimals": 18
+      },
+      "treasuryUAsset": {
+        "raw": "5284515",
+        "decimals": 18
+      },
+      "rewardRatio": {
+        "raw": "2500",
+        "unit": "bps",
+        "scale": 18
+      },
+      "cumulativeIncentivePool": {
+        "raw": "1215438",
+        "decimals": 18
+      },
+      "currentCycleVotes": {
+        "total": {
+          "raw": "112343118",
+          "decimals": 18
+        },
+        "mine": {
+          "raw": "10659523",
+          "decimals": 18
+        }
+      },
+      "lastCycle": {
+        "number": "2",
+        "treasuryUAsset": {
+          "raw": "4527991",
+          "decimals": 18
+        },
+        "remainingRewards": {
+          "raw": "226468",
+          "decimals": 18
+        },
+        "totalVotes": {
+          "raw": "108520907",
+          "decimals": 18
+        },
+        "myVotes": {
+          "raw": "9879270",
+          "decimals": 18
+        },
+        "myClaimable": {
+          "raw": "57535",
+          "decimals": 18
+        }
+      },
+      "proposals": []
+    },
+    {
+      "id": "gov-105",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-014",
+      "cycleNumber": "15",
+      "cycleDurationDays": 90,
+      "cycleEndsAt": "2026-08-28T10:22:18.872Z",
+      "finalized": true,
+      "claimWindowEndsAt": "2026-09-11T10:22:18.872Z",
+      "governorAddress": {
+        "value": "0x09a6700000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "incentivizerAddress": {
+        "value": "0x6c5b000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "delegates": 2169,
+      "totalVotingPower": {
+        "raw": "26677565",
+        "decimals": 18
+      },
+      "myVotes": {
+        "raw": "4750978",
+        "decimals": 18
+      },
+      "treasuryUAsset": {
+        "raw": "2853166",
+        "decimals": 18
+      },
+      "rewardRatio": {
+        "raw": "2500",
+        "unit": "bps",
+        "scale": 18
+      },
+      "cumulativeIncentivePool": {
+        "raw": "656228",
+        "decimals": 18
+      },
+      "currentCycleVotes": {
+        "total": {
+          "raw": "40198122",
+          "decimals": 18
+        },
+        "mine": {
+          "raw": "4750978",
+          "decimals": 18
+        }
+      },
+      "lastCycle": {
+        "number": "14",
+        "treasuryUAsset": {
+          "raw": "2594066",
+          "decimals": 18
+        },
+        "remainingRewards": {
+          "raw": "60499",
+          "decimals": 18
+        },
+        "totalVotes": {
+          "raw": "39889169",
+          "decimals": 18
+        },
+        "myVotes": {
+          "raw": "4555500",
+          "decimals": 18
+        },
+        "myClaimable": {
+          "raw": "14984",
+          "decimals": 18
+        }
+      },
+      "proposals": []
+    },
+    {
+      "id": "gov-106",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-023",
+      "cycleNumber": "2",
+      "cycleDurationDays": 90,
+      "cycleEndsAt": "2026-10-05T02:29:11.119Z",
+      "finalized": false,
+      "claimWindowEndsAt": "2026-10-19T02:29:11.119Z",
+      "governorAddress": {
+        "value": "0x09a6700000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "incentivizerAddress": {
+        "value": "0x6c5b000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "delegates": 6970,
+      "totalVotingPower": {
+        "raw": "44398091",
+        "decimals": 18
+      },
+      "myVotes": {
+        "raw": "11359364",
+        "decimals": 18
+      },
+      "treasuryUAsset": {
+        "raw": "5503292",
+        "decimals": 18
+      },
+      "rewardRatio": {
+        "raw": "2500",
+        "unit": "bps",
+        "scale": 18
+      },
+      "cumulativeIncentivePool": {
+        "raw": "1265757",
+        "decimals": 18
+      },
+      "currentCycleVotes": {
+        "total": {
+          "raw": "71809588",
+          "decimals": 18
+        },
+        "mine": {
+          "raw": "11359364",
+          "decimals": 18
+        }
+      },
+      "lastCycle": {
+        "number": "1",
+        "treasuryUAsset": {
+          "raw": "5280325",
+          "decimals": 18
+        },
+        "remainingRewards": {
+          "raw": "252955",
+          "decimals": 18
+        },
+        "totalVotes": {
+          "raw": "84228852",
+          "decimals": 18
+        },
+        "myVotes": {
+          "raw": "11723516",
+          "decimals": 18
+        },
+        "myClaimable": {
+          "raw": "50190",
+          "decimals": 18
+        }
+      },
+      "proposals": []
+    },
+    {
+      "id": "gov-107",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-024",
+      "cycleNumber": "10",
+      "cycleDurationDays": 90,
+      "cycleEndsAt": "2026-11-11T10:19:38.787Z",
+      "finalized": false,
+      "claimWindowEndsAt": "2026-11-25T10:19:38.787Z",
+      "governorAddress": {
+        "value": "0x09a6700000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "incentivizerAddress": {
+        "value": "0x6c5b000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "delegates": 1120,
+      "totalVotingPower": {
+        "raw": "60987807",
+        "decimals": 18
+      },
+      "myVotes": {
+        "raw": "16544969",
+        "decimals": 18
+      },
+      "treasuryUAsset": {
+        "raw": "4390590",
+        "decimals": 18
+      },
+      "rewardRatio": {
+        "raw": "2500",
+        "unit": "bps",
+        "scale": 18
+      },
+      "cumulativeIncentivePool": {
+        "raw": "1009836",
+        "decimals": 18
+      },
+      "currentCycleVotes": {
+        "total": {
+          "raw": "95360095",
+          "decimals": 18
+        },
+        "mine": {
+          "raw": "16544969",
+          "decimals": 18
+        }
+      },
+      "lastCycle": {
+        "number": "9",
+        "treasuryUAsset": {
+          "raw": "4194841",
+          "decimals": 18
+        },
+        "remainingRewards": {
+          "raw": "125546",
+          "decimals": 18
+        },
+        "totalVotes": {
+          "raw": "108599631",
+          "decimals": 18
+        },
+        "myVotes": {
+          "raw": "18094184",
+          "decimals": 18
+        },
+        "myClaimable": {
+          "raw": "31244",
+          "decimals": 18
+        }
+      },
+      "proposals": []
+    },
+    {
+      "id": "gov-108",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-025",
+      "cycleNumber": "6",
+      "cycleDurationDays": 90,
+      "cycleEndsAt": "2026-10-12T13:27:20.596Z",
+      "finalized": false,
+      "claimWindowEndsAt": "2026-10-26T13:27:20.596Z",
+      "governorAddress": {
+        "value": "0x09a6700000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "incentivizerAddress": {
+        "value": "0x6c5b000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "delegates": 4033,
+      "totalVotingPower": {
+        "raw": "49874144",
+        "decimals": 18
+      },
+      "myVotes": {
+        "raw": "11827983",
+        "decimals": 18
+      },
+      "treasuryUAsset": {
+        "raw": "3472546",
+        "decimals": 18
+      },
+      "rewardRatio": {
+        "raw": "2500",
+        "unit": "bps",
+        "scale": 18
+      },
+      "cumulativeIncentivePool": {
+        "raw": "798686",
+        "decimals": 18
+      },
+      "currentCycleVotes": {
+        "total": {
+          "raw": "90990828",
+          "decimals": 18
+        },
+        "mine": {
+          "raw": "11827983",
+          "decimals": 18
+        }
+      },
+      "lastCycle": {
+        "number": "5",
+        "treasuryUAsset": {
+          "raw": "2964803",
+          "decimals": 18
+        },
+        "remainingRewards": {
+          "raw": "179488",
+          "decimals": 18
+        },
+        "totalVotes": {
+          "raw": "104213452",
+          "decimals": 18
+        },
+        "myVotes": {
+          "raw": "12786108",
+          "decimals": 18
+        },
+        "myClaimable": {
+          "raw": "18413",
+          "decimals": 18
+        }
+      },
+      "proposals": []
+    },
+    {
+      "id": "gov-109",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-026",
+      "cycleNumber": "10",
+      "cycleDurationDays": 90,
+      "cycleEndsAt": "2026-09-28T13:22:47.084Z",
+      "finalized": false,
+      "claimWindowEndsAt": "2026-10-12T13:22:47.084Z",
+      "governorAddress": {
+        "value": "0x09a6700000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "incentivizerAddress": {
+        "value": "0x6c5b000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "delegates": 5411,
+      "totalVotingPower": {
+        "raw": "44453736",
+        "decimals": 18
+      },
+      "myVotes": {
+        "raw": "20519463",
+        "decimals": 18
+      },
+      "treasuryUAsset": {
+        "raw": "8380013",
+        "decimals": 18
+      },
+      "rewardRatio": {
+        "raw": "2500",
+        "unit": "bps",
+        "scale": 18
+      },
+      "cumulativeIncentivePool": {
+        "raw": "1927403",
+        "decimals": 18
+      },
+      "currentCycleVotes": {
+        "total": {
+          "raw": "109590549",
+          "decimals": 18
+        },
+        "mine": {
+          "raw": "20519463",
+          "decimals": 18
+        }
+      },
+      "lastCycle": {
+        "number": "9",
+        "treasuryUAsset": {
+          "raw": "7262567",
+          "decimals": 18
+        },
+        "remainingRewards": {
+          "raw": "343786",
+          "decimals": 18
+        },
+        "totalVotes": {
+          "raw": "116388783",
+          "decimals": 18
+        },
+        "myVotes": {
+          "raw": "19833908",
+          "decimals": 18
+        },
+        "myClaimable": {
+          "raw": "91786",
+          "decimals": 18
+        }
+      },
+      "proposals": []
+    },
+    {
+      "id": "gov-110",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-027",
+      "cycleNumber": "10",
+      "cycleDurationDays": 90,
+      "cycleEndsAt": "2026-10-19T04:45:12.471Z",
+      "finalized": false,
+      "claimWindowEndsAt": "2026-11-02T04:45:12.471Z",
+      "governorAddress": {
+        "value": "0x09a6700000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "incentivizerAddress": {
+        "value": "0x6c5b000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "delegates": 4488,
+      "totalVotingPower": {
+        "raw": "46011278",
+        "decimals": 18
+      },
+      "myVotes": {
+        "raw": "11817829",
+        "decimals": 18
+      },
+      "treasuryUAsset": {
+        "raw": "11900450",
+        "decimals": 18
+      },
+      "rewardRatio": {
+        "raw": "2500",
+        "unit": "bps",
+        "scale": 18
+      },
+      "cumulativeIncentivePool": {
+        "raw": "2737104",
+        "decimals": 18
+      },
+      "currentCycleVotes": {
+        "total": {
+          "raw": "78495946",
+          "decimals": 18
+        },
+        "mine": {
+          "raw": "11817829",
+          "decimals": 18
+        }
+      },
+      "lastCycle": {
+        "number": "9",
+        "treasuryUAsset": {
+          "raw": "10940822",
+          "decimals": 18
+        },
+        "remainingRewards": {
+          "raw": "402265",
+          "decimals": 18
+        },
+        "totalVotes": {
+          "raw": "82645277",
+          "decimals": 18
+        },
+        "myVotes": {
+          "raw": "11075205",
+          "decimals": 18
+        },
+        "myClaimable": {
+          "raw": "67581",
+          "decimals": 18
+        }
+      },
+      "proposals": []
+    },
+    {
+      "id": "gov-111",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-028",
+      "cycleNumber": "10",
+      "cycleDurationDays": 90,
+      "cycleEndsAt": "2026-11-23T03:03:44.173Z",
+      "finalized": false,
+      "claimWindowEndsAt": "2026-12-07T03:03:44.173Z",
+      "governorAddress": {
+        "value": "0x09a6700000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "incentivizerAddress": {
+        "value": "0x6c5b000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "delegates": 7465,
+      "totalVotingPower": {
+        "raw": "40423165",
+        "decimals": 18
+      },
+      "myVotes": {
+        "raw": "21708093",
+        "decimals": 18
+      },
+      "treasuryUAsset": {
+        "raw": "2248335",
+        "decimals": 18
+      },
+      "rewardRatio": {
+        "raw": "2500",
+        "unit": "bps",
+        "scale": 18
+      },
+      "cumulativeIncentivePool": {
+        "raw": "517117",
+        "decimals": 18
+      },
+      "currentCycleVotes": {
+        "total": {
+          "raw": "94390484",
+          "decimals": 18
+        },
+        "mine": {
+          "raw": "21708093",
+          "decimals": 18
+        }
+      },
+      "lastCycle": {
+        "number": "9",
+        "treasuryUAsset": {
+          "raw": "2149574",
+          "decimals": 18
+        },
+        "remainingRewards": {
+          "raw": "53920",
+          "decimals": 18
+        },
+        "totalVotes": {
+          "raw": "105815545",
+          "decimals": 18
+        },
+        "myVotes": {
+          "raw": "20161603",
+          "decimals": 18
+        },
+        "myClaimable": {
+          "raw": "26059",
+          "decimals": 18
+        }
+      },
+      "proposals": []
+    },
+    {
+      "id": "gov-112",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-029",
+      "cycleNumber": "8",
+      "cycleDurationDays": 90,
+      "cycleEndsAt": "2026-08-25T08:45:12.278Z",
+      "finalized": true,
+      "claimWindowEndsAt": "2026-09-08T08:45:12.278Z",
+      "governorAddress": {
+        "value": "0x09a6700000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "incentivizerAddress": {
+        "value": "0x6c5b000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "delegates": 4759,
+      "totalVotingPower": {
+        "raw": "50868055",
+        "decimals": 18
+      },
+      "myVotes": {
+        "raw": "14150203",
+        "decimals": 18
+      },
+      "treasuryUAsset": {
+        "raw": "4321431",
+        "decimals": 18
+      },
+      "rewardRatio": {
+        "raw": "2500",
+        "unit": "bps",
+        "scale": 18
+      },
+      "cumulativeIncentivePool": {
+        "raw": "993929",
+        "decimals": 18
+      },
+      "currentCycleVotes": {
+        "total": {
+          "raw": "73447572",
+          "decimals": 18
+        },
+        "mine": {
+          "raw": "14150203",
+          "decimals": 18
+        }
+      },
+      "lastCycle": {
+        "number": "7",
+        "treasuryUAsset": {
+          "raw": "4142739",
+          "decimals": 18
+        },
+        "remainingRewards": {
+          "raw": "142542",
+          "decimals": 18
+        },
+        "totalVotes": {
+          "raw": "77409830",
+          "decimals": 18
+        },
+        "myVotes": {
+          "raw": "15609356",
+          "decimals": 18
+        },
+        "myClaimable": {
+          "raw": "46001",
+          "decimals": 18
+        }
+      },
+      "proposals": []
+    },
+    {
+      "id": "gov-113",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-030",
+      "cycleNumber": "12",
+      "cycleDurationDays": 90,
+      "cycleEndsAt": "2026-09-07T06:58:01.065Z",
+      "finalized": true,
+      "claimWindowEndsAt": "2026-09-21T06:58:01.065Z",
+      "governorAddress": {
+        "value": "0x09a6700000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "incentivizerAddress": {
+        "value": "0x6c5b000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "delegates": 1976,
+      "totalVotingPower": {
+        "raw": "39499301",
+        "decimals": 18
+      },
+      "myVotes": {
+        "raw": "3153826",
+        "decimals": 18
+      },
+      "treasuryUAsset": {
+        "raw": "4458512",
+        "decimals": 18
+      },
+      "rewardRatio": {
+        "raw": "2500",
+        "unit": "bps",
+        "scale": 18
+      },
+      "cumulativeIncentivePool": {
+        "raw": "1025458",
+        "decimals": 18
+      },
+      "currentCycleVotes": {
+        "total": {
+          "raw": "62112115",
+          "decimals": 18
+        },
+        "mine": {
+          "raw": "3153826",
+          "decimals": 18
+        }
+      },
+      "lastCycle": {
+        "number": "11",
+        "treasuryUAsset": {
+          "raw": "3761812",
+          "decimals": 18
+        },
+        "remainingRewards": {
+          "raw": "258917",
+          "decimals": 18
+        },
+        "totalVotes": {
+          "raw": "68625725",
+          "decimals": 18
+        },
+        "myVotes": {
+          "raw": "3479925",
+          "decimals": 18
+        },
+        "myClaimable": {
+          "raw": "41570",
+          "decimals": 18
+        }
+      },
+      "proposals": []
+    },
+    {
+      "id": "gov-114",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-031",
+      "cycleNumber": "4",
+      "cycleDurationDays": 90,
+      "cycleEndsAt": "2026-09-04T09:47:13.707Z",
+      "finalized": true,
+      "claimWindowEndsAt": "2026-09-18T09:47:13.707Z",
+      "governorAddress": {
+        "value": "0x09a6700000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "incentivizerAddress": {
+        "value": "0x6c5b000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "delegates": 5972,
+      "totalVotingPower": {
+        "raw": "52211952",
+        "decimals": 18
+      },
+      "myVotes": {
+        "raw": "23670155",
+        "decimals": 18
+      },
+      "treasuryUAsset": {
+        "raw": "2388225",
+        "decimals": 18
+      },
+      "rewardRatio": {
+        "raw": "2500",
+        "unit": "bps",
+        "scale": 18
+      },
+      "cumulativeIncentivePool": {
+        "raw": "549292",
+        "decimals": 18
+      },
+      "currentCycleVotes": {
+        "total": {
+          "raw": "100075702",
+          "decimals": 18
+        },
+        "mine": {
+          "raw": "23670155",
+          "decimals": 18
+        }
+      },
+      "lastCycle": {
+        "number": "3",
+        "treasuryUAsset": {
+          "raw": "2061053",
+          "decimals": 18
+        },
+        "remainingRewards": {
+          "raw": "122893",
+          "decimals": 18
+        },
+        "totalVotes": {
+          "raw": "109555680",
+          "decimals": 18
+        },
+        "myVotes": {
+          "raw": "24772059",
+          "decimals": 18
+        },
+        "myClaimable": {
+          "raw": "24861",
+          "decimals": 18
+        }
+      },
+      "proposals": []
+    },
+    {
+      "id": "gov-115",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-032",
+      "cycleNumber": "4",
+      "cycleDurationDays": 90,
+      "cycleEndsAt": "2026-08-15T22:07:27.241Z",
+      "finalized": true,
+      "claimWindowEndsAt": "2026-08-29T22:07:27.241Z",
+      "governorAddress": {
+        "value": "0x09a6700000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "incentivizerAddress": {
+        "value": "0x6c5b000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "delegates": 3571,
+      "totalVotingPower": {
+        "raw": "24571768",
+        "decimals": 18
+      },
+      "myVotes": {
+        "raw": "2389014",
+        "decimals": 18
+      },
+      "treasuryUAsset": {
+        "raw": "3775704",
+        "decimals": 18
+      },
+      "rewardRatio": {
+        "raw": "2500",
+        "unit": "bps",
+        "scale": 18
+      },
+      "cumulativeIncentivePool": {
+        "raw": "868412",
+        "decimals": 18
+      },
+      "currentCycleVotes": {
+        "total": {
+          "raw": "44457472",
+          "decimals": 18
+        },
+        "mine": {
+          "raw": "2389014",
+          "decimals": 18
+        }
+      },
+      "lastCycle": {
+        "number": "3",
+        "treasuryUAsset": {
+          "raw": "3218678",
+          "decimals": 18
+        },
+        "remainingRewards": {
+          "raw": "190431",
+          "decimals": 18
+        },
+        "totalVotes": {
+          "raw": "52309756",
+          "decimals": 18
+        },
+        "myVotes": {
+          "raw": "2446520",
+          "decimals": 18
+        },
+        "myClaimable": {
+          "raw": "28471",
+          "decimals": 18
+        }
+      },
+      "proposals": []
+    },
+    {
+      "id": "gov-116",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-033",
+      "cycleNumber": "8",
+      "cycleDurationDays": 90,
+      "cycleEndsAt": "2026-08-26T02:58:53.251Z",
+      "finalized": true,
+      "claimWindowEndsAt": "2026-09-09T02:58:53.251Z",
+      "governorAddress": {
+        "value": "0x09a6700000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "incentivizerAddress": {
+        "value": "0x6c5b000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "delegates": 6158,
+      "totalVotingPower": {
+        "raw": "71656876",
+        "decimals": 18
+      },
+      "myVotes": {
+        "raw": "20608757",
+        "decimals": 18
+      },
+      "treasuryUAsset": {
+        "raw": "6605660",
+        "decimals": 18
+      },
+      "rewardRatio": {
+        "raw": "2500",
+        "unit": "bps",
+        "scale": 18
+      },
+      "cumulativeIncentivePool": {
+        "raw": "1519302",
+        "decimals": 18
+      },
+      "currentCycleVotes": {
+        "total": {
+          "raw": "118757015",
+          "decimals": 18
+        },
+        "mine": {
+          "raw": "20608757",
+          "decimals": 18
+        }
+      },
+      "lastCycle": {
+        "number": "7",
+        "treasuryUAsset": {
+          "raw": "6271334",
+          "decimals": 18
+        },
+        "remainingRewards": {
+          "raw": "342458",
+          "decimals": 18
+        },
+        "totalVotes": {
+          "raw": "125491124",
+          "decimals": 18
+        },
+        "myVotes": {
+          "raw": "20415995",
+          "decimals": 18
+        },
+        "myClaimable": {
+          "raw": "52777",
+          "decimals": 18
+        }
+      },
+      "proposals": []
+    },
+    {
+      "id": "gov-117",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-034",
+      "cycleNumber": "11",
+      "cycleDurationDays": 90,
+      "cycleEndsAt": "2026-08-21T19:33:16.575Z",
+      "finalized": true,
+      "claimWindowEndsAt": "2026-09-04T19:33:16.575Z",
+      "governorAddress": {
+        "value": "0x09a6700000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "incentivizerAddress": {
+        "value": "0x6c5b000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "delegates": 2357,
+      "totalVotingPower": {
+        "raw": "21139227",
+        "decimals": 18
+      },
+      "myVotes": {
+        "raw": "10869458",
+        "decimals": 18
+      },
+      "treasuryUAsset": {
+        "raw": "2131221",
+        "decimals": 18
+      },
+      "rewardRatio": {
+        "raw": "2500",
+        "unit": "bps",
+        "scale": 18
+      },
+      "cumulativeIncentivePool": {
+        "raw": "490181",
+        "decimals": 18
+      },
+      "currentCycleVotes": {
+        "total": {
+          "raw": "51396773",
+          "decimals": 18
+        },
+        "mine": {
+          "raw": "10869458",
+          "decimals": 18
+        }
+      },
+      "lastCycle": {
+        "number": "10",
+        "treasuryUAsset": {
+          "raw": "1915681",
+          "decimals": 18
+        },
+        "remainingRewards": {
+          "raw": "114001",
+          "decimals": 18
+        },
+        "totalVotes": {
+          "raw": "49100614",
+          "decimals": 18
+        },
+        "myVotes": {
+          "raw": "10047004",
+          "decimals": 18
+        },
+        "myClaimable": {
+          "raw": "8862",
+          "decimals": 18
+        }
       },
       "proposals": []
     }

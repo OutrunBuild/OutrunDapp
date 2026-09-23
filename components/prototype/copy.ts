@@ -425,7 +425,7 @@ const en = {
       marketPrice: 'Market price',
       nominalValue: 'Nominal value',
       nominalNote:
-        'Underlying LP value per POL (memecoin + uAsset redeemable by burning 1 POL). On-chain value prevails.',
+        'Underlying LP value per POL — the memecoin + uAsset redeemable by burning 1 POL.',
       polMarketCap: 'Market cap',
       polTotalSupply: 'Total supply',
       yourPol: 'Your POL',
@@ -466,7 +466,7 @@ const en = {
       withdrawAll: 'Withdraw all {symbol}',
       redeemNote:
         'After redeeming you wait ~24 hours, then withdraw yourself — the contract does not transfer automatically. From the request, the value is fixed, stops accruing, and voting power is removed.',
-      withdrawNote: 'This withdraws all matured redemptions. On-chain value prevails.',
+      withdrawNote: 'This withdraws all matured redemptions.',
       delegateTo: 'Delegate to',
       delegateSelf: 'Myself',
       delegateCustom: 'Custom address',
@@ -975,7 +975,7 @@ const zh: typeof en = {
       polTitle: 'POL 总览',
       marketPrice: '市场价',
       nominalValue: '名义价值',
-      nominalNote: '每 1 POL 背后 LP 的底层价值（燃烧 1 POL 可赎回的 memecoin + uAsset）。以链上读值为准。',
+      nominalNote: '每 1 POL 背后 LP 的底层价值——燃烧 1 POL 可赎回的 memecoin + uAsset。',
       polMarketCap: '市值',
       polTotalSupply: '总供应',
       yourPol: '您的 POL',
@@ -1013,7 +1013,7 @@ const zh: typeof en = {
       withdrawAll: '提取全部 {symbol}',
       redeemNote:
         '提交赎回后等待约 24 小时，再自行提取 —— 合约不会自动转账。自申请时刻起价值固定、停止增值、票权随之消失。',
-      withdrawNote: '提取所有已成熟赎回。以链上读值为准。',
+      withdrawNote: '提取所有已成熟赎回。',
       delegateTo: '委托给',
       delegateSelf: '自己',
       delegateCustom: '指定地址',

@@ -3,24 +3,684 @@
   "generatedFrom": "fixtures/data/seed.json",
   "items": [
     {
-      "id": "polp-001", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#M14",
+      "id": "polp-001",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M14",
       "verseId": "verse-002",
-      "polAddress": { "value": "0x5d4f000000000000000000000000000000003f4a", "fixtureOnly": true },
-      "polSupply": { "raw": "22000000", "decimals": 18 },
-      "uAssetPerPol": { "raw": "0.62", "unit": "ratio", "scale": 18 },
-      "marketPricePerPol": { "raw": "1.05", "unit": "ratio", "scale": 18 },
-      "myPol": { "raw": "15247.89", "decimals": 18 },
-      "claimablePol": { "raw": "0", "decimals": 18 }
+      "polAddress": {
+        "value": "0x5d4f000000000000000000000000000000003f4a",
+        "fixtureOnly": true
+      },
+      "polSupply": {
+        "raw": "22000000",
+        "decimals": 18
+      },
+      "uAssetPerPol": {
+        "raw": "0.62",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "marketPricePerPol": {
+        "raw": "1.05",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myPol": {
+        "raw": "15247.89",
+        "decimals": 18
+      },
+      "claimablePol": {
+        "raw": "0",
+        "decimals": 18
+      }
     },
     {
-      "id": "polp-002", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#M14",
+      "id": "polp-002",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M14",
       "verseId": "verse-003",
-      "polAddress": { "value": "0x5d4f000000000000000000000000000000004f4a", "fixtureOnly": true },
-      "polSupply": { "raw": "19500000", "decimals": 18 },
-      "uAssetPerPol": { "raw": "0.58", "unit": "ratio", "scale": 18 },
-      "marketPricePerPol": { "raw": "0.93", "unit": "ratio", "scale": 18 },
-      "myPol": { "raw": "42310.5", "decimals": 18 },
-      "claimablePol": { "raw": "1234.56", "decimals": 18 }
+      "polAddress": {
+        "value": "0x5d4f000000000000000000000000000000004f4a",
+        "fixtureOnly": true
+      },
+      "polSupply": {
+        "raw": "19500000",
+        "decimals": 18
+      },
+      "uAssetPerPol": {
+        "raw": "0.58",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "marketPricePerPol": {
+        "raw": "0.93",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myPol": {
+        "raw": "42310.5",
+        "decimals": 18
+      },
+      "claimablePol": {
+        "raw": "1234.56",
+        "decimals": 18
+      }
+    },
+    {
+      "id": "polp-100",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M14",
+      "verseId": "verse-009",
+      "polAddress": {
+        "value": "0x5d4f000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "polSupply": {
+        "raw": "1210097",
+        "decimals": 18
+      },
+      "uAssetPerPol": {
+        "raw": "0.9537",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "marketPricePerPol": {
+        "raw": "2.0293",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myPol": {
+        "raw": "49843.55",
+        "decimals": 18
+      },
+      "claimablePol": {
+        "raw": "0",
+        "decimals": 18
+      }
+    },
+    {
+      "id": "polp-101",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M14",
+      "verseId": "verse-010",
+      "polAddress": {
+        "value": "0x5d4f000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "polSupply": {
+        "raw": "358330",
+        "decimals": 18
+      },
+      "uAssetPerPol": {
+        "raw": "0.9326",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "marketPricePerPol": {
+        "raw": "1.8474",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myPol": {
+        "raw": "56836.19",
+        "decimals": 18
+      },
+      "claimablePol": {
+        "raw": "0",
+        "decimals": 18
+      }
+    },
+    {
+      "id": "polp-102",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M14",
+      "verseId": "verse-011",
+      "polAddress": {
+        "value": "0x5d4f000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "polSupply": {
+        "raw": "173675",
+        "decimals": 18
+      },
+      "uAssetPerPol": {
+        "raw": "1.0494",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "marketPricePerPol": {
+        "raw": "2.1372",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myPol": {
+        "raw": "51556.98",
+        "decimals": 18
+      },
+      "claimablePol": {
+        "raw": "0",
+        "decimals": 18
+      }
+    },
+    {
+      "id": "polp-103",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M14",
+      "verseId": "verse-012",
+      "polAddress": {
+        "value": "0x5d4f000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "polSupply": {
+        "raw": "1357898",
+        "decimals": 18
+      },
+      "uAssetPerPol": {
+        "raw": "1.0171",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "marketPricePerPol": {
+        "raw": "1.7875",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myPol": {
+        "raw": "55869.08",
+        "decimals": 18
+      },
+      "claimablePol": {
+        "raw": "1053.65",
+        "decimals": 18
+      }
+    },
+    {
+      "id": "polp-104",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M14",
+      "verseId": "verse-013",
+      "polAddress": {
+        "value": "0x5d4f000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "polSupply": {
+        "raw": "484138",
+        "decimals": 18
+      },
+      "uAssetPerPol": {
+        "raw": "0.8822",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "marketPricePerPol": {
+        "raw": "2.1138",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myPol": {
+        "raw": "51490.02",
+        "decimals": 18
+      },
+      "claimablePol": {
+        "raw": "2534.86",
+        "decimals": 18
+      }
+    },
+    {
+      "id": "polp-105",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M14",
+      "verseId": "verse-014",
+      "polAddress": {
+        "value": "0x5d4f000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "polSupply": {
+        "raw": "120696",
+        "decimals": 18
+      },
+      "uAssetPerPol": {
+        "raw": "1.1322",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "marketPricePerPol": {
+        "raw": "1.9847",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myPol": {
+        "raw": "58699.88",
+        "decimals": 18
+      },
+      "claimablePol": {
+        "raw": "2151.46",
+        "decimals": 18
+      }
+    },
+    {
+      "id": "polp-106",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M14",
+      "verseId": "verse-023",
+      "polAddress": {
+        "value": "0x5d4f000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "polSupply": {
+        "raw": "342883",
+        "decimals": 18
+      },
+      "uAssetPerPol": {
+        "raw": "0.9721",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "marketPricePerPol": {
+        "raw": "2.0991",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myPol": {
+        "raw": "22945.13",
+        "decimals": 18
+      },
+      "claimablePol": {
+        "raw": "0",
+        "decimals": 18
+      }
+    },
+    {
+      "id": "polp-107",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M14",
+      "verseId": "verse-024",
+      "polAddress": {
+        "value": "0x5d4f000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "polSupply": {
+        "raw": "1008688",
+        "decimals": 18
+      },
+      "uAssetPerPol": {
+        "raw": "0.9193",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "marketPricePerPol": {
+        "raw": "1.8018",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myPol": {
+        "raw": "37483.26",
+        "decimals": 18
+      },
+      "claimablePol": {
+        "raw": "0",
+        "decimals": 18
+      }
+    },
+    {
+      "id": "polp-108",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M14",
+      "verseId": "verse-025",
+      "polAddress": {
+        "value": "0x5d4f000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "polSupply": {
+        "raw": "307742",
+        "decimals": 18
+      },
+      "uAssetPerPol": {
+        "raw": "0.8330",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "marketPricePerPol": {
+        "raw": "1.8099",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myPol": {
+        "raw": "48476.95",
+        "decimals": 18
+      },
+      "claimablePol": {
+        "raw": "0",
+        "decimals": 18
+      }
+    },
+    {
+      "id": "polp-109",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M14",
+      "verseId": "verse-026",
+      "polAddress": {
+        "value": "0x5d4f000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "polSupply": {
+        "raw": "760284",
+        "decimals": 18
+      },
+      "uAssetPerPol": {
+        "raw": "0.9954",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "marketPricePerPol": {
+        "raw": "1.7014",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myPol": {
+        "raw": "39436.99",
+        "decimals": 18
+      },
+      "claimablePol": {
+        "raw": "0",
+        "decimals": 18
+      }
+    },
+    {
+      "id": "polp-110",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M14",
+      "verseId": "verse-027",
+      "polAddress": {
+        "value": "0x5d4f000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "polSupply": {
+        "raw": "721807",
+        "decimals": 18
+      },
+      "uAssetPerPol": {
+        "raw": "0.8520",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "marketPricePerPol": {
+        "raw": "1.7783",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myPol": {
+        "raw": "26505.74",
+        "decimals": 18
+      },
+      "claimablePol": {
+        "raw": "0",
+        "decimals": 18
+      }
+    },
+    {
+      "id": "polp-111",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M14",
+      "verseId": "verse-028",
+      "polAddress": {
+        "value": "0x5d4f000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "polSupply": {
+        "raw": "161163",
+        "decimals": 18
+      },
+      "uAssetPerPol": {
+        "raw": "1.0888",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "marketPricePerPol": {
+        "raw": "2.3905",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myPol": {
+        "raw": "44579.83",
+        "decimals": 18
+      },
+      "claimablePol": {
+        "raw": "0",
+        "decimals": 18
+      }
+    },
+    {
+      "id": "polp-112",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M14",
+      "verseId": "verse-029",
+      "polAddress": {
+        "value": "0x5d4f000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "polSupply": {
+        "raw": "785841",
+        "decimals": 18
+      },
+      "uAssetPerPol": {
+        "raw": "0.8545",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "marketPricePerPol": {
+        "raw": "1.6460",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myPol": {
+        "raw": "21466.44",
+        "decimals": 18
+      },
+      "claimablePol": {
+        "raw": "3542.05",
+        "decimals": 18
+      }
+    },
+    {
+      "id": "polp-113",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M14",
+      "verseId": "verse-030",
+      "polAddress": {
+        "value": "0x5d4f000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "polSupply": {
+        "raw": "908162",
+        "decimals": 18
+      },
+      "uAssetPerPol": {
+        "raw": "0.8210",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "marketPricePerPol": {
+        "raw": "1.4363",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myPol": {
+        "raw": "17205.26",
+        "decimals": 18
+      },
+      "claimablePol": {
+        "raw": "2183.43",
+        "decimals": 18
+      }
+    },
+    {
+      "id": "polp-114",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M14",
+      "verseId": "verse-031",
+      "polAddress": {
+        "value": "0x5d4f000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "polSupply": {
+        "raw": "222203",
+        "decimals": 18
+      },
+      "uAssetPerPol": {
+        "raw": "0.9757",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "marketPricePerPol": {
+        "raw": "2.2499",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myPol": {
+        "raw": "1679.39",
+        "decimals": 18
+      },
+      "claimablePol": {
+        "raw": "2459.34",
+        "decimals": 18
+      }
+    },
+    {
+      "id": "polp-115",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M14",
+      "verseId": "verse-032",
+      "polAddress": {
+        "value": "0x5d4f000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "polSupply": {
+        "raw": "361450",
+        "decimals": 18
+      },
+      "uAssetPerPol": {
+        "raw": "0.9215",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "marketPricePerPol": {
+        "raw": "1.9621",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myPol": {
+        "raw": "2063.00",
+        "decimals": 18
+      },
+      "claimablePol": {
+        "raw": "3133.28",
+        "decimals": 18
+      }
+    },
+    {
+      "id": "polp-116",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M14",
+      "verseId": "verse-033",
+      "polAddress": {
+        "value": "0x5d4f000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "polSupply": {
+        "raw": "1179253",
+        "decimals": 18
+      },
+      "uAssetPerPol": {
+        "raw": "0.9004",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "marketPricePerPol": {
+        "raw": "1.8542",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myPol": {
+        "raw": "15598.90",
+        "decimals": 18
+      },
+      "claimablePol": {
+        "raw": "2880.96",
+        "decimals": 18
+      }
+    },
+    {
+      "id": "polp-117",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M14",
+      "verseId": "verse-034",
+      "polAddress": {
+        "value": "0x5d4f000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "polSupply": {
+        "raw": "177199",
+        "decimals": 18
+      },
+      "uAssetPerPol": {
+        "raw": "0.9820",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "marketPricePerPol": {
+        "raw": "2.2390",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myPol": {
+        "raw": "3670.40",
+        "decimals": 18
+      },
+      "claimablePol": {
+        "raw": "522.35",
+        "decimals": 18
+      }
     }
   ]
 }

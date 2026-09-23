@@ -2963,24 +2963,26 @@ svg {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  inline-size: var(--control-height);
-  block-size: var(--control-height);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-inset);
+  padding: var(--space-1);
+  border: 0;
+  background: transparent;
   color: var(--color-text-secondary);
 }
 
-.swap-panel__settings-toggle[aria-expanded='true'] {
-  border-color: var(--or-cyan);
+.swap-panel__settings-toggle:hover,
+.swap-panel__settings-toggle:focus-visible,
+.swap-panel__settings-toggle[data-popup-open] {
   color: var(--or-cyan);
 }
 
 .swap-settings {
   display: grid;
   gap: var(--space-3);
-  padding: var(--space-3);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-inset);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-raised);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.45);
+  clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100% 100%, 0 100%);
 }
 
 .swap-settings__row {
@@ -3013,8 +3015,21 @@ svg {
   color: var(--or-cyan);
 }
 
+.swap-settings__unit {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.swap-settings__unit b {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 400;
+}
+
 .swap-settings__custom {
   inline-size: 72px;
+  text-align: end;
 }
 
 .swap-panel__hint {

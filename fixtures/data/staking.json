@@ -3,30 +3,939 @@
   "generatedFrom": "fixtures/data/seed.json",
   "items": [
     {
-      "id": "stk-001", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "id": "stk-001",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
       "verseId": "verse-002",
-      "vaultAddress": { "value": "0x8f1a000000000000000000000000000000008f1a", "fixtureOnly": true },
-      "totalStaked": { "raw": "5200000", "decimals": 18 },
-      "assetsPerShare": { "raw": "1.2145", "unit": "ratio", "scale": 18 },
-      "apy7d": { "raw": "0.127", "unit": "ratio", "scale": 18 },
-      "myShares": { "raw": "120000", "decimals": 18 },
-      "delegatee": { "value": "0x1111111000000000000000000000000000000001", "fixtureOnly": true },
+      "vaultAddress": {
+        "value": "0x8f1a000000000000000000000000000000008f1a",
+        "fixtureOnly": true
+      },
+      "totalStaked": {
+        "raw": "5200000",
+        "decimals": 18
+      },
+      "assetsPerShare": {
+        "raw": "1.2145",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "apy7d": {
+        "raw": "0.127",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myShares": {
+        "raw": "120000",
+        "decimals": 18
+      },
+      "delegatee": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
       "pendingRedeems": [
-        { "lockedAssets": { "raw": "1000", "decimals": 18 }, "requestedAt": "2026-09-15T10:00:00Z", "maturesAt": "2026-09-16T10:00:00Z" },
-        { "lockedAssets": { "raw": "2500", "decimals": 18 }, "requestedAt": "2026-09-16T06:00:00Z", "maturesAt": "2026-09-17T06:00:00Z" }
+        {
+          "lockedAssets": {
+            "raw": "1000",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-15T10:00:00Z",
+          "maturesAt": "2026-09-16T10:00:00Z"
+        },
+        {
+          "lockedAssets": {
+            "raw": "2500",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-16T06:00:00Z",
+          "maturesAt": "2026-09-17T06:00:00Z"
+        }
       ]
     },
     {
-      "id": "stk-002", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "id": "stk-002",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
       "verseId": "verse-003",
-      "vaultAddress": { "value": "0x8f1a000000000000000000000000000000009f1a", "fixtureOnly": true },
-      "totalStaked": { "raw": "8100000", "decimals": 18 },
-      "assetsPerShare": { "raw": "1.0532", "unit": "ratio", "scale": 18 },
-      "apy7d": { "raw": "0.081", "unit": "ratio", "scale": 18 },
-      "myShares": { "raw": "45000", "decimals": 18 },
-      "delegatee": { "value": "0x1111111000000000000000000000000000000001", "fixtureOnly": true },
+      "vaultAddress": {
+        "value": "0x8f1a000000000000000000000000000000009f1a",
+        "fixtureOnly": true
+      },
+      "totalStaked": {
+        "raw": "8100000",
+        "decimals": 18
+      },
+      "assetsPerShare": {
+        "raw": "1.0532",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "apy7d": {
+        "raw": "0.081",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myShares": {
+        "raw": "45000",
+        "decimals": 18
+      },
+      "delegatee": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
       "pendingRedeems": [
-        { "lockedAssets": { "raw": "3800", "decimals": 18 }, "requestedAt": "2026-09-15T09:00:00Z", "maturesAt": "2026-09-16T09:30:00Z" }
+        {
+          "lockedAssets": {
+            "raw": "3800",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-15T09:00:00Z",
+          "maturesAt": "2026-09-16T09:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "stk-100",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-009",
+      "vaultAddress": {
+        "value": "0x8f1a000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "totalStaked": {
+        "raw": "7546982",
+        "decimals": 18
+      },
+      "assetsPerShare": {
+        "raw": "1.3409",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "apy7d": {
+        "raw": "0.1516",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myShares": {
+        "raw": "103517",
+        "decimals": 18
+      },
+      "delegatee": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "pendingRedeems": [
+        {
+          "lockedAssets": {
+            "raw": "3019",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-15T10:00:00Z",
+          "maturesAt": "2026-09-16T10:00:00Z"
+        },
+        {
+          "lockedAssets": {
+            "raw": "7547",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-16T06:00:00Z",
+          "maturesAt": "2026-09-17T06:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "stk-101",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-010",
+      "vaultAddress": {
+        "value": "0x8f1a000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "totalStaked": {
+        "raw": "6947320",
+        "decimals": 18
+      },
+      "assetsPerShare": {
+        "raw": "1.2179",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "apy7d": {
+        "raw": "0.2504",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myShares": {
+        "raw": "104500",
+        "decimals": 18
+      },
+      "delegatee": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "pendingRedeems": [
+        {
+          "lockedAssets": {
+            "raw": "5558",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-15T06:00:00Z",
+          "maturesAt": "2026-09-16T06:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "stk-102",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-011",
+      "vaultAddress": {
+        "value": "0x8f1a000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "totalStaked": {
+        "raw": "8060536",
+        "decimals": 18
+      },
+      "assetsPerShare": {
+        "raw": "1.1384",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "apy7d": {
+        "raw": "0.2677",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myShares": {
+        "raw": "122827",
+        "decimals": 18
+      },
+      "delegatee": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "pendingRedeems": [
+        {
+          "lockedAssets": {
+            "raw": "4030",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-16T08:00:00Z",
+          "maturesAt": "2026-09-17T08:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "stk-103",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-012",
+      "vaultAddress": {
+        "value": "0x8f1a000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "totalStaked": {
+        "raw": "4744154",
+        "decimals": 18
+      },
+      "assetsPerShare": {
+        "raw": "1.2806",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "apy7d": {
+        "raw": "0.2698",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myShares": {
+        "raw": "101796",
+        "decimals": 18
+      },
+      "delegatee": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "pendingRedeems": [
+        {
+          "lockedAssets": {
+            "raw": "2372",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-16T08:00:00Z",
+          "maturesAt": "2026-09-17T08:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "stk-104",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-013",
+      "vaultAddress": {
+        "value": "0x8f1a000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "totalStaked": {
+        "raw": "11328067",
+        "decimals": 18
+      },
+      "assetsPerShare": {
+        "raw": "1.0702",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "apy7d": {
+        "raw": "0.1986",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myShares": {
+        "raw": "311192",
+        "decimals": 18
+      },
+      "delegatee": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "pendingRedeems": [
+        {
+          "lockedAssets": {
+            "raw": "4531",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-15T10:00:00Z",
+          "maturesAt": "2026-09-16T10:00:00Z"
+        },
+        {
+          "lockedAssets": {
+            "raw": "11328",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-16T06:00:00Z",
+          "maturesAt": "2026-09-17T06:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "stk-105",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-014",
+      "vaultAddress": {
+        "value": "0x8f1a000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "totalStaked": {
+        "raw": "7873391",
+        "decimals": 18
+      },
+      "assetsPerShare": {
+        "raw": "1.1407",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "apy7d": {
+        "raw": "0.1809",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myShares": {
+        "raw": "111566",
+        "decimals": 18
+      },
+      "delegatee": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "pendingRedeems": [
+        {
+          "lockedAssets": {
+            "raw": "3937",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-16T08:00:00Z",
+          "maturesAt": "2026-09-17T08:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "stk-106",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-023",
+      "vaultAddress": {
+        "value": "0x8f1a000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "totalStaked": {
+        "raw": "8667234",
+        "decimals": 18
+      },
+      "assetsPerShare": {
+        "raw": "1.2907",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "apy7d": {
+        "raw": "0.2043",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myShares": {
+        "raw": "194968",
+        "decimals": 18
+      },
+      "delegatee": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "pendingRedeems": [
+        {
+          "lockedAssets": {
+            "raw": "4334",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-16T08:00:00Z",
+          "maturesAt": "2026-09-17T08:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "stk-107",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-024",
+      "vaultAddress": {
+        "value": "0x8f1a000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "totalStaked": {
+        "raw": "6668961",
+        "decimals": 18
+      },
+      "assetsPerShare": {
+        "raw": "1.3218",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "apy7d": {
+        "raw": "0.0704",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myShares": {
+        "raw": "69966",
+        "decimals": 18
+      },
+      "delegatee": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "pendingRedeems": [
+        {
+          "lockedAssets": {
+            "raw": "2668",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-15T10:00:00Z",
+          "maturesAt": "2026-09-16T10:00:00Z"
+        },
+        {
+          "lockedAssets": {
+            "raw": "6669",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-16T06:00:00Z",
+          "maturesAt": "2026-09-17T06:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "stk-108",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-025",
+      "vaultAddress": {
+        "value": "0x8f1a000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "totalStaked": {
+        "raw": "8043864",
+        "decimals": 18
+      },
+      "assetsPerShare": {
+        "raw": "1.0706",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "apy7d": {
+        "raw": "0.2904",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myShares": {
+        "raw": "118481",
+        "decimals": 18
+      },
+      "delegatee": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "pendingRedeems": [
+        {
+          "lockedAssets": {
+            "raw": "3218",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-15T10:00:00Z",
+          "maturesAt": "2026-09-16T10:00:00Z"
+        },
+        {
+          "lockedAssets": {
+            "raw": "8044",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-16T06:00:00Z",
+          "maturesAt": "2026-09-17T06:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "stk-109",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-026",
+      "vaultAddress": {
+        "value": "0x8f1a000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "totalStaked": {
+        "raw": "9320909",
+        "decimals": 18
+      },
+      "assetsPerShare": {
+        "raw": "1.0384",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "apy7d": {
+        "raw": "0.1137",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myShares": {
+        "raw": "81382",
+        "decimals": 18
+      },
+      "delegatee": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "pendingRedeems": [
+        {
+          "lockedAssets": {
+            "raw": "3728",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-15T10:00:00Z",
+          "maturesAt": "2026-09-16T10:00:00Z"
+        },
+        {
+          "lockedAssets": {
+            "raw": "9321",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-16T06:00:00Z",
+          "maturesAt": "2026-09-17T06:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "stk-110",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-027",
+      "vaultAddress": {
+        "value": "0x8f1a000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "totalStaked": {
+        "raw": "10541424",
+        "decimals": 18
+      },
+      "assetsPerShare": {
+        "raw": "1.1175",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "apy7d": {
+        "raw": "0.0889",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myShares": {
+        "raw": "285913",
+        "decimals": 18
+      },
+      "delegatee": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "pendingRedeems": [
+        {
+          "lockedAssets": {
+            "raw": "5271",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-16T08:00:00Z",
+          "maturesAt": "2026-09-17T08:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "stk-111",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-028",
+      "vaultAddress": {
+        "value": "0x8f1a000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "totalStaked": {
+        "raw": "7144138",
+        "decimals": 18
+      },
+      "assetsPerShare": {
+        "raw": "1.2692",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "apy7d": {
+        "raw": "0.1352",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myShares": {
+        "raw": "57655",
+        "decimals": 18
+      },
+      "delegatee": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "pendingRedeems": [
+        {
+          "lockedAssets": {
+            "raw": "3572",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-16T08:00:00Z",
+          "maturesAt": "2026-09-17T08:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "stk-112",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-029",
+      "vaultAddress": {
+        "value": "0x8f1a000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "totalStaked": {
+        "raw": "5935028",
+        "decimals": 18
+      },
+      "assetsPerShare": {
+        "raw": "1.3320",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "apy7d": {
+        "raw": "0.1481",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myShares": {
+        "raw": "64700",
+        "decimals": 18
+      },
+      "delegatee": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "pendingRedeems": [
+        {
+          "lockedAssets": {
+            "raw": "4748",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-15T06:00:00Z",
+          "maturesAt": "2026-09-16T06:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "stk-113",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-030",
+      "vaultAddress": {
+        "value": "0x8f1a000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "totalStaked": {
+        "raw": "5399762",
+        "decimals": 18
+      },
+      "assetsPerShare": {
+        "raw": "1.1847",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "apy7d": {
+        "raw": "0.1305",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myShares": {
+        "raw": "152831",
+        "decimals": 18
+      },
+      "delegatee": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "pendingRedeems": [
+        {
+          "lockedAssets": {
+            "raw": "4320",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-15T06:00:00Z",
+          "maturesAt": "2026-09-16T06:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "stk-114",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-031",
+      "vaultAddress": {
+        "value": "0x8f1a000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "totalStaked": {
+        "raw": "10241486",
+        "decimals": 18
+      },
+      "assetsPerShare": {
+        "raw": "1.3601",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "apy7d": {
+        "raw": "0.1312",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myShares": {
+        "raw": "181899",
+        "decimals": 18
+      },
+      "delegatee": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "pendingRedeems": [
+        {
+          "lockedAssets": {
+            "raw": "4097",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-15T10:00:00Z",
+          "maturesAt": "2026-09-16T10:00:00Z"
+        },
+        {
+          "lockedAssets": {
+            "raw": "10241",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-16T06:00:00Z",
+          "maturesAt": "2026-09-17T06:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "stk-115",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-032",
+      "vaultAddress": {
+        "value": "0x8f1a000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "totalStaked": {
+        "raw": "4633442",
+        "decimals": 18
+      },
+      "assetsPerShare": {
+        "raw": "1.1970",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "apy7d": {
+        "raw": "0.1715",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myShares": {
+        "raw": "46606",
+        "decimals": 18
+      },
+      "delegatee": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "pendingRedeems": [
+        {
+          "lockedAssets": {
+            "raw": "3707",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-15T06:00:00Z",
+          "maturesAt": "2026-09-16T06:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "stk-116",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-033",
+      "vaultAddress": {
+        "value": "0x8f1a000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "totalStaked": {
+        "raw": "9617019",
+        "decimals": 18
+      },
+      "assetsPerShare": {
+        "raw": "1.2501",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "apy7d": {
+        "raw": "0.0766",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myShares": {
+        "raw": "275564",
+        "decimals": 18
+      },
+      "delegatee": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "pendingRedeems": [
+        {
+          "lockedAssets": {
+            "raw": "7694",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-15T06:00:00Z",
+          "maturesAt": "2026-09-16T06:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "stk-117",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-034",
+      "vaultAddress": {
+        "value": "0x8f1a000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "totalStaked": {
+        "raw": "8612281",
+        "decimals": 18
+      },
+      "assetsPerShare": {
+        "raw": "1.2002",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "apy7d": {
+        "raw": "0.0576",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myShares": {
+        "raw": "192484",
+        "decimals": 18
+      },
+      "delegatee": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "pendingRedeems": [
+        {
+          "lockedAssets": {
+            "raw": "4306",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-16T08:00:00Z",
+          "maturesAt": "2026-09-17T08:00:00Z"
+        }
       ]
     }
   ]
