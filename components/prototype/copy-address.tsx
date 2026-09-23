@@ -25,7 +25,8 @@ export function CopyAddress({ locale, value }: { locale: Locale; value: string }
       aria-label={copy.copyAddress}
     >
       <span data-numeric>{short}</span>
-      {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+      {/* 图标收小（2026-09-23 用户裁定：复制钮与勾图标偏大） */}
+      {copied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
     </button>
   )
 }
