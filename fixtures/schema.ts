@@ -179,6 +179,7 @@ export const bridgeMessageSchema = recordSchema.extend({
 /** markets.json（四池与费率状态——SPEC-M5/M14） */
 const candleSchema = z.object({
   t: isoTimeSchema, o: decimalString, h: decimalString, l: decimalString, c: decimalString,
+  v: decimalString.optional(), // 蜡烛成交量（uAsset 计价样本；缺失=展示层按 0 处理）
 });
 export const marketSchema = recordSchema.extend({
   verseId: idSchema,

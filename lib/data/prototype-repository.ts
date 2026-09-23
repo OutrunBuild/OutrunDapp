@@ -434,7 +434,7 @@ export function getPrototypeChains() {
 // 周期激励=M10:332-337。样本数值全部来自 fixtures，缺失字段→null→UI 显「以链上读值为准」槽位。
 // ---------------------------------------------------------------------------
 
-export type PrototypeCandle = { t: string; o: number; h: number; l: number; c: number };
+export type PrototypeCandle = { t: string; o: number; h: number; l: number; c: number; v: number };
 
 export type PrototypeFineCandles = {
   '1m': PrototypeCandle[];
@@ -483,15 +483,19 @@ export function getPrototypeVerseTrade(verseId: string): PrototypeVerseTrade | n
           h: Number(candle.h),
           l: Number(candle.l),
           c: Number(candle.c),
+          v: candle.v != null ? Number(candle.v) : 0,
         }))
       : [];
-  const toCandles = (rows: Array<{ t: string; o: string; h: string; l: string; c: string }>) =>
+  const toCandles = (
+    rows: Array<{ t: string; o: string; h: string; l: string; c: string; v?: string }>,
+  ) =>
     rows.map((candle) => ({
       t: candle.t,
       o: Number(candle.o),
       h: Number(candle.h),
       l: Number(candle.l),
       c: Number(candle.c),
+      v: candle.v != null ? Number(candle.v) : 0,
     }));
   const fineRaw = mainRaw && 'candlesFine' in mainRaw ? mainRaw.candlesFine : undefined;
   const fineCandles =

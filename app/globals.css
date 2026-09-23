@@ -2952,9 +2952,58 @@ svg {
   justify-content: flex-end;
 }
 
-/* 绘图区弹性吸高（两卡等高时 K 线纵向填满，最小 240 保比例） */
+/* 绘图区弹性吸高（两卡等高时 K 线纵向填满，最小 240 保比例）；
+   legend=OHLC/Vol/MA 悬浮读数（DexScreener 同构），holder=Lightweight Charts 容器 */
 .candle-chart__plot {
+  position: relative;
   min-block-size: 240px;
+}
+
+.candle-chart__holder {
+  position: absolute;
+  inset: 0;
+}
+
+.candle-chart__legend {
+  position: absolute;
+  inset-block-start: 4px;
+  inset-inline-start: 4px;
+  z-index: 1;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  pointer-events: none;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.candle-chart__legend b {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.candle-chart__legend i {
+  font-style: normal;
+  color: var(--color-text);
+}
+
+.candle-chart__legend i[data-trend='up'] {
+  color: var(--color-success);
+}
+
+.candle-chart__legend i[data-trend='down'] {
+  color: var(--color-danger);
+}
+
+.candle-chart__legend .candle-chart__ma--fast i {
+  color: var(--or-cyan);
+}
+
+.candle-chart__legend .candle-chart__ma--slow i {
+  color: var(--accent-echo);
 }
 
 .candle-chart__svg {
