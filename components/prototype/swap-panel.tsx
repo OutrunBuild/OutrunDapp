@@ -8,7 +8,7 @@ import type { Locale } from '@/lib/data/prototype-repository'
 import { getCopy } from './copy'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 /** 滑点/截止默认与预设档（R-06：常态默认 0.5%；demo 参照档位 0.1/0.5/1.0 与 10/20/30 分钟） */
 const SLIPPAGE_PRESETS = [0.1, 0.5, 1] as const
@@ -50,9 +50,9 @@ export function SwapPanel({
     <section className="swap-panel ax-glow-card" aria-labelledby="swap-title">
       <div className="swap-panel__head">
         <h2 id="swap-title">{copy.swapTitle}</h2>
-        {/* 行业惯例：幽灵图标齿轮 + 弹出式设置层（demo 参照；Esc/外点关闭、焦点回触发器由 Dialog 内置） */}
-        <Dialog>
-          <DialogTrigger
+        {/* 行业惯例：幽灵图标齿轮 + 弹出式设置层（demo 参照；Esc/外点关闭、焦点回触发器由 Popover 内置） */}
+        <Popover>
+          <PopoverTrigger
             className="swap-panel__settings-toggle"
             aria-label={copy.settingsTitle}
             render={
@@ -61,7 +61,7 @@ export function SwapPanel({
               </button>
             }
           />
-          <DialogContent className="swap-settings">
+          <PopoverContent className="swap-settings" side="bottom" align="end">
             <div className="swap-settings__row">
               <span>{copy.maxSlippage}</span>
               <div className="swap-settings__options">
@@ -118,8 +118,8 @@ export function SwapPanel({
                 </span>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
+          </PopoverContent>
+        </Popover>
       </div>
       <div className="swap-panel__field">
         <div className="swap-panel__field-head">
