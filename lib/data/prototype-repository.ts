@@ -470,6 +470,43 @@ export type PrototypeVerseTrade = {
   >;
 };
 
+/** 无限左滑历史总量（1h 根数 ≈ 1 年；2026-09-23 用户裁定配套） */
+const HISTORY_TOTAL_HOURLY = 8760;
+
+/** K 线历史回溯（派生样本）：fixture 只存 168h 真样本，这里锚定首根开盘价向前
+ *  确定性随机游走补齐到 ~1 年——同 verseId 结果恒定；生产以数据源分页为准 */
+function extendHourlyHistory(candles: PrototypeCandle[], seedKey: string): PrototypeCandle[] {
+  if (candles.length === 0 || candles.length >= HISTORY_TOTAL_HOURLY) return candles;
+  let seed = 2166136261;
+  for (const ch of seedKey) seed = Math.imul(seed ^ ch.charCodeAt(0), 16777619);
+  const rnd = () => {
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const first = candles[0];
+  const firstT = Date.parse(first.t);
+  const older: PrototypeCandle[] = [];
+  let price = first.o; // 向前游走的「当前价」，最终衔接 fixture 首根开盘
+  for (let k = HISTORY_TOTAL_HOURLY - candles.length; k >= 1; k--) {
+    const open = price * (1 + (rnd() - 0.5) * 0.011);
+    const high = Math.max(open, price) * (1 + rnd() * 0.004);
+    const low = Math.min(open, price) * (1 - rnd() * 0.004);
+    older.push({
+      t: new Date(firstT - k * 3_600_000).toISOString().replace('.000Z', 'Z'),
+      o: open,
+      h: high,
+      l: low,
+      c: price,
+      v: Math.round(6000 + rnd() * 9000),
+    });
+    price = open;
+  }
+  return [...older, ...candles];
+}
+
 export function getPrototypeVerseTrade(verseId: string): PrototypeVerseTrade | null {
   const verse = getSnapshot().verses.find((item) => item.id === verseId);
   if (!verse) return null;
@@ -486,6 +523,8 @@ export function getPrototypeVerseTrade(verseId: string): PrototypeVerseTrade | n
           v: candle.v != null ? Number(candle.v) : 0,
         }))
       : [];
+  // 回溯派生历史（无限左滑数据池；尾部 fixture 样本不变，统计口径不受影响）
+  const historyCandles = extendHourlyHistory(candles, `${verseId}:history`);
   const toCandles = (
     rows: Array<{ t: string; o: string; h: string; l: string; c: string; v?: string }>,
   ) =>
@@ -524,7 +563,7 @@ export function getPrototypeVerseTrade(verseId: string): PrototypeVerseTrade | n
   const liquidity = mainPool?.tvl ?? 0;
   const totalSupply = stats ? amount(stats.totalSupply.raw) : null;
   return {
-    candles,
+    candles: historyCandles,
     fineCandles,
     tokenStats: {
       price: verse.currentPrice,

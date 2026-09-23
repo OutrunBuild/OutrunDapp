@@ -12,6 +12,7 @@ import {
   type IChartApi,
   type ISeriesApi,
   type LineData,
+  type LogicalRange,
   type UTCTimestamp,
 } from 'lightweight-charts'
 
@@ -26,8 +27,10 @@ const GRANULARITIES = ['1m', '5m', '15m', '1h', '4h', '1d', '1w'] as const
 type Granularity = (typeof GRANULARITIES)[number]
 /** 粗粒度每根聚合蜡烛吸收的 1h 蜡烛数 */
 const AGGREGATE: Partial<Record<Granularity, number>> = { '1h': 1, '4h': 4, '1d': 24, '1w': 168 }
-/** 视口最多渲染蜡烛数（1h 原始 168 根过密——只显示最近 96 根） */
-const MAX_CANDLES = 96
+/** 初始喂给图表的蜡烛数；无限左滑：视口逼近左缘时按 LOAD_CHUNK 增量再喂（交易所标准做法） */
+const INITIAL_BARS = 96
+const LOAD_CHUNK = 240
+const EDGE_BARS = 10
 /** 均线窗口（学币安默认快慢线） */
 const MA_FAST = 7
 const MA_SLOW = 25
@@ -90,7 +93,12 @@ export function CandleChart({
 }) {
   const copy = getCopy(locale).verseDesk
   const [granularity, setGranularity] = useState<Granularity>('1h')
+  const [limit, setLimit] = useState(INITIAL_BARS)
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
+  /** 增量喂入后待恢复的视口（防 setData 前插导致画面跳动） */
+  const restoreRangeRef = useRef<{ from: number; to: number } | null>(null)
+  const firstDataRef = useRef(true)
+  const prevGranularityRef = useRef(granularity)
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
@@ -100,12 +108,26 @@ export function CandleChart({
 
   const series = useMemo(() => {
     if (granularity === '1m' || granularity === '5m' || granularity === '15m') {
-      return fineCandles ? fineCandles[granularity] : []
+      return fineCandles ? fineCandles[granularity].slice(-limit) : []
     }
     const size = AGGREGATE[granularity]
     if (!size) return []
-    return aggregate(candles.slice(-MAX_CANDLES * size), size)
+    return aggregate(candles.slice(-limit * size), size)
+  }, [candles, fineCandles, granularity, limit])
+
+  /** 当前粒度可载入的总蜡烛数（repo 已回溯派生 ~1 年 1h 历史；细粒度=fixture 样本量） */
+  const totalBars = useMemo(() => {
+    if (granularity === '1m' || granularity === '5m' || granularity === '15m') {
+      return fineCandles ? fineCandles[granularity].length : 0
+    }
+    const size = AGGREGATE[granularity] ?? 1
+    return Math.ceil(candles.length / size)
   }, [candles, fineCandles, granularity])
+
+  // 粒度切换重置初始视口
+  useEffect(() => {
+    setLimit(INITIAL_BARS)
+  }, [granularity])
 
   const timeIndex = useMemo(
     () => new Map(series.map((candle, i) => [toTime(candle.t) as number, i])),
@@ -208,8 +230,31 @@ export function CandleChart({
     maFastRef.current?.setData(toLine(maFast))
     maSlowRef.current?.setData(toLine(maSlow))
     setHoverIdx(null)
-    chartRef.current?.timeScale().fitContent()
-  }, [series, maFast, maSlow])
+    // 增量前插：恢复原视口（右移 added 根）；粒度切换/首次挂载：fitContent
+    if (restoreRangeRef.current) {
+      chartRef.current?.timeScale().setVisibleLogicalRange(restoreRangeRef.current)
+      restoreRangeRef.current = null
+    } else if (prevGranularityRef.current !== granularity || firstDataRef.current) {
+      prevGranularityRef.current = granularity
+      firstDataRef.current = false
+      chartRef.current?.timeScale().fitContent()
+    }
+  }, [series, maFast, maSlow, granularity])
+
+  // 无限左滑：视口距左缘 < EDGE_BARS 根时再喂一批，直到 totalBars 全量
+  useEffect(() => {
+    const chart = chartRef.current
+    if (!chart || series.length === 0 || series.length >= totalBars) return
+    const timeScale = chart.timeScale()
+    const handler = (range: LogicalRange | null) => {
+      if (!range || range.from > EDGE_BARS) return
+      const added = Math.min(LOAD_CHUNK, totalBars - series.length)
+      restoreRangeRef.current = { from: range.from + added, to: range.to + added }
+      setLimit((prev) => prev + LOAD_CHUNK)
+    }
+    timeScale.subscribeVisibleLogicalRangeChange(handler)
+    return () => timeScale.unsubscribeVisibleLogicalRangeChange(handler)
+  }, [series, totalBars])
 
   useEffect(() => {
     const chart = chartRef.current
