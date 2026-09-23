@@ -11,6 +11,21 @@ import { formatAmount, formatMarketCap, formatPercent } from './signal-ui'
  * 统计口径（Q&A 2026-09-23）：Liq=四池 TVL 合计；Vol=四池 24h 量合计；
  * 市值=现价×总供应（推导）；CA=fixture 样本。缺失字段→「以链上读值为准」槽位。
  */
+/** 价格有效位分层（2026-09-23 用户裁定）：货币符+有效位大号白 semibold，尾随零缩小降级——读「价位」不读精度噪音 */
+function SplitPrice({ price }: { price: number }) {
+  const fixed = price.toFixed(6)
+  const match = /^(.*[^0])(0*)$/.exec(fixed)
+  const significant = match ? match[1] : fixed
+  const tail = match ? match[2] : ''
+  return (
+    <>
+      <span className="token-strip__price-sign">$</span>
+      {significant}
+      {tail ? <span className="token-strip__price-tail">{tail}</span> : null}
+    </>
+  )
+}
+
 export function VerseTradeDesk({
   locale,
   verse,
@@ -64,7 +79,7 @@ export function VerseTradeDesk({
             </div>
             <div className="token-strip__row token-strip__row--main">
               <div className="token-strip__price">
-                <strong>${stats.price != null ? stats.price.toFixed(6) : copy.onChainSlot}</strong>
+                <strong>{stats.price != null ? <SplitPrice price={stats.price} /> : copy.onChainSlot}</strong>
                 {stats.change24h != null ? (
                   <span data-trend={stats.change24h >= 0 ? 'up' : 'down'}>
                     {stats.change24h >= 0 ? '+' : ''}

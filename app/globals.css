@@ -2923,6 +2923,19 @@ svg {
 
 .token-strip__price strong {
   font-size: var(--text-xl, 1.25rem);
+  font-weight: 600;
+}
+
+/* 价格有效位分层：货币符与尾随零缩小降级为次级色（2026-09-23 用户裁定） */
+.token-strip__price-sign,
+.token-strip__price-tail {
+  font-size: 0.62em;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+}
+
+.token-strip__price-sign {
+  margin-inline-end: 2px;
 }
 
 .token-strip__price [data-trend='up'] {
