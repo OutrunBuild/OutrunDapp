@@ -3423,7 +3423,9 @@ svg {
   margin: 0;
 }
 
-/* 池卡=单行：交易对 | TVL/量/APR 三格 | Add 钮（2026-09-23 用户裁定一排两卡、同行布局） */
+/* 池卡=单行：交易对 | TVL/量/APR 三格 | Add 钮（2026-09-23 用户裁定一排两卡、同行布局）
+   斜线语言铺满全卡（2026-09-23 用户探索）：45° 网与切角边/大卡信号带同向平行，
+   切角根部青角旗渐隐衔接；hover 全层提亮（禁 background 简写——会抹掉纹理层） */
 .pool-card {
   display: flex;
   align-items: center;
@@ -3431,7 +3433,10 @@ svg {
   gap: var(--space-2) var(--space-3);
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--color-border);
-  background: var(--color-surface-inset);
+  background-color: var(--color-surface-inset);
+  background-image:
+    linear-gradient(225deg, rgba(0, 240, 255, 0.1), transparent 56px),
+    repeating-linear-gradient(45deg, rgba(0, 240, 255, 0.05) 0 1px, transparent 1px 10px);
   box-shadow: inset 0 1px 0 rgba(0, 240, 255, 0.1);
   clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100% 100%, 0 100%);
   transition:
@@ -3441,7 +3446,10 @@ svg {
 
 .pool-card:hover {
   border-color: var(--color-border-signal);
-  background: var(--color-surface-raised);
+  background-color: var(--color-surface-raised);
+  background-image:
+    linear-gradient(225deg, rgba(0, 240, 255, 0.16), transparent 56px),
+    repeating-linear-gradient(45deg, rgba(0, 240, 255, 0.075) 0 1px, transparent 1px 10px);
 }
 
 .pool-card__pair {
