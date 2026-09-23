@@ -508,11 +508,14 @@ export function getPrototypeVerseTrade(verseId: string): PrototypeVerseTrade | n
       : null;
   const stats = mainRaw && 'tokenStats' in mainRaw ? mainRaw.tokenStats : undefined;
   const pools = verse.markets.map((market) => {
+    // POL/PT 是品类而非独立 symbol：POL-<MEME>（MemeverseLaunchImpl.sol:117-119）、PT-<MEME>（POLSplitterUpgradeable.sol:225）
+    const polSymbol = `POL-${verse.symbol}`;
+    const ptSymbol = `PT-${verse.symbol}`;
     const pair: Record<PrototypeMarket['pool'], [string, string]> = {
       main: [verse.symbol, verse.raiseAsset],
-      'pol-uasset': ['POL', verse.raiseAsset],
-      'pt-uasset': ['PT', verse.raiseAsset],
-      'pt-pol': ['PT', 'POL'],
+      'pol-uasset': [polSymbol, verse.raiseAsset],
+      'pt-uasset': [ptSymbol, verse.raiseAsset],
+      'pt-pol': [ptSymbol, polSymbol],
     };
     return { ...market, baseSymbol: pair[market.pool][0], quoteSymbol: pair[market.pool][1] };
   });
@@ -561,6 +564,12 @@ export type PrototypeStaking = {
   /** 已成熟合计（Withdraw 子标签 Total Available） */
   claimableTotal: number;
 };
+
+/** uAsset 美元样本价（fixture 假数据；缺失返回 null → UI 隐藏美元换算行） */
+export function getPrototypeAssetUsdSample(symbol: string): number | null {
+  const asset = fixtureData.assets.items.find((item) => item.symbol === symbol);
+  return asset?.usdSample ?? null;
+}
 
 /** Memecoin 质押收益库样本（locked/unlocked verse；null=该 verse 无样本→面板整体走槽位态） */
 export function getPrototypeStaking(verseId: string): PrototypeStaking | null {

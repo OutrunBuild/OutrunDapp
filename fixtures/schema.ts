@@ -88,6 +88,7 @@ export const assetSchema = recordSchema.extend({
   kind: z.enum(['uasset', 'reserve', 'sy', 'memecoin', 'share', 'credit']),
   decimals: z.number().int().min(0).max(18),
   anchorNote: z.string().optional(), // uAsset 锚定限定语（glossary A）
+  usdSample: z.number().positive().optional(), // uAsset 美元样本价（fixture 假数据，生产以预言机/链上为准）
   address: fixtureAddressSchema.optional(),
 });
 

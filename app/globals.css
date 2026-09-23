@@ -3242,17 +3242,33 @@ svg {
   gap: var(--space-1);
 }
 
-.swap-panel__quick {
-  display: flex;
+/* Max 钮嵌 Balance 行尾（行业惯例）；输入/输出下方美元换算行 */
+.swap-panel__balance {
+  display: inline-flex;
+  align-items: center;
   gap: var(--space-1);
 }
 
-.swap-panel__quick button {
-  padding: 1px var(--space-2);
-  border: 1px solid var(--color-border);
-  color: var(--or-cyan);
+.swap-panel__max {
+  padding: 0 2px;
+  border: 0;
   background: transparent;
-  font-size: var(--text-xs, 0.75rem);
+  color: var(--or-cyan);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.swap-panel__max:disabled {
+  color: var(--color-text-tertiary);
+  cursor: default;
+}
+
+.swap-panel__field-usd {
+  color: var(--color-text-secondary);
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
 }
 
 /* 方向翻转：无边框裸符号，卡面同色遮线底；静态灰（避开满屏青），hover/聚焦才转青+180° */

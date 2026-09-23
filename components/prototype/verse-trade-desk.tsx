@@ -1,4 +1,9 @@
-import type { Locale, PrototypeVerse, PrototypeVerseTrade } from '@/lib/data/prototype-repository'
+import type {
+  Locale,
+  PrototypeVerse,
+  PrototypeVerseTrade,
+} from '@/lib/data/prototype-repository'
+import { getPrototypeAssetUsdSample } from '@/lib/data/prototype-repository'
 
 import { CandleChart } from './candle-chart'
 import { CopyAddress } from './copy-address'
@@ -150,6 +155,7 @@ export function VerseTradeDesk({
           memecoinSymbol={verse.symbol}
           uAssetSymbol={verse.raiseAsset}
           price={stats.price ?? 0}
+          uAssetUsd={getPrototypeAssetUsdSample(verse.raiseAsset)}
         />
       </div>
     </section>

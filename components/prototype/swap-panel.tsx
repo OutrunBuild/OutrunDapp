@@ -37,12 +37,15 @@ export function SwapPanel({
   memecoinSymbol,
   uAssetSymbol,
   price,
+  uAssetUsd,
 }: {
   locale: Locale
   /** 主池价：1 Memecoin = price uAsset（fixture 蜡烛收盘推导） */
   memecoinSymbol: string
   uAssetSymbol: string
   price: number
+  /** uAsset 美元样本价（fixture；null=隐藏美元换算行） */
+  uAssetUsd: number | null
 }) {
   const copy = getCopy(locale).verseDesk
   const [direction, setDirection] = useState<'meme-to-uasset' | 'uasset-to-meme'>('uasset-to-meme')
@@ -58,6 +61,20 @@ export function SwapPanel({
   const minReceived = quote != null ? quote * (1 - slippage / 100) : null
   const sellSymbol = direction === 'uasset-to-meme' ? uAssetSymbol : memecoinSymbol
   const buySymbol = direction === 'uasset-to-meme' ? memecoinSymbol : uAssetSymbol
+  // 美元换算：输入/输出各自按其计价侧 × uAssetUsd（MEME 侧先折 uAsset）
+  const fmtUsd = (value: number) => value.toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US', { maximumFractionDigits: 2 })
+  const sellUsd =
+    uAssetUsd == null || !valid
+      ? null
+      : direction === 'uasset-to-meme'
+        ? fmtUsd(parsed * uAssetUsd)
+        : fmtUsd(parsed * price * uAssetUsd)
+  const buyUsd =
+    uAssetUsd == null || quote == null
+      ? null
+      : direction === 'uasset-to-meme'
+        ? fmtUsd(quote * price * uAssetUsd)
+        : fmtUsd(quote * uAssetUsd)
 
   return (
     <section className="swap-panel ax-glow-card" aria-labelledby="swap-title">
@@ -143,7 +160,12 @@ export function SwapPanel({
       <div className="swap-panel__field">
         <div className="swap-panel__field-head">
           <span>{copy.swapSell}</span>
-          <span>{copy.balance}: --</span>
+          <span className="swap-panel__balance">
+            {copy.balance}: --
+            <button type="button" className="swap-panel__max" disabled>
+              {copy.max}
+            </button>
+          </span>
         </div>
         <div className="swap-panel__field-row">
           <Input
@@ -156,12 +178,9 @@ export function SwapPanel({
           />
           <div className="swap-panel__token">
             <strong>{sellSymbol}</strong>
-            <div className="swap-panel__quick">
-              <button type="button" disabled>{copy.half}</button>
-              <button type="button" disabled>{copy.max}</button>
-            </div>
           </div>
         </div>
+        {sellUsd != null ? <span className="swap-panel__field-usd">≈ ${sellUsd}</span> : null}
       </div>
       <button
         type="button"
@@ -174,7 +193,9 @@ export function SwapPanel({
       <div className="swap-panel__field">
         <div className="swap-panel__field-head">
           <span>{copy.swapBuy}</span>
-          <span>{copy.balance}: --</span>
+          <span>
+            {copy.balance}: --
+          </span>
         </div>
         <div className="swap-panel__field-row">
           <output className="swap-panel__output numeric-input" data-numeric>
@@ -184,6 +205,7 @@ export function SwapPanel({
             <strong>{buySymbol}</strong>
           </div>
         </div>
+        {buyUsd != null ? <span className="swap-panel__field-usd">≈ ${buyUsd}</span> : null}
       </div>
       <dl className="swap-panel__details">
         <div>
