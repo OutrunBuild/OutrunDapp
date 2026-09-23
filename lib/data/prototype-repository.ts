@@ -452,9 +452,9 @@ export type PrototypeVerseTrade = {
     change24h: number | null;
     /** 市值 = 现价 × 总供应（推导值）；null=任一输入缺失 */
     marketCap: number | null;
-    /** 四池 TVL 合计（Q2 用户裁定口径） */
+    /** 主池 TVL（统计条口径 2026-09-23 用户裁定；四池合计由 Liquidity 标签自算） */
     liquidity: number;
-    /** 四池 24h 量合计；null=主池量缺失 */
+    /** 主池 24h 量；null=主池量缺失 */
     volume24h: number | null;
     holders: number | null;
     totalSupply: number | null;
@@ -519,8 +519,9 @@ export function getPrototypeVerseTrade(verseId: string): PrototypeVerseTrade | n
     };
     return { ...market, baseSymbol: pair[market.pool][0], quoteSymbol: pair[market.pool][1] };
   });
-  const liquidity = pools.reduce((sum, pool) => sum + pool.tvl, 0);
-  const volumeKnown = pools.filter((pool) => pool.volume24h != null);
+  // 统计条口径（2026-09-23 用户裁定）：Liq/Vol=主池数据（交易对该池），非四池合计
+  const mainPool = pools.find((pool) => pool.pool === 'main');
+  const liquidity = mainPool?.tvl ?? 0;
   const totalSupply = stats ? amount(stats.totalSupply.raw) : null;
   return {
     candles,
@@ -531,10 +532,7 @@ export function getPrototypeVerseTrade(verseId: string): PrototypeVerseTrade | n
       marketCap:
         verse.currentPrice != null && totalSupply != null ? verse.currentPrice * totalSupply : null,
       liquidity,
-      volume24h:
-        volumeKnown.length === pools.length && pools.length > 0
-          ? volumeKnown.reduce((sum, pool) => sum + (pool.volume24h ?? 0), 0)
-          : null,
+      volume24h: mainPool?.volume24h != null ? mainPool.volume24h : null,
       holders: stats?.holders ?? null,
       totalSupply,
       tokenAddress: stats?.tokenAddress.value ?? null,

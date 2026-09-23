@@ -18,13 +18,11 @@ function StatChip({
   value,
   tipTitle,
   tipValue,
-  tipDesc,
 }: {
   label: string
   value: string
   tipTitle: string
   tipValue: string
-  tipDesc: string
 }) {
   return (
     <Tooltip>
@@ -36,7 +34,6 @@ function StatChip({
         <span className="token-strip__tip">
           <b>{tipTitle}</b>
           <i>{tipValue}</i>
-          <small>{tipDesc}</small>
         </span>
       </TooltipContent>
     </Tooltip>
@@ -91,35 +88,30 @@ export function VerseTradeDesk({
                   value={stats.marketCap != null ? `$${formatMarketCap(stats.marketCap)}` : copy.onChainSlot}
                   tipTitle={copy.marketCapFull}
                   tipValue={stats.marketCap != null ? `$${formatAmount(stats.marketCap, locale)}` : copy.onChainSlot}
-                  tipDesc={copy.marketCapDesc}
                 />
                 <StatChip
                   label={copy.liquidity}
                   value={`$${formatMarketCap(stats.liquidity)}`}
                   tipTitle={copy.liquidityFull}
                   tipValue={`$${formatAmount(stats.liquidity, locale)}`}
-                  tipDesc={copy.liquidityDesc}
                 />
                 <StatChip
                   label={copy.volume24h}
                   value={stats.volume24h != null ? `$${formatMarketCap(stats.volume24h)}` : copy.onChainSlot}
                   tipTitle={copy.volume24hFull}
                   tipValue={stats.volume24h != null ? `$${formatAmount(stats.volume24h, locale)}` : copy.onChainSlot}
-                  tipDesc={copy.volume24hDesc}
                 />
                 <StatChip
                   label={copy.holders}
                   value={stats.holders != null ? formatAmount(stats.holders, locale, true) : copy.onChainSlot}
                   tipTitle={copy.holdersFull}
                   tipValue={stats.holders != null ? formatAmount(stats.holders, locale) : copy.onChainSlot}
-                  tipDesc={copy.holdersDesc}
                 />
                 <StatChip
                   label={copy.totalSupply}
                   value={stats.totalSupply != null ? formatMarketCap(stats.totalSupply) : copy.onChainSlot}
                   tipTitle={copy.totalSupplyFull}
                   tipValue={stats.totalSupply != null ? formatAmount(stats.totalSupply, locale) : copy.onChainSlot}
-                  tipDesc={copy.totalSupplyDesc}
                 />
               </dl>
             </div>

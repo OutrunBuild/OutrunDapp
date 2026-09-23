@@ -18,7 +18,12 @@ function Slot({ children }: { children: React.ReactNode }) {
 /** Liquidity 标签：四池总览 + 池卡（four-pools.md:9-14；APR/量=样本+读链槽位） */
 export function LiquidityPanel({ locale, trade }: { locale: Locale; trade: PrototypeVerseTrade }) {
   const copy = getCopy(locale).verseDesk
-  const volumeTotal = trade.tokenStats.volume24h
+  // 总览=四池合计（Q2 用户裁定）；统计条的 Liq/Vol 是主池口径，两处不同源
+  const volumeTotal = trade.pools.reduce(
+    (sum, pool) => (pool.volume24h != null ? sum + pool.volume24h : sum),
+    0,
+  )
+  const hasVolume = trade.pools.some((pool) => pool.volume24h != null)
 
   return (
     <div className="liquidity-panel">
@@ -26,11 +31,11 @@ export function LiquidityPanel({ locale, trade }: { locale: Locale; trade: Proto
       <dl className="liquidity-panel__overview" data-numeric>
         <div>
           <dt>{copy.totalValueLocked}</dt>
-          <dd>{formatMarketCap(trade.tokenStats.liquidity)}</dd>
+          <dd>{formatMarketCap(trade.pools.reduce((sum, pool) => sum + pool.tvl, 0))}</dd>
         </div>
         <div>
           <dt>{copy.liquidityVolume}</dt>
-          <dd>{volumeTotal != null ? formatMarketCap(volumeTotal) : <Slot>{copy.onChainSlot}</Slot>}</dd>
+          <dd>{hasVolume ? formatMarketCap(volumeTotal) : <Slot>{copy.onChainSlot}</Slot>}</dd>
         </div>
       </dl>
       <h4 className="panel-subtitle">{copy.poolsTitle}</h4>
@@ -85,6 +90,8 @@ export function PolPanel({
 }) {
   const copy = getCopy(locale).verseDesk
   const locked = verse.stage === 'locked'
+  // POL-<MEME>（MemeverseLaunchImpl.sol:117-119）——POL 是品类，实际 symbol 带 verse 后缀
+  const polSymbol = `POL-${verse.symbol}`
 
   return (
     <div className="pol-panel">
@@ -118,13 +125,13 @@ export function PolPanel({
             <div>
               <span>{copy.yourPol}</span>
               <strong data-numeric>
-                {formatAmount(pol.myPol, locale)} POL · ≈ {formatMarketCap(pol.myPol * pol.marketPricePerPol)}{' '}
+                {formatAmount(pol.myPol, locale)} {polSymbol} · ≈ {formatMarketCap(pol.myPol * pol.marketPricePerPol)}{' '}
                 {verse.raiseAsset}
               </strong>
             </div>
             <div>
               <span>{copy.claimPol}</span>
-              <strong data-numeric>{formatAmount(pol.claimablePol, locale)} POL</strong>
+              <strong data-numeric>{formatAmount(pol.claimablePol, locale)} {polSymbol}</strong>
               {/* 原型纪律：写操作一律禁用（可领>0 也不伪造链上成功） */}
               <Button variant="outline" size="sm" disabled title={copy.claimPolNote}>
                 {copy.claimPol}
