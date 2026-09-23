@@ -2825,6 +2825,7 @@ svg {
   padding: var(--space-4);
   border: 1px solid var(--color-border-signal);
   background: var(--color-surface);
+  box-shadow: inset 0 1px 0 rgba(0, 240, 255, 0.12);
   clip-path: polygon(
     0 0,
     calc(100% - var(--chamfer-panel)) 0,
@@ -2867,6 +2868,15 @@ svg {
   padding: 2px var(--space-2);
   border: 1px solid var(--color-border);
   background: var(--color-surface-inset);
+  box-shadow: inset 0 1px 0 rgba(0, 240, 255, 0.14);
+  clip-path: polygon(
+    var(--chamfer) 0,
+    100% 0,
+    100% calc(100% - var(--chamfer)),
+    calc(100% - var(--chamfer)) 100%,
+    0 100%,
+    0 var(--chamfer)
+  );
 }
 
 .token-strip__chips dt {
@@ -2887,6 +2897,7 @@ svg {
   border: 1px solid var(--color-border);
   color: var(--or-cyan);
   background: var(--color-surface-inset);
+  clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100% 100%, 0 100%);
   font-family: var(--font-data);
   font-variant-numeric: tabular-nums;
   flex-wrap: nowrap;
@@ -2966,7 +2977,7 @@ svg {
 .candle-chart__axis {
   fill: var(--color-text-secondary);
   font-family: var(--font-data);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .candle-chart__empty {
@@ -2981,6 +2992,15 @@ svg {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-block-end: var(--space-1);
+}
+
+.swap-panel__head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.015em;
 }
 
 .swap-panel__settings-toggle {
@@ -3068,6 +3088,7 @@ svg {
   padding: var(--space-4);
   border: 1px solid var(--color-border-signal);
   background: var(--color-surface);
+  box-shadow: inset 0 1px 0 rgba(0, 240, 255, 0.12);
   clip-path: polygon(
     0 0,
     calc(100% - var(--chamfer-panel)) 0,
@@ -3174,6 +3195,7 @@ svg {
   padding: var(--space-4);
   border: 1px solid var(--color-border-signal);
   background: var(--color-surface);
+  box-shadow: inset 0 1px 0 rgba(0, 240, 255, 0.12);
   clip-path: polygon(
     0 0,
     calc(100% - var(--chamfer-panel)) 0,
@@ -3206,6 +3228,81 @@ svg {
   margin-block-start: var(--space-4);
 }
 
+/* 面板标题条（系统标题设备：展示字体 + ax-echo-bar 签名线） */
+.panel-title {
+  margin: 0;
+  padding-block-end: var(--space-2);
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.015em;
+}
+
+.panel-subtitle {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* KPI 芯片（KPI 带语言：12px 对角双切 + 顶缘青 inset 光 + 分隔线分格）
+   —— 用于各标签总览统计行（Liquidity TVL/量、POL 估值、Vault 读数、DAO 计数） */
+.kpi-chips,
+.liquidity-panel__overview,
+.pol-panel__stats,
+.vault-panel__stats,
+.dao-panel__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.kpi-chips > div,
+.liquidity-panel__overview > div,
+.pol-panel__stats > div,
+.vault-panel__stats > div,
+.dao-panel__stats > div {
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+  min-inline-size: 108px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-inset);
+  box-shadow: inset 0 1px 0 rgba(0, 240, 255, 0.14);
+  clip-path: polygon(
+    var(--chamfer-card) 0,
+    100% 0,
+    100% calc(100% - var(--chamfer-card)),
+    calc(100% - var(--chamfer-card)) 100%,
+    0 100%,
+    0 var(--chamfer-card)
+  );
+}
+
+.kpi-chips dt,
+.liquidity-panel__overview dt,
+.pol-panel__stats dt,
+.vault-panel__stats dt,
+.dao-panel__stats dt {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.kpi-chips dd,
+.liquidity-panel__overview dd,
+.pol-panel__stats dd,
+.vault-panel__stats dd,
+.dao-panel__stats dd {
+  font-size: 15px;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
 /* 面板通用 */
 .panel-note {
   color: var(--color-text-secondary);
@@ -3222,21 +3319,6 @@ svg {
   gap: var(--space-4);
 }
 
-.liquidity-panel__overview {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3) var(--space-6);
-}
-
-.liquidity-panel__overview dt {
-  color: var(--color-text-secondary);
-}
-
-.liquidity-panel__overview dd {
-  font-family: var(--font-data);
-  font-variant-numeric: tabular-nums;
-}
-
 .liquidity-panel__pools {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -3248,48 +3330,65 @@ svg {
 
 .pool-card {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-3);
   justify-items: start;
   padding: var(--space-3);
   border: 1px solid var(--color-border);
   background: var(--color-surface-inset);
+  box-shadow: inset 0 1px 0 rgba(0, 240, 255, 0.1);
+  clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100% 100%, 0 100%);
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
 }
 
-.pool-card__head {
-  display: grid;
-  gap: 2px;
+.pool-card:hover {
+  border-color: var(--color-border-signal);
+  background: var(--color-surface-raised);
 }
 
-.pool-card__head span {
-  color: var(--color-text-secondary);
-  font-size: var(--text-xs, 0.75rem);
+.pool-card__head strong {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .pool-card__stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  inline-size: 100%;
+}
+
+.pool-card__stats > div {
+  display: grid;
+  gap: 2px;
+  padding-inline: var(--space-3);
+  border-inline-start: 1px solid var(--color-border);
+}
+
+.pool-card__stats > div:first-child {
+  padding-inline-start: 0;
+  border-inline-start: 0;
 }
 
 .pool-card__stats dt {
   color: var(--color-text-secondary);
-  font-size: var(--text-xs, 0.75rem);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.pool-card__stats dd {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
 }
 
 /* POL */
 .pol-panel {
   display: grid;
   gap: var(--space-4);
-}
-
-.pol-panel__stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3) var(--space-6);
-}
-
-.pol-panel__stats dt {
-  color: var(--color-text-secondary);
 }
 
 .pol-panel__wallet {
@@ -3324,6 +3423,14 @@ svg {
   padding: var(--space-3);
   border: 1px solid var(--color-border);
   background: var(--color-surface-inset);
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
+}
+
+.pol-action:hover {
+  border-color: var(--color-border-signal);
+  background: var(--color-surface-raised);
 }
 
 .pol-action p {
@@ -3335,16 +3442,6 @@ svg {
 .vault-panel {
   display: grid;
   gap: var(--space-4);
-}
-
-.vault-panel__stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3) var(--space-6);
-}
-
-.vault-panel__stats dt {
-  color: var(--color-text-secondary);
 }
 
 .vault-panel__grid {
@@ -3369,15 +3466,34 @@ svg {
 
 .vault-panel__lists li {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
+  min-block-size: var(--row-height);
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--color-border);
   background: var(--color-surface-inset);
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+.vault-panel__lists li:hover {
+  background: var(--color-surface-raised);
+  box-shadow: inset 2px 0 0 var(--or-cyan);
+}
+
+.vault-panel__lists li [data-state] {
+  padding: 1px var(--space-2);
+  border: 1px solid var(--color-border);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .vault-panel__lists li [data-state='ready'] {
   color: var(--color-success);
+  border-color: color-mix(in srgb, var(--color-success) 40%, transparent);
 }
 
 .vault-panel__lists li [data-state='waiting'] {
@@ -3480,16 +3596,6 @@ svg {
   align-items: start;
 }
 
-.dao-panel__stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3) var(--space-6);
-}
-
-.dao-panel__stats dt {
-  color: var(--color-text-secondary);
-}
-
 .dao-panel__tally {
   display: grid;
   gap: var(--space-2);
@@ -3497,6 +3603,13 @@ svg {
   padding: var(--space-3);
   border: 1px solid var(--color-border-strong);
   background: var(--color-surface-inset);
+  box-shadow: inset 0 1px 0 rgba(0, 240, 255, 0.1);
+  clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100% 100%, 0 100%);
+  transition: border-color var(--motion-fast) var(--ease-out);
+}
+
+.dao-panel__tally:hover {
+  border-color: var(--color-border-signal-strong);
 }
 
 .dao-panel__tally p {
@@ -3512,7 +3625,7 @@ svg {
 
 .cycle-card {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-2);
   padding: var(--space-4);
   border: 1px solid var(--color-border);
   background: var(--color-surface-inset);
@@ -3520,6 +3633,25 @@ svg {
 
 .cycle-card[data-current] {
   border-color: var(--color-border-signal);
+  box-shadow: inset 0 1px 0 rgba(0, 240, 255, 0.16);
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--chamfer-panel)) 0,
+    100% var(--chamfer-panel),
+    100% 100%,
+    0 100%
+  );
+}
+
+.cycle-card dl div {
+  min-block-size: 30px;
+  align-items: center;
+  padding-block: var(--space-1);
+  border-block-end: 1px solid var(--color-border);
+}
+
+.cycle-card dl div:last-child {
+  border-block-end: 0;
 }
 
 .cycle-card header {

@@ -23,7 +23,7 @@ export function VaultPanel({
 
   return (
     <div className="vault-panel">
-      <h3>{copy.vaultTitle}</h3>
+      <h3 className="panel-title ax-echo-bar">{copy.vaultTitle}</h3>
       {staking ? (
         <>
           <dl className="vault-panel__stats" data-numeric>
@@ -68,7 +68,7 @@ export function VaultPanel({
             />
             <div className="vault-panel__lists">
               <section>
-                <h4>{copy.pendingRedeems}</h4>
+                <h4 className="panel-subtitle">{copy.pendingRedeems}</h4>
                 <ul data-numeric>
                   {staking.pendingRedeems.length === 0 ? (
                     <li className="panel-note">--</li>
@@ -88,7 +88,7 @@ export function VaultPanel({
                 </ul>
               </section>
               <section>
-                <h4>{copy.readyToWithdraw}</h4>
+                <h4 className="panel-subtitle">{copy.readyToWithdraw}</h4>
                 <ul data-numeric>
                   {staking.claimableTotal > 0 ? (
                     <li>
@@ -103,7 +103,7 @@ export function VaultPanel({
                 </ul>
               </section>
               <section className="vault-panel__cross">
-                <h4>{copy.crossTitle}</h4>
+                <h4 className="panel-subtitle">{copy.crossTitle}</h4>
                 <p className="panel-note">{copy.crossNote}</p>
               </section>
             </div>

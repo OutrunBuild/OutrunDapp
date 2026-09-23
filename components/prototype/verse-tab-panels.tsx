@@ -22,7 +22,7 @@ export function LiquidityPanel({ locale, trade }: { locale: Locale; trade: Proto
 
   return (
     <div className="liquidity-panel">
-      <h3>{copy.liquidityTitle}</h3>
+      <h3 className="panel-title ax-echo-bar">{copy.liquidityTitle}</h3>
       <dl className="liquidity-panel__overview" data-numeric>
         <div>
           <dt>{copy.totalValueLocked}</dt>
@@ -33,7 +33,7 @@ export function LiquidityPanel({ locale, trade }: { locale: Locale; trade: Proto
           <dd>{volumeTotal != null ? formatMarketCap(volumeTotal) : <Slot>{copy.onChainSlot}</Slot>}</dd>
         </div>
       </dl>
-      <h4>{copy.poolsTitle}</h4>
+      <h4 className="panel-subtitle">{copy.poolsTitle}</h4>
       <ul className="liquidity-panel__pools">
         {trade.pools.map((pool) => (
           <li key={pool.id} className="pool-card" data-pool={pool.pool}>
@@ -92,7 +92,7 @@ export function PolPanel({
 
   return (
     <div className="pol-panel">
-      <h3>{copy.polTitle}</h3>
+      <h3 className="panel-title ax-echo-bar">{copy.polTitle}</h3>
       {pol ? (
         <>
           <dl className="pol-panel__stats" data-numeric>
@@ -143,7 +143,7 @@ export function PolPanel({
         </p>
       )}
       <div className="pol-panel__operate">
-        <h4>{copy.operate}</h4>
+        <h4 className="panel-subtitle">{copy.operate}</h4>
         <div className="pol-panel__actions">
           <div className="pol-action">
             <Button variant="outline" size="sm" disabled title={copy.mintNote}>
@@ -184,7 +184,7 @@ export function DaoPanel({
   if (!governance) {
     return (
       <div className="dao-panel">
-        <h3>{copy.daoTitle}</h3>
+        <h3 className="panel-title ax-echo-bar">{copy.daoTitle}</h3>
         <p className="panel-note">
           <Slot>{copy.onChainSlot}</Slot>
         </p>
@@ -194,7 +194,7 @@ export function DaoPanel({
 
   return (
     <div className="dao-panel">
-      <h3>{copy.daoTitle}</h3>
+      <h3 className="panel-title ax-echo-bar">{copy.daoTitle}</h3>
       <div className="dao-panel__head">
         <dl className="dao-panel__stats" data-numeric>
           <div>
@@ -246,7 +246,7 @@ export function DaoPanel({
       <div className="dao-panel__cycles">
         <section className="cycle-card" data-current>
           <header>
-            <h4>{copy.cycleTitle}</h4>
+            <h4 className="panel-subtitle">{copy.cycleTitle}</h4>
             <span data-numeric>
               {copy.cycle.replace('{n}', governance.cycleNumber)} ·{' '}
               {copy.cycleDuration.replace('{n}', String(governance.cycleDurationDays))}
@@ -324,7 +324,7 @@ export function DaoPanel({
         {governance.lastCycle ? (
           <section className="cycle-card">
             <header>
-              <h4>{copy.lastCycleTitle}</h4>
+              <h4 className="panel-subtitle">{copy.lastCycleTitle}</h4>
               <span data-numeric>{copy.cycle.replace('{n}', governance.lastCycle.number)}</span>
             </header>
             <dl data-numeric>
