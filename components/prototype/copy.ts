@@ -375,7 +375,7 @@ const en = {
       marketCap: 'MC',
       liquidity: 'Liq',
       volume24h: 'Vol',
-      holders: 'Holders',
+      holders: 'Pop',
       totalSupply: 'TS',
       contract: 'CA',
       copyAddress: 'Copy address',

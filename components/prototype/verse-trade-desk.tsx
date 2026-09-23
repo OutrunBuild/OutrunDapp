@@ -28,45 +28,48 @@ export function VerseTradeDesk({
       <div className="verse-desk__main">
         {/* 统计条+K线同卡（2026-09-23 用户裁定：不再拆两张卡） */}
         <div className="trade-chart" data-numeric>
-          <div className="token-strip">
-            <div className="token-strip__price">
-              <strong>{stats.price != null ? stats.price.toFixed(6) : copy.onChainSlot}</strong>
-              {stats.change24h != null ? (
-                <span data-trend={stats.change24h >= 0 ? 'up' : 'down'}>
-                  {formatPercent(stats.change24h, locale)}%
-                </span>
-              ) : null}
+          {/* 排列按参照页（demo.outrun.build）：第一行 代币名+单行胶囊(MC/Liq/Vol/Pop/TS 标签值同行)；
+              第二行 左=大字价格+涨跌、右=CA 胶囊 */}
+          <div className="token-strip" data-numeric>
+            <div className="token-strip__row">
+              <strong className="token-strip__symbol">{verse.symbol}</strong>
+              <dl className="token-strip__chips">
+                <div>
+                  <dt>{copy.marketCap}:</dt>
+                  <dd>{stats.marketCap != null ? formatMarketCap(stats.marketCap) : copy.onChainSlot}</dd>
+                </div>
+                <div>
+                  <dt>{copy.liquidity}:</dt>
+                  <dd>{formatMarketCap(stats.liquidity)}</dd>
+                </div>
+                <div>
+                  <dt>{copy.volume24h}:</dt>
+                  <dd>{stats.volume24h != null ? formatMarketCap(stats.volume24h) : copy.onChainSlot}</dd>
+                </div>
+                <div>
+                  <dt>{copy.holders}:</dt>
+                  <dd>{stats.holders != null ? formatAmount(stats.holders, locale, true) : copy.onChainSlot}</dd>
+                </div>
+                <div>
+                  <dt>{copy.totalSupply}:</dt>
+                  <dd>
+                    {stats.totalSupply != null ? formatMarketCap(stats.totalSupply) : copy.onChainSlot}
+                  </dd>
+                </div>
+              </dl>
             </div>
-            <dl className="token-strip__chips">
-              <div>
-                <dt>{copy.marketCap}</dt>
-                <dd>{stats.marketCap != null ? formatMarketCap(stats.marketCap) : copy.onChainSlot}</dd>
+            <div className="token-strip__row token-strip__row--main">
+              <div className="token-strip__price">
+                <strong>{stats.price != null ? stats.price.toFixed(6) : copy.onChainSlot}</strong>
+                <span aria-hidden="true">{verse.raiseAsset}</span>
+                {stats.change24h != null ? (
+                  <span data-trend={stats.change24h >= 0 ? 'up' : 'down'}>
+                    {formatPercent(stats.change24h, locale)}%
+                  </span>
+                ) : null}
               </div>
-              <div>
-                <dt>{copy.liquidity}</dt>
-                <dd>{formatMarketCap(stats.liquidity)}</dd>
-              </div>
-              <div>
-                <dt>{copy.volume24h}</dt>
-                <dd>{stats.volume24h != null ? formatMarketCap(stats.volume24h) : copy.onChainSlot}</dd>
-              </div>
-              <div>
-                <dt>{copy.holders}</dt>
-                <dd>{stats.holders != null ? formatAmount(stats.holders, locale, true) : copy.onChainSlot}</dd>
-              </div>
-              <div>
-                <dt>{copy.totalSupply}</dt>
-                <dd>
-                  {stats.totalSupply != null ? formatMarketCap(stats.totalSupply) : copy.onChainSlot}
-                </dd>
-              </div>
-            </dl>
-            {stats.tokenAddress ? (
-              <div className="token-strip__ca">
-                <span>{copy.contract}</span>
-                <CopyAddress locale={locale} value={stats.tokenAddress} />
-              </div>
-            ) : null}
+              {stats.tokenAddress ? <CopyAddress locale={locale} value={stats.tokenAddress} /> : null}
+            </div>
           </div>
           <CandleChart
             candles={trade.candles}

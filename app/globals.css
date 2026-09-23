@@ -2834,41 +2834,39 @@ svg {
   );
 }
 
-/* 代币统计条（卡内无框） */
+/* 代币统计条（卡内无框；排列按参照页：第一行 代币名+单行胶囊，第二行 价格+CA） */
 .token-strip {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
-.token-strip__price {
+.token-strip__row {
   display: flex;
-  align-items: baseline;
-  gap: var(--space-3);
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.token-strip__symbol {
   font-family: var(--font-data);
-  font-variant-numeric: tabular-nums;
-}
-
-.token-strip__price strong {
-  font-size: var(--text-xl, 1.25rem);
-}
-
-.token-strip__price [data-trend='up'] {
-  color: var(--color-success);
-}
-
-.token-strip__price [data-trend='down'] {
-  color: var(--color-danger);
+  font-size: var(--text-lg, 1.125rem);
+  letter-spacing: 0.04em;
 }
 
 .token-strip__chips {
   display: flex;
+  align-items: center;
+  gap: var(--space-2);
   flex-wrap: wrap;
-  gap: var(--space-2) var(--space-5);
 }
 
 .token-strip__chips div {
-  display: grid;
-  gap: 2px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-inset);
 }
 
 .token-strip__chips dt {
@@ -2881,23 +2879,34 @@ svg {
   font-variant-numeric: tabular-nums;
 }
 
-.token-strip__ca {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--color-text-secondary);
+.token-strip__row--main {
+  justify-content: space-between;
+  gap: var(--space-3);
 }
 
-.token-strip__copy {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: 2px var(--space-2);
-  border: 1px solid var(--color-border);
-  color: var(--or-cyan);
-  background: var(--color-surface-inset);
+.token-strip__price {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
   font-family: var(--font-data);
   font-variant-numeric: tabular-nums;
+}
+
+.token-strip__price strong {
+  font-size: var(--text-xl, 1.25rem);
+}
+
+.token-strip__price > span:first-of-type {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs, 0.75rem);
+}
+
+.token-strip__price [data-trend='up'] {
+  color: var(--color-success);
+}
+
+.token-strip__price [data-trend='down'] {
+  color: var(--color-danger);
 }
 
 /* K 线（粒度式学币安——Q3 用户裁定；1m/5m/15m 标「同步中」；卡内无框） */
