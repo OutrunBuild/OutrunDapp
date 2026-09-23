@@ -3424,9 +3424,11 @@ svg {
 }
 
 /* 池卡=单行：交易对 | TVL/量/APR 三格 | Add 钮（2026-09-23 用户裁定一排两卡、同行布局）
-   斜线语言铺满全卡（2026-09-23 用户探索）：45° 网与切角边/大卡信号带同向平行，
-   切角根部青角旗渐隐衔接；hover 全层提亮（禁 background 简写——会抹掉纹理层） */
+   赛博雨夜（2026-09-23 用户方向）：静态斜线网废弃，改双层视差雨线竖直下落——
+   亮头+渐隐尾；列间距走 mask 列掩罩；clip-path 建层叠上下文使雨落在卡底之上、内容之下；
+   reduced-motion 全局降级为静态雨痕 */
 .pool-card {
+  position: relative;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -3434,9 +3436,6 @@ svg {
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--color-border);
   background-color: var(--color-surface-inset);
-  background-image:
-    linear-gradient(225deg, rgba(0, 240, 255, 0.1), transparent 56px),
-    repeating-linear-gradient(45deg, rgba(0, 240, 255, 0.05) 0 1px, transparent 1px 10px);
   box-shadow: inset 0 1px 0 rgba(0, 240, 255, 0.1);
   clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100% 100%, 0 100%);
   transition:
@@ -3447,9 +3446,61 @@ svg {
 .pool-card:hover {
   border-color: var(--color-border-signal);
   background-color: var(--color-surface-raised);
-  background-image:
-    linear-gradient(225deg, rgba(0, 240, 255, 0.16), transparent 56px),
-    repeating-linear-gradient(45deg, rgba(0, 240, 255, 0.075) 0 1px, transparent 1px 10px);
+}
+
+.pool-card::before,
+.pool-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* 近层雨：亮而快 */
+.pool-card::before {
+  background-image: repeating-linear-gradient(
+    180deg,
+    rgba(0, 240, 255, 0.22) 0 2px,
+    rgba(0, 240, 255, 0.06) 2px 22px,
+    transparent 22px 96px
+  );
+  -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 1px, transparent 1px 46px);
+  mask-image: repeating-linear-gradient(90deg, #000 0 1px, transparent 1px 46px);
+  animation: pool-rain-near 1.05s linear infinite;
+}
+
+/* 远层雨：淡而慢，列错位制造深度 */
+.pool-card::after {
+  background-image: repeating-linear-gradient(
+    180deg,
+    rgba(0, 240, 255, 0.12) 0 2px,
+    rgba(0, 240, 255, 0.03) 2px 16px,
+    transparent 16px 140px
+  );
+  -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 1px, transparent 1px 78px);
+  mask-image: repeating-linear-gradient(90deg, #000 0 1px, transparent 1px 78px);
+  -webkit-mask-position-x: 33px;
+  mask-position-x: 33px;
+  animation: pool-rain-far 2.1s linear infinite;
+}
+
+@keyframes pool-rain-near {
+  from {
+    background-position-y: 0;
+  }
+  to {
+    background-position-y: 96px;
+  }
+}
+
+@keyframes pool-rain-far {
+  from {
+    background-position-y: 0;
+  }
+  to {
+    background-position-y: 140px;
+  }
 }
 
 .pool-card__pair {
