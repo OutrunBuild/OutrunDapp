@@ -253,7 +253,6 @@ export function CandleChart({
       {series.length > 0 && active ? (
         <div className="candle-chart__plot" role="img" aria-label={`${pairLabel} OHLC`}>
           <div className="candle-chart__legend" data-numeric>
-            <b>{`${pairLabel} · ${granularity}`}</b>
             <span>
               O <i>{active.o.toFixed(6)}</i>
             </span>
