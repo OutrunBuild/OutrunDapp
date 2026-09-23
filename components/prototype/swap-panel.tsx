@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowDownUp, Settings2 } from 'lucide-react'
+import { ArrowDownUp, Info, Settings2 } from 'lucide-react'
 
 import type { Locale } from '@/lib/data/prototype-repository'
 
@@ -9,10 +9,23 @@ import { getCopy } from './copy'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 /** 滑点/截止默认与预设档（R-06：常态默认 0.5%；demo 参照档位 0.1/0.5/1.0 与 10/20/30 分钟） */
 const SLIPPAGE_PRESETS = [0.1, 0.5, 1] as const
 const DEADLINE_PRESETS = [10, 20, 30] as const
+
+/** 设置项标签旁的解释气泡（复用 create 页 ⊙ 提示语言） */
+function SettingsTip({ text }: { text: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger render={<span className="create-info" aria-label={text} />}>
+        <Info aria-hidden="true" />
+      </TooltipTrigger>
+      <TooltipContent>{text}</TooltipContent>
+    </Tooltip>
+  )
+}
 
 /**
  * 标准 Swap 窗口（2026-09-23 用户修订：右上角设置按钮收滑点/截止；详情行只留
@@ -63,7 +76,10 @@ export function SwapPanel({
           />
           <PopoverContent className="swap-settings" side="bottom" align="end">
             <div className="swap-settings__row">
-              <span>{copy.maxSlippage}</span>
+              <span className="swap-settings__label">
+                {copy.slippageTolerance}
+                <SettingsTip text={copy.slippageTip} />
+              </span>
               <div className="swap-settings__options">
                 {SLIPPAGE_PRESETS.map((preset) => (
                   <button
@@ -79,7 +95,7 @@ export function SwapPanel({
                   <Input
                     className="swap-settings__custom numeric-input"
                     inputMode="decimal"
-                    aria-label={`${copy.maxSlippage} %`}
+                    aria-label={`${copy.slippageTolerance} %`}
                     value={slippage}
                     onChange={(event) => {
                       const next = Number(event.target.value.replace(/[^\d.]/g, ''))
@@ -91,7 +107,10 @@ export function SwapPanel({
               </div>
             </div>
             <div className="swap-settings__row">
-              <span>{copy.deadline}</span>
+              <span className="swap-settings__label">
+                {copy.transactionDeadline}
+                <SettingsTip text={copy.deadlineTip} />
+              </span>
               <div className="swap-settings__options">
                 {DEADLINE_PRESETS.map((preset) => (
                   <button
@@ -107,7 +126,7 @@ export function SwapPanel({
                   <Input
                     className="swap-settings__custom numeric-input"
                     inputMode="numeric"
-                    aria-label={`${copy.deadline} min`}
+                    aria-label={`${copy.transactionDeadline} min`}
                     value={deadlineMin}
                     onChange={(event) => {
                       const next = Number(event.target.value.replace(/[^\d]/g, ''))

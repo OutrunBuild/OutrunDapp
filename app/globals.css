@@ -3055,6 +3055,13 @@ svg {
   font-size: var(--text-xs, 0.75rem);
 }
 
+/* 标签行：文字+解释气泡 ⊙ 同行 */
+.swap-settings__label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
 .swap-settings__options {
   display: flex;
   align-items: center;
@@ -3063,7 +3070,9 @@ svg {
 
 .swap-settings__options button {
   min-inline-size: 44px;
-  padding: 2px var(--space-2);
+  min-block-size: 32px;
+  padding-inline: var(--space-2);
+  text-align: center;
   border: 1px solid var(--color-border);
   background: transparent;
   color: var(--color-text-secondary);
@@ -3089,7 +3098,8 @@ svg {
 
 .swap-settings__custom {
   inline-size: 72px;
-  text-align: end;
+  block-size: 32px;
+  text-align: center;
 }
 
 .swap-panel__hint {
