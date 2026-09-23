@@ -2949,9 +2949,13 @@ svg {
   justify-content: flex-end;
 }
 
+.candle-chart__granularity[data-slot='toggle-group'] {
+  gap: 2px;
+}
+
 .candle-chart__granularity [data-slot='toggle-group-item'] {
-  min-block-size: var(--row-height);
-  padding-inline: var(--space-2);
+  min-block-size: 28px;
+  padding-inline: var(--space-1);
   font-family: var(--font-data);
 }
 
