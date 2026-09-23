@@ -31,9 +31,11 @@ const AGGREGATE: Partial<Record<Granularity, number>> = { '1h': 1, '4h': 4, '1d'
 const INITIAL_BARS = 96
 const LOAD_CHUNK = 240
 const EDGE_BARS = 10
-/** 均线窗口（学币安默认快慢线） */
-const MA_FAST = 7
-const MA_SLOW = 25
+/** 均线窗口（2026-09-23 用户裁定：MA7/MA30/MA60 三线） */
+const MA_WINDOWS = [7, 30, 60] as const
+/** 均线配色：快=青 / 中=品红回声 / 慢=次级灰（token 运行时读取） */
+const MA_COLOR_VARS = ['--or-cyan', '--accent-echo', '--color-text-secondary'] as const
+const MA_ALPHAS = [0.55, 0.45, 0.9] as const
 
 function aggregate(candles: PrototypeCandle[], size: number): PrototypeCandle[] {
   const out: PrototypeCandle[] = []
@@ -103,8 +105,7 @@ export function CandleChart({
   const chartRef = useRef<IChartApi | null>(null)
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null)
-  const maFastRef = useRef<ISeriesApi<'Line'> | null>(null)
-  const maSlowRef = useRef<ISeriesApi<'Line'> | null>(null)
+  const maRefs = useRef<Array<ISeriesApi<'Line'> | null>>([])
 
   const series = useMemo(() => {
     if (granularity === '1m' || granularity === '5m' || granularity === '15m') {
@@ -133,14 +134,18 @@ export function CandleChart({
     () => new Map(series.map((candle, i) => [toTime(candle.t) as number, i])),
     [series],
   )
-  const maFast = useMemo(() => movingAverage(series.map((c) => c.c), MA_FAST), [series])
-  const maSlow = useMemo(() => movingAverage(series.map((c) => c.c), MA_SLOW), [series])
+  const maValues = useMemo(
+    () => MA_WINDOWS.map((window) => movingAverage(series.map((c) => c.c), window)),
+    [series],
+  )
 
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
     const chart = createChart(el, {
       autoSize: true,
+      // 时间轴刻度随页面 locale（库缺省跟随浏览器 locale，曾致 en 页出现「12日/9月」）
+      localization: { locale: locale === 'zh' ? 'zh-CN' : 'en-US' },
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
         textColor: cssVar('--color-text-secondary'),
@@ -149,7 +154,9 @@ export function CandleChart({
       },
       grid: {
         vertLines: { color: cssVar('--grid-cyan-inner') },
-        horzLines: { color: cssVar('--grid-cyan-inner') },
+        // 横向网格禁用（2026-09-23 用户裁定：最顶一条贴头行显眼需删；库按价格刻度画线无法单条隐藏，
+        // 其余横线 2% 透明度本就不可见，整体关闭净视觉变化=只少那条）
+        horzLines: { visible: false },
       },
       rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.06, bottom: 0.22 } },
       timeScale: { borderVisible: false, timeVisible: true, secondsVisible: false },
@@ -175,34 +182,27 @@ export function CandleChart({
       priceLineVisible: false,
     })
     chart.priceScale('vol').applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } })
-    const maFastSeries = chart.addSeries(LineSeries, {
-      color: withAlpha(cssVar('--or-cyan'), 0.55),
-      lineWidth: 1,
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
-    })
-    const maSlowSeries = chart.addSeries(LineSeries, {
-      color: withAlpha(cssVar('--accent-echo'), 0.45),
-      lineWidth: 1,
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
-    })
+    const maSeries = MA_WINDOWS.map((_, i) =>
+      chart.addSeries(LineSeries, {
+        color: withAlpha(cssVar(MA_COLOR_VARS[i]), MA_ALPHAS[i]),
+        lineWidth: 1,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      }),
+    )
     chartRef.current = chart
     candleSeriesRef.current = candleSeries
     volumeSeriesRef.current = volumeSeries
-    maFastRef.current = maFastSeries
-    maSlowRef.current = maSlowSeries
+    maRefs.current = maSeries
     return () => {
       chart.remove()
       chartRef.current = null
       candleSeriesRef.current = null
       volumeSeriesRef.current = null
-      maFastRef.current = null
-      maSlowRef.current = null
+      maRefs.current = []
     }
-  }, [])
+  }, [locale])
 
   useEffect(() => {
     candleSeriesRef.current?.setData(
@@ -227,8 +227,7 @@ export function CandleChart({
           value == null ? null : { time: toTime(series[i].t), value },
         )
         .filter((point): point is LineData<UTCTimestamp> => point != null)
-    maFastRef.current?.setData(toLine(maFast))
-    maSlowRef.current?.setData(toLine(maSlow))
+    maValues.forEach((values, i) => maRefs.current[i]?.setData(toLine(values)))
     setHoverIdx(null)
     // 增量前插：恢复原视口（右移 added 根）；粒度切换/首次挂载：fitContent
     if (restoreRangeRef.current) {
@@ -239,7 +238,7 @@ export function CandleChart({
       firstDataRef.current = false
       chartRef.current?.timeScale().fitContent()
     }
-  }, [series, maFast, maSlow, granularity])
+  }, [series, maValues, granularity])
 
   // 无限左滑：视口距左缘 < EDGE_BARS 根时再喂一批，直到 totalBars 全量
   useEffect(() => {
@@ -271,8 +270,9 @@ export function CandleChart({
   }, [timeIndex])
 
   const active = series[hoverIdx ?? series.length - 1] ?? null
-  const activeMaFast = active ? (maFast[hoverIdx ?? series.length - 1] ?? null) : null
-  const activeMaSlow = active ? (maSlow[hoverIdx ?? series.length - 1] ?? null) : null
+  const activeMas = active
+    ? maValues.map((values) => values[hoverIdx ?? series.length - 1] ?? null)
+    : []
   const trend = active ? (active.c >= active.o ? 'up' : 'down') : 'up'
   const change = active ? ((active.c - active.o) / active.o) * 100 : 0
 
@@ -299,16 +299,16 @@ export function CandleChart({
         <div className="candle-chart__plot" role="img" aria-label={`${pairLabel} OHLC`}>
           <div className="candle-chart__legend" data-numeric>
             <span>
-              O <i>{active.o.toFixed(6)}</i>
+              {copy.ohlc.open} <i>{active.o.toFixed(6)}</i>
             </span>
             <span>
-              H <i>{active.h.toFixed(6)}</i>
+              {copy.ohlc.high} <i>{active.h.toFixed(6)}</i>
             </span>
             <span>
-              L <i>{active.l.toFixed(6)}</i>
+              {copy.ohlc.low} <i>{active.l.toFixed(6)}</i>
             </span>
             <span>
-              C <i data-trend={trend}>{active.c.toFixed(6)}</i>
+              {copy.ohlc.close} <i data-trend={trend}>{active.c.toFixed(6)}</i>
             </span>
             <i data-trend={trend}>
               {change >= 0 ? '+' : ''}
@@ -317,16 +317,13 @@ export function CandleChart({
             <span>
               Vol <i>{formatAmount(active.v, locale, true)}</i>
             </span>
-            {activeMaFast != null ? (
-              <span className="candle-chart__ma candle-chart__ma--fast">
-                MA{MA_FAST} <i>{activeMaFast.toFixed(6)}</i>
-              </span>
-            ) : null}
-            {activeMaSlow != null ? (
-              <span className="candle-chart__ma candle-chart__ma--slow">
-                MA{MA_SLOW} <i>{activeMaSlow.toFixed(6)}</i>
-              </span>
-            ) : null}
+            {MA_WINDOWS.map((window, i) =>
+              activeMas[i] != null ? (
+                <span key={window} className={`candle-chart__ma candle-chart__ma--${i}`}>
+                  MA{window} <i>{activeMas[i]?.toFixed(6)}</i>
+                </span>
+              ) : null,
+            )}
           </div>
           <div className="candle-chart__holder" ref={containerRef} />
         </div>

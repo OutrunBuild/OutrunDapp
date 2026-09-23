@@ -3020,12 +3020,16 @@ svg {
   color: var(--color-danger);
 }
 
-.candle-chart__legend .candle-chart__ma--fast i {
+.candle-chart__legend .candle-chart__ma--0 i {
   color: var(--or-cyan);
 }
 
-.candle-chart__legend .candle-chart__ma--slow i {
+.candle-chart__legend .candle-chart__ma--1 i {
   color: var(--accent-echo);
+}
+
+.candle-chart__legend .candle-chart__ma--2 i {
+  color: var(--color-text-secondary);
 }
 
 .candle-chart__svg {
@@ -3229,6 +3233,10 @@ svg {
   display: block;
   padding: var(--space-2) var(--space-1);
   color: var(--color-text-secondary);
+  /* 大数防线兜底：格式化分层为主，超长时截断省略禁止撑破卡面 */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .swap-panel__token {
@@ -3264,6 +3272,10 @@ svg {
   font-family: var(--font-data);
   font-variant-numeric: tabular-nums;
   font-size: 12px;
+  /* 大数防线兜底：同 .swap-panel__output */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* 方向翻转：无边框裸符号，卡面同色遮线底；静态灰（避开满屏青），hover/聚焦才转青+180° */
@@ -3293,6 +3305,8 @@ svg {
 .swap-panel__details {
   display: grid;
   gap: var(--space-1);
+  /* 详情五行降一档 base→sm（2026-09-23 用户裁定：行密过挤；层级仍高于 12px 标签行） */
+  font-size: var(--text-sm, 0.875rem);
 }
 
 .swap-panel__details div {
