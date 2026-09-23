@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   CandlestickSeries,
   ColorType,
@@ -73,17 +73,20 @@ function withAlpha(hex: string, alpha: number): string {
 
 const toTime = (iso: string) => (Date.parse(iso) / 1000) as UTCTimestamp
 
-/** 主池蜡烛图（Lightweight Charts；2026-09-23 用户裁定：对齐 DexScreener 观感——量能柱+OHLC/Vol 悬浮读数+MA 快慢线） */
+/** 主池蜡烛图（Lightweight Charts；2026-09-23 用户裁定：对齐 DexScreener 观感——量能柱+OHLC/Vol 悬浮读数+MA 快慢线；
+   header=价格+CA 由 RSC 传入，与粒度钮同行） */
 export function CandleChart({
   candles,
   fineCandles,
   locale,
   pairLabel,
+  header,
 }: {
   candles: PrototypeCandle[]
   fineCandles: PrototypeFineCandles | null
   locale: Locale
   pairLabel: string
+  header?: ReactNode
 }) {
   const copy = getCopy(locale).verseDesk
   const [granularity, setGranularity] = useState<Granularity>('1h')
@@ -231,6 +234,7 @@ export function CandleChart({
   return (
     <div className="candle-chart">
       <div className="candle-chart__bar">
+        {header}
         <ToggleGroup
           className="candle-chart__granularity"
           value={[granularity]}

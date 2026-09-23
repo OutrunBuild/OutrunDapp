@@ -77,24 +77,29 @@ export function VerseTradeDesk({
                 </div>
               </dl>
             </div>
-            <div className="token-strip__row token-strip__row--main">
-              <div className="token-strip__price">
-                <strong>{stats.price != null ? <SplitPrice price={stats.price} /> : copy.onChainSlot}</strong>
-                {stats.change24h != null ? (
-                  <span data-trend={stats.change24h >= 0 ? 'up' : 'down'}>
-                    {stats.change24h >= 0 ? '+' : ''}
-                    {formatPercent(stats.change24h, locale)}%
-                  </span>
-                ) : null}
-              </div>
-              {stats.tokenAddress ? <CopyAddress locale={locale} value={stats.tokenAddress} /> : null}
-            </div>
           </div>
           <CandleChart
             candles={trade.candles}
             fineCandles={trade.fineCandles}
             locale={locale}
             pairLabel={`${verse.symbol}/${verse.raiseAsset}`}
+            header={
+              /* 价格+CA 传入图表组件，与粒度钮同行（2026-09-23 用户裁定） */
+              <div className="candle-chart__row">
+                <div className="token-strip__price">
+                  <strong>
+                    {stats.price != null ? <SplitPrice price={stats.price} /> : copy.onChainSlot}
+                  </strong>
+                  {stats.change24h != null ? (
+                    <span data-trend={stats.change24h >= 0 ? 'up' : 'down'}>
+                      {stats.change24h >= 0 ? '+' : ''}
+                      {formatPercent(stats.change24h, locale)}%
+                    </span>
+                  ) : null}
+                </div>
+                {stats.tokenAddress ? <CopyAddress locale={locale} value={stats.tokenAddress} /> : null}
+              </div>
+            }
           />
         </div>
       </div>
