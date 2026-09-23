@@ -2,17 +2,17 @@
 
 import { useMemo, useState } from 'react'
 
-import type { Locale, PrototypeCandle } from '@/lib/data/prototype-repository'
+import type { Locale, PrototypeCandle, PrototypeFineCandles } from '@/lib/data/prototype-repository'
 
 import { getCopy } from './copy'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
-/** 可用粒度（Q3 用户裁定：粒度式学币安）。1h 为 fixture 原始粒度；粗粒度聚合；细分粒度标「同步中」 */
+/** 粒度集（Q3 用户裁定：粒度式学币安；全部可选——细粒度走 fixture 样本，粗粒度由 1h 聚合） */
 const GRANULARITIES = ['1m', '5m', '15m', '1h', '4h', '1d', '1w'] as const
 type Granularity = (typeof GRANULARITIES)[number]
-/** 每根聚合蜡烛吸收的 1h 蜡烛数 */
+/** 粗粒度每根聚合蜡烛吸收的 1h 蜡烛数 */
 const AGGREGATE: Partial<Record<Granularity, number>> = { '1h': 1, '4h': 4, '1d': 24, '1w': 168 }
-/** 视口最多渲染蜡烛数（1h 原始 168 根过密——只显示最近 96 根；粗粒度天然低于上限） */
+/** 视口最多渲染蜡烛数（1h 原始 168 根过密——只显示最近 96 根） */
 const MAX_CANDLES = 96
 
 function aggregate(candles: PrototypeCandle[], size: number): PrototypeCandle[] {
@@ -33,10 +33,12 @@ function aggregate(candles: PrototypeCandle[], size: number): PrototypeCandle[] 
 /** 主池蜡烛图（无框版本：渲染在 .trade-chart 面板内部，与统计条同卡——2026-09-23 用户裁定合并） */
 export function CandleChart({
   candles,
+  fineCandles,
   locale,
   pairLabel,
 }: {
   candles: PrototypeCandle[]
+  fineCandles: PrototypeFineCandles | null
   locale: Locale
   pairLabel: string
 }) {
@@ -44,11 +46,13 @@ export function CandleChart({
   const [granularity, setGranularity] = useState<Granularity>('1h')
 
   const series = useMemo(() => {
+    if (granularity === '1m' || granularity === '5m' || granularity === '15m') {
+      return fineCandles ? fineCandles[granularity] : []
+    }
     const size = AGGREGATE[granularity]
     if (!size) return []
-    const visible = candles.slice(-MAX_CANDLES * size)
-    return aggregate(visible, size)
-  }, [candles, granularity])
+    return aggregate(candles.slice(-MAX_CANDLES * size), size)
+  }, [candles, fineCandles, granularity])
 
   const range = useMemo(() => {
     if (!series.length) return null
@@ -75,12 +79,7 @@ export function CandleChart({
           aria-label={copy.granularity}
         >
           {GRANULARITIES.map((item) => (
-            <ToggleGroupItem
-              key={item}
-              value={item}
-              disabled={!AGGREGATE[item]}
-              title={AGGREGATE[item] ? undefined : copy.syncing}
-            >
+            <ToggleGroupItem key={item} value={item}>
               {item}
             </ToggleGroupItem>
           ))}

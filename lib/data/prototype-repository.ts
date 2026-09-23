@@ -95,7 +95,7 @@ export type PrototypeVerse = SourceRecord & {
   leverageDebtCap: number | null;
   /** Fast Mode：任一门槛达标即提前结束创世（fixture 未标记时为 false） */
   fastGenesis: boolean;
-  /** 解锁时间 = 创世截止 + FIXED_LOCKUP_DURATION(365d)（MemeverseRegistrationLib.sol:14、RegistrationCenter.sol:191）；锁定中卡片展示 */
+  /** 解锁时间 = 创世截止 + FIXED_LOCKUP_DURATION(365d)（MemeverseRegistrationLib.sol:14、RegistrationCenter.sol:191）；锁定中/已解锁卡片展示 */
   unlockTimeAt: string;
   /** 24h 四池交易量快照（uAsset 计）；fixture 缺失=null→UI 显 unavailable 槽位 */
   volume24h: number | null;
@@ -228,9 +228,9 @@ function getSnapshot(): PrototypeSnapshot {
         : null,
       fastGenesis: verse.genesis.fastGenesis ?? false,
       unlockTimeAt: new Date(Date.parse(verse.genesis.endsAt) + FIXED_LOCKUP_MS).toISOString(),
-      volume24h: verse.lockedPhase ? amount(verse.lockedPhase.volume24h.raw) : null,
-      stakingApy: verse.lockedPhase ? Number(verse.lockedPhase.stakingApy.raw) * 100 : null,
-      treasuryFundUsd: verse.lockedPhase ? amount(verse.lockedPhase.treasuryFundUsd.raw) : null,
+      volume24h: verse.livePhase ? amount(verse.livePhase.volume24h.raw) : null,
+      stakingApy: verse.livePhase ? Number(verse.livePhase.stakingApy.raw) * 100 : null,
+      treasuryFundUsd: verse.livePhase ? amount(verse.livePhase.treasuryFundUsd.raw) : null,
       unlockedAt: verse.unlock?.unlockedAtTx ?? null,
       currentPrice,
       change24h,
@@ -436,9 +436,17 @@ export function getPrototypeChains() {
 
 export type PrototypeCandle = { t: string; o: number; h: number; l: number; c: number };
 
+export type PrototypeFineCandles = {
+  '1m': PrototypeCandle[];
+  '5m': PrototypeCandle[];
+  '15m': PrototypeCandle[];
+};
+
 export type PrototypeVerseTrade = {
   /** 主池蜡烛（1h 原始粒度）；空=无样本（B3 降级提示） */
   candles: PrototypeCandle[];
+  /** 细粒度蜡烛样本（2026-09-23 用户裁定：全部粒度可选）；null=fixture 缺失 */
+  fineCandles: PrototypeFineCandles | null;
   tokenStats: {
     price: number | null;
     change24h: number | null;
@@ -477,6 +485,23 @@ export function getPrototypeVerseTrade(verseId: string): PrototypeVerseTrade | n
           c: Number(candle.c),
         }))
       : [];
+  const toCandles = (rows: Array<{ t: string; o: string; h: string; l: string; c: string }>) =>
+    rows.map((candle) => ({
+      t: candle.t,
+      o: Number(candle.o),
+      h: Number(candle.h),
+      l: Number(candle.l),
+      c: Number(candle.c),
+    }));
+  const fineRaw = mainRaw && 'candlesFine' in mainRaw ? mainRaw.candlesFine : undefined;
+  const fineCandles =
+    fineRaw && fineRaw['1m'] && fineRaw['5m'] && fineRaw['15m']
+      ? {
+          '1m': toCandles(fineRaw['1m']),
+          '5m': toCandles(fineRaw['5m']),
+          '15m': toCandles(fineRaw['15m']),
+        }
+      : null;
   const stats = mainRaw && 'tokenStats' in mainRaw ? mainRaw.tokenStats : undefined;
   const pools = verse.markets.map((market) => {
     const pair: Record<PrototypeMarket['pool'], [string, string]> = {
@@ -492,6 +517,7 @@ export function getPrototypeVerseTrade(verseId: string): PrototypeVerseTrade | n
   const totalSupply = stats ? amount(stats.totalSupply.raw) : null;
   return {
     candles,
+    fineCandles,
     tokenStats: {
       price: verse.currentPrice,
       change24h: verse.change24h,

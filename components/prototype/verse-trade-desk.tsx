@@ -76,6 +76,7 @@ export function VerseTradeDesk({
           </div>
           <CandleChart
             candles={trade.candles}
+            fineCandles={trade.fineCandles}
             locale={locale}
             pairLabel={`${verse.symbol}/${verse.raiseAsset}`}
           />

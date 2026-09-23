@@ -122,10 +122,11 @@ export const verseSchema = recordSchema.extend({
   unlock: z.object({
     unlockedAtTx: isoTimeSchema.optional(), // 实际解锁交易时间=保护期起点（genesis.md:52）
   }).optional(),
-  // 锁定中市场活跃快照（发现页锁定卡展示；读链参数——机制口径 OB:memeverse/memecoin-staking.md
-  // （质押收益与国库入账均来自交易费分成）、OB:memeverse/dao-governance.md（uAsset 计费用入 DAO 国库）；
-  // 解锁时间不入快照——由 endTime+FIXED_LOCKUP_DURATION 推导（合约常量）；缺失=UI 显 unavailable 槽位）
-  lockedPhase: z.object({
+  // 上线后市场活跃快照（发现页锁定中/已解锁卡共用同一字段集，2026-09-23 用户裁定两阶段卡内容一致；
+  // 读链参数——机制口径 OB:memeverse/memecoin-staking.md（质押收益与国库入账均来自交易费分成）、
+  // OB:memeverse/dao-governance.md（uAsset 计费用入 DAO 国库）；解锁时间不入快照——由
+  // endTime+FIXED_LOCKUP_DURATION 推导（合约常量）；缺失=UI 显 unavailable 槽位）
+  livePhase: z.object({
     volume24h: amountSchema, // 24h 四池交易量快照（uAsset 计）
     stakingApy: rateSchema, // 质押年化快照（ratio：5.688=568.8%）
     treasuryFundUsd: amountSchema, // DAO 国库余额快照（美元计——卡头市值美元口径先例 2026-09-23）
@@ -185,7 +186,14 @@ export const marketSchema = recordSchema.extend({
   tvl: amountSchema,
   feeState: z.enum(['normal', 'opening-decay', 'dynamic-applied', 'paused-protection']),
   lpShareSample: z.object({ poolShare: rateSchema, pendingFees: amountSchema }).optional(),
-  candles: z.array(candleSchema).max(500).optional(), // 主池 K 线样本（固定时间戳，粒度由 brief 指定）
+  candles: z.array(candleSchema).max(500).optional(), // 主池 K 线样本（1h 原始粒度；4h/1d/1w 由展示层聚合）
+  candlesFine: z
+    .object({
+      '1m': z.array(candleSchema).max(500),
+      '5m': z.array(candleSchema).max(500),
+      '15m': z.array(candleSchema).max(500),
+    })
+    .optional(), // 细粒度蜡烛样本（2026-09-23 用户裁定：全部粒度可选、假数据看效果）
   volume24h: amountSchema.optional(), // 24h 成交量快照（池维度；缺失=UI 显「以链上读值为准」槽位）
   apr7d: rateSchema.optional(), // 近 7 日费率年化样本（展示推导值；缺失=槽位）
   tokenStats: z.object({ // 仅主池条目携带（代币统计条——R-06）
