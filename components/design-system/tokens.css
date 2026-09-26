@@ -102,7 +102,7 @@
   --glow-nav-active: 0 0 10px 1px rgba(252, 238, 10, 0.55);
   --glow-cta: drop-shadow(0 0 10px rgba(252, 238, 10, 0.35));
   --glow-card-cyan: drop-shadow(0 0 12px rgba(0, 240, 255, 0.06));
-  --glow-echo-rail: 0 0 14px rgba(255, 6, 181, 0.7);
+  --glow-echo-rail: 0 0 12px rgba(255, 6, 181, 0.55);
 
   /* ---------- 复古未来主义纹理层（010，r10 提取；alpha 用部署精确 8 位 hex） ---------- */
   --grid-cyan-outer: #00f0ff09; /* 全站 44px 网格线（alpha≈3.5%） */

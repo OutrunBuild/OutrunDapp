@@ -1,18 +1,14 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
 
 import { DesignSystemShowcase } from '@/components/design-system/showcase';
-import { isLocale } from '@/components/prototype/copy';
-
-type Props = { params: Promise<{ locale: string }> };
+import { getDisplayLocale } from '@/lib/locale';
 
 export const metadata: Metadata = {
   title: 'Outrun Design System',
   robots: { index: false, follow: false },
 };
 
-export default async function DesignSystemPage({ params }: Props) {
-  const { locale } = await params;
-  if (!isLocale(locale)) notFound();
+export default async function DesignSystemPage() {
+  const locale = await getDisplayLocale();
   return <DesignSystemShowcase locale={locale} />;
 }

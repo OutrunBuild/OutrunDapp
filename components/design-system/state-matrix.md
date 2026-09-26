@@ -52,8 +52,8 @@
 |---|---|
 | `/` | A1/A3/A6 · D1/D2/D3 · D8 |
 | `/bridge` | A1/A3/A6 · T1–T11（跨链 T10 必测）· D2/D4/D6 |
-| `/memeverse` | A1 · D1/D2/D3/D6 · 搜索空结果 |
-| `/launch` | 表单校验态 · T2/T3 · D4（暂停期创建禁用） |
+| `/memeverse/explore` | A1 · D1/D2/D3/D6 · 搜索空结果 |
+| `/memeverse/launch` | 表单校验态 · T2/T3 · D4（暂停期创建禁用） |
 | `/memeverse/[verseId]` | VerseStage 四态 · 领取矩阵 · A6 前置 · D4/D5 |
 | `/trade` | T 全集（动态费率分解）· A3 升级引导 · D5 |
 | `/pol` | T2/T3/T4（会话包裹）· 密度 T1 局部 · D2/D6 |

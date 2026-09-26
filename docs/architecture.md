@@ -631,3 +631,12 @@ Sentry 中的钱包地址默认哈希化；只有用户主动复制或进入区�
 - /portfolio 职责修订（用户于阶段 2 产品拍板会裁决，决议 007）：撤下「跨链消息和交易历史」——跨链仅保留在途/滞留提醒并深链 `/bridge`；交易历史归全局交易中心。页面信息分区定为：可行动（待领取/待执行赎回/保护窗倒计时/跨链在途提醒）、仓位与储蓄（CDP 赎回+USR 存取）、凭证（POL/PT/YT 按兑付时间线分组）。
 - `/` 定位修订（同会话裁决）：首页=产品落地页（介绍/三档路径/营销指标/资产说明/CTA），非生态总览仪表页；个性化摘要职责移除（发现页与 /portfolio 承接）；发现页采用阶段 tab（创世中默认/锁定中/已解锁/全部）+阶段内排序+过滤（治理链/资产族），阶段为分组维度不跨阶段混排。
 - R-07 路由更名（同会话裁决，11E 签字前）：`/memeverse/[verseId]/pol` → `/memeverse/[verseId]/yield`，页面职责名「收益（Yield）」——earn/vault 弃用（vault 与 Memeverse 收益库 YieldVault 撞词）、leverage 覆盖不全（拆合/赎回非杠杆）；§4 的 `features/pol` 为代码能力目录名，不随路由更名。阶段 1 冻结证据与历史决议行中的「/pol」为当时事实，不回改。
+
+## 22. 架构修订记录（2026-09-26）
+
+用户裁决（会话内拍板「A，按最佳实践，能保留的尽量保留」）：语言切换零副作用——切换 locale 不重置任何会话内状态。外部 URL 语义不变（2026-09-22 方案 C：zh 带 `/zh` 前缀、en 无前缀、`/` 依 cookie 307、旧地址 307 收敛）；本节只登记内部实现事实：
+
+- locale 路由内部统一（`proxy.ts`）：`/zh/**` 与无前缀形态一律内部 rewrite 到 `/en/**` 路由树（`[locale]` 段内部恒为 `en`），跨语言客户端软导航命中同键段缓存、页面树不重挂载（组件 state 全保）。展示语言由 proxy 写入 `x-locale` 请求头下传；生产环境 rewrite 目标会二次进入 proxy，首跳已写入的 `x-locale` 不得覆写（en 分支带已设跳过守卫）。
+- 页面渲染语言改从 `lib/locale.ts getDisplayLocale()`（读 `x-locale`，缺失回退 `en`）取得，不再读 `params.locale`；7 个页面与 home `generateMetadata` 同步切换。
+- 语言切换导航（`components/prototype/locale-menu.tsx`）：软导航 `router.push` 后紧跟 `router.refresh()` 强制应用新语言载荷（路由树两侧同键时 push 拿不到新载荷——这是统一内部树的代价，refresh 保留组件 state）；popstate 对账（URL 前缀 vs 壳层 `lang` 不一致则 refresh）修正返回/前进的语言错配。首页例外走整页跳转：`/` 依 cookie 307，push+refresh 与预取缓存交错会漂到内部 canonical `/en`，首页无会话内状态可保，取确定性。对端链接在菜单挂载时预取（消除下拉初开即点的预取竞速整页刷新回退）；首页对端 href（`/`、`/zh`）不预取（307 跟随会污染预取缓存）。
+- 事实依据（2026-09-26 生产预览实测）：跨 `[locale]` 段值变化的软导航必然重挂载页面子树（Next.js App Router 客户端缓存按段值索引），为本次修订前「切语言重置全站状态」的根因；模块级状态（如 `mock-wallet`）不受影响，故钱包在软导航下存活。

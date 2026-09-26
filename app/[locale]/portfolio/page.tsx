@@ -1,14 +1,7 @@
-import { notFound } from 'next/navigation';
-
-import { isLocale } from '@/components/prototype/copy';
 import { PortfolioPage } from '@/components/prototype/portfolio-page';
+import { getDisplayLocale } from '@/lib/locale';
 
-export default async function LocalizedPortfolio({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
-  const { locale } = await params;
-  if (!isLocale(locale)) notFound();
+export default async function LocalizedPortfolio() {
+  const locale = await getDisplayLocale();
   return <PortfolioPage locale={locale} />;
 }

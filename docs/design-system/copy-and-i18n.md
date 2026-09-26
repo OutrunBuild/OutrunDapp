@@ -16,6 +16,7 @@
 - 机制词（SY、PT/YT、PSM、CDP、Genesis、POL）只在必要处出现，首次出现给一句解释或 tooltip；阶段名固定用 `copy.common.stages`。
 - 错误信息 = 原因 + 恢复动作：`Amount exceeds your balance · Use max`。不出现堆栈、错误码作为主文案。
 - 授权类文案用"这会让 X 访问 Y"措辞，不用"approve token"。
+- 文案禁用分号（2026-09-26 用户裁定：分号全是 AI 味）——长句拆成两句或改逗号/破折号，除非该分号有具体必要性。
 
 ## 3. 数字、日期、时长
 

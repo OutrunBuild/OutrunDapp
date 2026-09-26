@@ -3,7 +3,7 @@ import type {
   PrototypeVerse,
   PrototypeVerseTrade,
 } from '@/lib/data/prototype-repository'
-import { getPrototypeAssetUsdSample } from '@/lib/data/prototype-repository'
+import { getPrototypeAssetUsdSample, getPrototypePolPosition } from '@/lib/data/prototype-repository'
 
 import { CandleChart } from './candle-chart'
 import { CopyAddress } from './copy-address'
@@ -71,6 +71,8 @@ export function VerseTradeDesk({
 }) {
   const copy = getCopy(locale).verseDesk
   const stats = trade.tokenStats
+  // Swap/Mint POL 供给侧余额同源（pol-positions fixture；null=槽位）
+  const pol = getPrototypePolPosition(verse.id)
 
   return (
     <section className="verse-desk" aria-label={verse.symbol}>
@@ -122,8 +124,10 @@ export function VerseTradeDesk({
             locale={locale}
             pairLabel={`${verse.symbol}/${verse.raiseAsset}`}
             header={
-              /* 价格+CA 传入图表组件，与粒度钮同行（2026-09-23 用户裁定） */
-              <div className="candle-chart__row">
+              /* 价格+CA 传入图表组件，与粒度钮同行（2026-09-23 用户裁定）；
+                 key：header 经 RSC 分片流式到达 CandleChart 的多子节点数组，无 key 会触发
+                 React 列表 key 告警（react.dev/link/warning-keys：在元素创建处给 key） */
+              <div key="chart-header" className="candle-chart__row">
                 <div className="token-strip__price">
                   <strong>
                     {stats.price != null ? <SplitPrice price={stats.price} /> : copy.onChainSlot}
@@ -148,6 +152,8 @@ export function VerseTradeDesk({
           uAssetSymbol={verse.raiseAsset}
           price={stats.price ?? 0}
           uAssetUsd={getPrototypeAssetUsdSample(verse.raiseAsset)}
+          memecoinBalance={pol?.myMemecoin ?? null}
+          uAssetBalance={pol?.myUAsset ?? null}
         />
       </div>
     </section>

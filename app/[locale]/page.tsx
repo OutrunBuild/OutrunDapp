@@ -1,13 +1,10 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
 
 import { HomePage } from '@/components/prototype/home-page';
-import { isLocale } from '@/components/prototype/copy';
+import { getDisplayLocale } from '@/lib/locale';
 
-type LocalizedHomeProps = { params: Promise<{ locale: string }> };
-
-export async function generateMetadata({ params }: LocalizedHomeProps): Promise<Metadata> {
-  const { locale } = await params;
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getDisplayLocale();
 
   if (locale === 'zh') {
     return {
@@ -23,8 +20,7 @@ export async function generateMetadata({ params }: LocalizedHomeProps): Promise<
   };
 }
 
-export default async function LocalizedHome({ params }: LocalizedHomeProps) {
-  const { locale } = await params;
-  if (!isLocale(locale)) notFound();
+export default async function LocalizedHome() {
+  const locale = await getDisplayLocale();
   return <HomePage locale={locale} />;
 }

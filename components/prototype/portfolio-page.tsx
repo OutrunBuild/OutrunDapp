@@ -73,7 +73,7 @@ export function PortfolioPage({ locale }: { locale: Locale }) {
                     </div>
                   </dl>
                   <Button
-                    className="portfolio-refunds__cta ax-glow-cta"
+                    className="portfolio-refunds__cta ax-ghost-cta"
                     nativeButton={false}
                     render={<Link href={verseHref(locale, verse.id)} />}
                   >

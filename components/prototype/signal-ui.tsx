@@ -41,6 +41,17 @@ export function formatStamp(value: string) {
   return `${shifted.getUTCFullYear()}-${pad(shifted.getUTCMonth() + 1)}-${pad(shifted.getUTCDate())} ${pad(shifted.getUTCHours())}:${pad(shifted.getUTCMinutes())}`
 }
 
+/** 赎回列表用纯日期（2026-09-26 用户裁定：参照 demo 的 Dec 25, 2024 形态）；同 formatStamp 的 UTC+8 口径 */
+export function formatDay(value: string, locale: Locale) {
+  const shifted = new Date(new Date(value).getTime() + 8 * 3_600_000)
+  return new Intl.DateTimeFormat(locale === 'zh' ? 'zh-CN' : 'en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  }).format(shifted)
+}
+
 export function formatDuration(from: string, to: string, locale: Locale) {
   const minutes = Math.max(0, Math.floor((new Date(to).getTime() - new Date(from).getTime()) / 60_000))
   const days = Math.floor(minutes / 1_440)
@@ -71,7 +82,7 @@ export function StageBadge({ stage, locale }: { stage: VerseStage; locale: Local
   )
 }
 
-/** Fast Mode 徽章：青色功能信号，仅创世期且 fixture 标记 fastGenesis 时展示 */
+/** Fast Genesis 徽章：青色功能信号，仅创世期且 fixture 标记 fastGenesis 时展示 */
 export function FastBadge({ label }: { label: string }) {
   return (
     <span className="fast-badge">

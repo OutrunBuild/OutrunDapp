@@ -4,7 +4,7 @@
 
 ## 项目
 
-Next.js 16 App Router · React 19 · Tailwind v4 · shadcn（`base` 原语，非 radix）· `pnpm`。路由 `app/[locale]/…`，`locale ∈ en | zh`，默认 `en`。URL scheme（2026-09-22 方案 C）：en 无前缀（`proxy.ts` 内部 rewrite 到 `/en/**`），zh 带 `/zh` 前缀；语言切换走 `components/prototype/routes.ts` 的 `localePath`，勿手拼 `/${locale}`。memeverse 详情页 URL 用数字段 `/memeverse/<verseId 数字>`（= 链上 uint256 verseId 口径），fixture 行 id（`verse-021`）不进 URL。产品代码在 `components/prototype/`；`components/axis-choice/`、`components/direction-choice/`、`app/design-review/` 是 Stage-01 内部审阅工具，不是产品界面，不要按产品规范改写。
+Next.js 16 App Router · React 19 · Tailwind v4 · shadcn（`base` 原语，非 radix）· `pnpm`。路由 `app/[locale]/…`，`locale ∈ en | zh`，默认 `en`。URL scheme（2026-09-22 方案 C）：en 无前缀（`proxy.ts` 内部 rewrite 到 `/en/**`），zh 带 `/zh` 前缀；语言切换走 `components/prototype/routes.ts` 的 `localePath`，勿手拼 `/${locale}`。memeverse 详情页 URL 用数字段 `/memeverse/<verseId 数字>`（= 链上 uint256 verseId 口径），fixture 行 id（`verse-021`）不进 URL；创建页=`/memeverse/launch`（原 `/launch`）、发现页=`/memeverse/explore`（原 `/memeverse`）（2026-09-23 用户裁定，旧地址由 `proxy.ts` 307 收敛）。产品代码在 `components/prototype/`；`components/axis-choice/`、`components/direction-choice/`、`app/design-review/` 是 Stage-01 内部审阅工具，不是产品界面，不要按产品规范改写。
 
 ## 产品真源
 

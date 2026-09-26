@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 
 import { productFontClassName } from '@/components/design-system/fonts';
+import { PaintSkin } from '@/components/design-system/paint-skin';
 
 import './globals.css';
 
@@ -31,8 +32,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-scroll-behavior="smooth">
-      <body className={productFontClassName}>{children}</body>
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
+      <body className={productFontClassName}>
+        <PaintSkin />
+        {children}
+      </body>
     </html>
   );
 }

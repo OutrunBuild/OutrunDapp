@@ -132,7 +132,7 @@ export function VersePage({ locale, verseId }: { locale: Locale; verseId: string
       accountAddress={snapshot.sampleAccount.address}
       accountSourceRef={snapshot.sampleAccount.sourceRef}
     >
-      <header className="verse-hero">
+      <header className="verse-hero" data-stage={verse.stage}>
         <div className="verse-identity">
           <span className="verse-identity__symbol" aria-hidden="true">
             {verse.symbol.slice(0, 2)}
@@ -338,8 +338,8 @@ export function VersePage({ locale, verseId }: { locale: Locale; verseId: string
           <VerseTabs locale={locale}>
             {{
               liquidity: <LiquidityPanel locale={locale} trade={trade} />,
-              pol: <PolPanel locale={locale} verse={verse} pol={polPosition} />,
-              vault: <VaultPanel locale={locale} verse={verse} staking={staking} />,
+              pol: <PolPanel locale={locale} verse={verse} pol={polPosition} price={trade.tokenStats.price} />,
+              vault: <VaultPanel locale={locale} verse={verse} staking={staking} myMemecoin={polPosition?.myMemecoin ?? null} />,
               dao: <DaoPanel locale={locale} verse={verse} governance={governance} />,
             }}
           </VerseTabs>

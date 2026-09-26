@@ -35,6 +35,32 @@ const rate = (raw, unit = 'ratio', scale = 18) => ({ raw: String(raw), unit, sca
 const addr = (n) => ({ value: '0x' + n.toString(16).padStart(40, '0'), fixtureOnly: true });
 const iso = (t) => new Date(t).toISOString().replace('.000Z', 'Z');
 
+// DAO 资金明细构成样本（2026-09-26 参照 demo.outrun.build/memeverse/26 弹窗；固定权重
+// 拆分、确定性无 rnd；unitPrice 为样本价，usdValue 之和≈总额口径 treasuryUAsset/remainingRewards）
+const TREASURY_SPLIT = [
+  ['ETH', 'Ethereum', 2500, 0.42],
+  ['USDC', 'USD Coin', 1, 0.24],
+  ['USDT', 'Tether USD', 1, 0.16],
+  ['DAI', 'Dai', 1, 0.1],
+  ['WBTC', 'Wrapped BTC', 50000, 0.08],
+];
+const UNCLAIMED_SPLIT = [
+  ['ETH', 'Ethereum', 2500, 0.4],
+  ['USDC', 'USD Coin', 1, 0.3],
+  ['USDT', 'Tether USD', 1, 0.2],
+  ['DAI', 'Dai', 1, 0.1],
+];
+const composeAssets = (total, split) =>
+  split.map(([symbol, name, unitPrice, weight]) => {
+    const usdValue = round(total * weight, 2);
+    return {
+      symbol,
+      name,
+      amount: amount((usdValue / unitPrice).toFixed(6), 6),
+      usdValue: amount(usdValue.toFixed(2), 2),
+    };
+  });
+
 // hero 池比例（mkt-003/101/102/104 实测）：aux/main ≈ 0.164 / 0.133 / 0.132；量/TVL ≈ 0.52
 const AUX_RATIO = { 'pol-uasset': 0.164, 'pt-uasset': 0.133, 'pt-pol': 0.132 };
 const APR_RANGE = {
@@ -162,7 +188,8 @@ for (const verse of targets) {
       ),
       polSupply: amount(polSupply),
       uAssetPerPol: rate(uAssetPerPol.toFixed(4)),
-      marketPricePerPol: rate((nominal * between(rnd, 0.85, 1.2)).toFixed(4)),
+      // 市场价样本=典型折价 4–18%（2026-09-24 用户裁定：一般低于名义价值；真源允许溢/折价——pol-splitter.md）
+      marketPricePerPol: rate((nominal * between(rnd, 0.82, 0.96)).toFixed(4)),
       myPol: amount(round(between(rnd, 800, 60000), 2).toFixed(2)),
       claimablePol: amount(
         verse.stage === 'unlocked' ? round(between(rnd, 200, 4000), 2).toFixed(2) : '0',
@@ -174,36 +201,36 @@ for (const verse of targets) {
   if (!staking.items.some((x) => x.verseId === verse.id)) {
     const totalStaked = round(1e9 * between(rnd, 0.004, 0.012));
     const assetsPerShare = round(between(rnd, 1.02, 1.38), 4);
-    const pattern = Math.floor(rnd() * 3);
-    const pending =
-      pattern === 0
-        ? [
-            {
-              lockedAssets: amount(round(totalStaked * 0.0004)),
-              requestedAt: iso(ANCHOR - 26 * HOUR),
-              maturesAt: iso(ANCHOR - 2 * HOUR),
-            },
-            {
-              lockedAssets: amount(round(totalStaked * 0.001)),
-              requestedAt: iso(ANCHOR - 6 * HOUR),
-              maturesAt: iso(ANCHOR + 18 * HOUR),
-            },
-          ]
-        : pattern === 1
-          ? [
-              {
-                lockedAssets: amount(round(totalStaked * 0.0008)),
-                requestedAt: iso(ANCHOR - 30 * HOUR),
-                maturesAt: iso(ANCHOR - 6 * HOUR),
-              },
-            ]
-          : [
-              {
-                lockedAssets: amount(round(totalStaked * 0.0005)),
-                requestedAt: iso(ANCHOR - 4 * HOUR),
-                maturesAt: iso(ANCHOR + 20 * HOUR),
-              },
-            ];
+    // 恒 5 笔=合约 MAX_REDEEM_REQUESTS 上限（MemecoinYieldVault.sol:21；2026-09-26 用户
+    // 裁定「多来几条」）：3 等待中（Redeem 倒计时样本，剩余 20h/9h/1h 错开）+ 2 已成熟
+    // （Withdraw 样本，成熟 6h/18h 前）；maturesAt = requestedAt + REDEEM_DELAY(24h)
+    const pending = [
+      {
+        lockedAssets: amount(round(totalStaked * 0.0005)),
+        requestedAt: iso(ANCHOR - 4 * HOUR),
+        maturesAt: iso(ANCHOR + 20 * HOUR),
+      },
+      {
+        lockedAssets: amount(round(totalStaked * 0.0012)),
+        requestedAt: iso(ANCHOR - 15 * HOUR),
+        maturesAt: iso(ANCHOR + 9 * HOUR),
+      },
+      {
+        lockedAssets: amount(round(totalStaked * 0.0003)),
+        requestedAt: iso(ANCHOR - 23 * HOUR),
+        maturesAt: iso(ANCHOR + 1 * HOUR),
+      },
+      {
+        lockedAssets: amount(round(totalStaked * 0.0008)),
+        requestedAt: iso(ANCHOR - 30 * HOUR),
+        maturesAt: iso(ANCHOR - 6 * HOUR),
+      },
+      {
+        lockedAssets: amount(round(totalStaked * 0.0004)),
+        requestedAt: iso(ANCHOR - 54 * HOUR),
+        maturesAt: iso(ANCHOR - 30 * HOUR),
+      },
+    ];
     staking.items.push({
       id: stkId(),
       scenario: ['normal'],
@@ -264,6 +291,18 @@ for (const verse of targets) {
       },
       proposals: [],
     });
+  }
+}
+
+// —— 既有/新增条目补资金构成（幂等：缺字段才补；S 级样本登记 sourceRef 不变）——
+for (const g of governance.items) {
+  if (!g.treasuryAssets && g.treasuryUAsset)
+    g.treasuryAssets = composeAssets(Number(g.treasuryUAsset.raw), TREASURY_SPLIT);
+  if (g.lastCycle) {
+    if (!g.lastCycle.treasuryAssets && g.lastCycle.treasuryUAsset)
+      g.lastCycle.treasuryAssets = composeAssets(Number(g.lastCycle.treasuryUAsset.raw), TREASURY_SPLIT);
+    if (!g.lastCycle.unclaimedAssets && g.lastCycle.remainingRewards)
+      g.lastCycle.unclaimedAssets = composeAssets(Number(g.lastCycle.remainingRewards.raw), UNCLAIMED_SPLIT);
   }
 }
 

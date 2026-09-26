@@ -154,11 +154,10 @@ export function CandleChart({
       },
       grid: {
         vertLines: { color: cssVar('--grid-cyan-inner') },
-        // 横向网格禁用（2026-09-23 用户裁定：最顶一条贴头行显眼需删；库按价格刻度画线无法单条隐藏，
-        // 其余横线 2% 透明度本就不可见，整体关闭净视觉变化=只少那条）
-        horzLines: { visible: false },
+        horzLines: { color: cssVar('--grid-cyan-inner') },
       },
-      rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.06, bottom: 0.22 } },
+      // top 0.10：顶部留白给悬浮读数行让位（2026-09-24 用户裁定——读数行离蜡烛太近）
+      rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.1, bottom: 0.22 } },
       timeScale: { borderVisible: false, timeVisible: true, secondsVisible: false },
       crosshair: {
         vertLine: { color: 'rgba(0, 240, 255, 0.35)', labelBackgroundColor: cssVar('--color-surface-raised') },

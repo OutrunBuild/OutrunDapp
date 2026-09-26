@@ -4,6 +4,8 @@
 //   node scripts/check-fixture-boundary.mjs --source            静态 import 扫描（生产目录禁直接/间接引 fixture）
 //   node scripts/check-fixture-boundary.mjs --graph production  从生产入口走 import 图，禁止到达 fixtures/**
 //   node scripts/check-fixture-boundary.mjs --bundle <dir>      产物扫描（OUTRUN_FIXTURE_ONLY_v1 哨兵；阶段 3 构建后）
+//     <dir>=.next 时正向枚举生产子目录（server/static/standalone）；dev 缓存（.next/dev）经合法路径
+//     （prototype-repository → fixtures）无 tree-shake 含哨兵，扫它=假警，且 dev 产物不随部署分发
 //   node scripts/check-fixture-boundary.mjs --self-test         临时副本注入三类违规→必须三杀→自动清理
 // 唯一合法 import 图：fixtures/** → lib/data/prototype-repository.ts → components/prototype/** 或 fixtures/inspector/**
 import {
@@ -17,7 +19,7 @@ import {
   writeFileSync,
   mkdirSync,
 } from 'node:fs';
-import { join, dirname, resolve, extname } from 'node:path';
+import { join, dirname, resolve, extname, basename } from 'node:path';
 import { tmpdir } from 'node:os';
 import { argv, exit } from 'node:process';
 
@@ -169,20 +171,36 @@ function graphScan() {
   }
 }
 
+/** Next 构建目录中可部署的生产输出子目录（正向枚举；cache/dev/diagnostics/types 为开发与中间产物，不分发） */
+const PROD_BUNDLE_SUBDIRS = ['server', 'static', 'standalone'];
+
 function bundleScan(dir) {
   if (!existsSync(dir)) {
     console.log(`--bundle ${dir}: 目录不存在——阶段 3 生产构建后执行（接口已定义）`);
     return;
   }
-  for (const f of walkJs(dir)) {
-    const src = readFileSync(f, 'utf8');
-    if (src.includes('OUTRUN_FIXTURE_ONLY_v1')) {
-      note(
-        f.startsWith(ROOT) ? f.slice(ROOT.length + 1) : f,
-        1,
-        'bundle-sentinel',
-        '产物含 fixture 哨兵',
-      );
+  // `.next` 只扫生产子目录：dev server 编译缓存（.next/dev/**）无 tree-shake，合法消费方
+  // prototype-repository 会把哨兵留在 dev SSR chunk 里——那是允许的 import 图，不是泄漏。
+  // 非 `.next` 的自定义产物目录维持整扫（原接口语义不变）。
+  const roots =
+    basename(dir) === '.next'
+      ? PROD_BUNDLE_SUBDIRS.map((d) => join(dir, d)).filter(existsSync)
+      : [dir];
+  if (basename(dir) === '.next' && roots.length === 0) {
+    console.log(`--bundle ${dir}: 未发现生产产物子目录（server/static）——阶段 3 生产构建后执行`);
+    return;
+  }
+  for (const root of roots) {
+    for (const f of walkJs(root)) {
+      const src = readFileSync(f, 'utf8');
+      if (src.includes('OUTRUN_FIXTURE_ONLY_v1')) {
+        note(
+          f.startsWith(ROOT) ? f.slice(ROOT.length + 1) : f,
+          1,
+          'bundle-sentinel',
+          '产物含 fixture 哨兵',
+        );
+      }
     }
   }
 }

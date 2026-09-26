@@ -10,33 +10,36 @@ import { ChainLogoMark } from '@/components/prototype/chain-icons'
 import type { Locale, PrototypeChain } from '@/lib/data/prototype-repository'
 
 import { getCopy } from '@/components/prototype/copy'
+import { useMockWallet } from '@/components/prototype/mock-wallet'
 
 /**
  * GS-2 查看链选择器（弹窗版）：header 触发器显示当前链，弹窗列六链、背景虚化。
  * 选择写 URL ?chain={chainId}——discovery 页读取该参数过滤数据（真实联动），其余页仅记忆视图链。
+ * 2026-09-24 用户裁定：本选择器=链切换唯一入口——当前链状态存 mock 钱包 chainId
+ * （Yield Vault 链感知消费；卡内网络芯片已删），弹窗打开时仍从 URL 深链同步。
  */
 export function ChainSelectorDialog({ locale, chains }: { locale: Locale; chains: PrototypeChain[] }) {
   const copy = getCopy(locale)
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [activeId, setActiveId] = useState<number>(chains[0]?.chainId ?? 0)
+  const { chainId: activeId, switchChain } = useMockWallet()
 
   useEffect(() => {
     if (!open) return
     const params = new URLSearchParams(window.location.search)
     const fromUrl = Number(params.get('chain'))
-    if (chains.some((c) => c.chainId === fromUrl)) setActiveId(fromUrl)
+    if (chains.some((c) => c.chainId === fromUrl)) switchChain(fromUrl)
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, chains])
+  }, [open, chains, switchChain])
 
   const active = chains.find((c) => c.chainId === activeId) ?? chains[0]
 
   const select = (chainId: number) => {
-    setActiveId(chainId)
+    switchChain(chainId)
     setOpen(false)
     const params = new URLSearchParams(window.location.search)
     if (chainId === chains[0]?.chainId) params.delete('chain')

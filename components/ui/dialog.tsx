@@ -24,7 +24,7 @@ function DialogContent({
 }: DialogPrimitive.Popup.Props) {
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Backdrop data-slot="dialog-backdrop" className="fixed inset-0 z-50 bg-black/60" />
+      <DialogPrimitive.Backdrop data-slot="dialog-backdrop" className="fixed inset-0 z-50" />
       <div className="fixed inset-0 z-50 grid place-items-center p-4">
         <DialogPrimitive.Popup
           data-slot="dialog-content"
@@ -42,4 +42,14 @@ function DialogContent({
   )
 }
 
-export { Dialog, DialogTrigger, DialogContent }
+/** 弹窗标题（Popup 的 aria-labelledby 锚点，必须有才过 a11y） */
+function DialogTitle({ className, ...props }: DialogPrimitive.Title.Props) {
+  return <DialogPrimitive.Title data-slot="dialog-title" className={className} {...props} />
+}
+
+/** 关闭钮（自定义触发器用 render；Esc/外点关闭由 Popup 内置） */
+function DialogClose({ className, ...props }: DialogPrimitive.Close.Props) {
+  return <DialogPrimitive.Close data-slot="dialog-close" className={className} {...props} />
+}
+
+export { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogClose }

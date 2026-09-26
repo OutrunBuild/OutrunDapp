@@ -1,19 +1,19 @@
 'use client'
 
-import { useState } from 'react'
 import { WalletCards } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import type { Locale } from '@/lib/data/prototype-repository'
 
 import { getCopy } from './copy'
+import { useMockWallet } from './mock-wallet'
 
 function truncateAddress(address: string) {
   return `${address.slice(0, 6)}…${address.slice(-4)}`
 }
 
 export function WalletControl({ locale, address }: { locale: Locale; address: string }) {
-  const [connected, setConnected] = useState(false)
+  const { connected, toggle } = useMockWallet()
   const copy = getCopy(locale)
 
   return (
@@ -23,7 +23,7 @@ export function WalletControl({ locale, address }: { locale: Locale; address: st
       size="default"
       className="wallet-control"
       aria-pressed={connected}
-      onClick={() => setConnected((value) => !value)}
+      onClick={toggle}
     >
       <WalletCards data-icon="inline-start" aria-hidden="true" />
       {connected ? (

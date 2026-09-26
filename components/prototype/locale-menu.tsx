@@ -1,8 +1,7 @@
 'use client'
 
-import { Suspense } from 'react'
-import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
+import { Suspense, useEffect } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Check, ChevronDown, Languages } from 'lucide-react'
 
 import {
@@ -31,8 +30,59 @@ function hrefForLocale(locale: Locale, pathname: string, search: string) {
 
 function LocaleMenuInner({ locale }: { locale: Locale }) {
   const copy = getCopy(locale)
+  const router = useRouter()
   const pathname = usePathname()
   const search = useSearchParams().toString()
+  // 菜单常驻顶栏：挂载即预取对端语言链接。下拉项打开菜单才挂载、
+  // 预取始于彼时——初开即点会因预取未就绪回退整页刷新，清空全部会话状态
+  //（2026-09-26 语言切换零副作用：提前预取消除该竞速窗口）。
+  useEffect(() => {
+    const other: Locale = locale === 'zh' ? 'en' : 'zh'
+    const href = hrefForLocale(other, pathname, search)
+    // 首页对端 href（'/' 或 '/zh'）不预取：'/' 依 cookie 307，预取跟随重定向
+    // 会把偏移载荷挂进缓存；首页切换走整页跳转，无需预取
+    if (href === '/' || href === '/zh') return
+    router.prefetch(href)
+  }, [router, locale, pathname, search])
+
+  // 返回/前进对账：切换语言后按返回键，popstate 恢复的是共享段缓存（= 切换后
+  // 的语言），会出现 URL 前缀与渲染语言不一致——比对 URL 口径与壳层 lang 属性，
+  // 不一致则 refresh 重取正确语言载荷（refresh 保留组件状态）。
+  useEffect(() => {
+    function reconcile() {
+      window.setTimeout(() => {
+        const rendered = document.querySelector('.outrun-site')?.getAttribute('lang')?.startsWith('zh')
+          ? 'zh'
+          : 'en'
+        const urlLocale = location.pathname === '/zh' || location.pathname.startsWith('/zh/') ? 'zh' : 'en'
+        if (rendered !== urlLocale) router.refresh()
+      }, 100)
+    }
+    window.addEventListener('popstate', reconcile)
+    return () => window.removeEventListener('popstate', reconcile)
+  }, [router])
+
+  // 语言切换导航（2026-09-26 零副作用）：/zh/** 与无前缀形态在 proxy 内共用
+  // /en/** 路由树（软导航不重挂载、组件状态全保），代价是客户端路由树两侧
+  // 无差异时 push 拿不到新语言载荷——紧跟 refresh 强制重取当前路由并应用，
+  // refresh 本身保留 React state，两者叠加 = 仅换语言、零状态影响。
+  // 例外：首页整页跳转。proxy 对 '/' 依 cookie 307 到 /zh，push+refresh 与
+  // 预取缓存交错时落点会漂到内部 canonical /en；首页无会话内状态可保，
+  // 整页跳转换确定性。
+  function switchLocale(next: Locale, href: string) {
+    return (event: React.MouseEvent<HTMLAnchorElement>) => {
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return
+      event.preventDefault()
+      setLocaleCookie(next)
+      if (href === '/' || href === '/zh') {
+        window.location.assign(href)
+        return
+      }
+      router.push(href)
+      router.refresh()
+    }
+  }
+
   const options = [
     { value: 'en' as Locale, label: copy.common.languageEn },
     { value: 'zh' as Locale, label: copy.common.languageZh },
@@ -51,10 +101,10 @@ function LocaleMenuInner({ locale }: { locale: Locale }) {
             className="locale-menu__item"
             data-current={option.value === locale ? 'true' : undefined}
             render={
-              <Link
+              <a
                 href={hrefForLocale(option.value, pathname, search)}
                 hrefLang={option.value}
-                onClick={() => setLocaleCookie(option.value)}
+                onClick={switchLocale(option.value, hrefForLocale(option.value, pathname, search))}
               />
             }
           >

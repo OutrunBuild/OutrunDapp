@@ -87,6 +87,7 @@
       "symbol": "ETH",
       "kind": "reserve",
       "decimals": 18,
+      "anchorValue": 1,
       "address": {
         "value": "0xbbbbbbb000000000000000000000000000000013",
         "fixtureOnly": true
@@ -115,6 +116,7 @@
       "symbol": "wstETH",
       "kind": "sy",
       "decimals": 18,
+      "anchorValue": 1.05,
       "address": {
         "value": "0xccccccc000000000000000000000000000000021",
         "fixtureOnly": true
@@ -143,6 +145,7 @@
       "symbol": "stETH",
       "kind": "sy",
       "decimals": 18,
+      "anchorValue": 1,
       "address": {
         "value": "0xccccccc000000000000000000000000000000023",
         "fixtureOnly": true
@@ -157,6 +160,7 @@
       "symbol": "aETH",
       "kind": "sy",
       "decimals": 18,
+      "anchorValue": 1.02,
       "address": {
         "value": "0xccccccc000000000000000000000000000000024",
         "fixtureOnly": true
@@ -254,7 +258,7 @@
         "normal"
       ],
       "sourceRef": "docs/page-briefs/source-map.md#OB",
-      "symbol": "GenesisCredit",
+      "symbol": "Genesis Credit",
       "kind": "credit",
       "decimals": 18,
       "address": {

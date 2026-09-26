@@ -37,7 +37,7 @@ function SiteFooter({ locale }: { locale: Locale }) {
 
         <nav className="site-footer__group" aria-labelledby="footer-protocol-title">
           <h2 id="footer-protocol-title">{copy.home.footerProtocolLabel}</h2>
-          <Link href={localePath(locale, '/memeverse')}>{copy.common.discover}</Link>
+          <Link href={localePath(locale, '/memeverse/explore')}>{copy.common.discover}</Link>
           <a href="#engines">{copy.common.mechanisms}</a>
           <a href="#lifecycle">{copy.common.lifecycle}</a>
         </nav>
@@ -97,10 +97,10 @@ export function HomePage({ locale }: { locale: Locale }) {
           <p className="home-hero__sub">{copy.home.sub}</p>
           <div className="home-hero__actions">
             <Button
-              className="ax-glow-cta"
+              className="ax-ghost-cta"
               size="lg"
               nativeButton={false}
-              render={<Link href={`${localePath(locale, '/memeverse')}?stage=genesis`} />}
+              render={<Link href={`${localePath(locale, '/memeverse/explore')}?stage=genesis`} />}
             >
               {copy.home.primaryCta}
               <ArrowRight data-icon="inline-end" aria-hidden="true" />
@@ -150,10 +150,10 @@ export function HomePage({ locale }: { locale: Locale }) {
         </div>
         <div className="home-final-cta__actions">
           <Button
-            className="ax-glow-cta"
+            className="ax-ghost-cta"
             size="lg"
             nativeButton={false}
-            render={<Link href={localePath(locale, '/memeverse')} />}
+            render={<Link href={localePath(locale, '/memeverse/explore')} />}
           >
             {copy.home.primaryCta}
             <ArrowRight data-icon="inline-end" aria-hidden="true" />

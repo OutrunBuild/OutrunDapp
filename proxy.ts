@@ -34,16 +34,47 @@ function cspHeader(nonce: string, dev: boolean): string {
 // cookie 仅存回访偏好，用于 '/' 重定向（Googlebot 无 cookie，'/' 的英文规范内容不受影响）。
 const LOCALE_COOKIE = 'OUTRUN_LOCALE';
 
+// 旧 URL 收敛（2026-09-23 用户裁定：创建页与发现页并入 /memeverse/* 域）：
+// /launch → /memeverse/launch、/memeverse → /memeverse/explore；
+// 307 避免原型期浏览器缓存（与 verse-021 形态收敛同口径）。
+const LEGACY_PATHS: Record<string, string> = {
+  '/launch': '/memeverse/launch',
+  '/memeverse': '/memeverse/explore',
+};
+
+function legacyRedirect(request: NextRequest): NextResponse | null {
+  const { pathname, search } = request.nextUrl;
+  const localeMatch = /^\/(?:zh|en)(?=\/|$)/.exec(pathname);
+  const rest = localeMatch ? pathname.slice(localeMatch[0].length) : pathname;
+  const target = LEGACY_PATHS[rest];
+  if (!target) return null;
+  const prefix = localeMatch ? localeMatch[0] : '';
+  return NextResponse.redirect(new URL(`${prefix}${target}${search}`, request.url), 307);
+}
+
 function localeRouting(request: NextRequest, requestHeaders: Headers): NextResponse | null {
+  const legacy = legacyRedirect(request);
+  if (legacy) return legacy;
+
   const { pathname, search } = request.nextUrl;
 
-  // zh 前缀路径原样；旧 /en/** 地址暂保持可达，上线前补 301 收敛
-  if (
-    pathname === '/zh' ||
-    pathname.startsWith('/zh/') ||
-    pathname === '/en' ||
-    pathname.startsWith('/en/')
-  ) {
+  // zh 前缀（2026-09-26 语言切换零副作用）：内部同样 rewrite 到 /en/**，
+  // 与无前缀形态共用同一棵路由树——跨语言软导航命中同键客户端缓存、
+  // 页面树不重挂载（表单/图表/弹窗等组件状态全保）。展示语言不走路由段，
+  // 由 x-locale 请求头下传（URL 前缀仍是语言唯一真源）。
+  if (pathname === '/zh' || pathname.startsWith('/zh/')) {
+    requestHeaders.set('x-locale', 'zh');
+    const target = new URL(
+      `/en${pathname === '/zh' ? '' : pathname.slice(3)}${search}`,
+      request.url,
+    );
+    return NextResponse.rewrite(target, { request: { headers: requestHeaders } });
+  }
+
+  // 旧 /en/** 地址暂保持可达，上线前补 301 收敛
+  if (pathname === '/en' || pathname.startsWith('/en/')) {
+    // 生产环境 rewrite 目标会二次进入 proxy：首跳已写入的 x-locale（zh）不得覆写
+    if (!requestHeaders.get('x-locale')) requestHeaders.set('x-locale', 'en');
     return null;
   }
 
@@ -52,6 +83,7 @@ function localeRouting(request: NextRequest, requestHeaders: Headers): NextRespo
   }
 
   // 其余页面路径 = 英文内容：内部 rewrite 到 /en/**，URL 栏保持无前缀
+  if (!requestHeaders.get('x-locale')) requestHeaders.set('x-locale', 'en');
   const target = new URL(`/en${pathname === '/' ? '' : pathname}${search}`, request.url);
   return NextResponse.rewrite(target, { request: { headers: requestHeaders } });
 }
@@ -74,5 +106,6 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.ico$|.*\\.svg$).*)'],
+  // paint/ = Paint Worklet 静态资产（public/paint/**，需原样 URL 加载，不走 locale rewrite）
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.ico$|.*\\.svg$|paint/).*)'],
 };

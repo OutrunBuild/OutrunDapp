@@ -24,8 +24,8 @@ type ShellProps = {
 
 const navItems = [
   { key: 'home', href: '', icon: Home, available: true },
-  { key: 'discover', href: '/memeverse', icon: Compass, available: true },
-  { key: 'create', href: '/launch', icon: Plus, available: true },
+  { key: 'discover', href: '/memeverse/explore', icon: Compass, available: true },
+  { key: 'create', href: '/memeverse/launch', icon: Plus, available: true },
   { key: 'bridge', href: '/bridge', icon: GitBranch, available: false },
   { key: 'portfolio', href: '/portfolio', icon: WalletCards, available: true },
   { key: 'account', href: '/account', icon: UserRound, available: false },
@@ -84,7 +84,7 @@ function ProductSidebar({ locale, current, accountAddress, accountSourceRef }: O
       <nav className="product-nav" aria-label="Primary">
         {navItems.map((item) => {
           const Icon = item.icon
-          const isActive = item.key === current || (item.key === 'discover' && current === 'verse')
+          const isActive = item.key === current
           const label = copy.common[item.key]
           return item.available ? (
             <Link
@@ -125,7 +125,7 @@ function MobileNavigation({ locale, current }: { locale: Locale; current: Curren
     <nav className="mobile-navigation" aria-label="Mobile primary">
       {items.map((item) => {
         const Icon = item.icon
-        const active = item.key === current || (item.key === 'discover' && current === 'verse')
+        const active = item.key === current
         const label = copy.common[item.key]
         return item.available ? (
           <Link key={item.key} href={localePath(locale, item.href)} data-active={active} aria-current={active ? 'page' : undefined}>

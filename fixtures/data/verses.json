@@ -127,6 +127,21 @@
           "raw": "1000000",
           "decimals": 18
         }
+      },
+      "livePhase": {
+        "volume24h": {
+          "raw": "5260000",
+          "decimals": 18
+        },
+        "stakingApy": {
+          "raw": "5.688",
+          "unit": "ratio",
+          "scale": 18
+        },
+        "treasuryFundUsd": {
+          "raw": "2250000",
+          "decimals": 18
+        }
       }
     },
     {
@@ -186,6 +201,21 @@
         },
         "leverageDebtCap": {
           "raw": "600000",
+          "decimals": 18
+        }
+      },
+      "livePhase": {
+        "volume24h": {
+          "raw": "6480000",
+          "decimals": 18
+        },
+        "stakingApy": {
+          "raw": "7.214",
+          "unit": "ratio",
+          "scale": 18
+        },
+        "treasuryFundUsd": {
+          "raw": "2940000",
           "decimals": 18
         }
       },
@@ -576,6 +606,21 @@
           "raw": "2000000",
           "decimals": 18
         }
+      },
+      "livePhase": {
+        "volume24h": {
+          "raw": "3120000",
+          "decimals": 18
+        },
+        "stakingApy": {
+          "raw": "3.42",
+          "unit": "ratio",
+          "scale": 18
+        },
+        "treasuryFundUsd": {
+          "raw": "1480000",
+          "decimals": 18
+        }
       }
     },
     {
@@ -636,6 +681,21 @@
           "raw": "1200000",
           "decimals": 18
         }
+      },
+      "livePhase": {
+        "volume24h": {
+          "raw": "1240000",
+          "decimals": 18
+        },
+        "stakingApy": {
+          "raw": "1.256",
+          "unit": "ratio",
+          "scale": 18
+        },
+        "treasuryFundUsd": {
+          "raw": "890000",
+          "decimals": 18
+        }
       }
     },
     {
@@ -694,6 +754,21 @@
         },
         "leverageDebtCap": {
           "raw": "800000",
+          "decimals": 18
+        }
+      },
+      "livePhase": {
+        "volume24h": {
+          "raw": "480000",
+          "decimals": 18
+        },
+        "stakingApy": {
+          "raw": "0.42",
+          "unit": "ratio",
+          "scale": 18
+        },
+        "treasuryFundUsd": {
+          "raw": "320000",
           "decimals": 18
         }
       }
@@ -761,6 +836,21 @@
           "decimals": 18
         }
       },
+      "livePhase": {
+        "volume24h": {
+          "raw": "4370000",
+          "decimals": 18
+        },
+        "stakingApy": {
+          "raw": "4.668",
+          "unit": "ratio",
+          "scale": 18
+        },
+        "treasuryFundUsd": {
+          "raw": "1870000",
+          "decimals": 18
+        }
+      },
       "unlock": {
         "unlockedAtTx": "2026-07-15T18:00:00Z"
       }
@@ -817,6 +907,21 @@
         },
         "leverageDebtCap": {
           "raw": "1400000",
+          "decimals": 18
+        }
+      },
+      "livePhase": {
+        "volume24h": {
+          "raw": "2910000",
+          "decimals": 18
+        },
+        "stakingApy": {
+          "raw": "3.152",
+          "unit": "ratio",
+          "scale": 18
+        },
+        "treasuryFundUsd": {
+          "raw": "1290000",
           "decimals": 18
         }
       },
@@ -884,6 +989,21 @@
         },
         "leverageDebtCap": {
           "raw": "600000",
+          "decimals": 18
+        }
+      },
+      "livePhase": {
+        "volume24h": {
+          "raw": "830000",
+          "decimals": 18
+        },
+        "stakingApy": {
+          "raw": "0.874",
+          "unit": "ratio",
+          "scale": 18
+        },
+        "treasuryFundUsd": {
+          "raw": "560000",
           "decimals": 18
         }
       },
@@ -1460,6 +1580,21 @@
           "raw": "1040000",
           "decimals": 18
         }
+      },
+      "livePhase": {
+        "volume24h": {
+          "raw": "7040000",
+          "decimals": 18
+        },
+        "stakingApy": {
+          "raw": "8.912",
+          "unit": "ratio",
+          "scale": 18
+        },
+        "treasuryFundUsd": {
+          "raw": "3610000",
+          "decimals": 18
+        }
       }
     },
     {
@@ -1524,6 +1659,21 @@
           "raw": "1600000",
           "decimals": 18
         }
+      },
+      "livePhase": {
+        "volume24h": {
+          "raw": "2180000",
+          "decimals": 18
+        },
+        "stakingApy": {
+          "raw": "2.104",
+          "unit": "ratio",
+          "scale": 18
+        },
+        "treasuryFundUsd": {
+          "raw": "1150000",
+          "decimals": 18
+        }
       }
     },
     {
@@ -1578,6 +1728,21 @@
         },
         "leverageDebtCap": {
           "raw": "900000",
+          "decimals": 18
+        }
+      },
+      "livePhase": {
+        "volume24h": {
+          "raw": "1620000",
+          "decimals": 18
+        },
+        "stakingApy": {
+          "raw": "1.876",
+          "unit": "ratio",
+          "scale": 18
+        },
+        "treasuryFundUsd": {
+          "raw": "760000",
           "decimals": 18
         }
       }
@@ -1644,6 +1809,21 @@
           "raw": "1800000",
           "decimals": 18
         }
+      },
+      "livePhase": {
+        "volume24h": {
+          "raw": "8940000",
+          "decimals": 18
+        },
+        "stakingApy": {
+          "raw": "11.24",
+          "unit": "ratio",
+          "scale": 18
+        },
+        "treasuryFundUsd": {
+          "raw": "4480000",
+          "decimals": 18
+        }
       }
     },
     {
@@ -1702,6 +1882,21 @@
         },
         "leverageDebtCap": {
           "raw": "2200000",
+          "decimals": 18
+        }
+      },
+      "livePhase": {
+        "volume24h": {
+          "raw": "1280000",
+          "decimals": 18
+        },
+        "stakingApy": {
+          "raw": "1.532",
+          "unit": "ratio",
+          "scale": 18
+        },
+        "treasuryFundUsd": {
+          "raw": "1020000",
           "decimals": 18
         }
       }
@@ -1764,6 +1959,21 @@
           "raw": "760000",
           "decimals": 18
         }
+      },
+      "livePhase": {
+        "volume24h": {
+          "raw": "620000",
+          "decimals": 18
+        },
+        "stakingApy": {
+          "raw": "0.615",
+          "unit": "ratio",
+          "scale": 18
+        },
+        "treasuryFundUsd": {
+          "raw": "410000",
+          "decimals": 18
+        }
       }
     },
     {
@@ -1822,6 +2032,21 @@
         },
         "leverageDebtCap": {
           "raw": "1400000",
+          "decimals": 18
+        }
+      },
+      "livePhase": {
+        "volume24h": {
+          "raw": "3840000",
+          "decimals": 18
+        },
+        "stakingApy": {
+          "raw": "4.105",
+          "unit": "ratio",
+          "scale": 18
+        },
+        "treasuryFundUsd": {
+          "raw": "1680000",
           "decimals": 18
         }
       },
@@ -1892,6 +2117,21 @@
           "decimals": 18
         }
       },
+      "livePhase": {
+        "volume24h": {
+          "raw": "5120000",
+          "decimals": 18
+        },
+        "stakingApy": {
+          "raw": "5.431",
+          "unit": "ratio",
+          "scale": 18
+        },
+        "treasuryFundUsd": {
+          "raw": "2210000",
+          "decimals": 18
+        }
+      },
       "unlock": {
         "unlockedAtTx": "2026-06-18T15:00:00Z"
       }
@@ -1948,6 +2188,21 @@
         },
         "leverageDebtCap": {
           "raw": "700000",
+          "decimals": 18
+        }
+      },
+      "livePhase": {
+        "volume24h": {
+          "raw": "1470000",
+          "decimals": 18
+        },
+        "stakingApy": {
+          "raw": "1.693",
+          "unit": "ratio",
+          "scale": 18
+        },
+        "treasuryFundUsd": {
+          "raw": "940000",
           "decimals": 18
         }
       },
@@ -2018,6 +2273,21 @@
           "decimals": 18
         }
       },
+      "livePhase": {
+        "volume24h": {
+          "raw": "2260000",
+          "decimals": 18
+        },
+        "stakingApy": {
+          "raw": "2.417",
+          "unit": "ratio",
+          "scale": 18
+        },
+        "treasuryFundUsd": {
+          "raw": "1060000",
+          "decimals": 18
+        }
+      },
       "unlock": {
         "unlockedAtTx": "2026-05-10T20:00:00Z"
       }
@@ -2081,6 +2351,21 @@
           "decimals": 18
         }
       },
+      "livePhase": {
+        "volume24h": {
+          "raw": "7630000",
+          "decimals": 18
+        },
+        "stakingApy": {
+          "raw": "8.056",
+          "unit": "ratio",
+          "scale": 18
+        },
+        "treasuryFundUsd": {
+          "raw": "3350000",
+          "decimals": 18
+        }
+      },
       "unlock": {
         "unlockedAtTx": "2026-04-21T09:00:00Z"
       }
@@ -2141,6 +2426,21 @@
         },
         "leverageDebtCap": {
           "raw": "560000",
+          "decimals": 18
+        }
+      },
+      "livePhase": {
+        "volume24h": {
+          "raw": "1050000",
+          "decimals": 18
+        },
+        "stakingApy": {
+          "raw": "1.128",
+          "unit": "ratio",
+          "scale": 18
+        },
+        "treasuryFundUsd": {
+          "raw": "680000",
           "decimals": 18
         }
       },

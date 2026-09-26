@@ -195,7 +195,7 @@ export function CreateForm({ locale, assets, chains, config }: CreateFormProps) 
             <Button
               type="submit"
               form="create-form"
-              className="ax-glow-cta create-submit"
+              className="ax-ghost-cta create-submit"
               size="lg"
               disabled={assets.length === 0 || chains.length === 0 || config == null}
             >
@@ -522,8 +522,8 @@ export function CreateForm({ locale, assets, chains, config }: CreateFormProps) 
                 <Field>
                   <FieldLabel>
                     {copy.create.chainsLabel}
-                    <span className="create-optional-tag">{copy.create.optionalTag}</span>
                     <FieldInfo text={copy.create.chainsHint} />
+                    <span className="create-optional-tag">{copy.create.optionalTag}</span>
                   </FieldLabel>
                   {/* demo「Select Chains」多选下拉；选项=治理链之外的 Spoke 链 */}
                   <Select
@@ -584,11 +584,9 @@ export function CreateForm({ locale, assets, chains, config }: CreateFormProps) 
                   onClick={() => setLinksOpen((open) => !open)}
                 >
                   <span className="create-disclosure__label">
-                    <span>
-                      {copy.create.linksLegend}
-                      <span className="create-optional-tag">{copy.create.optionalTag}</span>
-                    </span>
+                    {copy.create.linksLegend}
                     <FieldInfo text={copy.create.linksInfo} />
+                    <span className="create-optional-tag">{copy.create.optionalTag}</span>
                   </span>
                   <ChevronDown data-open={linksOpen || undefined} aria-hidden="true" />
                 </button>

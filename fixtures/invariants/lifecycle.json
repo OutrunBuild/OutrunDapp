@@ -44,9 +44,9 @@
     },
     {
       "id": "fast-genesis",
-      "rule": "Fast Mode（快速创世，glossary B；UI 命名=用户裁定 2026-09-23）：genesis.fastGenesis=true 时，普通资金或杠杆利息任一达标（≥最低成功额度，预购与债务本金不计入——dual-threshold 同口径）即可在截止前触发阶段推进提前结束创世；未开启/字段缺省=false：提前达标也等截止",
+      "rule": "Fast Genesis（快速创世，glossary B；UI 命名=用户裁定 2026-09-23，与创建表单标签一致）：genesis.fastGenesis=true 时，普通资金或杠杆利息任一达标（≥最低成功额度，预购与债务本金不计入——dual-threshold 同口径）即可在截止前触发阶段推进提前结束创世；未开启/字段缺省=false：提前达标也等截止",
       "evidence": "OB memeverse/lifecycle.md#L51-54 + SPEC-M9 state-machines.md#L33-35（表单侧=SPEC-M8 registration-details）",
-      "check": "verse-020（fastGenesis=true、普通资金 190 万≥180 万阈值）断言判定卡显示「已达标 · 待推进」且 Discovery 创世模式筛选命中；verse-022（fastGenesis=true 未达标）断言仅显示 Fast Mode 说明行；verse-001（无标记）断言不出现 Fast Mode 徽章"
+      "check": "verse-020（fastGenesis=true、普通资金 190 万≥180 万阈值）断言判定卡显示「已达标 · 待推进」且 Discovery 创世模式筛选命中；verse-022（fastGenesis=true 未达标）断言仅显示 Fast Genesis 说明行；verse-001（无标记）断言不出现 Fast Genesis 徽章"
     }
   ]
 }

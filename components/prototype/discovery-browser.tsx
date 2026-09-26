@@ -46,7 +46,7 @@ type DiscoveryBrowserProps = {
   initialSort: string
   initialOrder: 'asc' | 'desc'
   initialChain: string
-  /** 'fast' = 仅看 Fast Mode 创世卡；'normal' = 仅看普通模式（无 fastGenesis 标记） */
+  /** 'fast' = 仅看 Fast Genesis 创世卡；'normal' = 仅看普通模式（无 fastGenesis 标记） */
   initialMode: GenesisMode
   initialQuery: string
 }
@@ -188,14 +188,12 @@ export function DiscoveryBrowser({
   const modeItems = [
     { value: 'all', label: copy.discovery.allModes },
     { value: 'normal', label: copy.discovery.normalMode },
-    { value: 'fast', label: copy.discovery.fastMode },
+    { value: 'fast', label: copy.discovery.fastGenesis },
   ]
   const hasActiveFilters =
     initialChain !== 'all' || initialMode !== 'all' || Boolean(initialQuery)
 
   function primarySignal(verse: PrototypeVerse) {
-    const marketTvl = verse.markets.reduce((sum, market) => sum + market.tvl, 0)
-
     if (verse.stage === 'genesis') {
       const thresholdSignals = [
         { label: copy.discovery.normal, value: verse.normalProgress },
@@ -254,35 +252,38 @@ export function DiscoveryBrowser({
       )
     }
 
-    if (verse.stage === 'unlocked') {
+    // 锁定中/已解锁共用同一信号区（2026-09-23 用户裁定两阶段卡内容一致）
+    if (verse.stage === 'locked' || verse.stage === 'unlocked') {
       return (
         <div className="economy-card__signal">
-          <span className="economy-card__signal-label">{copy.discovery.livePrice}</span>
-          {verse.currentPrice === null ? (
-            <strong>{copy.discovery.unavailable}</strong>
-          ) : (
-            <div className="economy-card__price">
-              <strong data-numeric>{formatAmount(verse.currentPrice, locale)}</strong>
-              <span data-direction={(verse.change24h ?? 0) >= 0 ? 'up' : 'down'} data-numeric>
-                {(verse.change24h ?? 0) >= 0 ? '+' : ''}
-                {formatPercent(verse.change24h ?? 0, locale)}%
-              </span>
+          <div className="economy-progress__thresholds">
+            <div className="economy-progress__item">
+              <div>
+                <span>{copy.discovery.stakingApy}</span>
+                {verse.stakingApy === null ? (
+                  <b>{copy.discovery.unavailable}</b>
+                ) : (
+                  <b data-numeric>{formatPercent(verse.stakingApy, locale)}%</b>
+                )}
+              </div>
             </div>
-          )}
-        </div>
-      )
-    }
-
-    if (verse.stage === 'locked') {
-      return (
-        <div className="economy-card__signal">
-          <span className="economy-card__signal-label">{copy.discovery.poolLiquidity}</span>
-          <strong data-numeric>
-            {formatAmount(marketTvl, locale, true)} <small>{verse.raiseAsset}</small>
-          </strong>
-          <span className="economy-card__signal-note">
-            {verse.markets.length} {copy.discovery.marketCount}
-          </span>
+            <div className="economy-progress__item">
+              <div>
+                <span>{copy.discovery.volume24h}</span>
+                {verse.volume24h === null ? (
+                  <b>{copy.discovery.unavailable}</b>
+                ) : (
+                  <b data-numeric>{formatMarketCap(verse.volume24h)}</b>
+                )}
+              </div>
+            </div>
+            <div className="economy-progress__item">
+              <div>
+                <span>{copy.discovery.participants}</span>
+                <b data-numeric>{formatAmount(verse.participantCount, locale)}</b>
+              </div>
+            </div>
+          </div>
         </div>
       )
     }
@@ -482,7 +483,7 @@ export function DiscoveryBrowser({
                     ) : null}
                     <div className="economy-card__badges">
                       {verse.stage === 'genesis' && verse.fastGenesis ? (
-                        <FastBadge label={copy.discovery.fastMode} />
+                        <FastBadge label={copy.discovery.fastGenesis} />
                       ) : null}
                       <StageBadge stage={verse.stage} locale={locale} />
                     </div>
@@ -515,20 +516,37 @@ export function DiscoveryBrowser({
                     {primarySignal(verse)}
                   </div>
 
-                  <dl className="economy-card__facts">
-                    <div>
-                      <dt>{copy.discovery.totalRaised}</dt>
-                      <dd data-numeric>
-                        {formatAmount(verse.participationSize, locale, true)} {verse.raiseAsset}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>{copy.discovery.genesisEndtime}</dt>
-                      <dd data-numeric>
-                        {formatStamp(verse.endsAt)} UTC+8
-                      </dd>
-                    </div>
-                  </dl>
+                  {verse.stage === 'locked' || verse.stage === 'unlocked' ? (
+                    <dl className="economy-card__facts">
+                      <div>
+                        <dt>{copy.discovery.treasuryFund}</dt>
+                        <dd data-numeric>
+                          {verse.treasuryFundUsd === null
+                            ? copy.discovery.unavailable
+                            : `$${formatMarketCap(verse.treasuryFundUsd)}`}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>{copy.discovery.unlockTime}</dt>
+                        <dd data-numeric>{formatStamp(verse.unlockTimeAt)} UTC+8</dd>
+                      </div>
+                    </dl>
+                  ) : (
+                    <dl className="economy-card__facts">
+                      <div>
+                        <dt>{copy.discovery.totalRaised}</dt>
+                        <dd data-numeric>
+                          {formatAmount(verse.participationSize, locale, true)} {verse.raiseAsset}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>{copy.discovery.genesisEndtime}</dt>
+                        <dd data-numeric>
+                          {formatStamp(verse.endsAt)} UTC+8
+                        </dd>
+                      </div>
+                    </dl>
+                  )}
                 </article>
               </li>
             ))}

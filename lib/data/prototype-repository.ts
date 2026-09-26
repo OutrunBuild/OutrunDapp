@@ -112,6 +112,8 @@ export type PrototypeVerse = SourceRecord & {
 export type PrototypeAsset = SourceRecord & {
   symbol: string;
   anchorNote?: string;
+  /** sy 资产折算锚资产样本率（1 枚 sy ≈ N 锚资产→N uAsset，实时变动；缺失=null 语义——审阅屏显槽位） */
+  anchorValue?: number;
 };
 
 export type PrototypeSnapshot = {
@@ -346,6 +348,7 @@ export function getPrototypeParticipationOptions(
     id: asset.id,
     sourceRef: asset.sourceRef,
     symbol: asset.symbol,
+    anchorValue: asset.anchorValue,
   });
   // uAsset 符号约定 = 'U' + 底层族符号（UETH/UUSD/UBNB——glossary A）；来源只对本族 Verse 开放
   // （用户裁定 2026-09-22：UETH verse 不可能出现 sUSDe 类 USD 来源）
@@ -473,8 +476,10 @@ export type PrototypeVerseTrade = {
 /** 无限左滑历史总量（1h 根数 ≈ 1 年；2026-09-23 用户裁定配套） */
 const HISTORY_TOTAL_HOURLY = 8760;
 
-/** K 线历史回溯（派生样本）：fixture 只存 168h 真样本，这里锚定首根开盘价向前
- *  确定性随机游走补齐到 ~1 年——同 verseId 结果恒定；生产以数据源分页为准 */
+/** K 线历史回溯（派生样本）：fixture 只存 168h 真样本，这里锚定接缝（k=1 的 close
+ *  === fixture 首根 open）向远古确定性随机游走补齐到 ~1 年——漂移累积在无接缝的远端，
+ *  接缝处零跳变（2026-09-23 修复：旧版锚错在最老端，接缝曾现 47% 断崖）；
+ *  同 verseId 结果恒定；生产以数据源分页为准 */
 function extendHourlyHistory(candles: PrototypeCandle[], seedKey: string): PrototypeCandle[] {
   if (candles.length === 0 || candles.length >= HISTORY_TOTAL_HOURLY) return candles;
   let seed = 2166136261;
@@ -489,8 +494,8 @@ function extendHourlyHistory(candles: PrototypeCandle[], seedKey: string): Proto
   const first = candles[0];
   const firstT = Date.parse(first.t);
   const older: PrototypeCandle[] = [];
-  let price = first.o; // 向前游走的「当前价」，最终衔接 fixture 首根开盘
-  for (let k = HISTORY_TOTAL_HOURLY - candles.length; k >= 1; k--) {
+  let price = first.o; // 接缝锚点：k=1 的 close === fixture 首根 open，向远古游走
+  for (let k = 1; k <= HISTORY_TOTAL_HOURLY - candles.length; k++) {
     const open = price * (1 + (rnd() - 0.5) * 0.011);
     const high = Math.max(open, price) * (1 + rnd() * 0.004);
     const low = Math.min(open, price) * (1 - rnd() * 0.004);
@@ -504,6 +509,7 @@ function extendHourlyHistory(candles: PrototypeCandle[], seedKey: string): Proto
     });
     price = open;
   }
+  older.reverse();
   return [...older, ...candles];
 }
 
@@ -597,6 +603,8 @@ export type PrototypeStaking = {
     maturesAt: string;
     /** maturesAt ≤ 快照锚点 → 已成熟可提取（REDEEM_DELAY≈1 天） */
     ready: boolean;
+    /** 快照锚点时刻距成熟的剩余毫秒（展示走秒起点；0=已成熟） */
+    remainingMs: number;
   }>;
   /** 已成熟合计（Withdraw 子标签 Total Available） */
   claimableTotal: number;
@@ -618,6 +626,7 @@ export function getPrototypeStaking(verseId: string): PrototypeStaking | null {
     requestedAt: entry.requestedAt,
     maturesAt: entry.maturesAt,
     ready: Date.parse(entry.maturesAt) <= anchor,
+    remainingMs: Math.max(0, Date.parse(entry.maturesAt) - anchor),
   }));
   const assetsPerShare = Number(record.assetsPerShare.raw);
   const myShares = amount(record.myShares.raw);
@@ -646,10 +655,17 @@ export type PrototypePolPosition = {
   /** POL/uAsset 池市场价 */
   marketPricePerPol: number;
   myPol: number;
-  claimablePol: number;
+  myPt: number;
+  myYt: number;
+  /** 样本账户本 verse memecoin 余额（Mint POL 供给侧样本） */
+  myMemecoin: number;
+  /** 样本账户 uAsset 余额（钱包级资产；Mint POL 供给侧样本） */
+  myUAsset: number;
+  /** 创世结束后可领 YT（claimNormalYT 一次性按出资比例——MemeverseSettlementImpl.sol:88） */
+  claimableYt: number;
 };
 
-/** POL 持仓与估值样本（locked/unlocked verse；null=槽位态） */
+/** POL/PT/YT 持仓与估值样本（locked/unlocked verse；null=槽位态） */
 export function getPrototypePolPosition(verseId: string): PrototypePolPosition | null {
   const record = fixtureData.polPositions.items.find((item) => item.verseId === verseId);
   if (!record) return null;
@@ -661,9 +677,21 @@ export function getPrototypePolPosition(verseId: string): PrototypePolPosition |
     nominalValuePerPol: uAssetPerPol * 2,
     marketPricePerPol: Number(record.marketPricePerPol.raw),
     myPol: amount(record.myPol.raw),
-    claimablePol: amount(record.claimablePol.raw),
+    myPt: amount(record.myPt.raw),
+    myYt: amount(record.myYt.raw),
+    myMemecoin: amount(record.myMemecoin.raw),
+    myUAsset: amount(record.myUAsset.raw),
+    claimableYt: amount(record.claimableYt.raw),
   };
 }
+
+/** 资金明细构成行（governance.json treasuryAssets/unclaimedAssets 样本） */
+export type PrototypeGovernanceAsset = {
+  symbol: string;
+  name: string;
+  amount: number;
+  usdValue: number;
+};
 
 export type PrototypeGovernanceState = {
   cycleNumber: string;
@@ -680,16 +708,22 @@ export type PrototypeGovernanceState = {
   /** 划拨比例（bps；初始 2500=25%，治理可改——M10:332-333） */
   rewardRatioBps: number | null;
   cumulativeIncentivePool: number | null;
+  /** 当期国库构成样本（null=无样本→明细入口不渲染） */
+  treasuryAssets: PrototypeGovernanceAsset[] | null;
   currentCycleVotes: { total: number; mine: number } | null;
   /** 若当前已投票，按票占比推算的本期可领估计（推导值；Q7/H7 口径） */
   estimatedClaimable: number | null;
   lastCycle: {
     number: string;
     treasuryUAsset: number;
+    /** 上期期末国库构成样本（null=无样本→明细入口不渲染） */
+    treasuryAssets: PrototypeGovernanceAsset[] | null;
     remainingRewards: number;
     totalVotes: number;
     myVotes: number;
     myClaimable: number;
+    /** 未领取奖励构成样本（null=无样本→明细入口不渲染） */
+    unclaimedAssets: PrototypeGovernanceAsset[] | null;
   } | null;
   proposalCount: { total: number; active: number } | null;
 };
@@ -708,6 +742,19 @@ export function getPrototypeGovernanceState(verseId: string): PrototypeGovernanc
   const cumulativeIncentivePool = record.cumulativeIncentivePool
     ? amount(record.cumulativeIncentivePool.raw)
     : null;
+  const mapAssets = (
+    list:
+      | { symbol: string; name: string; amount: { raw: string }; usdValue: { raw: string } }[]
+      | undefined,
+  ): PrototypeGovernanceAsset[] | null =>
+    list
+      ? list.map((asset) => ({
+          symbol: asset.symbol,
+          name: asset.name,
+          amount: Number(asset.amount.raw),
+          usdValue: Number(asset.usdValue.raw),
+        }))
+      : null;
   return {
     cycleNumber: record.cycleNumber,
     cycleDurationDays: record.cycleDurationDays,
@@ -722,6 +769,7 @@ export function getPrototypeGovernanceState(verseId: string): PrototypeGovernanc
     treasuryUAsset: record.treasuryUAsset ? amount(record.treasuryUAsset.raw) : null,
     rewardRatioBps: record.rewardRatio ? Number(record.rewardRatio.raw) : null,
     cumulativeIncentivePool,
+    treasuryAssets: mapAssets(record.treasuryAssets),
     currentCycleVotes,
     estimatedClaimable:
       cumulativeIncentivePool != null && currentCycleVotes
@@ -731,10 +779,12 @@ export function getPrototypeGovernanceState(verseId: string): PrototypeGovernanc
       ? {
           number: record.lastCycle.number,
           treasuryUAsset: amount(record.lastCycle.treasuryUAsset.raw),
+          treasuryAssets: mapAssets(record.lastCycle.treasuryAssets),
           remainingRewards: amount(record.lastCycle.remainingRewards.raw),
           totalVotes: amount(record.lastCycle.totalVotes.raw),
           myVotes: amount(record.lastCycle.myVotes.raw),
           myClaimable: amount(record.lastCycle.myClaimable.raw),
+          unclaimedAssets: mapAssets(record.lastCycle.unclaimedAssets),
         }
       : null,
     proposalCount: {

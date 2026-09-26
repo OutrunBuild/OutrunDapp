@@ -89,6 +89,7 @@ export const assetSchema = recordSchema.extend({
   decimals: z.number().int().min(0).max(18),
   anchorNote: z.string().optional(), // uAsset 锚定限定语（glossary A）
   usdSample: z.number().positive().optional(), // uAsset 美元样本价（fixture 假数据，生产以预言机/链上为准）
+  anchorValue: z.number().positive().optional(), // sy 资产按实时价值折算锚资产样本率（1 枚 sy ≈ N 锚资产→N uAsset，OB:outstake/uasset.md:21；wstETH≈1.05 样本 :48；样本缺失=组件兜底面值 1，不显槽位——用户裁定 2026-09-25）
   address: fixtureAddressSchema.optional(),
 });
 
@@ -217,6 +218,15 @@ export const transactionSchema = recordSchema.extend({
 });
 
 /** governance.json */
+/** 资金明细构成行（2026-09-26 参照 demo.outrun.build/memeverse/26：国库/未领取奖励多资产
+ *  构成弹窗；具体构成无真源=S 级样本，总额锚 treasuryUAsset/remainingRewards 口径） */
+const governanceAssetSchema = z.object({
+  symbol: z.string(),
+  name: z.string(),
+  amount: amountSchema, // 数量样本（按 unitPrice 样本换算）
+  usdValue: amountSchema, // 美元值样本
+});
+
 export const governanceSchema = recordSchema.extend({
   verseId: idSchema,
   cycleNumber: uintString,
@@ -233,6 +243,7 @@ export const governanceSchema = recordSchema.extend({
   treasuryUAsset: amountSchema.optional(), // 国库 uAsset 余额快照（Governor 托管）
   rewardRatio: rateSchema.optional(), // 划拨比例（初始 2500bps=25%，治理可改——M10:332-333）
   cumulativeIncentivePool: amountSchema.optional(), // 累计激励池（reward ledger 余额）
+  treasuryAssets: z.array(governanceAssetSchema).optional(), // 当期国库构成样本（资金明细弹窗）
   currentCycleVotes: z.object({
     total: amountSchema, // 当期总票数（cast 时刻记入当前周期——M10:337）
     mine: amountSchema, // 样本账户当期票数
@@ -240,7 +251,9 @@ export const governanceSchema = recordSchema.extend({
   lastCycle: z.object({
     number: uintString,
     treasuryUAsset: amountSchema, // 上期期末国库
+    treasuryAssets: z.array(governanceAssetSchema).optional(), // 上期期末国库构成样本（资金明细弹窗）
     remainingRewards: amountSchema, // 未领取滚存（窗口过后并入国库不补发——dao-governance.md:51）
+    unclaimedAssets: z.array(governanceAssetSchema).optional(), // 未领取奖励构成样本（资金明细弹窗）
     totalVotes: amountSchema,
     myVotes: amountSchema,
     myClaimable: amountSchema, // 样本账户上期可领（窗口内）
@@ -277,9 +290,13 @@ export const polPositionSchema = recordSchema.extend({
   polAddress: fixtureAddressSchema, // POL 合约地址（fixture 样本）
   polSupply: amountSchema, // POL 总供应
   uAssetPerPol: rateSchema, // 每 1 POL 对应主池 uAsset 侧数量（名义价值 = 2× 此值——全范围简化）
-  marketPricePerPol: rateSchema, // POL/uAsset 池市场价（相对名义价值溢价/折价）
+  marketPricePerPol: rateSchema, // POL/uAsset 池市场价（相对名义价值溢价/折价皆可——pol-splitter.md；样本口径取典型折价 5–16%，2026-09-24 用户裁定）
   myPol: amountSchema, // 样本账户 POL 余额
-  claimablePol: amountSchema, // 未入池剩余可领（解锁后按比例领取——four-pools.md:25）
+  myPt: amountSchema, // 样本账户 PT 余额（POL 拆分所得，PT-<symbol>——POLSplitterUpgradeable.sol:225）
+  myYt: amountSchema, // 样本账户 YT 余额（拆分所得 + 创世领取，YT-<symbol>——POLSplitterUpgradeable.sol:226）
+  myMemecoin: amountSchema, // 样本账户本 verse memecoin 余额（Mint POL 供给侧样本，2026-09-24 用户裁定造样本使 Max 可用）
+  myUAsset: amountSchema, // 样本账户 uAsset 余额（钱包级资产，各 verse 同值；Mint POL 供给侧样本）
+  claimableYt: amountSchema, // 创世结束后可领 YT（claimNormalYT：Stage≥Locked 一次性按创世出资比例——MemeverseSettlementImpl.sol:88；2026-09-23 用户裁定 Claim POL 不存在，删除该字段）
 });
 
 /** accounts.json（§6.2 九态 + §11.2 形态） */

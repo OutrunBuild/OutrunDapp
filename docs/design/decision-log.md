@@ -199,3 +199,85 @@ C1 结算储备金按 spec 窄口径且 UI 不露出 · C2 建池剩余资金不
 - 顺带修复布局碰撞：`SectionHeading` 长描述把 echo 线拉到描述最后一行高度、压住正文（`align-items: end` 下沉）——描述 `<p>` 移出标题行（新 `.section-heading__row` 只含 h2 + aside），签名线锚定 `border-block-end`，与描述长度解耦。
 - **token 影响**：`--echo-offset` 消费点清零，token 删除（014 正文「不删」的前提不再成立）；`foundations.md` §5、`component-contract.md` §13 同步登记。
 - 验证：tsc/prettier 通过；verse-page（创世详情页，长描述场景）与 showcase 全部 SectionHeading 三档视口复验。
+
+## 2026-09-23 · 品红回声轨道光晕强度微调
+
+- **范围**：`--glow-echo-rail`（定义 `components/design-system/tokens.css`，唯一消费 `app/globals.css` `.product-sidebar` box-shadow）。
+- **决议**：导航栏右缘品红线光晕 `0 0 14px rgba(255, 6, 181, 0.7)` → `0 0 12px rgba(255, 6, 181, 0.55)`；线本体（1px `--accent-echo` 边框）不动。用户指令「稍微减弱一点点，但不要减太多」，非品牌方向变更，Agent 执行后留痕。
+- **验证**：`pnpm build` 通过；prod 4175 重启后 2x 放大截图确认线本体完整、光晕收窄约 21% 且明显暗于线体。
+
+## 2026-09-25 · 杠杆术语：债务额度（Debt quota）→ 借贷资金（Borrowed funds）
+
+- **范围**：杠杆创世 UI 文案（表单实时预览、审阅屏出行；`copy.ts` `leverageDebtQuota`/`leverageDebtPreview` en+zh）。非品牌方向变更，Agent 据用户裁定执行后留痕。
+- **决策**：OB 原词 debt quota 的「额度/quota」暗示未使用的配额，与机制语义不符——参与时即全额 mint 注入创世，是用户已产生、已使用的借贷资金。UI 改称「借贷资金 / Borrowed funds」；**机制口径与代码标识符（debt quota、Debt quota=interest÷rate 公式）不变**，「债务上限（Debt cap）/剩余可建额度」家族不动（那里才是真正的余量语义）。glossary.md B 节对账行同步。
+- 用户原话要点：「Debt quota 的命名更像是一个未使用的额度，但是现在不是未使用的东西啊，而是用户已产生的债务，已使用的借贷资金」；前一轮已提出「站在用户的角度，这应该是借贷的资金」。
+- **验证**：tsc/prettier 通过；杠杆审阅屏浏览器目检（利息金额+借贷资金两行）。
+
+## 2026-09-25 · 按钮边缘统一：删机加工斜面（顶缘 inset 光 + 底缘 inset 暗 + 品红底缘回声）
+
+- **范围**：`app/globals.css` 主题桥按钮段全部 box-shadow 边缘规则——基类 `[data-slot='button']`（顶青光 0.1/底黑 0.45）、default 黄板（顶白高光 0.3/底 2px 品红回声及其 :active 档）、`.swap-panel__cta` 与 `.ax-ghost-cta`（顶黄光 0.22/底黑 0.45，含 hover 顶白光 0.25、禁用顶黄光 0.1）、outline hover（顶青光 0.2/底黑 0.45）、禁用基类（顶青光 0.05）。非按钮元素（KPI 芯片顶缘青光、tab 黄指示条、POL 仪表、输入框等）的 inset 不在范围，维持各自登记。
+- **决议**：用户裁定斜面光感（上亮下暗、底缘异色）不好看，按钮四向边缘一律同色。全部删除，基类钉 `box-shadow: none !important`（兼压 cva `focus-visible:ring-3`/`aria-invalid:ring` 工具类，与 `.ax-glow-cta` 先例同模式；focus 仍走 `tokens.css` 全局青 2px outline，不受影响）。default 黄板随之失去顶白高光与底缘品红回声——品红回声语言保留于 `.ax-glow-cta` 背板错位与徽章，按钮底缘不再使用。hover/active/disabled 反馈保留（bg/border/color 换档 + cva translate-y-px），仅去光感。
+- **token 影响**：无 token 增删；被删值均为字面 rgba，非 token。
+- 用户原话要点：「这种设计不好看，应该统一所有边缘颜色一致」（起因：Launch 页主 CTA、创世详情 Review participation/Revise amount/Confirm prototype state 下边缘偏暗，确认全站按钮同规则）。
+
+## 决议 015 · 品红分层管辖：平面禁令改三层（2026-09-25，用户裁定「执行」）
+
+- **背景**：决议 010/012 将品红定为「错位回声」并写成对品红的全球无条件管辖，但系统演进中品红已被数据语义层合法使用（生命周期 locked 阶段色、POL 仪表名义 datum 等），条文（配对回声）与实际（发丝级独立强调）漂移，合规长期靠变通维持（datum 只能做 1px 构造体操即例证）。用户裁定：该纪律限制创作自由、适用面太大、不合理。
+- **诊断**：规则诞生于品牌铬层且在该层有效，但被写成平面禁令后蔓延到它没有管辖依据的数据语义层——信息设计中品红的合法性来自语义分工与可辨性，与「回声配对」无关。规则需要不断豁免/追认/变通才能维持，合规成本本身即规则形状错误的信号。
+- **决策**：平面禁令改为**三层管辖**：
+  1. **品牌铬层**（产品壳、签名元素、CTA chrome）：维持现行纪律——1–2px 错位线/内衬、小徽章、≥20px 大字或图形；
+  2. **数据语义层**（`data-stage` 阶段色、图表系列、仪表 datum 等语义标记）：按数据层规则管辖——语义全站一致（locked 恒品红）、对比达标、数据墨水克制但**允许面填充**（图表系列、阶段徽章按数据编码需要）；不要求回声配对；
+  3. **营销叙事层**（营销壳、hero、活动页）：最大自由度，品红大字/图形/渐变时刻允许，逐例人工过。
+- **全层禁令保留**：正文与小字号禁用（对比 5.19~5.89:1 档）；不与黄（主行动）青（功能）争语义；禁三色同填同一控件。
+- **效力**：修订 010/012 品红条款的**适用面**（回声签名保留于铬层，不废除；同日「按钮边缘统一」决议中按钮底缘不再用品红回声的既成事实不受影响）。同步 DESIGN.md 不变项/色彩表/Action control 行、token-contract.md 第 3 条、docs/design-system/README.md 硬约束 #4、.agents/skills/outrun-design-system/SKILL.md。v0 侧同名 skill 需人工同步（不在本仓管辖）。
+
+## 2026-09-26 · 青档按钮（outline 变体）描边提亮 36% → 50% → 60%
+
+- **范围**：`app/globals.css` `[data-slot='button'][data-variant='outline']` resting 描边（补登记：2026-09-25 同段「全站去底」——outline resting 灰底改透明、禁用同去底并 22%→32%，当时未入册）。hover 全亮纯青、禁用 32% 档不变。
+- **决议**：用户两轮裁定提亮：36%（`--color-border-signal-strong`）→ 50%（2026-09-25）→ 60%（2026-09-26，「再提亮一点点」）。按钮局部 `color-mix(in srgb, var(--or-cyan) 60%, transparent)`，不动 `--color-border-signal-strong` token——同 token 的 KPI 芯片/卡片/输入/导航消费者不跟随。档序：禁用 32% < resting 60% < hover 100%。
+- **token 影响**：无 token 增删。
+- **验证**：dev + 4175 生产预览计算样式实测 outline 四边 `rgba(0, 240, 255, 0.6)`；截图目检。
+
+## 2026-09-26 · 按钮两项：禁用视觉档全删；corner-shape 换轨尝试撤销（斜切形态保持原版）
+
+- **背景**：用户三问——Add liquidity 右缘偏暗 → 实测根因=按钮基类 clip-path 切角使元素走解析路径栅格化，1px 描边失去整像素对齐（同按钮四边 53%–100% 强度不等、随视口宽度漂移）→ 用户裁定「删除禁用档状态」+「没被禁用的按钮也有边缘亮度不一致」。
+- **决议 1（禁用视觉档全删，生效）**：`globals.css` 删 `[data-slot='button']:disabled`、`[data-variant='outline']:disabled`、`.swap-panel__cta/.ax-ghost-cta:disabled`、`.swap-panel__max:disabled`、`.swap-panel__rate-flip:disabled` 五段；`ui/button.tsx` cva 摘 `disabled:opacity-50`。disabled 属性保留，仅承担交互门控（不可点/aria），hover/title 照旧；state-matrix 的禁用语义为行为层不受影响。
+- **决议 2（corner-shape 换轨，已撤销）**：曾按「边缘像素统一」目标把 clip-path 换为 border-radius+corner-shape:bevel（实验证明可令四边满强度单像素），过程两错：首版误切四角（原版仅左上+右下对角双切）；修正后仍改变角部渲染——corner-shape 使描边沿对角线走，原版 clip-path 的斜切是「裸切无描边」。用户裁定撤销，按钮切角保持原版 clip-path 实现，边缘亮度随亚像素抗锯齿漂移为 clip-path 固有代价、接受现状（与卡片/芯片同待遇，未单独处理）。涉及基类、`.ax-glow-cta` 伪元素、`.back-to-top`，全部逐字恢复原文；渲染与原版逐像素 diff=0。
+- **token 影响**：无增删。
+- 用户原话要点：「删除禁用档状态，根本没有禁用的按钮」「而且没被禁用的按钮也有边缘亮度不一致的问题」「直接回滚回去重做」「根本没有回滚到之前的样子」。
+
+## 2026-09-26 · 卡片/芯片拆同边双笔叠画：删顶缘青 inset 光（2026-09-25 按钮决议延伸到非按钮件）
+
+- **背景**：用户报 Stake 卡输入框下边缘比其他边粗且亮（截图像素实测：底边=亮青 #00f0ff5c 档 + 暗青两行叠带，顶边单行）。诊断：`border: 1px signal 描边` + `box-shadow: inset 0 1px 0 青` 两笔贴着画在同一边缘，非整数 DPR（Windows 150%，DPR=1.5）下各 1px 抗锯齿拆行，糊成 2-3 行不同亮度的青带；叠加 clip-path 亚像素漂移（前一条决议的固有代价）放大观感。样式层四边本一致（DPR=1 实测单行纯色均匀）。
+- **决议（用户裁定「先做第2条」=拆双笔叠画，同边单笔）**：`globals.css` 删 13 处与描边同边的顶缘青 inset 光，保留描边单笔——`.threshold-panel`（唯一 `--inset-light-cyan` 消费者）、`.token-strip__chips div`、`.kpi-chips>div/.liquidity-panel__overview>div/.vault-panel__stats>div/.dao-panel__stats>div`（KPI 芯片合并规则）、`.pool-card`、`.pol-card`、`.vault-card`、`.dao-panel__tally`、`.cycle-card` 与 `[data-current]`、`.vault-panel__lists li`（hover 保留 2px 左选择线，仅删顶光）、`.pol-gauge`/`.pol-gauge__readout`/`.pol-flow`（仪器盒家族）。**保留**：`.pol-gauge` 下陷刻度槽（上暗下亮=sunken 建模，仪表内部件）与 `.pol-gauge__mark`（8×14 读数头）——刻意的立体语言，非卡面描边叠画；`.trade-chart/.swap-panel/.verse-tabs` 雨夜材质 `::after` 顶缘光渗（整面渐变镀膜，非 1px 描边叠线）。
+- **token 影响**：无增删；`--inset-light-cyan`（#00f0ff2e）自此无消费者，定义保留待后续清理决议。
+- **登记**：globals.css 注释（pol-card/vault-card/pol-gauge/pol-flow/读数牌/KPI 芯片）、DESIGN.md 视觉语言 #7 与布局 KPI 带行、docs/design-system/components.md 交易台/四标签容器行同步。
+- **残余接受**：拆双笔后卡/芯片边缘仍存在 clip-path 亚像素亮度漂移（前条决议既定接受项）；本决议消除的是「双笔叠画糊带」这一层放大器。
+- 用户原话要点：「是Stake 卡片里的输入框」「有没有根治的办法，不让缩放影响？」「先做第2条」。
+
+## 2026-09-26 · 阶段双线规律：卡面上边缘回声线=下一阶段色（genesis 黄+品红 / locked 品红+青 / unlocked 青+黄）
+
+- **背景**：用户报发现页 Locked 卡上边缘颜色「不对，没有规律」——此前回声线恒品红，Genesis 卡呈黄+品红而 Locked 卡呈品红+品红（两线同色）、Unlocked 卡呈青+品红，环不闭合。
+- **决议（用户裁定规律）**：主线=当前阶段色，回声线=下一阶段色，沿阶段环 genesis→locked→unlocked→回环：genesis 黄+品红 / locked 品红+青 / unlocked 青+黄；refund 为终态无下一阶段，回声保持品牌品红（橙+品红）。
+- **落点**：`globals.css` 阶段变量组增 `--stage-next`（选择器组扩为 `:is(.economy-card, .back-to-top, .verse-hero)[data-stage]`），`.economy-card::after` 回声线 `background` 改 `var(--stage-next, var(--accent-echo))`；`.verse-hero` 底部签名线同律（主线 `--stage-color`、回声 `--stage-next`，`verse-page.tsx` hero 根加 `data-stage`）——详情页与卡片同步。
+- **决议 015 关系**：卡面阶段线属数据语义层（②），回声线在此承担语义（下一阶段预告）而非铬层回声纪律；铬层恒品红回声（顶栏签名线、`page-intro` 等）不变。`.action-panel` 顶部黄线=主行动信号（黄唯一主行动），不跟阶段、不加回声。
+- **token 影响**：无 token 增删（复用 `--accent-primary`/`--accent-echo`/`--or-cyan`/`--color-warning`）；组件级新变量 `--stage-next` 已登记 components.md / component-contract.md。
+- **验证**：tsc --noEmit 通过；发现页三 tab + 详情页 locked/unlocked 视觉复核（主线/回声两色按环取色）。
+
+## 2026-09-26 · 按钮家族描边换 Paint Worklet 画皮（实验室 F 区验收通过，用户裁定「点头，就这样吧」）
+
+- **背景**：同日早前裁定「接受 clip-path 亚像素漂移现状」后，用户要求继续探索；实验室页（/design-review/edge-pipeline）A–F 七轮实测：worklet 路线边线恒单线、无鬼影行、亮度下限 52%（clip-path 实测 28%+鬼影行/双行）；F 区真按钮解剖（含 hover 换肤）用户眼睛验收通过。canvas 路线两档（细版横边发虚/墨量版厚一档）被否。
+- **决议**：全部 `[data-slot='button']`（default/outline/.swap-panel__cta/.ax-ghost-cta）描边+切角改由 Paint Worklet 绘制（`public/paint/chamfer-border.js`，`background: paint(chamfer-border)`）：worklet 画切角填充+四边发丝线；`--cb-bg/--cb-border` 皮肤变量经 `@property`（<color>）注册可平滑过渡（hover 换肤走 CSS 变量，transition-property 列入）；`components/design-system/paint-skin.tsx` 挂根 layout 负责 addModule + `--dpr` 同步（resolution MQ 重建监听）。
+- **豁免两员**：`.ax-glow-cta` 自带 clip-path（品红/黄伪元素背板需裁形，自身描边透明无 AA 问题）；`.discovery-browser .back-to-top` 单角切角几何不同，其 0-2-0 !important 边框/底色天然压过基类画皮。
+- **回落**：`@supports not (background: paint(...))` 恢复原 clip-path+border 基类（变体仅保文字色）——本仓生产口径 Chromium，回落只求不破形。
+- **清除**：`.swap-panel__cta` 的 `--primary/--primary-foreground` 降噪通道（画皮后无消费者）。
+- **token 影响**：无增删；`--cb-bg/--cb-border` 为 @property 注册的皮肤变量（非设计 token）。
+- **实测**（4175 生产、DPR 1.5、真 .swap-panel__cta）：左右=满强度单列、顶=单行、底≈两行半强度（worklet 特征行为，下限 54%）；home/explore/launch/portfolio 四页按钮全部 paint() 且可交互。
+- 用户原话要点：「点头，就这样吧」。
+
+## 2026-09-26 · 补充：按钮 hover 换肤不再排除 disabled（用户发现「Add liquidity 没有悬停」）
+
+- **诊断**：Add liquidity 等原型写操作按钮带 `disabled` 属性（交互门控，不伪造链上写入），而 hover 规则自旧 clip-path 时代即挂 `:hover:not(:disabled)`——disabled 钮悬停不变样是旧制遗留，非画皮回归；与同日「禁用视觉档全删（disabled 与 enabled 渲染像素一致）」裁定精神冲突（看着活着却无悬停反馈）。
+- **决议**：按钮六条 hover 规则（default/outline/.swap-panel__cta/.ax-ghost-cta/.ax-glow-cta 及其 ::after）摘除 `:not(:disabled)`——disabled 钮获得与 enabled 一致的悬停换肤（画皮变量经 @property 平滑过渡，worklet 重绘）；`:active` 仍限 enabled（点击反馈保留给真可点件）。
+- **验证**（4175 生产）：鼠标移入 disabled 的 Add liquidity——`:hover` 命中，`--cb-border`→纯青、`--cb-bg`→青 8% tinted、文字→青。
+- 用户原话要点：「没有悬停 hover 吗？我说的是 add liquidity 按钮」。
