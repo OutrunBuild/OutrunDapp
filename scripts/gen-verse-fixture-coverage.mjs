@@ -50,6 +50,14 @@ const UNCLAIMED_SPLIT = [
   ['USDT', 'Tether USD', 1, 0.2],
   ['DAI', 'Dai', 1, 0.1],
 ];
+// 可领奖励构成（2026-09-30 可领明细弹窗；机制=getClaimableReward(user) 多 token 按票权份额
+// ——GovernanceCycleIncentivizerUpgradeable.sol:199；总额锚 myClaimable，宇宙同 rewardTokenList 样本）
+const CLAIMABLE_SPLIT = [
+  ['ETH', 'Ethereum', 2500, 0.38],
+  ['USDC', 'USD Coin', 1, 0.3],
+  ['USDT', 'Tether USD', 1, 0.2],
+  ['DAI', 'Dai', 1, 0.12],
+];
 const composeAssets = (total, split) =>
   split.map(([symbol, name, unitPrice, weight]) => {
     const usdValue = round(total * weight, 2);
@@ -300,9 +308,20 @@ for (const g of governance.items) {
     g.treasuryAssets = composeAssets(Number(g.treasuryUAsset.raw), TREASURY_SPLIT);
   if (g.lastCycle) {
     if (!g.lastCycle.treasuryAssets && g.lastCycle.treasuryUAsset)
-      g.lastCycle.treasuryAssets = composeAssets(Number(g.lastCycle.treasuryUAsset.raw), TREASURY_SPLIT);
+      g.lastCycle.treasuryAssets = composeAssets(
+        Number(g.lastCycle.treasuryUAsset.raw),
+        TREASURY_SPLIT,
+      );
     if (!g.lastCycle.unclaimedAssets && g.lastCycle.remainingRewards)
-      g.lastCycle.unclaimedAssets = composeAssets(Number(g.lastCycle.remainingRewards.raw), UNCLAIMED_SPLIT);
+      g.lastCycle.unclaimedAssets = composeAssets(
+        Number(g.lastCycle.remainingRewards.raw),
+        UNCLAIMED_SPLIT,
+      );
+    if (!g.lastCycle.claimableAssets && g.lastCycle.myClaimable)
+      g.lastCycle.claimableAssets = composeAssets(
+        Number(g.lastCycle.myClaimable.raw),
+        CLAIMABLE_SPLIT,
+      );
   }
 }
 

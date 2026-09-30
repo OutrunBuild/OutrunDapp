@@ -187,6 +187,56 @@
               "decimals": 2
             }
           }
+        ],
+        "claimableAssets": [
+          {
+            "symbol": "ETH",
+            "name": "Ethereum",
+            "amount": {
+              "raw": "4.332000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "10830.00",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDC",
+            "name": "USD Coin",
+            "amount": {
+              "raw": "8550.000000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "8550.00",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDT",
+            "name": "Tether USD",
+            "amount": {
+              "raw": "5700.000000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "5700.00",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "DAI",
+            "name": "Dai",
+            "amount": {
+              "raw": "3420.000000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "3420.00",
+              "decimals": 2
+            }
+          }
         ]
       },
       "proposals": [
@@ -475,6 +525,56 @@
               "decimals": 2
             }
           }
+        ],
+        "claimableAssets": [
+          {
+            "symbol": "ETH",
+            "name": "Ethereum",
+            "amount": {
+              "raw": "2.340800",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "5852.00",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDC",
+            "name": "USD Coin",
+            "amount": {
+              "raw": "4620.000000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "4620.00",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDT",
+            "name": "Tether USD",
+            "amount": {
+              "raw": "3080.000000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "3080.00",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "DAI",
+            "name": "Dai",
+            "amount": {
+              "raw": "1848.000000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "1848.00",
+              "decimals": 2
+            }
+          }
         ]
       },
       "proposals": [],
@@ -723,6 +823,56 @@
             },
             "usdValue": {
               "raw": "480901.04",
+              "decimals": 2
+            }
+          }
+        ],
+        "claimableAssets": [
+          {
+            "symbol": "ETH",
+            "name": "Ethereum",
+            "amount": {
+              "raw": "5.157208",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "12893.02",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDC",
+            "name": "USD Coin",
+            "amount": {
+              "raw": "10178.700000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "10178.70",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDT",
+            "name": "Tether USD",
+            "amount": {
+              "raw": "6785.800000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "6785.80",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "DAI",
+            "name": "Dai",
+            "amount": {
+              "raw": "4071.480000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "4071.48",
               "decimals": 2
             }
           }
@@ -977,6 +1127,56 @@
               "decimals": 2
             }
           }
+        ],
+        "claimableAssets": [
+          {
+            "symbol": "ETH",
+            "name": "Ethereum",
+            "amount": {
+              "raw": "5.584480",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "13961.20",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDC",
+            "name": "USD Coin",
+            "amount": {
+              "raw": "11022.000000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "11022.00",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDT",
+            "name": "Tether USD",
+            "amount": {
+              "raw": "7348.000000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "7348.00",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "DAI",
+            "name": "Dai",
+            "amount": {
+              "raw": "4408.800000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "4408.80",
+              "decimals": 2
+            }
+          }
         ]
       },
       "proposals": [],
@@ -1225,6 +1425,56 @@
             },
             "usdValue": {
               "raw": "302661.76",
+              "decimals": 2
+            }
+          }
+        ],
+        "claimableAssets": [
+          {
+            "symbol": "ETH",
+            "name": "Ethereum",
+            "amount": {
+              "raw": "3.602552",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "9006.38",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDC",
+            "name": "USD Coin",
+            "amount": {
+              "raw": "7110.300000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "7110.30",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDT",
+            "name": "Tether USD",
+            "amount": {
+              "raw": "4740.200000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "4740.20",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "DAI",
+            "name": "Dai",
+            "amount": {
+              "raw": "2844.120000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "2844.12",
               "decimals": 2
             }
           }
@@ -1479,6 +1729,56 @@
               "decimals": 2
             }
           }
+        ],
+        "claimableAssets": [
+          {
+            "symbol": "ETH",
+            "name": "Ethereum",
+            "amount": {
+              "raw": "4.857920",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "12144.80",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDC",
+            "name": "USD Coin",
+            "amount": {
+              "raw": "9588.000000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "9588.00",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDT",
+            "name": "Tether USD",
+            "amount": {
+              "raw": "6392.000000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "6392.00",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "DAI",
+            "name": "Dai",
+            "amount": {
+              "raw": "3835.200000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "3835.20",
+              "decimals": 2
+            }
+          }
         ]
       },
       "proposals": [],
@@ -1727,6 +2027,56 @@
             },
             "usdValue": {
               "raw": "362239.28",
+              "decimals": 2
+            }
+          }
+        ],
+        "claimableAssets": [
+          {
+            "symbol": "ETH",
+            "name": "Ethereum",
+            "amount": {
+              "raw": "8.745320",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "21863.30",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDC",
+            "name": "USD Coin",
+            "amount": {
+              "raw": "17260.500000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "17260.50",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDT",
+            "name": "Tether USD",
+            "amount": {
+              "raw": "11507.000000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "11507.00",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "DAI",
+            "name": "Dai",
+            "amount": {
+              "raw": "6904.200000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "6904.20",
               "decimals": 2
             }
           }
@@ -1981,6 +2331,56 @@
               "decimals": 2
             }
           }
+        ],
+        "claimableAssets": [
+          {
+            "symbol": "ETH",
+            "name": "Ethereum",
+            "amount": {
+              "raw": "2.277568",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "5693.92",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDC",
+            "name": "USD Coin",
+            "amount": {
+              "raw": "4495.200000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "4495.20",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDT",
+            "name": "Tether USD",
+            "amount": {
+              "raw": "2996.800000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "2996.80",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "DAI",
+            "name": "Dai",
+            "amount": {
+              "raw": "1798.080000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "1798.08",
+              "decimals": 2
+            }
+          }
         ]
       },
       "proposals": [],
@@ -2229,6 +2629,56 @@
             },
             "usdValue": {
               "raw": "422426.00",
+              "decimals": 2
+            }
+          }
+        ],
+        "claimableAssets": [
+          {
+            "symbol": "ETH",
+            "name": "Ethereum",
+            "amount": {
+              "raw": "7.628880",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "19072.20",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDC",
+            "name": "USD Coin",
+            "amount": {
+              "raw": "15057.000000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "15057.00",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDT",
+            "name": "Tether USD",
+            "amount": {
+              "raw": "10038.000000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "10038.00",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "DAI",
+            "name": "Dai",
+            "amount": {
+              "raw": "6022.800000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "6022.80",
               "decimals": 2
             }
           }
@@ -2483,6 +2933,56 @@
               "decimals": 2
             }
           }
+        ],
+        "claimableAssets": [
+          {
+            "symbol": "ETH",
+            "name": "Ethereum",
+            "amount": {
+              "raw": "4.749088",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "11872.72",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDC",
+            "name": "USD Coin",
+            "amount": {
+              "raw": "9373.200000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "9373.20",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDT",
+            "name": "Tether USD",
+            "amount": {
+              "raw": "6248.800000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "6248.80",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "DAI",
+            "name": "Dai",
+            "amount": {
+              "raw": "3749.280000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "3749.28",
+              "decimals": 2
+            }
+          }
         ]
       },
       "proposals": [],
@@ -2731,6 +3231,56 @@
             },
             "usdValue": {
               "raw": "237184.24",
+              "decimals": 2
+            }
+          }
+        ],
+        "claimableAssets": [
+          {
+            "symbol": "ETH",
+            "name": "Ethereum",
+            "amount": {
+              "raw": "2.798776",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "6996.94",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDC",
+            "name": "USD Coin",
+            "amount": {
+              "raw": "5523.900000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "5523.90",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDT",
+            "name": "Tether USD",
+            "amount": {
+              "raw": "3682.600000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "3682.60",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "DAI",
+            "name": "Dai",
+            "amount": {
+              "raw": "2209.560000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "2209.56",
               "decimals": 2
             }
           }
@@ -2985,6 +3535,56 @@
               "decimals": 2
             }
           }
+        ],
+        "claimableAssets": [
+          {
+            "symbol": "ETH",
+            "name": "Ethereum",
+            "amount": {
+              "raw": "13.951472",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "34878.68",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDC",
+            "name": "USD Coin",
+            "amount": {
+              "raw": "27535.800000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "27535.80",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDT",
+            "name": "Tether USD",
+            "amount": {
+              "raw": "18357.200000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "18357.20",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "DAI",
+            "name": "Dai",
+            "amount": {
+              "raw": "11014.320000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "11014.32",
+              "decimals": 2
+            }
+          }
         ]
       },
       "proposals": [],
@@ -3233,6 +3833,56 @@
             },
             "usdValue": {
               "raw": "875265.76",
+              "decimals": 2
+            }
+          }
+        ],
+        "claimableAssets": [
+          {
+            "symbol": "ETH",
+            "name": "Ethereum",
+            "amount": {
+              "raw": "10.272312",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "25680.78",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDC",
+            "name": "USD Coin",
+            "amount": {
+              "raw": "20274.300000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "20274.30",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDT",
+            "name": "Tether USD",
+            "amount": {
+              "raw": "13516.200000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "13516.20",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "DAI",
+            "name": "Dai",
+            "amount": {
+              "raw": "8109.720000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "8109.72",
               "decimals": 2
             }
           }
@@ -3487,6 +4137,56 @@
               "decimals": 2
             }
           }
+        ],
+        "claimableAssets": [
+          {
+            "symbol": "ETH",
+            "name": "Ethereum",
+            "amount": {
+              "raw": "3.960968",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "9902.42",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDC",
+            "name": "USD Coin",
+            "amount": {
+              "raw": "7817.700000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "7817.70",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDT",
+            "name": "Tether USD",
+            "amount": {
+              "raw": "5211.800000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "5211.80",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "DAI",
+            "name": "Dai",
+            "amount": {
+              "raw": "3127.080000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "3127.08",
+              "decimals": 2
+            }
+          }
         ]
       },
       "proposals": [],
@@ -3735,6 +4435,56 @@
             },
             "usdValue": {
               "raw": "331419.12",
+              "decimals": 2
+            }
+          }
+        ],
+        "claimableAssets": [
+          {
+            "symbol": "ETH",
+            "name": "Ethereum",
+            "amount": {
+              "raw": "6.992152",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "17480.38",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDC",
+            "name": "USD Coin",
+            "amount": {
+              "raw": "13800.300000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "13800.30",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDT",
+            "name": "Tether USD",
+            "amount": {
+              "raw": "9200.200000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "9200.20",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "DAI",
+            "name": "Dai",
+            "amount": {
+              "raw": "5520.120000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "5520.12",
               "decimals": 2
             }
           }
@@ -3989,6 +4739,56 @@
               "decimals": 2
             }
           }
+        ],
+        "claimableAssets": [
+          {
+            "symbol": "ETH",
+            "name": "Ethereum",
+            "amount": {
+              "raw": "6.318640",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "15796.60",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDC",
+            "name": "USD Coin",
+            "amount": {
+              "raw": "12471.000000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "12471.00",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDT",
+            "name": "Tether USD",
+            "amount": {
+              "raw": "8314.000000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "8314.00",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "DAI",
+            "name": "Dai",
+            "amount": {
+              "raw": "4988.400000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "4988.40",
+              "decimals": 2
+            }
+          }
         ]
       },
       "proposals": [],
@@ -4237,6 +5037,56 @@
             },
             "usdValue": {
               "raw": "164884.24",
+              "decimals": 2
+            }
+          }
+        ],
+        "claimableAssets": [
+          {
+            "symbol": "ETH",
+            "name": "Ethereum",
+            "amount": {
+              "raw": "3.778872",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "9447.18",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDC",
+            "name": "USD Coin",
+            "amount": {
+              "raw": "7458.300000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "7458.30",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDT",
+            "name": "Tether USD",
+            "amount": {
+              "raw": "4972.200000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "4972.20",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "DAI",
+            "name": "Dai",
+            "amount": {
+              "raw": "2983.320000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "2983.32",
               "decimals": 2
             }
           }
@@ -4491,6 +5341,56 @@
               "decimals": 2
             }
           }
+        ],
+        "claimableAssets": [
+          {
+            "symbol": "ETH",
+            "name": "Ethereum",
+            "amount": {
+              "raw": "4.327592",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "10818.98",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDC",
+            "name": "USD Coin",
+            "amount": {
+              "raw": "8541.300000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "8541.30",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDT",
+            "name": "Tether USD",
+            "amount": {
+              "raw": "5694.200000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "5694.20",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "DAI",
+            "name": "Dai",
+            "amount": {
+              "raw": "3416.520000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "3416.52",
+              "decimals": 2
+            }
+          }
         ]
       },
       "proposals": [],
@@ -4742,6 +5642,56 @@
               "decimals": 2
             }
           }
+        ],
+        "claimableAssets": [
+          {
+            "symbol": "ETH",
+            "name": "Ethereum",
+            "amount": {
+              "raw": "8.022104",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "20055.26",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDC",
+            "name": "USD Coin",
+            "amount": {
+              "raw": "15833.100000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "15833.10",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDT",
+            "name": "Tether USD",
+            "amount": {
+              "raw": "10555.400000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "10555.40",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "DAI",
+            "name": "Dai",
+            "amount": {
+              "raw": "6333.240000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "6333.24",
+              "decimals": 2
+            }
+          }
         ]
       },
       "proposals": [],
@@ -4990,6 +5940,56 @@
             },
             "usdValue": {
               "raw": "153254.48",
+              "decimals": 2
+            }
+          }
+        ],
+        "claimableAssets": [
+          {
+            "symbol": "ETH",
+            "name": "Ethereum",
+            "amount": {
+              "raw": "1.347024",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "3367.56",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDC",
+            "name": "USD Coin",
+            "amount": {
+              "raw": "2658.600000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "2658.60",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "USDT",
+            "name": "Tether USD",
+            "amount": {
+              "raw": "1772.400000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "1772.40",
+              "decimals": 2
+            }
+          },
+          {
+            "symbol": "DAI",
+            "name": "Dai",
+            "amount": {
+              "raw": "1063.440000",
+              "decimals": 6
+            },
+            "usdValue": {
+              "raw": "1063.44",
               "decimals": 2
             }
           }

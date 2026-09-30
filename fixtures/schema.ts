@@ -85,6 +85,7 @@ export const chainSchema = recordSchema.extend({
 /** assets.json */
 export const assetSchema = recordSchema.extend({
   symbol: z.string(),
+  name: z.string().optional(), // 代币本名（储备=真实代币 canonical 名 Ethereum/USD Coin 等；缺失=组件回退 symbol，2026-09-27 Swap 选择弹窗行名）
   kind: z.enum(['uasset', 'reserve', 'sy', 'memecoin', 'share', 'credit']),
   decimals: z.number().int().min(0).max(18),
   anchorNote: z.string().optional(), // uAsset 锚定限定语（glossary A）
@@ -188,6 +189,9 @@ export const marketSchema = recordSchema.extend({
   pool: z.enum(['main', 'pol-uasset', 'pt-uasset', 'pt-pol']),
   tvl: amountSchema,
   feeState: z.enum(['normal', 'opening-decay', 'dynamic-applied', 'paused-protection']),
+  // 池动态费率样本（dynamic fee hook——OB:memeverse/hook.md 基础费率下限 1%+动态项、合约 FEE_BASE_BPS=100/FEE_MAX_BPS=10000——DynamicFeeMath.sol:41-42；bps 计，稳态池样本带宽 100–800 bps（1%–8%）——gen-market-fee.mjs；
+  // 2026-09-28 用户裁定造数看原型效果（Flash Swap 费率行数值源）；缺失=槽位 '--'
+  feeRate: z.object({ raw: decimalString, unit: z.literal('bps'), scale: z.number().int().min(0).max(4) }).optional(),
   lpShareSample: z.object({ poolShare: rateSchema, pendingFees: amountSchema }).optional(),
   candles: z.array(candleSchema).max(500).optional(), // 主池 K 线样本（1h 原始粒度；4h/1d/1w 由展示层聚合）
   candlesFine: z
@@ -199,6 +203,7 @@ export const marketSchema = recordSchema.extend({
     .optional(), // 细粒度蜡烛样本（2026-09-23 用户裁定：全部粒度可选、假数据看效果）
   volume24h: amountSchema.optional(), // 24h 成交量快照（池维度；缺失=UI 显「以链上读值为准」槽位）
   apr7d: rateSchema.optional(), // 近 7 日费率年化样本（展示推导值；缺失=槽位）
+  lpPerQuote: rateSchema.optional(), // LP 铸得率样本：每供给 1 quote 侧资产铸得 LP 数量（totalSupply/R_quote v2 式口径；Add Liquidity 弹窗输出推导，2026-09-27；缺失=槽位）
   tokenStats: z.object({ // 仅主池条目携带（代币统计条——R-06）
     totalSupply: amountSchema, // Memecoin 总供应快照
     holders: z.number().int().positive(), // 持有人数快照
@@ -252,11 +257,12 @@ export const governanceSchema = recordSchema.extend({
     number: uintString,
     treasuryUAsset: amountSchema, // 上期期末国库
     treasuryAssets: z.array(governanceAssetSchema).optional(), // 上期期末国库构成样本（资金明细弹窗）
-    remainingRewards: amountSchema, // 未领取滚存（窗口过后并入国库不补发——dao-governance.md:51）
+    remainingRewards: amountSchema, // 未领取奖励（窗口过后并入国库不补发——dao-governance.md:51）
     unclaimedAssets: z.array(governanceAssetSchema).optional(), // 未领取奖励构成样本（资金明细弹窗）
     totalVotes: amountSchema,
     myVotes: amountSchema,
     myClaimable: amountSchema, // 样本账户上期可领（窗口内）
+    claimableAssets: z.array(governanceAssetSchema).optional(), // 可领奖励构成样本（多 token 按票权份额——GovernanceCycleIncentivizerUpgradeable.sol:199；可领明细弹窗）
   }).optional(),
   proposals: z.array(z.object({
     id: idSchema,
@@ -291,12 +297,25 @@ export const polPositionSchema = recordSchema.extend({
   polSupply: amountSchema, // POL 总供应
   uAssetPerPol: rateSchema, // 每 1 POL 对应主池 uAsset 侧数量（名义价值 = 2× 此值——全范围简化）
   marketPricePerPol: rateSchema, // POL/uAsset 池市场价（相对名义价值溢价/折价皆可——pol-splitter.md；样本口径取典型折价 5–16%，2026-09-24 用户裁定）
+  flashUserFeeRate: rateSchema, // Flash Swap 用户手续费率样本（相对用户支付额——池动态费按 PT 全腿名义收取、用户只付差额，杠杆换算后谱系可 <1% 也可远超常量级；带宽 0.3%–85% 覆盖极小到极高——gen-pol-flash-fee.mjs，2026-09-28 用户裁定：费率=用户付的手续费、假数据不做推导；过高时合约 InvalidBuyCost/MaxPOLInExceeded 回滚无法成交）
+  ptPricePerPol: rateSchema, // 每 1 PT 的 PT/POL 池市场价（PT 折价交易——pol-splitter.md:44；样本锚=yt-flash-swap.md 示例 PT≈0.9 POL，YT 隐含价=1−此值——yt-flash-swap.md「1 POL=1 PT+1 YT」；2026-09-27 Swap 代币选择）
   myPol: amountSchema, // 样本账户 POL 余额
   myPt: amountSchema, // 样本账户 PT 余额（POL 拆分所得，PT-<symbol>——POLSplitterUpgradeable.sol:225）
   myYt: amountSchema, // 样本账户 YT 余额（拆分所得 + 创世领取，YT-<symbol>——POLSplitterUpgradeable.sol:226）
   myMemecoin: amountSchema, // 样本账户本 verse memecoin 余额（Mint POL 供给侧样本，2026-09-24 用户裁定造样本使 Max 可用）
   myUAsset: amountSchema, // 样本账户 uAsset 余额（钱包级资产，各 verse 同值；Mint POL 供给侧样本）
+  myReserve: amountSchema, // 样本账户本 verse PSM 配对储备余额（钱包级；Swap 储备侧供给样本——2026-09-28 用户裁定造数，gen-pol-my-reserve.mjs；单储备口径简化：本仓 market verse 每族仅一配对储备）
+  myLp: z.object({
+    // 四池 LP 代币余额样本（Remove Liquidity 弹窗供给侧，2026-09-27；键=池标识同 marketSchema.pool；
+    // 量级锚=各侧持仓 × 供给比例 × lpPerQuote——gen-pol-my-lp.mjs 幂等生成）
+    main: amountSchema,
+    'pol-uasset': amountSchema,
+    'pt-uasset': amountSchema,
+    'pt-pol': amountSchema,
+  }),
   claimableYt: amountSchema, // 创世结束后可领 YT（claimNormalYT：Stage≥Locked 一次性按创世出资比例——MemeverseSettlementImpl.sol:88；2026-09-23 用户裁定 Claim POL 不存在，删除该字段）
+  ytRedeemUAssetPerUnit: rateSchema.optional(), // 每 1 YT 赎回摊得 uAsset（结算回收剩余池派生——POLSplitterUpgradeable.sol:404；locked 记录=结算预估样本（2026-09-28 用户裁定造数看原型效果，gen-pol-yt-uasset-leg.mjs 锚 unlocked 量级 ≈uAssetPerPol 3–5%），unlocked=结算后剩余池派生样本；缺失→「以链上读值为准」槽位）
+  ytRedeemMemecoinPerUnit: rateSchema.optional(), // 每 1 YT 赎回摊得 memecoin（redeemYT：settlementMemecoin×份额/流通 YT——POLSplitterUpgradeable.sol:405；同上）
 });
 
 /** accounts.json（§6.2 九态 + §11.2 形态） */

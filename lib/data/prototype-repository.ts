@@ -49,10 +49,14 @@ export type PrototypeMarket = SourceRecord & {
   pool: 'main' | 'pol-uasset' | 'pt-uasset' | 'pt-pol';
   tvl: number;
   feeState: string;
+  /** 池动态费率（markets feeRate bps→比率，如 0.008=0.8%——OB:memeverse/hook.md 动态费样本）；null=槽位 */
+  feeRate: number | null;
   /** 24h 成交量快照；null=fixture 缺失→UI 显「以链上读值为准」槽位 */
   volume24h: number | null;
   /** 近 7 日费率年化样本（展示推导值）；null=槽位 */
   apr7d: number | null;
+  /** LP 铸得率样本：每供给 1 quote 侧铸得 LP 数量（Add Liquidity 弹窗输出推导）；null=槽位 */
+  lpPerQuote: number | null;
 };
 
 export type PrototypeSocial = {
@@ -111,6 +115,8 @@ export type PrototypeVerse = SourceRecord & {
 
 export type PrototypeAsset = SourceRecord & {
   symbol: string;
+  /** 代币本名（assets.json name；缺失=组件回退 symbol） */
+  name?: string;
   anchorNote?: string;
   /** sy 资产折算锚资产样本率（1 枚 sy ≈ N 锚资产→N uAsset，实时变动；缺失=null 语义——审阅屏显槽位） */
   anchorValue?: number;
@@ -160,8 +166,10 @@ function getSnapshot(): PrototypeSnapshot {
       pool: market.pool as PrototypeMarket['pool'],
       tvl: amount(market.tvl.raw),
       feeState: market.feeState,
+      feeRate: market.feeRate ? Number(market.feeRate.raw) / 1e4 : null,
       volume24h: market.volume24h ? amount(market.volume24h.raw) : null,
       apr7d: market.apr7d ? Number(market.apr7d.raw) : null,
+      lpPerQuote: market.lpPerQuote ? Number(market.lpPerQuote.raw) : null,
     };
     const current = marketsByVerse.get(market.verseId) ?? [];
     current.push(normalizedMarket);
@@ -348,6 +356,7 @@ export function getPrototypeParticipationOptions(
     id: asset.id,
     sourceRef: asset.sourceRef,
     symbol: asset.symbol,
+    name: asset.name,
     anchorValue: asset.anchorValue,
   });
   // uAsset 符号约定 = 'U' + 底层族符号（UETH/UUSD/UBNB——glossary A）；来源只对本族 Verse 开放
@@ -654,6 +663,10 @@ export type PrototypePolPosition = {
   nominalValuePerPol: number;
   /** POL/uAsset 池市场价 */
   marketPricePerPol: number;
+  /** 每 1 PT 的 PT/POL 池市场价（YT 隐含价=1−此值——yt-flash-swap.md「1 POL=1 PT+1 YT」） */
+  ptPricePerPol: number;
+  /** Flash Swap 用户手续费率样本（相对支付额，谱系 <1%–极高——见 fixture 注释）；null=槽位 */
+  flashUserFeeRate: number;
   myPol: number;
   myPt: number;
   myYt: number;
@@ -661,8 +674,16 @@ export type PrototypePolPosition = {
   myMemecoin: number;
   /** 样本账户 uAsset 余额（钱包级资产；Mint POL 供给侧样本） */
   myUAsset: number;
+  /** 样本账户本 verse PSM 配对储备余额（钱包级；Swap 储备侧供给样本） */
+  myReserve: number;
+  /** 四池 LP 代币余额样本（Remove Liquidity 供给侧；键=池标识） */
+  myLp: { main: number; 'pol-uasset': number; 'pt-uasset': number; 'pt-pol': number };
   /** 创世结束后可领 YT（claimNormalYT 一次性按出资比例——MemeverseSettlementImpl.sol:88） */
   claimableYt: number;
+  /** 每 1 YT 赎回摊得 uAsset（结算后剩余池×份额/流通 YT——POLSplitterUpgradeable.sol:404；null=无样本槽位态） */
+  ytRedeemUAssetPerUnit: number | null;
+  /** 每 1 YT 赎回摊得 memecoin（settlementMemecoin×份额/流通 YT——POLSplitterUpgradeable.sol:405；null=无样本槽位态） */
+  ytRedeemMemecoinPerUnit: number | null;
 };
 
 /** POL/PT/YT 持仓与估值样本（locked/unlocked verse；null=槽位态） */
@@ -676,12 +697,27 @@ export function getPrototypePolPosition(verseId: string): PrototypePolPosition |
     uAssetPerPol,
     nominalValuePerPol: uAssetPerPol * 2,
     marketPricePerPol: Number(record.marketPricePerPol.raw),
+    ptPricePerPol: Number(record.ptPricePerPol.raw),
+    flashUserFeeRate: Number(record.flashUserFeeRate.raw),
     myPol: amount(record.myPol.raw),
     myPt: amount(record.myPt.raw),
     myYt: amount(record.myYt.raw),
     myMemecoin: amount(record.myMemecoin.raw),
     myUAsset: amount(record.myUAsset.raw),
+    myReserve: amount(record.myReserve.raw),
+    myLp: {
+      main: amount(record.myLp.main.raw),
+      'pol-uasset': amount(record.myLp['pol-uasset'].raw),
+      'pt-uasset': amount(record.myLp['pt-uasset'].raw),
+      'pt-pol': amount(record.myLp['pt-pol'].raw),
+    },
     claimableYt: amount(record.claimableYt.raw),
+    ytRedeemUAssetPerUnit: record.ytRedeemUAssetPerUnit
+      ? Number(record.ytRedeemUAssetPerUnit.raw)
+      : null,
+    ytRedeemMemecoinPerUnit: record.ytRedeemMemecoinPerUnit
+      ? Number(record.ytRedeemMemecoinPerUnit.raw)
+      : null,
   };
 }
 
@@ -722,6 +758,8 @@ export type PrototypeGovernanceState = {
     totalVotes: number;
     myVotes: number;
     myClaimable: number;
+    /** 可领奖励构成样本（多 token 按票权份额；null=无样本→明细入口不渲染） */
+    claimableAssets: PrototypeGovernanceAsset[] | null;
     /** 未领取奖励构成样本（null=无样本→明细入口不渲染） */
     unclaimedAssets: PrototypeGovernanceAsset[] | null;
   } | null;
@@ -784,6 +822,7 @@ export function getPrototypeGovernanceState(verseId: string): PrototypeGovernanc
           totalVotes: amount(record.lastCycle.totalVotes.raw),
           myVotes: amount(record.lastCycle.myVotes.raw),
           myClaimable: amount(record.lastCycle.myClaimable.raw),
+          claimableAssets: mapAssets(record.lastCycle.claimableAssets),
           unclaimedAssets: mapAssets(record.lastCycle.unclaimedAssets),
         }
       : null,

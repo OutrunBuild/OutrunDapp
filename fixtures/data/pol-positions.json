@@ -50,6 +50,43 @@
       "claimableYt": {
         "raw": "0",
         "decimals": 18
+      },
+      "myLp": {
+        "main": {
+          "raw": "69090.32",
+          "decimals": 18
+        },
+        "pol-uasset": {
+          "raw": "2920.81",
+          "decimals": 18
+        },
+        "pt-uasset": {
+          "raw": "941.91",
+          "decimals": 18
+        },
+        "pt-pol": {
+          "raw": "2803.66",
+          "decimals": 18
+        }
+      },
+      "ptPricePerPol": {
+        "raw": "0.8964",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "ytRedeemUAssetPerUnit": {
+        "raw": "0.0281",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myReserve": {
+        "raw": "5094.58",
+        "decimals": 18
+      },
+      "flashUserFeeRate": {
+        "raw": "0.2875",
+        "unit": "ratio",
+        "scale": 18
       }
     },
     {
@@ -100,6 +137,48 @@
       "claimableYt": {
         "raw": "1876.02",
         "decimals": 18
+      },
+      "ytRedeemUAssetPerUnit": {
+        "raw": "0.0231",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "ytRedeemMemecoinPerUnit": {
+        "raw": "124.6078",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myLp": {
+        "main": {
+          "raw": "61387.67",
+          "decimals": 18
+        },
+        "pol-uasset": {
+          "raw": "19999.68",
+          "decimals": 18
+        },
+        "pt-uasset": {
+          "raw": "3629.86",
+          "decimals": 18
+        },
+        "pt-pol": {
+          "raw": "12672.01",
+          "decimals": 18
+        }
+      },
+      "ptPricePerPol": {
+        "raw": "0.8820",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myReserve": {
+        "raw": "5757.76",
+        "decimals": 18
+      },
+      "flashUserFeeRate": {
+        "raw": "0.4771",
+        "unit": "ratio",
+        "scale": 18
       }
     },
     {
@@ -150,6 +229,43 @@
       "claimableYt": {
         "raw": "0",
         "decimals": 18
+      },
+      "myLp": {
+        "main": {
+          "raw": "101530.39",
+          "decimals": 18
+        },
+        "pol-uasset": {
+          "raw": "16258.54",
+          "decimals": 18
+        },
+        "pt-uasset": {
+          "raw": "1398.66",
+          "decimals": 18
+        },
+        "pt-pol": {
+          "raw": "7193.57",
+          "decimals": 18
+        }
+      },
+      "ptPricePerPol": {
+        "raw": "0.9021",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "ytRedeemUAssetPerUnit": {
+        "raw": "0.0408",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myReserve": {
+        "raw": "4591.00",
+        "decimals": 18
+      },
+      "flashUserFeeRate": {
+        "raw": "0.0255",
+        "unit": "ratio",
+        "scale": 18
       }
     },
     {
@@ -200,6 +316,43 @@
       "claimableYt": {
         "raw": "0",
         "decimals": 18
+      },
+      "myLp": {
+        "main": {
+          "raw": "58426.26",
+          "decimals": 18
+        },
+        "pol-uasset": {
+          "raw": "20772.41",
+          "decimals": 18
+        },
+        "pt-uasset": {
+          "raw": "2011.11",
+          "decimals": 18
+        },
+        "pt-pol": {
+          "raw": "15716.54",
+          "decimals": 18
+        }
+      },
+      "ptPricePerPol": {
+        "raw": "0.9176",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "ytRedeemUAssetPerUnit": {
+        "raw": "0.0461",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myReserve": {
+        "raw": "6110.82",
+        "decimals": 18
+      },
+      "flashUserFeeRate": {
+        "raw": "0.6378",
+        "unit": "ratio",
+        "scale": 18
       }
     },
     {
@@ -250,6 +403,43 @@
       "claimableYt": {
         "raw": "0",
         "decimals": 18
+      },
+      "myLp": {
+        "main": {
+          "raw": "82731.34",
+          "decimals": 18
+        },
+        "pol-uasset": {
+          "raw": "15376.66",
+          "decimals": 18
+        },
+        "pt-uasset": {
+          "raw": "500.77",
+          "decimals": 18
+        },
+        "pt-pol": {
+          "raw": "12586.70",
+          "decimals": 18
+        }
+      },
+      "ptPricePerPol": {
+        "raw": "0.9158",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "ytRedeemUAssetPerUnit": {
+        "raw": "0.0384",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myReserve": {
+        "raw": "4280.66",
+        "decimals": 18
+      },
+      "flashUserFeeRate": {
+        "raw": "0.3699",
+        "unit": "ratio",
+        "scale": 18
       }
     },
     {
@@ -300,6 +490,48 @@
       "claimableYt": {
         "raw": "1352.47",
         "decimals": 18
+      },
+      "ytRedeemUAssetPerUnit": {
+        "raw": "0.0402",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "ytRedeemMemecoinPerUnit": {
+        "raw": "87.3154",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myLp": {
+        "main": {
+          "raw": "63453.76",
+          "decimals": 18
+        },
+        "pol-uasset": {
+          "raw": "14880.87",
+          "decimals": 18
+        },
+        "pt-uasset": {
+          "raw": "1516.84",
+          "decimals": 18
+        },
+        "pt-pol": {
+          "raw": "16676.82",
+          "decimals": 18
+        }
+      },
+      "ptPricePerPol": {
+        "raw": "0.9162",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myReserve": {
+        "raw": "7252.84",
+        "decimals": 18
+      },
+      "flashUserFeeRate": {
+        "raw": "0.0261",
+        "unit": "ratio",
+        "scale": 18
       }
     },
     {
@@ -350,6 +582,48 @@
       "claimableYt": {
         "raw": "2104.93",
         "decimals": 18
+      },
+      "ytRedeemUAssetPerUnit": {
+        "raw": "0.0353",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "ytRedeemMemecoinPerUnit": {
+        "raw": "224.796",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myLp": {
+        "main": {
+          "raw": "42889.97",
+          "decimals": 18
+        },
+        "pol-uasset": {
+          "raw": "8649.68",
+          "decimals": 18
+        },
+        "pt-uasset": {
+          "raw": "3134.69",
+          "decimals": 18
+        },
+        "pt-pol": {
+          "raw": "13544.30",
+          "decimals": 18
+        }
+      },
+      "ptPricePerPol": {
+        "raw": "0.8936",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myReserve": {
+        "raw": "5151.12",
+        "decimals": 18
+      },
+      "flashUserFeeRate": {
+        "raw": "0.0830",
+        "unit": "ratio",
+        "scale": 18
       }
     },
     {
@@ -400,6 +674,48 @@
       "claimableYt": {
         "raw": "1987.55",
         "decimals": 18
+      },
+      "ytRedeemUAssetPerUnit": {
+        "raw": "0.0453",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "ytRedeemMemecoinPerUnit": {
+        "raw": "276.796",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myLp": {
+        "main": {
+          "raw": "127299.57",
+          "decimals": 18
+        },
+        "pol-uasset": {
+          "raw": "18171.51",
+          "decimals": 18
+        },
+        "pt-uasset": {
+          "raw": "2076.85",
+          "decimals": 18
+        },
+        "pt-pol": {
+          "raw": "12853.77",
+          "decimals": 18
+        }
+      },
+      "ptPricePerPol": {
+        "raw": "0.9063",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myReserve": {
+        "raw": "6779.83",
+        "decimals": 18
+      },
+      "flashUserFeeRate": {
+        "raw": "0.0606",
+        "unit": "ratio",
+        "scale": 18
       }
     },
     {
@@ -450,6 +766,43 @@
       "claimableYt": {
         "raw": "0",
         "decimals": 18
+      },
+      "myLp": {
+        "main": {
+          "raw": "61285.23",
+          "decimals": 18
+        },
+        "pol-uasset": {
+          "raw": "8356.26",
+          "decimals": 18
+        },
+        "pt-uasset": {
+          "raw": "1274.38",
+          "decimals": 18
+        },
+        "pt-pol": {
+          "raw": "5151.01",
+          "decimals": 18
+        }
+      },
+      "ptPricePerPol": {
+        "raw": "0.9169",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "ytRedeemUAssetPerUnit": {
+        "raw": "0.0387",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myReserve": {
+        "raw": "5376.37",
+        "decimals": 18
+      },
+      "flashUserFeeRate": {
+        "raw": "0.0384",
+        "unit": "ratio",
+        "scale": 18
       }
     },
     {
@@ -500,6 +853,43 @@
       "claimableYt": {
         "raw": "0",
         "decimals": 18
+      },
+      "myLp": {
+        "main": {
+          "raw": "58977.23",
+          "decimals": 18
+        },
+        "pol-uasset": {
+          "raw": "13476.72",
+          "decimals": 18
+        },
+        "pt-uasset": {
+          "raw": "717.68",
+          "decimals": 18
+        },
+        "pt-pol": {
+          "raw": "7633.26",
+          "decimals": 18
+        }
+      },
+      "ptPricePerPol": {
+        "raw": "0.8854",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "ytRedeemUAssetPerUnit": {
+        "raw": "0.0279",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myReserve": {
+        "raw": "3432.09",
+        "decimals": 18
+      },
+      "flashUserFeeRate": {
+        "raw": "0.1859",
+        "unit": "ratio",
+        "scale": 18
       }
     },
     {
@@ -550,6 +940,43 @@
       "claimableYt": {
         "raw": "0",
         "decimals": 18
+      },
+      "myLp": {
+        "main": {
+          "raw": "80051.21",
+          "decimals": 18
+        },
+        "pol-uasset": {
+          "raw": "17486.68",
+          "decimals": 18
+        },
+        "pt-uasset": {
+          "raw": "1654.44",
+          "decimals": 18
+        },
+        "pt-pol": {
+          "raw": "12375.67",
+          "decimals": 18
+        }
+      },
+      "ptPricePerPol": {
+        "raw": "0.8839",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "ytRedeemUAssetPerUnit": {
+        "raw": "0.0398",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myReserve": {
+        "raw": "7067.03",
+        "decimals": 18
+      },
+      "flashUserFeeRate": {
+        "raw": "0.6018",
+        "unit": "ratio",
+        "scale": 18
       }
     },
     {
@@ -600,6 +1027,43 @@
       "claimableYt": {
         "raw": "0",
         "decimals": 18
+      },
+      "myLp": {
+        "main": {
+          "raw": "89969.71",
+          "decimals": 18
+        },
+        "pol-uasset": {
+          "raw": "17646.44",
+          "decimals": 18
+        },
+        "pt-uasset": {
+          "raw": "1787.63",
+          "decimals": 18
+        },
+        "pt-pol": {
+          "raw": "7765.85",
+          "decimals": 18
+        }
+      },
+      "ptPricePerPol": {
+        "raw": "0.9083",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "ytRedeemUAssetPerUnit": {
+        "raw": "0.0496",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myReserve": {
+        "raw": "3411.75",
+        "decimals": 18
+      },
+      "flashUserFeeRate": {
+        "raw": "0.4337",
+        "unit": "ratio",
+        "scale": 18
       }
     },
     {
@@ -650,6 +1114,43 @@
       "claimableYt": {
         "raw": "0",
         "decimals": 18
+      },
+      "myLp": {
+        "main": {
+          "raw": "65327.81",
+          "decimals": 18
+        },
+        "pol-uasset": {
+          "raw": "11687.80",
+          "decimals": 18
+        },
+        "pt-uasset": {
+          "raw": "760.68",
+          "decimals": 18
+        },
+        "pt-pol": {
+          "raw": "6355.74",
+          "decimals": 18
+        }
+      },
+      "ptPricePerPol": {
+        "raw": "0.9172",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "ytRedeemUAssetPerUnit": {
+        "raw": "0.0352",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myReserve": {
+        "raw": "5597.99",
+        "decimals": 18
+      },
+      "flashUserFeeRate": {
+        "raw": "0.0170",
+        "unit": "ratio",
+        "scale": 18
       }
     },
     {
@@ -700,6 +1201,43 @@
       "claimableYt": {
         "raw": "0",
         "decimals": 18
+      },
+      "myLp": {
+        "main": {
+          "raw": "61677.89",
+          "decimals": 18
+        },
+        "pol-uasset": {
+          "raw": "19713.45",
+          "decimals": 18
+        },
+        "pt-uasset": {
+          "raw": "917.66",
+          "decimals": 18
+        },
+        "pt-pol": {
+          "raw": "10440.83",
+          "decimals": 18
+        }
+      },
+      "ptPricePerPol": {
+        "raw": "0.9035",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "ytRedeemUAssetPerUnit": {
+        "raw": "0.0500",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myReserve": {
+        "raw": "5063.66",
+        "decimals": 18
+      },
+      "flashUserFeeRate": {
+        "raw": "0.6012",
+        "unit": "ratio",
+        "scale": 18
       }
     },
     {
@@ -750,6 +1288,48 @@
       "claimableYt": {
         "raw": "2861.74",
         "decimals": 18
+      },
+      "ytRedeemUAssetPerUnit": {
+        "raw": "0.0342",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "ytRedeemMemecoinPerUnit": {
+        "raw": "211.81",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myLp": {
+        "main": {
+          "raw": "84638.97",
+          "decimals": 18
+        },
+        "pol-uasset": {
+          "raw": "4601.22",
+          "decimals": 18
+        },
+        "pt-uasset": {
+          "raw": "380.31",
+          "decimals": 18
+        },
+        "pt-pol": {
+          "raw": "4647.25",
+          "decimals": 18
+        }
+      },
+      "ptPricePerPol": {
+        "raw": "0.9121",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myReserve": {
+        "raw": "6414.02",
+        "decimals": 18
+      },
+      "flashUserFeeRate": {
+        "raw": "0.5834",
+        "unit": "ratio",
+        "scale": 18
       }
     },
     {
@@ -800,6 +1380,48 @@
       "claimableYt": {
         "raw": "1932.28",
         "decimals": 18
+      },
+      "ytRedeemUAssetPerUnit": {
+        "raw": "0.0328",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "ytRedeemMemecoinPerUnit": {
+        "raw": "212.78",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myLp": {
+        "main": {
+          "raw": "73506.78",
+          "decimals": 18
+        },
+        "pol-uasset": {
+          "raw": "3880.32",
+          "decimals": 18
+        },
+        "pt-uasset": {
+          "raw": "228.08",
+          "decimals": 18
+        },
+        "pt-pol": {
+          "raw": "5007.24",
+          "decimals": 18
+        }
+      },
+      "ptPricePerPol": {
+        "raw": "0.8908",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myReserve": {
+        "raw": "5555.42",
+        "decimals": 18
+      },
+      "flashUserFeeRate": {
+        "raw": "0.0490",
+        "unit": "ratio",
+        "scale": 18
       }
     },
     {
@@ -850,6 +1472,48 @@
       "claimableYt": {
         "raw": "2213.65",
         "decimals": 18
+      },
+      "ytRedeemUAssetPerUnit": {
+        "raw": "0.039",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "ytRedeemMemecoinPerUnit": {
+        "raw": "247.626",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myLp": {
+        "main": {
+          "raw": "27630.83",
+          "decimals": 18
+        },
+        "pol-uasset": {
+          "raw": "547.86",
+          "decimals": 18
+        },
+        "pt-uasset": {
+          "raw": "361.88",
+          "decimals": 18
+        },
+        "pt-pol": {
+          "raw": "455.62",
+          "decimals": 18
+        }
+      },
+      "ptPricePerPol": {
+        "raw": "0.9138",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myReserve": {
+        "raw": "7407.69",
+        "decimals": 18
+      },
+      "flashUserFeeRate": {
+        "raw": "0.0088",
+        "unit": "ratio",
+        "scale": 18
       }
     },
     {
@@ -900,6 +1564,48 @@
       "claimableYt": {
         "raw": "2876.41",
         "decimals": 18
+      },
+      "ytRedeemUAssetPerUnit": {
+        "raw": "0.0369",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "ytRedeemMemecoinPerUnit": {
+        "raw": "244.87",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myLp": {
+        "main": {
+          "raw": "73799.26",
+          "decimals": 18
+        },
+        "pol-uasset": {
+          "raw": "606.94",
+          "decimals": 18
+        },
+        "pt-uasset": {
+          "raw": "462.46",
+          "decimals": 18
+        },
+        "pt-pol": {
+          "raw": "363.27",
+          "decimals": 18
+        }
+      },
+      "ptPricePerPol": {
+        "raw": "0.9111",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myReserve": {
+        "raw": "4222.33",
+        "decimals": 18
+      },
+      "flashUserFeeRate": {
+        "raw": "0.4878",
+        "unit": "ratio",
+        "scale": 18
       }
     },
     {
@@ -950,6 +1656,48 @@
       "claimableYt": {
         "raw": "2541.83",
         "decimals": 18
+      },
+      "ytRedeemUAssetPerUnit": {
+        "raw": "0.036",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "ytRedeemMemecoinPerUnit": {
+        "raw": "248.072",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myLp": {
+        "main": {
+          "raw": "105674.92",
+          "decimals": 18
+        },
+        "pol-uasset": {
+          "raw": "2531.73",
+          "decimals": 18
+        },
+        "pt-uasset": {
+          "raw": "707.76",
+          "decimals": 18
+        },
+        "pt-pol": {
+          "raw": "2016.94",
+          "decimals": 18
+        }
+      },
+      "ptPricePerPol": {
+        "raw": "0.8969",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myReserve": {
+        "raw": "6046.58",
+        "decimals": 18
+      },
+      "flashUserFeeRate": {
+        "raw": "0.5912",
+        "unit": "ratio",
+        "scale": 18
       }
     },
     {
@@ -1000,6 +1748,48 @@
       "claimableYt": {
         "raw": "486.27",
         "decimals": 18
+      },
+      "ytRedeemUAssetPerUnit": {
+        "raw": "0.0393",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "ytRedeemMemecoinPerUnit": {
+        "raw": "269.76",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myLp": {
+        "main": {
+          "raw": "30123.66",
+          "decimals": 18
+        },
+        "pol-uasset": {
+          "raw": "1300.52",
+          "decimals": 18
+        },
+        "pt-uasset": {
+          "raw": "273.40",
+          "decimals": 18
+        },
+        "pt-pol": {
+          "raw": "475.68",
+          "decimals": 18
+        }
+      },
+      "ptPricePerPol": {
+        "raw": "0.8909",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myReserve": {
+        "raw": "3729.46",
+        "decimals": 18
+      },
+      "flashUserFeeRate": {
+        "raw": "0.1955",
+        "unit": "ratio",
+        "scale": 18
       }
     }
   ]

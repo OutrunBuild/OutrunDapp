@@ -3703,6 +3703,16 @@
             "v": "11153"
           }
         ]
+      },
+      "lpPerQuote": {
+        "raw": "0.9358",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "550",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -3726,6 +3736,16 @@
         "raw": "0.288",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9690",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "250",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -7418,6 +7438,16 @@
             "v": "11411"
           }
         ]
+      },
+      "lpPerQuote": {
+        "raw": "0.9654",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "400",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -7441,6 +7471,16 @@
         "raw": "0.221",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9583",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "625",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -11133,6 +11173,16 @@
             "v": "11233"
           }
         ]
+      },
+      "lpPerQuote": {
+        "raw": "0.9713",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "125",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -14825,6 +14875,16 @@
             "v": "11490"
           }
         ]
+      },
+      "lpPerQuote": {
+        "raw": "0.9287",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "225",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -18517,6 +18577,16 @@
             "v": "10265"
           }
         ]
+      },
+      "lpPerQuote": {
+        "raw": "0.9123",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "375",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -22209,6 +22279,16 @@
             "v": "12190"
           }
         ]
+      },
+      "lpPerQuote": {
+        "raw": "0.9034",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "500",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -25901,6 +25981,16 @@
             "v": "9464"
           }
         ]
+      },
+      "lpPerQuote": {
+        "raw": "0.9792",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "700",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -29593,6 +29683,16 @@
             "v": "9383"
           }
         ]
+      },
+      "lpPerQuote": {
+        "raw": "0.9594",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "600",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -33285,6 +33385,16 @@
             "v": "12632"
           }
         ]
+      },
+      "lpPerQuote": {
+        "raw": "0.9286",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "750",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -36977,6 +37087,16 @@
             "v": "8758"
           }
         ]
+      },
+      "lpPerQuote": {
+        "raw": "0.9515",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "450",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -40669,6 +40789,16 @@
             "v": "14940"
           }
         ]
+      },
+      "lpPerQuote": {
+        "raw": "0.9311",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "200",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -44361,6 +44491,16 @@
             "v": "8411"
           }
         ]
+      },
+      "lpPerQuote": {
+        "raw": "0.9718",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "450",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -48053,6 +48193,16 @@
             "v": "11724"
           }
         ]
+      },
+      "lpPerQuote": {
+        "raw": "0.9411",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "775",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -51745,6 +51895,16 @@
             "v": "6587"
           }
         ]
+      },
+      "lpPerQuote": {
+        "raw": "0.9741",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "725",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -55437,6 +55597,16 @@
             "v": "13071"
           }
         ]
+      },
+      "lpPerQuote": {
+        "raw": "0.9036",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "200",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -59129,6 +59299,16 @@
             "v": "11917"
           }
         ]
+      },
+      "lpPerQuote": {
+        "raw": "0.9048",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "575",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -62821,6 +63001,16 @@
             "v": "11594"
           }
         ]
+      },
+      "lpPerQuote": {
+        "raw": "0.9611",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "450",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -66513,6 +66703,16 @@
             "v": "14178"
           }
         ]
+      },
+      "lpPerQuote": {
+        "raw": "0.9526",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "350",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -70205,6 +70405,16 @@
             "v": "12882"
           }
         ]
+      },
+      "lpPerQuote": {
+        "raw": "0.9396",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "625",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -73897,6 +74107,16 @@
             "v": "10490"
           }
         ]
+      },
+      "lpPerQuote": {
+        "raw": "0.9385",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "750",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -73920,7 +74140,17 @@
         "unit": "ratio",
         "scale": 18
       },
-      "feeState": "normal"
+      "feeState": "normal",
+      "lpPerQuote": {
+        "raw": "0.9097",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "450",
+        "unit": "bps",
+        "scale": 4
+      }
     },
     {
       "id": "mkt-102",
@@ -73943,7 +74173,17 @@
         "unit": "ratio",
         "scale": 18
       },
-      "feeState": "normal"
+      "feeState": "normal",
+      "lpPerQuote": {
+        "raw": "0.9365",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "250",
+        "unit": "bps",
+        "scale": 4
+      }
     },
     {
       "id": "mkt-103",
@@ -73966,7 +74206,17 @@
         "unit": "ratio",
         "scale": 18
       },
-      "feeState": "normal"
+      "feeState": "normal",
+      "lpPerQuote": {
+        "raw": "0.9613",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "275",
+        "unit": "bps",
+        "scale": 4
+      }
     },
     {
       "id": "mkt-104",
@@ -73989,7 +74239,17 @@
         "unit": "ratio",
         "scale": 18
       },
-      "feeState": "normal"
+      "feeState": "normal",
+      "lpPerQuote": {
+        "raw": "0.9492",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "150",
+        "unit": "bps",
+        "scale": 4
+      }
     },
     {
       "id": "mkt-300",
@@ -74012,6 +74272,16 @@
         "raw": "0.2726",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9243",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "375",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74035,6 +74305,16 @@
         "raw": "0.2292",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9716",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "725",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74058,6 +74338,16 @@
         "raw": "0.2018",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9793",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "350",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74081,6 +74371,16 @@
         "raw": "0.2616",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9235",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "175",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74104,6 +74404,16 @@
         "raw": "0.2982",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9691",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "125",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74127,6 +74437,16 @@
         "raw": "0.1537",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9462",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "100",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74150,6 +74470,16 @@
         "raw": "0.3147",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9232",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "300",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74173,6 +74503,16 @@
         "raw": "0.2990",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9735",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "525",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74196,6 +74536,16 @@
         "raw": "0.2283",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9081",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "550",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74219,6 +74569,16 @@
         "raw": "0.3123",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9010",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "575",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74242,6 +74602,16 @@
         "raw": "0.1809",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9369",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "775",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74265,6 +74635,16 @@
         "raw": "0.1588",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9425",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "575",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74288,6 +74668,16 @@
         "raw": "0.2287",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9250",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "725",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74311,6 +74701,16 @@
         "raw": "0.2853",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9026",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "375",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74334,6 +74734,16 @@
         "raw": "0.2534",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9115",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "275",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74357,6 +74767,16 @@
         "raw": "0.3028",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9743",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "225",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74380,6 +74800,16 @@
         "raw": "0.2399",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9361",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "550",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74403,6 +74833,16 @@
         "raw": "0.2754",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9326",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "800",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74426,6 +74866,16 @@
         "raw": "0.2681",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9349",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "650",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74449,6 +74899,16 @@
         "raw": "0.2309",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9536",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "700",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74472,6 +74932,16 @@
         "raw": "0.2292",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9212",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "200",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74495,6 +74965,16 @@
         "raw": "0.3055",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9479",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "750",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74518,6 +74998,16 @@
         "raw": "0.2416",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9502",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "475",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74541,6 +75031,16 @@
         "raw": "0.2798",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9164",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "150",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74564,6 +75064,16 @@
         "raw": "0.2222",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9446",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "175",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74587,6 +75097,16 @@
         "raw": "0.3108",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9713",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "600",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74610,6 +75130,16 @@
         "raw": "0.1568",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9520",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "225",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74633,6 +75163,16 @@
         "raw": "0.2376",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9629",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "600",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74656,6 +75196,16 @@
         "raw": "0.2648",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9376",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "750",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74679,6 +75229,16 @@
         "raw": "0.1887",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9778",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "275",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74702,6 +75262,16 @@
         "raw": "0.2483",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9646",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "425",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74725,6 +75295,16 @@
         "raw": "0.2250",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9792",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "175",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74748,6 +75328,16 @@
         "raw": "0.1757",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9036",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "750",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74771,6 +75361,16 @@
         "raw": "0.2525",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9346",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "500",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74794,6 +75394,16 @@
         "raw": "0.2131",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9729",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "650",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74817,6 +75427,16 @@
         "raw": "0.2366",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9547",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "125",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74840,6 +75460,16 @@
         "raw": "0.2381",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9367",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "125",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74863,6 +75493,16 @@
         "raw": "0.1870",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9414",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "175",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74886,6 +75526,16 @@
         "raw": "0.2666",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9584",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "100",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74909,6 +75559,16 @@
         "raw": "0.2553",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9587",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "650",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74932,6 +75592,16 @@
         "raw": "0.2264",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9231",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "400",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74955,6 +75625,16 @@
         "raw": "0.2667",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9562",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "725",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -74978,6 +75658,16 @@
         "raw": "0.2133",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9683",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "550",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -75001,6 +75691,16 @@
         "raw": "0.2182",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9078",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "375",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -75024,6 +75724,16 @@
         "raw": "0.2343",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9595",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "625",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -75047,6 +75757,16 @@
         "raw": "0.2891",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9728",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "750",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -75070,6 +75790,16 @@
         "raw": "0.2273",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9315",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "550",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -75093,6 +75823,16 @@
         "raw": "0.2688",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9048",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "400",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -75116,6 +75856,16 @@
         "raw": "0.2593",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9200",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "150",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -75139,6 +75889,16 @@
         "raw": "0.3028",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9374",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "575",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -75162,6 +75922,16 @@
         "raw": "0.2263",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9126",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "175",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -75185,6 +75955,16 @@
         "raw": "0.2160",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9234",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "475",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -75208,6 +75988,16 @@
         "raw": "0.2591",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9578",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "200",
+        "unit": "bps",
+        "scale": 4
       }
     },
     {
@@ -75231,6 +76021,16 @@
         "raw": "0.2227",
         "unit": "ratio",
         "scale": 18
+      },
+      "lpPerQuote": {
+        "raw": "0.9238",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "feeRate": {
+        "raw": "725",
+        "unit": "bps",
+        "scale": 4
       }
     }
   ]

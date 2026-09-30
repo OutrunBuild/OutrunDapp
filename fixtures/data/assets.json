@@ -57,6 +57,7 @@
       ],
       "sourceRef": "docs/page-briefs/source-map.md#S8",
       "symbol": "USDC",
+      "name": "USD Coin",
       "kind": "reserve",
       "decimals": 6,
       "address": {
@@ -71,6 +72,7 @@
       ],
       "sourceRef": "docs/page-briefs/source-map.md#S8",
       "symbol": "USDT",
+      "name": "Tether",
       "kind": "reserve",
       "decimals": 6,
       "address": {
@@ -85,6 +87,7 @@
       ],
       "sourceRef": "docs/page-briefs/source-map.md#S8",
       "symbol": "ETH",
+      "name": "Ethereum",
       "kind": "reserve",
       "decimals": 18,
       "anchorValue": 1,
@@ -100,6 +103,7 @@
       ],
       "sourceRef": "docs/page-briefs/source-map.md#S8",
       "symbol": "BNB",
+      "name": "BNB",
       "kind": "reserve",
       "decimals": 18,
       "address": {
