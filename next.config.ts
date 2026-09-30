@@ -1,6 +1,9 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  // e2e 专用产物目录：pnpm test:e2e 以 NEXT_DIST_DIR=.next-e2e 构建+启动，
+  // 与运行中的 .next（dev / 生产预览）完全隔离（部署纪律见 AGENTS.md 已知坑）
+  ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   // 阶段 3 约束（architecture §12/runbook 步骤 2）：
   // next build 必须调用项目 .bin/tsc（TS 7.0.2）真检查，不得忽略类型错误。
   experimental: {

@@ -63,3 +63,11 @@ docs/review
 docs/runbooks
 docs/prototype
 docs/page-briefs
+
+# Playwright e2e（.next-e2e 独立构建产物与运行报告；快照基线 e2e/*-snapshots/ 需入库）
+.next-e2e/
+test-results/
+playwright-report/
+
+# impeccable 运行时状态（build-phase/pending 等，不得提交；2026-09-30 曾误提交 pending.json 已清）
+.impeccable/

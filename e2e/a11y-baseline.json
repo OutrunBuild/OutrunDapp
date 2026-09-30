@@ -1,0 +1,35 @@
+{
+  "home": [],
+  "explore": [
+    {
+      "id": "button-name",
+      "impact": "critical",
+      "help": "Buttons must have discernible text",
+      "nodes": 3
+    }
+  ],
+  "launch": [
+    {
+      "id": "aria-prohibited-attr",
+      "impact": "serious",
+      "help": "Elements must only use permitted ARIA attributes",
+      "nodes": 5
+    }
+  ],
+  "verse-21": [
+    {
+      "id": "aria-allowed-attr",
+      "impact": "critical",
+      "help": "Elements must only use supported ARIA attributes",
+      "nodes": 3
+    },
+    {
+      "id": "button-name",
+      "impact": "critical",
+      "help": "Buttons must have discernible text",
+      "nodes": 1
+    }
+  ],
+  "portfolio": [],
+  "design-system": []
+}
