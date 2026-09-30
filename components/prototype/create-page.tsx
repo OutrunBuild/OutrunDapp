@@ -21,7 +21,6 @@ export function CreatePage({ locale }: { locale: Locale }) {
       locale={locale}
       current="create"
       accountAddress={snapshot.sampleAccount.address}
-      accountSourceRef={snapshot.sampleAccount.sourceRef}
     >
       <header className="page-intro create-intro">
         <div>

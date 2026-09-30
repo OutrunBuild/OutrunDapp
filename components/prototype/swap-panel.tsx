@@ -3,11 +3,15 @@
 import { useState } from 'react'
 import { ArrowLeftRight, ArrowUpDown, Info, Settings2 } from 'lucide-react'
 
-import type { Locale } from '@/lib/data/prototype-repository'
+import type {
+  Locale,
+  PrototypePolPosition,
+} from '@/lib/data/prototype-repository'
 
 import { getCopy } from './copy'
 import { useMockWallet } from './mock-wallet'
 import { formatAmount } from './signal-ui'
+import { SwapTokenSelectDialog, type SwapTokenOption } from './swap-token-select-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -39,24 +43,39 @@ function SettingsTip({ text }: { text: string }) {
   )
 }
 
+/** Meme 侧候选代币 id（品类而非独立 symbol：POL-/PT- 前缀派生；YT 不入卡——Flash Swap 是
+ * POL↔YT 单通道工具，2026-09-27 方案 B 移入 Tokenization 页 YT 井专属弹窗） */
+type MemeTokenId = 'meme' | 'pol' | 'pt'
+
 /**
  * 标准 Swap 窗口（2026-09-23 用户修订：右上角设置按钮收滑点/截止；详情行只留
  * 参考价/价格影响/最低到账/路径；静态说明文案删除——demo 同构）。
  * CTA 接模拟连接（2026-09-24 用户裁定：连接钱包可点）：未连接=Connect Wallet 可点、
  * 与头部 WalletControl 共享开关；已连接=Swap 动作禁用（原型不伪造链上成交）。
+ * 2026-09-27 输入/输出侧代币可点开选择弹窗（用户裁定）：稳定侧=uAsset+其 PSM 配对储备
+ * （面值 1:1 平价），Meme 侧=memecoin/POL/PT；报价按所选对两侧参考价线性换算——
+ * meme=主池价、POL=POL/uAsset 池价、PT=PT/POL 池价×POL 价。
+ * YT 不入卡（2026-09-27 方案 B 用户裁定）：Flash Swap 是 POL↔YT 单通道工具（买卖均指定
+ * YT 数量），移入 Tokenization 页 YT 井专属弹窗（pol-flash-swap-dialog.tsx）。
  */
 export function SwapPanel({
   locale,
   memecoinSymbol,
+  memecoinName,
   uAssetSymbol,
   price,
   uAssetUsd,
   memecoinBalance,
   uAssetBalance,
+  reserves,
+  reserveBalance,
+  pol,
 }: {
   locale: Locale
   /** 主池价：1 Memecoin = price uAsset（fixture 蜡烛收盘推导） */
   memecoinSymbol: string
+  /** 代币全名（verse.name fixture）——选择弹窗行次级文本 */
+  memecoinName: string
   uAssetSymbol: string
   price: number
   /** uAsset 美元样本价（fixture；null=隐藏美元换算行） */
@@ -64,27 +83,89 @@ export function SwapPanel({
   /** 样本账户 memecoin/uAsset 余额（pol-positions fixture；null=槽位 --，与 Mint POL 弹窗同源） */
   memecoinBalance: number | null
   uAssetBalance: number | null
+  /** 面值直兑可付储备（PSM 配对读 fixture——getPrototypeParticipationOptions 出口；name=代币本名，缺失回退 symbol） */
+  reserves: { symbol: string; name?: string }[]
+  /** 储备钱包余额样本（pol-positions myReserve；null=槽位 '--'） */
+  reserveBalance: number | null
+  /** POL/PT 池价与余额样本（pol-positions fixture；null=报价/余额槽位态） */
+  pol: PrototypePolPosition | null
 }) {
   const copy = getCopy(locale).verseDesk
   const { connected, toggle } = useMockWallet()
-  const [direction, setDirection] = useState<'meme-to-uasset' | 'uasset-to-meme'>('uasset-to-meme')
-  const [amount, setAmount] = useState('')
+  const [direction, setDirection] = useState<'stable-to-meme' | 'meme-to-stable'>('stable-to-meme')
+  const [stableId, setStableId] = useState(uAssetSymbol)
+  const [memeId, setMemeId] = useState<MemeTokenId>('meme')
+  // 打开即预填默认卖出侧（uAsset）全部余额（§21/Flash Swap 同规——空输入 0.00/'--' 观感差，
+  // 2026-09-28 用户裁定造数看原型效果）；余额缺失不预填，翻转/换币保留输入
+  const [amount, setAmount] = useState(uAssetBalance != null ? String(uAssetBalance) : '')
   const [slippage, setSlippage] = useState<number>(0.5)
   const [deadlineMin, setDeadlineMin] = useState<number>(10)
   const [rateInverted, setRateInverted] = useState(false)
 
+  // 稳定侧候选：募集 uAsset + PSM 配对储备（OutStake PSM 面值 1:1；储备余额 fixture 缺→槽位）
+  const stableOptions: SwapTokenOption[] = [
+    {
+      id: uAssetSymbol,
+      symbol: uAssetSymbol,
+      name: copy.mintSideUasset,
+      balance: uAssetBalance,
+    },
+    ...reserves.map((reserve) => ({
+      id: reserve.symbol,
+      symbol: reserve.symbol,
+      name: reserve.name ?? reserve.symbol,
+      balance: reserveBalance,
+    })),
+  ]
+  // 每 1 代币的 uAsset 计价：储备=面值平价 1；POL=POL/uAsset 池价（fixture 样本）；
+  // PT=PT/POL 池价×POL 池价；YT=隐含价 (1−PT/POL 池价)×POL 池价——yt-flash-swap.md
+  const polSymbol = `POL-${memecoinSymbol}`
+  const ptSymbol = `PT-${memecoinSymbol}`
+  const polPrice = pol ? pol.marketPricePerPol : null
+  const memeOptions: SwapTokenOption[] = [
+    {
+      id: 'meme',
+      symbol: memecoinSymbol,
+      name: memecoinName,
+      balance: memecoinBalance,
+    },
+    {
+      id: 'pol',
+      symbol: polSymbol,
+      name: copy.polTag,
+      balance: pol?.myPol ?? null,
+    },
+    {
+      id: 'pt',
+      symbol: ptSymbol,
+      name: copy.ptFullName,
+      balance: pol?.myPt ?? null,
+    },
+  ]
+  const priceInUAsset = new Map<string, number | null>([
+    [uAssetSymbol, 1],
+    ...reserves.map((reserve) => [reserve.symbol, 1] as const),
+    ['meme', price > 0 ? price : null],
+    ['pol', polPrice],
+    ['pt', pol != null && polPrice != null ? polPrice * pol.ptPricePerPol : null],
+  ])
+
+  const stableSide = stableOptions.find((token) => token.id === stableId) ?? stableOptions[0]
+  const memeSide = memeOptions.find((token) => token.id === memeId) ?? memeOptions[0]
+  const sellToken = direction === 'stable-to-meme' ? stableSide : memeSide
+  const buyToken = direction === 'stable-to-meme' ? memeSide : stableSide
+  const sellBalance = sellToken.balance
+  const buyBalance = buyToken.balance
+  // 原型报价：按所选对两侧参考价线性换算（储备腿=PSM 面值 1:1；滑点/动态费以执行读链为准）
   const parsed = Number(amount)
   const valid = Number.isFinite(parsed) && parsed > 0
-  // 原型报价：按主池参考价线性换算（滑点/动态费以执行读链为准）
-  const quote =
-    direction === 'uasset-to-meme' ? (valid ? parsed / price : null) : valid ? parsed * price : null
+  const sellPrice = priceInUAsset.get(sellToken.id) ?? null
+  const buyPrice = priceInUAsset.get(buyToken.id) ?? null
+  const pairRate =
+    sellPrice != null && buyPrice != null && buyPrice > 0 ? sellPrice / buyPrice : null
+  const quote = valid && pairRate != null ? parsed * pairRate : null
   const minReceived = quote != null ? quote * (1 - slippage / 100) : null
-  const sellSymbol = direction === 'uasset-to-meme' ? uAssetSymbol : memecoinSymbol
-  const buySymbol = direction === 'uasset-to-meme' ? memecoinSymbol : uAssetSymbol
-  // 余额随方向换侧（与 Mint POL 弹窗同源 fixture）；Max 只挂卖出侧
-  const sellBalance = direction === 'uasset-to-meme' ? uAssetBalance : memecoinBalance
-  const buyBalance = direction === 'uasset-to-meme' ? memecoinBalance : uAssetBalance
-  // 美元换算：输入/输出各自按其计价侧 × uAssetUsd（MEME 侧先折 uAsset）
+  // 美元换算：两侧各自按 uAsset 计价 × uAssetUsd（储备借 PSM 平价等值 uAsset 价）
   const localeTag = locale === 'zh' ? 'zh-CN' : 'en-US'
   // 大数分层：≥1e21 科学记法（compact 超大值不省略，会退化成全量数字+单位后缀）、
   // ≥1e15 紧凑记法、常态走 normal 格式
@@ -101,17 +182,27 @@ export function SwapPanel({
   // 到账展示：常态 toFixed(6)（裸 toFixed 对 ≥1e21 会吐 `2.74e+109` 科学计数法长串）
   const fmtTokenAmount = (value: number) => fmtTiered(value, 4, (v) => v.toFixed(6))
   const sellUsd =
-    uAssetUsd == null || !valid
+    uAssetUsd == null || !valid || sellPrice == null
       ? null
-      : direction === 'uasset-to-meme'
-        ? fmtUsd(parsed * uAssetUsd)
-        : fmtUsd(parsed * price * uAssetUsd)
+      : fmtUsd(parsed * sellPrice * uAssetUsd)
   const buyUsd =
-    uAssetUsd == null || quote == null
+    uAssetUsd == null || quote == null || buyPrice == null
       ? null
-      : direction === 'uasset-to-meme'
-        ? fmtUsd(quote * price * uAssetUsd)
-        : fmtUsd(quote * uAssetUsd)
+      : fmtUsd(quote * buyPrice * uAssetUsd)
+  // 路径行组词：储备腿前缀 PSM；meme 侧按池（YT 已移出卡——见组件头注）
+  const routeLegs: string[] = []
+  if (stableSide.id !== uAssetSymbol) routeLegs.push(copy.routeLegPsm)
+  if (memeId === 'pol') routeLegs.push(copy.routePoolPol)
+  else if (memeId === 'pt') routeLegs.push(copy.routePoolPt)
+  else routeLegs.push(copy.routePoolMain)
+  // 参考价行：1 Meme 侧 ≈ N 稳定侧（可反转；两侧任一价缺→'--' 槽位）
+  const memePriceInUAsset = priceInUAsset.get(memeSide.id) ?? null
+  const stablePriceInUAsset = priceInUAsset.get(stableSide.id) ?? null
+  const rateReady =
+    memePriceInUAsset != null &&
+    stablePriceInUAsset != null &&
+    memePriceInUAsset > 0 &&
+    stablePriceInUAsset > 0
 
   return (
     <section className="swap-panel ax-glow-card" aria-labelledby="swap-title">
@@ -222,19 +313,25 @@ export function SwapPanel({
             value={amount}
             maxLength={AMOUNT_MAX_CHARS}
             onChange={(event) => setAmount(event.target.value.replace(/[^\d.]/g, ''))}
-            aria-label={`${copy.swapSell} ${sellSymbol}`}
+            aria-label={`${copy.swapSell} ${sellToken.symbol}`}
           />
-          <div className="swap-panel__token">
-            <strong>{sellSymbol}</strong>
-          </div>
+          <SwapTokenSelectDialog
+            locale={locale}
+            selectedId={sellToken.id}
+            options={direction === 'stable-to-meme' ? stableOptions : memeOptions}
+            onSelect={(id) => {
+              if (direction === 'stable-to-meme') setStableId(id)
+              else setMemeId(id as MemeTokenId)
+            }}
+          />
         </div>
         {sellUsd != null ? <span className="swap-panel__field-usd">≈ ${sellUsd}</span> : null}
       </div>
       <button
         type="button"
         className="swap-panel__flip"
-        onClick={() => setDirection(direction === 'uasset-to-meme' ? 'meme-to-uasset' : 'uasset-to-meme')}
-        aria-label={`${sellSymbol} ⇄ ${buySymbol}`}
+        onClick={() => setDirection(direction === 'stable-to-meme' ? 'meme-to-stable' : 'stable-to-meme')}
+        aria-label={`${sellToken.symbol} ⇄ ${buyToken.symbol}`}
       >
         <ArrowUpDown aria-hidden="true" size={18} />
       </button>
@@ -250,9 +347,15 @@ export function SwapPanel({
           <output className="swap-panel__output numeric-input" data-numeric>
             {quote != null ? fmtTokenAmount(quote) : '0.00'}
           </output>
-          <div className="swap-panel__token">
-            <strong>{buySymbol}</strong>
-          </div>
+          <SwapTokenSelectDialog
+            locale={locale}
+            selectedId={buyToken.id}
+            options={direction === 'stable-to-meme' ? memeOptions : stableOptions}
+            onSelect={(id) => {
+              if (direction === 'stable-to-meme') setMemeId(id as MemeTokenId)
+              else setStableId(id)
+            }}
+          />
         </div>
         {buyUsd != null ? <span className="swap-panel__field-usd">≈ ${buyUsd}</span> : null}
       </div>
@@ -261,17 +364,17 @@ export function SwapPanel({
           <dt>{copy.swapRate}</dt>
           <dd className="swap-panel__rate">
             <span data-numeric>
-              {price > 0
+              {memePriceInUAsset != null && stablePriceInUAsset != null && rateReady
                 ? rateInverted
-                  ? `1 ${uAssetSymbol} ≈ ${(1 / price).toFixed(6)} ${memecoinSymbol}`
-                  : `1 ${memecoinSymbol} ≈ ${price.toFixed(6)} ${uAssetSymbol}`
+                  ? `1 ${stableSide.symbol} ≈ ${(stablePriceInUAsset / memePriceInUAsset).toFixed(6)} ${memeSide.symbol}`
+                  : `1 ${memeSide.symbol} ≈ ${(memePriceInUAsset / stablePriceInUAsset).toFixed(6)} ${stableSide.symbol}`
                 : '--'}
             </span>
             <button
               type="button"
               className="swap-panel__rate-flip"
               onClick={() => setRateInverted((v) => !v)}
-              disabled={!(price > 0)}
+              disabled={!rateReady}
               aria-label={copy.swapRateFlip}
             >
               <ArrowLeftRight aria-hidden="true" size={12} />
@@ -284,7 +387,7 @@ export function SwapPanel({
         </div>
         <div>
           <dt>{copy.minReceived}</dt>
-          <dd data-numeric>{minReceived != null ? `${fmtTokenAmount(minReceived)} ${buySymbol}` : '--'}</dd>
+          <dd data-numeric>{minReceived != null ? `${fmtTokenAmount(minReceived)} ${buyToken.symbol}` : '--'}</dd>
         </div>
         <div>
           <dt>{copy.maxSlippage}</dt>
@@ -292,7 +395,7 @@ export function SwapPanel({
         </div>
         <div>
           <dt>{copy.route}</dt>
-          <dd>{copy.routeValue}</dd>
+          <dd>{routeLegs.join(' → ')}</dd>
         </div>
       </dl>
       {connected ? (

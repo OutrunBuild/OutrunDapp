@@ -48,17 +48,31 @@ function Button({
   className,
   variant = 'default',
   size = 'default',
+  nativeButton,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
-  return (
+  const button = (
     <ButtonPrimitive
       data-slot="button"
       data-variant={variant}
       data-size={size}
       className={cn(buttonVariants({ variant, size, className }))}
+      nativeButton={nativeButton}
       {...props}
     />
   )
+  // 链接钮画皮承接层（2026-09-28 方案 C）：Chromium 不在 :link/:visited 子树光栅化
+  // paint() 图像（w3c/css-houdini-drafts#1178），链接渲染的按钮自身画皮全灭。
+  // 外层 plate 是链接的祖先（不在封杀范围），由它持 paint 皮肤；锚点退化为文字层。
+  // 仅 nativeButton={false}（render={<Link>/<a>}）走此结构，真 <button> 不包。
+  if (nativeButton === false) {
+    return (
+      <span data-slot="button-plate" data-variant={variant}>
+        {button}
+      </span>
+    )
+  }
+  return button
 }
 
 export { Button, buttonVariants }

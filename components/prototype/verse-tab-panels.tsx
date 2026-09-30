@@ -16,16 +16,33 @@ import { CactusLogo } from './cactus-logo'
 import { CopyAddress } from './copy-address'
 import { DaoDots, DaoFundDialog } from './dao-fund-dialog'
 import { getCopy } from './copy'
+import { PoolAddLiquidityDialog } from './pool-add-liquidity-dialog'
+import { PoolRemoveLiquidityDialog } from './pool-remove-liquidity-dialog'
 import { PolMintDialog } from './pol-mint-dialog'
+import { PolRedeemLpDialog } from './pol-redeem-lp-dialog'
+import { PolFlashSwapDialog } from './pol-flash-swap-dialog'
+import { PolRedeemPtYtDialog } from './pol-redeem-pt-yt-dialog'
 import { PolSplitMergeDialog } from './pol-split-merge-dialog'
-import { formatAmount, formatMarketCap, formatPercent, formatStamp, SourceRef } from './signal-ui'
+import { formatAmount, formatDay, formatMarketCap, formatPercent, formatStamp, SourceRef } from './signal-ui'
 
 function Slot({ children }: { children: React.ReactNode }) {
   return <span className="ax-slot">{children}</span>
 }
 
-/** Liquidity 标签：四池总览 + 池卡（four-pools.md:9-14；APR/量=样本+读链槽位） */
-export function LiquidityPanel({ locale, trade }: { locale: Locale; trade: PrototypeVerseTrade }) {
+/** Liquidity 标签：四池总览 + 池卡（four-pools.md:9-14；APR/量=样本+读链槽位）；
+ *  池卡双钮 Add/Remove 2026-09-27 改弹窗（PoolAddLiquidityDialog/PoolRemoveLiquidityDialog，
+ *  机制分层见各组件头注；同日用户裁定 Add 短文案） */
+export function LiquidityPanel({
+  locale,
+  verse,
+  trade,
+  pol,
+}: {
+  locale: Locale
+  verse: PrototypeVerse
+  trade: PrototypeVerseTrade
+  pol: PrototypePolPosition | null
+}) {
   const copy = getCopy(locale).verseDesk
   // 总览=四池合计（Q2 用户裁定）；统计条的 Liq/Vol 是主池口径，两处不同源
   const volumeTotal = trade.pools.reduce(
@@ -33,6 +50,8 @@ export function LiquidityPanel({ locale, trade }: { locale: Locale; trade: Proto
     0,
   )
   const hasVolume = trade.pools.some((pool) => pool.volume24h != null)
+  // ≈$ 换算与主池联动配比（同 PolPanel 的 uAssetUsd / price 源）
+  const uAssetUsd = getPrototypeAssetUsdSample(verse.raiseAsset)
 
   return (
     <div className="liquidity-panel">
@@ -50,9 +69,24 @@ export function LiquidityPanel({ locale, trade }: { locale: Locale; trade: Proto
       <ul className="liquidity-panel__pools">
         {trade.pools.map((pool) => (
           <li key={pool.id} className="pool-card" data-pool={pool.pool}>
-            <strong className="pool-card__pair" data-numeric>
-              {pool.baseSymbol}/{pool.quoteSymbol}
-            </strong>
+            {/* 三段竖排（2026-09-30 布局重构：原单行 6 元素在 ~480px 卡宽互相挤压，
+                统计格被压到 54px 数值换行、四卡高矮不齐）：头行=交易对+APR 决策读数、
+                数据行=TVL+24h 量、底行=全宽等分双钮 */}
+            <header className="pool-card__head">
+              <strong className="pool-card__pair" data-numeric>
+                {pool.baseSymbol}/{pool.quoteSymbol}
+              </strong>
+              <span className="pool-card__apr">
+                <span className="pool-card__apr-label">{copy.aprLabel}</span>
+                <strong className="pool-card__apr-value" data-numeric>
+                  {pool.apr7d != null ? (
+                    `${formatPercent(pool.apr7d * 100, locale)}%`
+                  ) : (
+                    <Slot>{copy.onChainSlot}</Slot>
+                  )}
+                </strong>
+              </span>
+            </header>
             <dl className="pool-card__stats" data-numeric>
               <div>
                 <dt>TVL</dt>
@@ -68,20 +102,25 @@ export function LiquidityPanel({ locale, trade }: { locale: Locale; trade: Proto
                   )}
                 </dd>
               </div>
-              <div>
-                <dt>{copy.aprLabel}</dt>
-                <dd>
-                  {pool.apr7d != null ? (
-                    `${formatPercent(pool.apr7d * 100, locale)}%`
-                  ) : (
-                    <Slot>{copy.onChainSlot}</Slot>
-                  )}
-                </dd>
-              </div>
             </dl>
-            <Button variant="outline" size="sm" disabled>
-              {copy.addLiquidity}
-            </Button>
+            {/* 池卡双钮 Add/Remove（2026-09-27 用户裁定：新增 Remove 移除流动性、Add 改短文案）；
+                2026-09-30 起收全宽等分行（同 POL 终端卡满行钮语言） */}
+            <div className="pool-card__actions">
+              <PoolAddLiquidityDialog
+                locale={locale}
+                pool={pool}
+                pol={pol}
+                price={trade.tokenStats.price}
+                uAssetUsd={uAssetUsd}
+              />
+              <PoolRemoveLiquidityDialog
+                locale={locale}
+                pool={pool}
+                pol={pol}
+                price={trade.tokenStats.price}
+                uAssetUsd={uAssetUsd}
+              />
+            </div>
           </li>
         ))}
       </ul>
@@ -94,8 +133,10 @@ export function LiquidityPanel({ locale, trade }: { locale: Locale; trade: Proto
  * POL 资产卡（余额主读数 + 市场价↔名义价值仪表）⇢ 分缝（Y 型拆分符=机制隐喻）⇢ PT/YT 衍生卡。
  * 机制出处：Mint/Redeem=POL 代币（source-map.md#M14 对账行）；Split/Merge=1 POL⇄1 PT+1 YT
  * 仅锁定期（IPOLSplitter.sol:102/104，merge=等额销毁 PT+YT 1:1 换回 POL；unlock/settled 后
- * AlreadyUnlocked）；Claim YT=创世锁定后按出资比例一次性领取（MemeverseSettlementImpl.sol:88，
- * 杠杆参与者按利息比例 claimLeveragedYT）；名义价值=2×uAsset 侧（pt-yt-splitter.md §4）。 */
+ * AlreadyUnlocked）；Redeem PT/YT=unlocked 结算后销毁赎回（POLSplitterUpgradeable.sol:365/387，
+ * 2026-09-27 换向器在 unlocked 改两行赎回）；Claim YT=创世锁定后按出资比例一次性领取
+ * （MemeverseSettlementImpl.sol:88，杠杆参与者按利息比例 claimLeveragedYT）；
+ * 名义价值=2×uAsset 侧（pt-yt-splitter.md §4）。 */
 export function PolPanel({
   locale,
   verse,
@@ -110,6 +151,7 @@ export function PolPanel({
 }) {
   const copy = getCopy(locale).verseDesk
   const locked = verse.stage === 'locked'
+  const unlocked = verse.stage === 'unlocked'
   // POL-/PT-/YT-<MEME>（MemeverseLaunchImpl.sol:117-119；POLSplitterUpgradeable.sol:225-226）
   const polSymbol = `POL-${verse.symbol}`
   const ptSymbol = `PT-${verse.symbol}`
@@ -135,6 +177,28 @@ export function PolPanel({
   const nominalUsd = uAssetUsd != null && pol ? `$${formatAmount(nominal * uAssetUsd, locale)}` : null
   const estUsd =
     uAssetUsd != null && pol ? `$${formatMarketCap(pol.myPol * market * uAssetUsd)}` : null
+  // PT/YT 每枚机制值（2026-09-27 用户裁定井读数重构）：
+  // PT 腿=固定兑付率 uAssetPerPol（创世锁仓一次性登记，locked/unlocked 皆确定，非 1:1），
+  // 美元=腿×uAssetUsd 样本；
+  // YT 腿（双腿形态——pol-splitter.md「YT 结算兑付=uAsset+Memecoin 两币」，2026-09-28 用户裁定）：
+  // memecoin 腿两阶段皆可推导（1 PT+1 YT=1 POL=M meme+U uAsset，PT 固定吃掉 uAsset 侧 →
+  // 残差名义=memecoin 侧=uAssetPerPol÷主池价；unlocked 用结算样本 ytRedeemMemecoinPerUnit）；
+  // uAsset 腿=ytRedeemUAssetPerUnit 样本（locked=结算预估样本（造数裁定）+unlocked=结算派生真值）。
+  // 美元=(meme 腿×主池价+uAsset 腿)×uAssetUsd；样本/价缺失 → null → '--'。
+  const ptLeg = pol ? pol.uAssetPerPol : null
+  const ptUsd = ptLeg != null && uAssetUsd != null ? ptLeg * uAssetUsd : null
+  const ytMemeLeg = !pol
+    ? null
+    : unlocked
+      ? pol.ytRedeemMemecoinPerUnit
+      : price != null && price > 0
+        ? pol.uAssetPerPol / price
+        : null
+  const ytUAssetLeg = pol ? pol.ytRedeemUAssetPerUnit : null
+  const ytUsd =
+    pol == null || uAssetUsd == null || ytMemeLeg == null || ytUAssetLeg == null || price == null
+      ? null
+      : (ytMemeLeg * price + ytUAssetLeg) * uAssetUsd
 
   return (
     <div className="pol-panel">
@@ -229,13 +293,13 @@ export function PolPanel({
                   price={price}
                   uAssetUsd={uAssetUsd}
                 />
-                {/* 2026-09-25 用户裁定：禁用=机制档位而非数据借口——Redeem 仅 unlocked 可用
-                    （redeemPolNote 口径），locked 阶段机制性禁用不渲染灰钮，Mint 撑满行；
-                    阶段说明 note 行同日用户裁定删除 */}
-                {!locked ? (
-                  <Button variant="outline" size="sm" disabled title={copy.redeemPolNote}>
-                    {copy.redeemPol}
-                  </Button>
+                {/* 2026-09-27 用户裁定：Redeem 恒禁用改弹窗（PolRedeemLpDialog——销毁 POL
+                    1:1 换主池 LP 代币，机制见该组件头注）；仅 unlocked（合约 NotUnlockedStage
+                    闸门，fixture 域 pol 持仓仅 locked/unlocked——与原 !locked 渲染域等价），
+                    locked 机制性不渲染灰钮、Mint 撑满行（2026-09-25 用户裁定）；
+                    note 行 2026-09-25 删、title 悬浮 2026-09-27 全站删 */}
+                {unlocked ? (
+                  <PolRedeemLpDialog locale={locale} verse={verse} pol={pol} />
                 ) : null}
               </div>
             </div>
@@ -252,140 +316,156 @@ export function PolPanel({
           </div>
 
           <section className="pol-card" data-token="pt-yt">
-            <div className="pol-asset" data-token="pt">
-              <span className="pol-glyph pol-glyph--pt">PT</span>
-              <div className="pol-asset__main">
-                <strong className="pol-asset__symbol" data-numeric>
-                  {ptSymbol}
-                </strong>
-                {/* 2026-09-25 用户裁定：机制一行注太长，行注只留全称，机制说明收进 ⊙ 气泡 */}
-                <span className="pol-asset__desc">
-                  {copy.ptFullName}
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <span
-                          className="create-info"
-                          aria-label={copy.ptTip.replace('{asset}', verse.raiseAsset)}
-                        />
-                      }
-                    >
-                      <Info aria-hidden="true" />
-                    </TooltipTrigger>
-                    <TooltipContent>{copy.ptTip.replace('{asset}', verse.raiseAsset)}</TooltipContent>
-                  </Tooltip>
-                </span>
-              </div>
-              <div className="pol-asset__side">
-                <span className="pol-label">{copy.ptBalance}</span>
-                <strong className="pol-asset__amount" data-numeric>
-                  {formatAmount(pol.myPt, locale)}
-                </strong>
-              </div>
-            </div>
-            <div className="pol-asset" data-token="yt">
-              <span className="pol-glyph pol-glyph--yt">YT</span>
-              <div className="pol-asset__main">
-                <strong className="pol-asset__symbol" data-numeric>
-                  {ytSymbol}
-                </strong>
-                <span className="pol-asset__desc">
-                  {copy.ytFullName}
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={<span className="create-info" aria-label={copy.ytTip.replace('{asset}', verse.raiseAsset)} />}
-                    >
-                      <Info aria-hidden="true" />
-                    </TooltipTrigger>
-                    <TooltipContent>{copy.ytTip.replace('{asset}', verse.raiseAsset)}</TooltipContent>
-                  </Tooltip>
-                </span>
-              </div>
-              <div className="pol-asset__side">
-                <span className="pol-label">{copy.ytBalance}</span>
-                <strong className="pol-asset__amount" data-numeric>
-                  {formatAmount(pol.myYt, locale)}
-                </strong>
-              </div>
-            </div>
-            {/* 可领 YT=创世分配的一次性领取（claimNormalYT/claimLeveragedYT），
-                资格来自创世参与而非 YT 余额——资格说明收进标签旁 ⊙ 气泡（2026-09-24 用户裁定） */}
-            <div className="pol-claim">
-              <div className="pol-claim__info">
-                <span className="pol-label">
-                  {copy.claimableYt}
-                  <Tooltip>
-                    <TooltipTrigger render={<span className="create-info" aria-label={copy.claimYtEligibility} />}>
-                      <Info aria-hidden="true" />
-                    </TooltipTrigger>
-                    <TooltipContent>{copy.claimYtEligibility}</TooltipContent>
-                  </Tooltip>
-                </span>
-                <strong data-numeric>
-                  {formatAmount(pol.claimableYt, locale)} {ytSymbol}
-                </strong>
-              </div>
-              {/* 原型纪律：写操作一律禁用（可领>0 也不伪造链上成功）。
-                  2026-09-26 用户裁定：Claim 钮凹陷井底+悬停——包裹层 .pol-claim__btn
-                  把 hover 底钉在井底 tint（凹陷感悬停不弹起，规则见 globals.css 按钮区） */}
-              <span className="pol-claim__btn">
-                <Button variant="outline" size="sm" disabled>
-                  {copy.claimYt}
-                </Button>
-              </span>
-            </div>
-            {/* 拆分⇄合并换向器（2026-09-25 用户裁定：补 merge + 草稿公式行升级仪器盒）：
-                两行=两向，方向符章（分叉=split/汇聚=merge，同分缝 Y 型语言）+ 等式
-                （token 单色次级，身份由资产行章承载）+ 动作钮。2026-09-26 用户裁定：
-                locked 态两钮改弹操作窗（PolSplitMergeDialog），unlocked 保持禁用（链上已关） */}
-            <div className="pol-card__actions pol-card__actions--flow">
-              <div className="pol-flow">
-                <div className="pol-flow__row">
-                  <span className="pol-flow__dir" aria-hidden="true">
-                    <svg viewBox="0 0 16 16" fill="none">
-                      <path d="M1.5 8H6L14.5 3M6 8l8.5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" />
-                    </svg>
-                  </span>
-                  <span className="pol-flow__eq" data-numeric>
-                    <span className="pol-flow__tok" data-token="pol">1 POL</span>
-                    <span className="pol-flow__op">→</span>
-                    <span className="pol-flow__tok" data-token="pt">1 PT</span>
-                    <span className="pol-flow__op">+</span>
-                    <span className="pol-flow__tok" data-token="yt">1 YT</span>
-                  </span>
-                  {locked ? (
-                    <PolSplitMergeDialog locale={locale} verse={verse} pol={pol} mode="split" />
-                  ) : (
-                    <Button variant="outline" size="sm" disabled title={copy.splitClosed}>
-                      {copy.splitPol}
-                    </Button>
-                  )}
+            {/* 双生井 v3（2026-09-28 用户裁定：井=纯读对称——身份头+账目行+美元回声，井底无钮；
+                机制等式升为井组头（与左 seam 分缝成「左符号右公式」）；操作统一井组下通栏：
+                locked=Flash Swap/Split/Merge 三等宽、unlocked=Redeem PT/YT 两等宽 */}
+            <p className="pol-twin__equation">
+              <span data-numeric>{`1 ${polSymbol} = 1 PT + 1 YT`}</span>
+              <Tooltip>
+                <TooltipTrigger render={<span className="create-info" aria-label={copy.splitNote} />}>
+                  <Info aria-hidden="true" />
+                </TooltipTrigger>
+                <TooltipContent>{copy.splitNote}</TooltipContent>
+              </Tooltip>
+            </p>
+            <div className="pol-twin">
+              <div className="pol-twin__well" data-token="pt">
+                <div className="pol-twin__head">
+                  <span className="pol-glyph pol-glyph--pt">PT</span>
+                  <div className="pol-twin__id">
+                    <strong className="pol-twin__symbol" data-numeric>
+                      {ptSymbol}
+                    </strong>
+                    {/* 机制一行注只留全称，说明收进 ⊙ 气泡（2026-09-25 用户裁定） */}
+                    <span className="pol-twin__desc">
+                      {copy.ptFullName}
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <span
+                              className="create-info"
+                              aria-label={copy.ptTip.replace('{asset}', verse.raiseAsset)}
+                            />
+                          }
+                        >
+                          <Info aria-hidden="true" />
+                        </TooltipTrigger>
+                        <TooltipContent>{copy.ptTip.replace('{asset}', verse.raiseAsset)}</TooltipContent>
+                      </Tooltip>
+                    </span>
+                  </div>
                 </div>
-                <div className="pol-flow__row">
-                  <span className="pol-flow__dir" aria-hidden="true">
-                    <svg viewBox="0 0 16 16" fill="none">
-                      <path d="M14.5 8H10L1.5 3M10 8l-8.5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" />
-                    </svg>
+                <div className="pol-twin__quote">
+                  {/* 账目行=名义价值口径（2026-09-28 用户裁定：须明示非市场价格） */}
+                  <span className="pol-label">
+                    {copy.nominalValue}
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={<span className="create-info" aria-label={copy.ptNominalTip} />}
+                      >
+                        <Info aria-hidden="true" />
+                      </TooltipTrigger>
+                      <TooltipContent>{copy.ptNominalTip}</TooltipContent>
+                    </Tooltip>
                   </span>
-                  <span className="pol-flow__eq" data-numeric>
-                    <span className="pol-flow__tok" data-token="pt">1 PT</span>
-                    <span className="pol-flow__op">+</span>
-                    <span className="pol-flow__tok" data-token="yt">1 YT</span>
-                    <span className="pol-flow__op">→</span>
-                    <span className="pol-flow__tok" data-token="pol">1 POL</span>
-                  </span>
-                  {locked ? (
-                    <PolSplitMergeDialog locale={locale} verse={verse} pol={pol} mode="merge" />
-                  ) : (
-                    <Button variant="outline" size="sm" disabled title={copy.splitClosed}>
-                      {copy.mergePol}
-                    </Button>
-                  )}
+                  <div className="pol-twin__legs" data-numeric>
+                    <span>
+                      {ptLeg != null
+                        ? `${formatAmount(ptLeg, locale)} ${verse.raiseAsset}`
+                        : '--'}
+                    </span>
+                  </div>
                 </div>
+                <p className="pol-twin__usd" data-numeric>
+                  ≈ {ptUsd != null ? `$${formatAmount(ptUsd, locale)}` : <Slot>{copy.onChainSlot}</Slot>}
+                </p>
               </div>
-              {/* locked 态 note 行删（2026-09-25 用户裁定：等式行已示，冗余）；
-                  unlocked 仍需 splitClosed 告知链上关闭 */}
-              {!locked ? <p className="pol-card__note">{copy.splitClosed}</p> : null}
+              <div className="pol-twin__well" data-token="yt">
+                <div className="pol-twin__head">
+                  <span className="pol-glyph pol-glyph--yt">YT</span>
+                  <div className="pol-twin__id">
+                    <strong className="pol-twin__symbol" data-numeric>
+                      {ytSymbol}
+                    </strong>
+                    <span className="pol-twin__desc">
+                      {copy.ytFullName}
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <span
+                              className="create-info"
+                              aria-label={copy.ytTip.replace('{asset}', verse.raiseAsset)}
+                            />
+                          }
+                        >
+                          <Info aria-hidden="true" />
+                        </TooltipTrigger>
+                        <TooltipContent>{copy.ytTip.replace('{asset}', verse.raiseAsset)}</TooltipContent>
+                      </Tooltip>
+                    </span>
+                  </div>
+                </div>
+                <div className="pol-twin__quote">
+                  {/* 账目行=名义价值口径（2026-09-28 用户裁定：须明示非市场价格）；
+                      双腿：unlocked=结算样本真值；locked=meme 腿推导+uAsset 腿预估样本（造数裁定） */}
+                  <span className="pol-label">
+                    {copy.nominalValue}
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={<span className="create-info" aria-label={copy.ytNominalTip} />}
+                      >
+                        <Info aria-hidden="true" />
+                      </TooltipTrigger>
+                      <TooltipContent>{copy.ytNominalTip}</TooltipContent>
+                    </Tooltip>
+                  </span>
+                  <div className="pol-twin__legs" data-numeric>
+                    <span>
+                      {ytMemeLeg != null
+                        ? `${formatAmount(ytMemeLeg, locale)} ${verse.symbol}`
+                        : '--'}
+                    </span>
+                    {/* uAsset 腿：unlocked=结算样本真值；locked=结算预估样本（造数裁定） */}
+                    <span className="pol-twin__leg-extra">
+                      + {ytUAssetLeg != null ? `${formatAmount(ytUAssetLeg, locale)} ${verse.raiseAsset}` : '--'}
+                    </span>
+                  </div>
+                </div>
+                <p className="pol-twin__usd" data-numeric>
+                  ≈ {ytUsd != null ? `$${formatAmount(ytUsd, locale)}` : <Slot>{copy.onChainSlot}</Slot>}
+                </p>
+              </div>
+            </div>
+            {/* 通栏操作区（v3 2026-09-28：井底清空纯读，操作统一井组下通栏——跨阶段位置统一；
+                locked=Flash Swap/Split/Merge 三等宽（Flash Swap 属 YT 单通道——yt-flash-swap.md）、
+                unlocked=Redeem PT/YT 两等宽；余额展示在各弹窗 Balance/Max） */}
+            <div className="pol-card__btns">
+              {unlocked ? (
+                <>
+                  <PolRedeemPtYtDialog
+                    locale={locale}
+                    verse={verse}
+                    pol={pol}
+                    mode="pt"
+                    price={price}
+                    uAssetUsd={uAssetUsd}
+                  />
+                  <PolRedeemPtYtDialog
+                    locale={locale}
+                    verse={verse}
+                    pol={pol}
+                    mode="yt"
+                    price={price}
+                    uAssetUsd={uAssetUsd}
+                  />
+                </>
+              ) : (
+                <>
+                  <PolFlashSwapDialog locale={locale} verse={verse} pol={pol} uAssetUsd={uAssetUsd} />
+                  <PolSplitMergeDialog locale={locale} verse={verse} pol={pol} mode="split" />
+                  <PolSplitMergeDialog locale={locale} verse={verse} pol={pol} mode="merge" />
+                </>
+              )}
             </div>
           </section>
         </div>
@@ -498,7 +578,8 @@ export function DaoPanel({
             </div>
             {governance.incentivizerAddress ? (
               <span className="cycle-card__head-incentivizer">
-                {copy.incentivizer}: <CopyAddress locale={locale} value={governance.incentivizerAddress} />
+                <span className="cycle-card__head-label">{copy.incentivizer}:</span>{' '}
+                <CopyAddress locale={locale} value={governance.incentivizerAddress} />
               </span>
             ) : null}
             <Button
@@ -506,18 +587,23 @@ export function DaoPanel({
               size="sm"
               className="cycle-card__head-finalize"
               disabled={governance.finalized}
-              title={copy.finalizeNote}
             >
               {copy.finalize}
+              <Tooltip>
+                <TooltipTrigger render={<span className="create-info" aria-label={copy.finalizeNote} />}>
+                  <Info aria-hidden="true" />
+                </TooltipTrigger>
+                <TooltipContent>{copy.finalizeNote}</TooltipContent>
+              </Tooltip>
             </Button>
           </header>
           <dl className="cycle-card__stats" data-numeric>
             <div>
               <dt>{copy.cycleChip}</dt>
-              <dd>
-                #{governance.cycleNumber}
+              <dd className="stat-meta">
+                #{governance.cycleNumber}{' '}
                 <span className="stat-sub">
-                  ({governance.finalized ? copy.ended : `${copy.endsIn} ${formatStamp(governance.cycleEndsAt)}`})
+                  ({governance.finalized ? copy.ended : `${copy.endsIn} ${formatDay(governance.cycleEndsAt, locale)}`})
                 </span>
               </dd>
             </div>
@@ -593,7 +679,6 @@ export function DaoPanel({
               </strong>
             </div>
           ) : null}
-          <p className="panel-note">{copy.finalizeNote}</p>
         </section>
 
         {governance.lastCycle ? (
@@ -601,15 +686,12 @@ export function DaoPanel({
             <header className="cycle-card__head">
               <div className="cycle-card__head-meta">
                 <h4 className="panel-subtitle">{copy.lastCycleTitle}</h4>
-                {governance.claimWindowEndsAt ? (
-                  <span data-numeric>{formatStamp(governance.claimWindowEndsAt)}</span>
-                ) : null}
               </div>
             </header>
             <dl className="cycle-card__stats" data-numeric>
               <div>
                 <dt>{copy.lastCycleChip}</dt>
-                <dd>#{governance.lastCycle.number}</dd>
+                <dd className="stat-meta">#{governance.lastCycle.number}</dd>
               </div>
               {governance.lastCycle.treasuryAssets ? (
                 <DaoFundDialog
@@ -667,21 +749,67 @@ export function DaoPanel({
                   <span className="stat-unit">{copy.votesUnit}</span>
                 </dd>
               </div>
-              <div>
-                <dt>{copy.yourClaimable}</dt>
-                <dd className="stat-action">
-                  ${formatAmount(governance.lastCycle.myClaimable, locale)}
-                  <Button variant="outline" size="sm" disabled title={copy.claimWindowNote}>
-                    {copy.claimRewards}
-                  </Button>
-                </dd>
-              </div>
+              {governance.lastCycle.claimableAssets ? (
+                <DaoFundDialog
+                  locale={locale}
+                  title={copy.claimableDetailsTitle}
+                  totalUsd={governance.lastCycle.myClaimable}
+                  assets={governance.lastCycle.claimableAssets}
+                  actionLabel={copy.claimRewards}
+                >
+                  <>
+                    <dt className="cycle-card__claim-label">
+                      {copy.yourClaimable}
+                      <DaoDots />
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={<span className="create-info" aria-label={copy.claimWindowNote} />}
+                        >
+                          <Info aria-hidden="true" />
+                        </TooltipTrigger>
+                        <TooltipContent>{copy.claimWindowNote}</TooltipContent>
+                      </Tooltip>
+                    </dt>
+                    <dd className="stat-action">
+                      ${formatAmount(governance.lastCycle.myClaimable, locale)}
+                      {/* 领取钮保留原位原样式；pointer-events-none 让点击穿到芯片触发器开明细弹窗
+                          （原生 disabled 钮会吞点击——2026-09-30 踩坑，动作在弹窗 CTA） */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled
+                        className="pointer-events-none"
+                      >
+                        {copy.claimRewards}
+                      </Button>
+                    </dd>
+                  </>
+                </DaoFundDialog>
+              ) : (
+                <div>
+                  <dt className="cycle-card__claim-label">
+                    {copy.yourClaimable}
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={<span className="create-info" aria-label={copy.claimWindowNote} />}
+                      >
+                        <Info aria-hidden="true" />
+                      </TooltipTrigger>
+                      <TooltipContent>{copy.claimWindowNote}</TooltipContent>
+                    </Tooltip>
+                  </dt>
+                  <dd className="stat-action">
+                    ${formatAmount(governance.lastCycle.myClaimable, locale)}
+                    <Button variant="outline" size="sm" disabled>
+                      {copy.claimRewards}
+                    </Button>
+                  </dd>
+                </div>
+              )}
             </dl>
-            <p className="panel-note">{copy.claimWindowNote}</p>
           </section>
         ) : null}
       </div>
-      <p className="panel-note">{copy.votingWeightNote}</p>
       <SourceRef value="docs/page-briefs/source-map.md#M10" />
     </div>
   )

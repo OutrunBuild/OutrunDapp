@@ -665,26 +665,6 @@ svg {
   color: var(--or-cyan) !important;
 }
 
-/* Claim Genesis YT 钮「凹陷井底」（2026-09-26 用户裁定）：outline 通道全局透明底，
-   唯此钮换 surface-inset 下陷井底（行底=青 4% tinted 抬升面，井底读作凹进一行）。
-   悬停可见性归因（同日实测）：通用 outline hover 对 disabled 钮本就触发，但原透明静止底
-   上 hover 底（青 8% over raised）与行底（青 4% over raised）近同色，仅剩 1px 边线与文字
-   变化、几乎不可读；换井底后静止↔hover 对比恢复。包裹层 .pol-claim__btn 的职责=把 hover
-   底钉在井底 tint（凹陷感悬停不弹起——通用配方会抬回 raised 档变亮） */
-.pol-claim__btn {
-  display: inline-flex;
-}
-
-.pol-claim__btn [data-slot='button'][data-variant='outline'] {
-  --cb-bg: var(--color-surface-inset);
-}
-
-.pol-claim__btn:hover [data-slot='button'][data-variant='outline'] {
-  --cb-border: var(--or-cyan);
-  --cb-bg: color-mix(in srgb, var(--or-cyan) 8%, var(--color-surface-inset));
-  color: var(--or-cyan) !important;
-}
-
 /* 画皮回落（Chromium 以外）：PaintWorklet 不可用时恢复原 clip-path+border 解剖。
    变体仅保 color（文字色），底/边退回基类灰面——本仓生产口径为 Chromium，回落只求不破形 */
 @supports not (background: paint(chamfer-border)) {
@@ -700,6 +680,74 @@ svg {
       0 var(--chamfer)
     );
   }
+}
+
+/* —— 链接钮画皮承接层（2026-09-28 方案 C）——
+   Chromium 不在 :link/:visited 子树光栅化 paint() 图像（元素/伪元素/后代全灭，
+   w3c/css-houdini-drafts#1178），链接渲染的按钮（ui/button.tsx 的 nativeButton={false}
+   分支）自身画皮全灭只剩文字。plate=链接的外层 span（祖先，不在封杀范围），由它持
+   paint 画皮；锚点退化为文字层。变体镜像与本段同源维护——新增链接可用变体时须同步
+   镜像（component-contract.md §27） */
+[data-slot='button-plate'] {
+  display: inline-flex;
+  flex-shrink: 0;
+  /* 画皮与过渡配方同基类（无 color——文字色在锚点上） */
+  background: paint(chamfer-border) !important;
+  --cb-bg: var(--color-surface-raised);
+  --cb-border: var(--color-border);
+  transition-property: --cb-bg, --cb-border, filter !important;
+  transition-duration: var(--motion-fast) !important;
+  transition-timing-function: var(--ease-out) !important;
+}
+
+/* 锚点=文字层：自身画皮归零（Chromium 现状画不出；将来上游修复也不可与 plate 叠画）；
+   flex-grow=1 让锚点跟随 plate 在满宽场景（手机断点 flex:1）撑满；
+   active 下压整体由 plate 承接（cva 的 translate-y-px 在此归零防 2px 叠加） */
+[data-slot='button-plate'] > [data-slot='button'] {
+  background: none !important;
+  flex-grow: 1;
+  translate: none !important;
+}
+
+[data-slot='button-plate'][data-variant='default'] {
+  --cb-bg: var(--accent-primary);
+  --cb-border: var(--accent-primary);
+}
+
+[data-slot='button-plate'][data-variant='default']:hover {
+  --cb-bg: var(--cta-hover);
+}
+
+/* 幽灵主 CTA（透明机身+黄描边）：class 钩子在锚点上，plate 经 :has 镜像；hover 通电同源 */
+[data-slot='button-plate']:has(.ax-ghost-cta) {
+  --cb-border: var(--accent-primary);
+  --cb-bg: transparent;
+}
+
+[data-slot='button-plate']:has(.ax-ghost-cta:hover) {
+  --cb-bg: var(--accent-primary);
+  --cb-border: var(--accent-primary);
+}
+
+/* outline 链接钮（如首页 Official docs）：青 60% 描边透明底，hover 通电 */
+[data-slot='button-plate'][data-variant='outline'] {
+  --cb-border: color-mix(in srgb, var(--or-cyan) 60%, transparent);
+  --cb-bg: transparent;
+}
+
+[data-slot='button-plate'][data-variant='outline']:hover {
+  --cb-border: var(--or-cyan);
+  --cb-bg: color-mix(in srgb, var(--or-cyan) 8%, var(--color-surface-raised));
+}
+
+/* 画皮豁免（同基类豁免名单）：glow 自带实色伪元素背板（不经 paint，不受封杀），plate 不画 */
+[data-slot='button-plate']:has(.ax-glow-cta) {
+  background: none !important;
+}
+
+/* active 下压整体承接：边框与文字一起下移 1px（cva 原意），锚点位移已在上方归零 */
+[data-slot='button-plate']:has([data-slot='button']:active) {
+  translate: 0 1px;
 }
 
 /* 禁用视觉档全删（2026-09-26 用户裁定「删除禁用档状态，根本没有禁用的按钮」）：
@@ -1942,28 +1990,6 @@ svg {
 .product-nav__item:hover:not([data-disabled='true']) {
   background: var(--color-surface);
   color: var(--color-text);
-}
-
-.sidebar-account {
-  display: grid;
-  gap: var(--space-1);
-  margin-block-start: auto;
-  padding: var(--space-3);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-inset);
-}
-
-.sidebar-account__label {
-  color: var(--color-text-secondary);
-  font-size: var(--text-sm);
-}
-
-.sidebar-account__state {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--color-success);
-  font-size: var(--text-sm);
 }
 
 .product-canvas {
@@ -3371,6 +3397,14 @@ svg {
   gap: var(--space-2);
 }
 
+/* 双腿收账合组（2026-09-27 YT Receive 框）：一框两行腿，第二腿起上缘 hairline 分隔；
+   仅当同一 field 内出现多 row 时生效（swap 面板单 row 不触发） */
+.swap-panel__field-row ~ .swap-panel__field-row {
+  margin-block-start: var(--space-1);
+  padding-block-start: var(--space-2);
+  border-block-start: 1px solid var(--color-border);
+}
+
 .swap-panel__field-row input,
 .swap-panel__output {
   flex: 1;
@@ -3394,6 +3428,29 @@ svg {
   display: grid;
   justify-items: end;
   gap: var(--space-1);
+}
+
+/* 代币芯片（2026-09-27：输入/输出侧代币可点开选择弹窗）——幽灵描边钮：
+   静态冷灰边框，hover/focus 转青（同设置齿轮语言），箭头指示可点 */
+.swap-panel__token--select {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.swap-panel__token--select:hover,
+.swap-panel__token--select:focus-visible {
+  border-color: var(--or-cyan);
+  color: var(--or-cyan);
 }
 
 /* Max 钮嵌 Balance 行尾（行业惯例）；输入/输出下方美元换算行 */
@@ -3463,6 +3520,15 @@ svg {
 
 .swap-panel__details dt {
   color: var(--color-text-secondary);
+}
+
+/* dt 内 ⊙ 提示钮（Flash Swap Rate 行）：默认 14px+零间距贴字+baseline 下沉——
+   统一 12px 档（同 pol-twin__desc 先例）、留 space-1 间隙、光学居中（2026-09-28） */
+.swap-panel__details dt .create-info {
+  inline-size: var(--text-xs);
+  block-size: var(--text-xs);
+  margin-inline-start: var(--space-1);
+  vertical-align: -2px;
 }
 
 /* Rate 行反转：值 + 反转钮同行（Swap/Mint POL 共用，2026-09-24 用户裁定）；钮=青功能信号幽灵图标 */
@@ -3574,6 +3640,112 @@ svg {
   color: var(--color-text-secondary);
   position: relative;
   z-index: 1;
+}
+
+/* —— Swap 代币选择弹窗（2026-09-27：壳复用 .pol-mint；结构=标题+✕+搜索+行列表，
+      行=徽章+符号+名称+余额/禁用原因——AssetSelector 契约 §2；受限集合不设「常用/全部」分组）—— */
+/* 搜索行：input 用全局桥皮肤（!important），图标覆盖式叠加（同 .create-suffix 先例） */
+.token-select__search {
+  position: relative;
+}
+
+.token-select__search [data-slot='input'] {
+  /* 图标让位=左偏移 space-3 + 图标 14px + 呼吸 space-3（共 38px）；
+     勿用 var(--space-8)——该档在本尺度=64px，会在图标与文本间留出两倍以上空档（2026-09-27） */
+  padding-inline-start: calc(2 * var(--space-3) + 14px) !important;
+}
+
+.token-select__search > svg {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: var(--space-3);
+  transform: translateY(-50%);
+  color: var(--color-text-tertiary);
+  pointer-events: none;
+}
+
+.token-select__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-1);
+  max-block-size: min(320px, 50vh);
+  overflow-y: auto;
+}
+
+.token-select__row {
+  /* 撑满行宽：button 默认收缩为内容宽会让 1fr 中列失效、余额贴着符号排（judge 2026-09-27） */
+  inline-size: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  text-align: start;
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.token-select__row:hover,
+.token-select__row:focus-visible {
+  border-color: var(--or-cyan);
+}
+
+.token-select__row[data-selected='true'] strong {
+  color: var(--or-cyan);
+}
+
+/* 徽章=品类前缀/符号首两位（无 logo 资产的中性占位，不引色彩语义） */
+.token-select__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 28px;
+  block-size: 28px;
+  border: 1px solid var(--color-border);
+  font-family: var(--font-data);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.token-select__id {
+  display: grid;
+  gap: 2px;
+  min-inline-size: 0;
+}
+
+.token-select__id span {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.token-select__balance {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+.token-select__empty {
+  margin: 0;
+  padding: var(--space-3);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+/* Flash Swap 弹窗模式条：vault tab 两段等宽铺满（卡内 inline 文字宽在弹窗里右半空置——judge 2026-09-27；
+   inline-size 兜底：ToggleGroup 根收缩为内容宽，grid 拉伸不生效） */
+.pol-mint .vault-actions__bar {
+  inline-size: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
 }
 
 /* 弹窗遮罩：背景虚化（与链选择弹窗同款用户语言） */
@@ -3803,6 +3975,13 @@ svg {
   gap: var(--space-4);
 }
 
+/* 标题底距归零：panel-title 自带 8px 底 padding 叠加 grid gap 后，标题对上方
+   总览芯片 16px、对下方池卡 24px 不对称——归零后上下均 16px（2026-09-27 用户裁定；
+   同 vault/dao 头行 .panel-title 底距归零先例） */
+.liquidity-panel .panel-title {
+  padding-block-end: 0;
+}
+
 /* 总览两芯片平分整行（不然后半行大块留白） */
 .liquidity-panel__overview > div {
   flex: 1 1 0;
@@ -3817,12 +3996,18 @@ svg {
   margin: 0;
 }
 
-/* 池卡=单行：交易对 | TVL/量/APR 三格 | Add 钮（2026-09-23 用户裁定一排两卡、同行布局） */
+/* 池卡=两行紧凑（2026-09-30 二轮：三段竖排版高 179px 被用户否决占幅过大，收回 ~97px≈原版）：
+   头行=交易对 ⇢ APR 内联读数；二行=TVL/24h 量堆叠格（KPI 语法）⇢ 右侧等宽双钮。
+   仍解原单行版三病灶：统计格不再被压窄换行（APR 升头行后只剩两格）、四卡恒等高、
+   双钮等宽（1fr 轨道取宽者）；≤640px 三段纵叠（横排二行 ~341px 内宽不够） */
 .pool-card {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-3);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'head head'
+    'stats actions';
+  column-gap: var(--space-3);
+  row-gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--color-border);
   background-color: var(--color-surface-inset);
@@ -3837,28 +4022,59 @@ svg {
   background-color: var(--color-surface-raised);
 }
 
+/* 头行：交易对左、APR 决策读数内联右（LP 首看指标；同 16px 靠字号/位次立层级非字重） */
+.pool-card__head {
+  grid-area: head;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
 .pool-card__pair {
-  flex-shrink: 0;
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: var(--text-base);
   font-weight: 600;
   letter-spacing: 0.02em;
 }
 
-.pool-card__stats {
+.pool-card__apr {
   display: flex;
-  flex: 1 1 0;
-  align-items: center;
-  min-inline-size: 0;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.pool-card__apr-label {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.pool-card__apr-value {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-base);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+/* 二行数据：两格自然宽（不撑满——右半要给双钮留位），格间 hairline 分隔 */
+.pool-card__stats {
+  grid-area: stats;
+  display: flex;
+  align-self: center;
   margin: 0;
 }
 
 .pool-card__stats > div {
   display: grid;
-  gap: 2px;
-  flex: 1 1 0;
+  gap: var(--space-1);
   min-inline-size: 0;
-  padding-inline: var(--space-3);
+}
+
+.pool-card__stats > div + div {
+  padding-inline-start: var(--space-3);
   border-inline-start: 1px solid var(--color-border);
 }
 
@@ -3877,8 +4093,14 @@ svg {
   white-space: nowrap;
 }
 
-.pool-card > button {
-  flex-shrink: 0;
+/* 池卡二行右翼动作：Add/Remove 等宽双钮（1fr 双轨取宽者，消 62/92 长短不齐）、
+   组行尾贴齐；高度 32px 中档不动 */
+.pool-card__actions {
+  grid-area: actions;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  align-self: center;
   margin-inline-start: auto;
 }
 
@@ -3893,7 +4115,9 @@ svg {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) auto minmax(0, 0.85fr);
   gap: var(--space-2);
-  align-items: stretch;
+  /* 双卡各按内容自然高（2026-09-27 用户裁定：强制等高会在卡内拉出空白，
+     如创世 YT 领取后 claim 卡消失、另一侧被撑高）；分缝仍通高拉伸 */
+  align-items: start;
 }
 
 /* 双卡：切角卡身（对角双切=KPI 芯片家族）+ 青 tinted 描边
@@ -4249,91 +4473,10 @@ svg {
   flex: 1 1 auto;
 }
 
-/* 换向器块不钉底（2026-09-25 用户裁定）：右卡被 stretch 拉到与左卡等高，钉底会在
-   claim 与换向器之间拉出大段空白——换向器紧跟 claim 行，余量留卡底 */
-.pol-card__actions--flow {
-  margin-block-start: 0;
-}
-
 .pol-card__note {
   margin: 0;
   color: var(--color-text-tertiary);
   font-size: var(--text-xs);
-}
-
-/* 拆分⇄合并换向器（2026-09-25 用户裁定：merge 补位 + 草稿公式行升级终端仪器盒）：
-   与 pol-gauge 同家族抬升面仪器盒（切角 --chamfer），两行=两向，
-   hairline 分隔；机制=IPOLSplitter.sol:102/104（1 POL⇄1 PT+1 YT，仅 locked） */
-.pol-flow {
-  display: grid;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-raised);
-  clip-path: polygon(
-    var(--chamfer) 0,
-    100% 0,
-    100% calc(100% - var(--chamfer)),
-    calc(100% - var(--chamfer)) 100%,
-    0 100%,
-    0 var(--chamfer)
-  );
-}
-
-.pol-flow__row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  min-block-size: var(--control-height);
-}
-
-.pol-flow__row + .pol-flow__row {
-  border-block-start: 1px solid var(--color-border);
-}
-
-/* 方向符章：分缝 Y 型拆分符的缩小版（分叉=split/镜像汇聚=merge），青切角章同语言 */
-.pol-flow__dir {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  inline-size: 22px;
-  block-size: 22px;
-  color: var(--or-cyan);
-  border: 1px solid var(--color-border-signal-strong);
-  background: var(--color-surface-inset);
-  clip-path: polygon(2px 0, 100% 0, 100% calc(100% - 2px), calc(100% - 2px) 100%, 0 100%, 0 2px);
-}
-
-.pol-flow__dir svg {
-  inline-size: 12px;
-  block-size: 12px;
-}
-
-/* 等式：mono 公式条单色次级（2026-09-25 用户裁定：三 token 身份色太花/光污染——
-   身份已由资产行的代币章承载，等式不再复述；运算符三级弱化） */
-.pol-flow__eq {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  flex: 1;
-  min-inline-size: 0;
-  font-family: var(--font-data);
-  font-variant-numeric: tabular-nums;
-  font-size: var(--text-sm);
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-}
-
-.pol-flow__tok {
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-secondary);
-}
-
-.pol-flow__op {
-  color: var(--color-text-tertiary);
-}
-
-.pol-flow__row > button {
-  flex-shrink: 0;
 }
 
 /* 分缝：hairline—Y 拆分符—hairline，编码 POL→PT+YT */
@@ -4342,6 +4485,8 @@ svg {
   flex-direction: column;
   align-items: center;
   gap: var(--space-2);
+  /* 卡不等高后分缝仍通高（盖两卡行高） */
+  align-self: stretch;
 }
 
 .pol-seam__line {
@@ -4373,31 +4518,88 @@ svg {
   block-size: 14px;
 }
 
-/* PT/YT 资产行：64px 行 + hairline 分隔，金额=卡内主读数 */
-.pol-asset {
+/* PT/YT 双生井（2026-09-27 用户裁定两轮重构；第三轮改满宽纵叠——并排井仅 ~174px 宽，
+   多腿读数被迫折行、钉底对齐又在矮井中拉出大段死白）。每井=抬升面仪器盒
+   （surface-raised+hairline+对角双切）满宽纵叠：身份头 + 账目行（label 左/腿右）+
+   美元回声；v3（2026-09-28 用户裁定）井=纯读对称无井底钮，操作统一井组下通栏 */
+.pol-twin {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* 等式桥头（v3 2026-09-28）：机制等式升为井组头——一眼解释两井 USD 等值与三操作的存在，
+   与左 seam 的 Y 形分缝成「左符号右公式」；⊙ 挂 splitNote 释义 */
+.pol-twin__equation {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  min-block-size: 64px;
+  gap: var(--space-1);
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+  letter-spacing: 0.02em;
 }
 
-.pol-asset + .pol-asset {
-  border-block-start: 1px solid var(--color-border);
+.pol-twin__equation .create-info {
+  inline-size: var(--text-xs);
+  block-size: var(--text-xs);
 }
 
-.pol-asset__main {
-  display: grid;
-  gap: 2px;
-  flex: 1;
+.pol-twin__well {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  clip-path: polygon(
+    var(--chamfer) 0,
+    100% 0,
+    100% calc(100% - var(--chamfer)),
+    calc(100% - var(--chamfer)) 100%,
+    0 100%,
+    0 var(--chamfer)
+  );
+}
+
+/* 井组通栏操作区（v3 2026-09-28）：三钮真等宽——`> button` 基础规则是 flex:1 1 auto
+   （内容基宽+均分余量，宽窄随文案长短），等宽要 flex-basis:0；
+   再叠 min-width:0 拆掉长 label（Flash Swap）的 min-content 下限，否则其最小内容宽
+   会顶破等分（judge 2026-09-28 实测 117/113/113） */
+.pol-card[data-token='pt-yt'] .pol-card__btns > button {
+  flex: 1 1 0;
   min-inline-size: 0;
 }
 
-.pol-asset__symbol {
+/* 井顶缘身份刻线（v3）：PT=青 / YT=品红（品红 1px 回声管制内）——徽章色贯穿可扫读；
+   开角双切自然截去顶线左端起段，成「内缩刻线」形态 */
+.pol-twin__well[data-token='pt'] {
+  border-block-start-color: color-mix(in srgb, var(--or-cyan) 55%, transparent);
+}
+
+.pol-twin__well[data-token='yt'] {
+  border-block-start-color: color-mix(in srgb, var(--accent-echo) 55%, transparent);
+}
+
+.pol-twin__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pol-twin__id {
+  display: grid;
+  gap: 2px;
+  min-inline-size: 0;
+}
+
+.pol-twin__symbol {
   font-family: var(--font-data);
   font-size: var(--text-sm);
 }
 
-.pol-asset__desc {
+.pol-twin__desc {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
@@ -4405,58 +4607,64 @@ svg {
   font-size: var(--text-xs);
 }
 
-/* ⊙ 图标与 12px 行注同高并垂直居中（同 pol-claim/gauge 图例口径） */
-.pol-asset__desc .create-info {
+/* ⊙ 图标与 12px 行注同高并垂直居中（同 gauge 图例口径） */
+.pol-twin__desc .create-info {
   inline-size: var(--text-xs);
   block-size: var(--text-xs);
 }
 
-.pol-asset__side {
-  display: grid;
-  gap: 2px;
-  justify-items: end;
-}
-
-.pol-asset__amount {
-  font-family: var(--font-data);
-  font-variant-numeric: tabular-nums;
-  font-size: var(--text-lg);
-  font-weight: var(--font-weight-semibold);
-}
-
-/* 可领 YT 条：青 tinted 可操作面 */
-.pol-claim {
+/* 账目行：label 左、多腿右（报价单惯例）；16px mono 保证最长两腿行单行放下，
+   超长时腿组在右缘整齐折行 */
+.pol-twin__quote {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   gap: var(--space-3);
   flex-wrap: wrap;
-  padding: var(--space-3);
-  border: 1px solid var(--color-border-signal);
-  background: color-mix(in srgb, var(--or-cyan) 4%, var(--color-surface-raised));
 }
 
-.pol-claim__info {
-  display: grid;
-  gap: 2px;
-}
-
-.pol-claim__info strong {
-  font-family: var(--font-data);
-  font-variant-numeric: tabular-nums;
-  font-size: var(--text-sm);
-}
-
-/* 资格说明收进标签旁 ⊙ 气泡（2026-09-24 用户裁定）：标签行内嵌图标，xs 对齐 11px 大写微标签 */
-.pol-claim__info .pol-label {
+/* 账目行 label=名义价值+⊙（2026-09-28：沿用 POL 仪表 legend 语言——inline-flex+gap
+   承载 ⊙ 间距；值回归纯数字，单位基准由井身份承载，一行一个语义中心） */
+.pol-twin__quote .pol-label {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
 }
 
-.pol-claim__info .create-info {
-  inline-size: var(--text-xs);
-  block-size: var(--text-xs);
+.pol-twin__quote .pol-label .create-info {
+  inline-size: 11px;
+  block-size: 11px;
+}
+
+.pol-twin__legs {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* 次腿（+ uAsset 腿）：与主腿同档同色——双腿已是对等兑付口径（2026-09-28 用户裁定
+   「1 YT = 多少 Memecoin + 多少 uAsset」），原次级色降一档的层级理由过期 */
+.pol-twin__leg-extra {
+  color: inherit;
+}
+
+/* 美元回声：hairline 上缘 + 12px mono 三级；v3 左锚标签列起点（账目行第二行惯例，
+   与上行构成左对齐阅读列——右挂孤行+标签值间死区 2026-09-28 用户裁定废弃） */
+.pol-twin__usd {
+  margin: 0;
+  padding-block-start: var(--space-2);
+  border-block-start: 1px solid var(--color-border);
+  color: var(--color-text-tertiary);
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+  text-align: start;
 }
 
 @media (max-width: 1023px) {
@@ -4480,6 +4688,14 @@ svg {
 .vault-panel {
   display: grid;
   gap: var(--space-4);
+}
+
+/* 头部节奏与 DAO 对齐（2026-09-27 用户裁定：两卡头部间距不一致）：
+   head+stats 收进 __overview 分区（gap-3 同 .dao-overview），
+   面板顶距 space-4 见下方 [data-tab='vault'] 覆写 */
+.vault-overview {
+  display: grid;
+  gap: var(--space-3);
 }
 
 /* 标题行（2026-09-24 用户裁定两轮）：标题左、合约地址居中（无 VAULT 前缀）、
@@ -4604,10 +4820,10 @@ svg {
 }
 
 /* Yield Vault 操作卡（2026-09-24 demo.outrun.build/memeverse 布局重设计）：
-   标签页卡家族容器（同 pol-card 材质档：signal 边 + card 切角；
-   青顶光已删 2026-09-26——同边双笔叠画非整数 DPR 糊带），
-   内部字段/明细/CTA 复用 .swap-panel__* 原语（2026-09-24 用户裁定：
-   卡内网络芯片删除，连接网络=header GS-2 链选择器唯一入口） */
+   2026-09-27 用户裁定改双列（.vault-actions）——左列 Stake 常驻、右列 Redeem/Withdraw
+   标签切换；单卡材质档不变（signal 边 + card 切角；青顶光已删 2026-09-26——同边双笔
+   叠画非整数 DPR 糊带），内部字段/明细/CTA 复用 .swap-panel__* 原语（2026-09-24 用户
+   裁定：卡内网络芯片删除，连接网络=header GS-2 链选择器唯一入口） */
 .vault-card {
   display: grid;
   gap: var(--space-3);
@@ -4630,6 +4846,37 @@ svg {
   justify-content: space-between;
   gap: var(--space-3);
   flex-wrap: wrap;
+}
+
+/* 操作卡双列（2026-09-27 用户裁定：三标签单卡通栏把 swap 窄卡原语拉到 ~1100px，
+   内容稀疏拉伸；改 Stake 常驻左列 + Redeem/Withdraw 标签切换右列）。
+   列比/断点随 POL 标签先例（.pol-panel__grid 1.15:0.85、<1024px 退单列）；
+   双卡自然高不强制等高（2026-09-27 POL 同日裁定） */
+.vault-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+/* 左列 Stake 卡头=静态标签（非交互）：复刻右列切换条激活项视觉
+   （主动色字 + 2px 底指示条），高度对齐 --control-height */
+.vault-card__bar-label {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--control-height);
+  padding-inline: var(--space-2);
+  color: var(--accent-primary);
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 500;
+  box-shadow: inset 0 -2px 0 var(--accent-primary);
+}
+
+@media (max-width: 1023px) {
+  .vault-actions {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
 }
 
 .vault-actions__bar [data-slot='toggle-group-item'] {
@@ -4704,7 +4951,11 @@ svg {
 
 /* DAO —— 2026-09-26 参照图改版：三分区（概览/当期/上期）全宽堆叠，周期数据从
    30px 行高 hairline dl 行列表改为 KPI 芯片网格（label 上、数值下）；
-   按钮：Finalize 上移当期分区头、Claim 入「可领奖励」芯片、Tally 并入概览第 4 芯片 */
+   按钮：Finalize 上移当期分区头、Claim 入「可领奖励」芯片、Tally 并入概览第 4 芯片。
+   2026-09-26 质感精修（用户裁定全项）：明暗分层（周期卡 surface/芯片 inset/横幅 raised
+   三档各就位）、青边减法（只读芯片冷灰）、字体坡度（横幅 22px KPI 档/Governor 13px/
+   标签三级色/周期号 stat-meta 12px）、切角统一（周期卡全右上单切）、头行 hairline、
+   间距分组节奏（概览 gap-4、注释贴横幅 8px）——详见各规则处注释 */
 .dao-panel {
   display: grid;
   gap: var(--space-4);
@@ -4713,6 +4964,56 @@ svg {
 .dao-overview {
   display: grid;
   gap: var(--space-3);
+}
+
+/* DAO 面板顶距收紧 24→16（2026-09-26 用户裁定：概览头行上下间距稍大）；
+   2026-09-27 用户裁定：Yield Vault 头部间距与 DAO 对齐（vault 面板同收 space-4）；
+   liquidity/pol 顶距 space-5 不变 */
+.verse-tabs__panel[data-tab='dao'],
+.verse-tabs__panel[data-tab='vault'] {
+  padding-block-start: var(--space-4);
+}
+
+/* 质感精修（2026-09-26 用户裁定全项）：
+   ① Governor 地址=元数据非核心读数，15→13px 让标题独占头行（同日再裁定稍调大 13→14px）
+   ② 青边减法——只读芯片降冷灰描边，青 tinted 只留给可点明细芯片(__hit)/横幅/当期卡容器
+   ③ 芯片标签降三级色，拉开「标签暗、数值亮」对比
+   （dao 概览头行 hairline 曾加又撤——2026-09-26 用户裁定多余，仅周期卡头行保留） */
+.dao-panel__head-governor {
+  font-size: 14px;
+}
+
+.dao-panel__stats > div,
+.cycle-card__stats > div {
+  border-color: var(--color-border);
+}
+
+/* KPI 芯片格内容整体居中（2026-09-27 用户裁定：先 DAO 卡，同日扩 Liquidity
+   概览与 Yield Vault 概览）——标签/数值水平居中；
+   共享底版 justify-items:start 不动（kpi-chips 交易台统计条保持左对齐），
+   text-align 兜底窄格换行文本也居中；
+   内距维持共享底版 space-2/space-3——同日垂直收紧（→space-1）与水平收紧
+   （→space-2）均试过后回松（用户裁定观感过紧），仅居中落地 */
+.liquidity-panel__overview > div,
+.vault-panel__stats > div,
+.dao-panel__stats > div,
+.cycle-card__stats > div {
+  justify-items: center;
+  text-align: center;
+}
+
+.cycle-card__stats > div.cycle-card__hit {
+  border-color: var(--color-border-signal);
+}
+
+.dao-panel__stats dt,
+.cycle-card__stats dt {
+  color: var(--color-text-tertiary);
+}
+
+/* 周期号/日期=元数据芯片：数值 15→12px 与 stat-sub 同级（钱数芯片保持 15px 主次） */
+.stat-meta {
+  font-size: 12px;
 }
 
 /* Tally 芯片标签旁 ⊙ 气泡（2026-09-26 用户裁定：note 不再占格内版面） */
@@ -4728,9 +5029,10 @@ svg {
 }
 
 /* Cactus（原 Tally，2026 更名）完整 logo（mark+字标并排）——官方 CACTUS-black.svg
-   内联、currentColor 随按钮文色；标题为纯文本不挂 logo（2026-09-26 用户裁定） */
+   内联、currentColor 随按钮文色；标题为纯文本不挂 logo（2026-09-26 用户裁定）
+   按钮缩档 sm→xs 后 logo 16→14px 同比（2026-09-26 用户裁定「稍微缩小」） */
 .dao-panel__tally-logo {
-  block-size: 16px;
+  block-size: 14px;
   inline-size: auto;
   /* 禁用态按钮文色=三级（偏暗），品牌 logo 提亮至正文色（2026-09-26 用户裁定） */
   color: var(--color-text);
@@ -4741,21 +5043,23 @@ svg {
   font-size: 11px;
 }
 
+/* 票数单位与 mono 数值同一字系（原 sans 11px 混排像两套系统） */
 .stat-unit {
   color: var(--color-text-secondary);
-  font-size: 11px;
+  font-family: var(--font-data);
+  font-size: 12px;
 }
 
 /* >>> 动态符（青色功能信号徽章；三 chevron 流动——数据型资金明细入口示意，
-   按钮=主行动不加；2026-09-26 用户裁定参照 demo；八次微调定参=单 SVG 三 path：
-   advance 9/字宽 6（笔画间隙 ~2.4px），渲染 22.75×13、chevron 实高 ~9.75px/描边 2、
+   按钮=主行动不加；2026-09-26 用户裁定参照 demo；十次微调定参=单 SVG 三 path：
+   advance 9/字宽 6（笔画间隙 ~2.4px），渲染 19.25×11、chevron 实高 ~8.25px/描边 2、
    butt/miter 尖角；可点明细=功能信号走 --or-cyan（品红回声弃用）；
    位于 dt 标题行右对齐 */
 .dao-dots {
   display: block;
   margin-inline-start: auto;
-  inline-size: 22.75px;
-  block-size: 13px;
+  inline-size: 19.25px;
+  block-size: 11px;
   color: var(--or-cyan);
 }
 
@@ -4771,9 +5075,11 @@ svg {
   animation-delay: 0.4s;
 }
 
-/* 明细入口芯片：标题行撑满、label 左 >>> 右（同一行） */
+/* 明细入口芯片：标题行 label 与 >>> 成组居中（2026-09-27 用户裁定 DAO 卡全格居中，
+   撤原「标题行撑满、label 左 >>> 右」两端布局——shrink-to-fit 下 dao-dots 的
+   margin-inline-start:auto 无剩余空间可吃，自然随组居中） */
 .cycle-card__hit > dt {
-  justify-self: stretch;
+  justify-self: center;
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -4800,33 +5106,62 @@ svg {
   border-color: var(--color-border-signal-strong);
 }
 
-/* DAO 资金明细弹窗（参照 demo.outrun.build/memeverse/26：标题 + Total Value + 资产行） */
+/* DAO 资金明细弹窗（参照 demo.outrun.build/memeverse/26：标题 + Total Value + 资产行；
+   2026-09-30 质感升级：hero 读数带 + 配比条 + 进场动效，分隔线退位给配比条节奏） */
 .dao-fund-pop {
   max-inline-size: min(420px, 92vw);
   display: grid;
   gap: var(--space-3);
 }
 
-.dao-fund-pop__total {
+/* 进场：抬升淡入（transform 在 reduced-motion 全局策略下自动降级） */
+.dao-fund-pop[data-slot='dialog-content'] {
+  transition:
+    opacity var(--motion-base) var(--ease-out),
+    transform var(--motion-base) var(--ease-out);
+}
+
+.dao-fund-pop[data-slot='dialog-content'][data-starting-style],
+.dao-fund-pop[data-slot='dialog-content'][data-ending-style] {
+  opacity: 0;
+  transform: translateY(8px) scale(0.985);
+}
+
+/* 总值读数带：label + 24px 等宽大数 + 资产数 meta；顶缘青光渗呼应卡面雨夜材质 */
+.dao-fund-pop__hero {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--color-border-signal);
-  background: var(--color-surface-inset);
+  background:
+    linear-gradient(180deg, rgba(0, 240, 255, 0.05), transparent 62%), var(--color-surface-inset);
 }
 
-.dao-fund-pop__total span {
+.dao-fund-pop__hero-main {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.dao-fund-pop__hero-main span {
   color: var(--color-text-secondary);
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.dao-fund-pop__total strong {
+.dao-fund-pop__hero-main strong {
   font-family: var(--font-data);
-  font-size: 18px;
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dao-fund-pop__hero-meta {
+  padding-block-end: 2px;
+  color: var(--color-text-secondary);
+  font-family: var(--font-data);
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -4838,15 +5173,19 @@ svg {
 }
 
 .dao-fund-pop__list li {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding-block: var(--space-2);
-  border-block-end: 1px solid var(--color-border);
+  display: grid;
+  gap: var(--space-2);
+  padding-block: var(--space-2) var(--space-3);
 }
 
 .dao-fund-pop__list li:last-child {
-  border-block-end: 0;
+  padding-block-end: var(--space-1);
+}
+
+.dao-fund-pop__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .dao-fund-pop__glyph {
@@ -4856,6 +5195,7 @@ svg {
   inline-size: 26px;
   block-size: 26px;
   border: 1px solid var(--color-border-signal);
+  background: var(--color-surface-inset);
   color: var(--color-text-secondary);
   font-family: var(--font-data);
   font-size: 12px;
@@ -4895,16 +5235,115 @@ svg {
   font-variant-numeric: tabular-nums;
 }
 
+/* 配比条：ProgressMeter 同语言（青填充数据条）的 2px 轻量方言；
+   轨起对齐字形徽章列，% 读数定宽右对齐保轨尾齐平 */
+.dao-fund-pop__share {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-inline-start: calc(26px + var(--space-3));
+}
+
+.dao-fund-pop__track {
+  flex: 1;
+  block-size: 2px;
+  background: var(--color-border);
+}
+
+.dao-fund-pop__track span {
+  display: block;
+  block-size: 100%;
+  background: var(--or-cyan);
+}
+
+.dao-fund-pop__share em {
+  font-style: normal;
+  min-inline-size: 32px;
+  text-align: end;
+  color: var(--color-text-secondary);
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 白名单口径注脚：明细=治理注册的代币注册表，未注册资产不入账（2026-09-30 源码对账） */
+.dao-fund-pop__note {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
+
 .stat-flag {
   color: var(--or-cyan);
   font-size: 11px;
 }
 
-/* 芯片内值+动作钮纵排（值不被按钮挤行尾） */
+/* 芯片内值+动作钮同行（2026-09-26 用户裁定：Claim rewards 与美元价值同一行；
+   原纵排把芯片撑高、上下留白过大；窄放不下时 wrap 回退两行；
+   2026-09-27 用户裁定 DAO 卡全格居中——值与钮成组居中，撤 space-between 两端） */
 .stat-action {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
   gap: var(--space-2);
-  justify-items: start;
+}
+
+/* 芯片内动作钮紧凑档：全局控件高 40px 会把芯片撑到 77px（同级 60px），
+   芯片作用域内收 28px/12px 字——站级控件高不变（2026-09-26 用户裁定同行后补）。
+   注意：全局 [data-slot='button'] 有 min-block-size 40px !important，sm/xs 的
+   h-28/h-24 全被托住——缩档必须用更高优先级 !important 压 min-block-size
+   （2026-09-26 用户裁定：Enter Cactus / Finalize 钮并入此档，同日两轮 sm→xs 无感后修正；
+   曾把两钮内距再压至 space-2=8px，同日稍后用户裁定宽微增——内距撤压回 sm 原生
+   px-2.5=10px（每边+2px）；Claim 保持 space-3；
+   Enter Cactus 字号独走 15px=前三芯片 dd 数值同档——同日用户裁定，高仍 28px；
+   2026-09-27 用户裁定以 DAO 为基准推全站：Liquidity 池卡 Add Liquidity、POL 卡
+   Mint/Redeem、换向器 Split/Merge、Claim YT 一并入档——卡内次级动作统一档，
+   主 CTA（swap-panel__cta 黄钮 40px）与 vault 标签页 tabs 不动；
+   同日再裁定：非芯片约束的大卡 28px 偏小（POL 终端卡、池卡），拆出中档
+   32px（control-height−space-2）——芯片内（DAO/Claim）维持 28px */
+.stat-action [data-slot='button'],
+.dao-panel__tally [data-slot='button'],
+.cycle-card__head-finalize[data-slot='button'] {
+  min-block-size: calc(var(--control-height) - var(--space-3)) !important;
+}
+
+/* 卡内动作中档 32px：不受 KPI 芯片约束的大卡（POL 终端卡、Liquidity 池卡行）——
+   28px 在大卡里视觉偏小（2026-09-27 用户裁定）；与 DAO 芯片 28px、主 CTA 40px
+   构成三档：芯片次级 28 / 大卡次级 32 / 主行动 40 */
+.pool-card [data-slot='button'],
+.pol-card__btns [data-slot='button'] {
+  min-block-size: calc(var(--control-height) - var(--space-2)) !important;
+}
+
+.cycle-card__head-finalize[data-slot='button'] {
+  font-size: 12px !important;
+}
+
+/* Claim Rewards 钮 12→13px（2026-09-26 用户裁定稍调大；旁值 15px 保持主次） */
+.stat-action [data-slot='button'] {
+  font-size: 13px !important;
+}
+
+.dao-panel__tally [data-slot='button'] {
+  font-size: 15px !important;
+}
+
+.stat-action [data-slot='button'] {
+  padding-inline: var(--space-3) !important;
+}
+
+/* 可领奖励标签旁 ⊙ 气泡：claimWindowNote 收进气泡不占版面（2026-09-26 用户裁定，
+   tallyNote 同范式；卡底 panel-note 同文案已删）；⊙ 缩至 12px 同 dt 字档 */
+.cycle-card__claim-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.cycle-card__claim-label .create-info {
+  inline-size: var(--text-xs);
+  block-size: var(--text-xs);
 }
 
 .dao-panel__cycles {
@@ -4912,16 +5351,16 @@ svg {
   gap: var(--space-4);
 }
 
+/* 容器升 surface（与面板底同档、边线分界），芯片保持 inset 读作「卡内凹井」——
+   原容器也用 inset 与芯片同色零层次（2026-09-26 质感精修）；
+   切角统一：右上单切归所有周期卡（原仅当期切、上期直角=两种角落语法），
+   当期/上期身份差异交给边框色（青=进行中、灰=归档） */
 .cycle-card {
   display: grid;
   gap: var(--space-3);
   padding: var(--space-4);
   border: 1px solid var(--color-border);
-  background: var(--color-surface-inset);
-}
-
-.cycle-card[data-current] {
-  border-color: var(--color-border-signal);
+  background: var(--color-surface);
   clip-path: polygon(
     0 0,
     calc(100% - var(--chamfer-panel)) 0,
@@ -4931,14 +5370,20 @@ svg {
   );
 }
 
+.cycle-card[data-current] {
+  border-color: var(--color-border-signal);
+}
+
 /* 周期卡头行三列范式（2026-09-26 用户裁定，同 dao/vault 头行）：标题左、
    Incentivizer 地址居中、Finalize 钮右；周期时长文案已删（同日裁定）；
-   上期卡头仅标题（+日期 span 在 meta 内），占首列即可 */
+   上期卡头仅标题（日期 span 亦删——同日用户裁定），占首列即可 */
 .cycle-card__head {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: var(--space-2) var(--space-3);
+  padding-block-end: var(--space-3);
+  border-block-end: 1px solid var(--color-border);
 }
 
 .cycle-card__head-meta {
@@ -4948,18 +5393,35 @@ svg {
   gap: var(--space-2) var(--space-3);
 }
 
-.cycle-card__head-meta > span {
-  color: var(--color-text-secondary);
-  font-family: var(--font-data);
-  font-variant-numeric: tabular-nums;
+/* 头行垂直对齐：panel-subtitle 自带 8px 底距，grid align-items:center 居中的是
+   margin box，标题会浮在 Incentivizer/Finalize 中线上方 ~4px——归零对齐
+   （vault/dao 头行同问题当年以 panel-title 底距归零处理，2026-09-26 用户裁定补） */
+.cycle-card__head-meta .panel-subtitle {
+  margin: 0;
 }
 
 .cycle-card__head-incentivizer {
   grid-column: 2;
   justify-self: center;
   color: var(--color-text-secondary);
-  font-family: var(--font-data);
-  font-variant-numeric: tabular-nums;
+}
+
+/* Incentivizer: 标签=panel-subtitle 同字体档（与 Current cycle incentive 一致——2026-09-26
+   用户裁定）；mono 从父层撤下（地址芯片 token-strip__copy 自带 --font-data，不受影响）；
+   Finalize 钮文字同档（600/0.08em/大写——同日用户裁定，字号 12px 与紧凑档一致） */
+.cycle-card__head-label,
+.cycle-card__head-finalize[data-slot='button'] {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Finalize 钮文字后 ⊙ 气泡（finalizeNote=结束当前周期并开启下一周期——2026-09-26
+   用户裁定）；⊙ 缩至 12px 同钮文字档 */
+.cycle-card__head-finalize .create-info {
+  inline-size: var(--text-xs);
+  block-size: var(--text-xs);
 }
 
 .cycle-card__head-finalize {
@@ -4986,16 +5448,17 @@ svg {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-/* 当期可领估算横幅（参考页同款强调行） */
+/* 当期可领估算横幅（参考页同款强调行）：raised=整页唯一最亮面——钱眼待遇（2026-09-26 质感精修） */
 .cycle-card__banner {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: var(--space-2) var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  /* 上下内距 12→10px（2026-09-27 用户裁定高度微缩；左右不动） */
+  padding: 10px var(--space-4);
   border: 1px solid var(--color-border-signal-strong);
-  background: var(--color-surface-inset);
+  background: var(--color-surface-raised);
   clip-path: polygon(
     0 0,
     calc(100% - var(--chamfer-panel)) 0,
@@ -5014,8 +5477,14 @@ svg {
 
 .cycle-card__banner strong {
   font-family: var(--font-data);
-  font-size: 18px;
+  /* 22→18→16px（2026-09-26/09-30 两轮用户裁定缩小；仍高于芯片 dd 15px 保持强调） */
+  font-size: 16px;
   font-variant-numeric: tabular-nums;
+}
+
+/* 注释贴紧其解释的横幅/统计区（8px），不与区块间距均质（2026-09-26 质感精修） */
+.cycle-card > .panel-note {
+  margin-block-start: calc(var(--space-2) - var(--space-3));
 }
 
 @media (max-width: 860px) {
@@ -5037,6 +5506,23 @@ svg {
 
   .liquidity-panel__pools {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ≤640px 池卡退三段纵叠（2026-09-30 二轮配套：横排二行需 ~341px 内宽，
+   窄于此统计格与双钮挤行）；双钮满行等分、间距回升 space-3 */
+@media (max-width: 640px) {
+  .pool-card {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'head'
+      'stats'
+      'actions';
+    row-gap: var(--space-3);
+  }
+
+  .pool-card__actions {
+    margin-inline-start: 0;
   }
 }
 
@@ -6204,7 +6690,9 @@ svg {
     border-block-end: 0;
   }
 
-  .home-final-cta__actions [data-slot='button'] {
+  /* 满宽钮的 flex 项=plate（2026-09-28 方案 C：链接钮外包承接层），锚点经
+     flex-grow:1 跟随撑满 */
+  .home-final-cta__actions [data-slot='button-plate'] {
     flex: 1 1 100%;
   }
 

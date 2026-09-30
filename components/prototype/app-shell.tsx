@@ -9,7 +9,6 @@ import { getPrototypeChains, type Locale, type PrototypeChain } from '@/lib/data
 import { getCopy } from './copy'
 import { LocaleMenu } from './locale-menu'
 import { localePath } from './routes'
-import { SourceRef } from './signal-ui'
 import { WalletControl } from './wallet-control'
 
 type CurrentSurface = 'home' | 'discover' | 'create' | 'verse' | 'portfolio'
@@ -18,7 +17,6 @@ type ShellProps = {
   locale: Locale
   current: CurrentSurface
   accountAddress: string
-  accountSourceRef: string
   children: React.ReactNode
 }
 
@@ -73,7 +71,7 @@ function MarketingHeader({ locale, address }: { locale: Locale; address: string 
   )
 }
 
-function ProductSidebar({ locale, current, accountAddress, accountSourceRef }: Omit<ShellProps, 'children'>) {
+function ProductSidebar({ locale, current, accountAddress }: Omit<ShellProps, 'children'>) {
   const copy = getCopy(locale)
 
   return (
@@ -105,15 +103,6 @@ function ProductSidebar({ locale, current, accountAddress, accountSourceRef }: O
           )
         })}
       </nav>
-      <div className="sidebar-account">
-        <span className="sidebar-account__label">{copy.common.connected}</span>
-        <span data-numeric>{`${accountAddress.slice(0, 6)}…${accountAddress.slice(-4)}`}</span>
-        <span className="sidebar-account__state">
-          <span className="status-dot" data-tone="success" aria-hidden="true" />
-          {copy.common.mainnet}
-        </span>
-        <SourceRef value={accountSourceRef} id="acct-001" />
-      </div>
     </aside>
   )
 }
@@ -147,7 +136,6 @@ export function OutrunShell({
   locale,
   current,
   accountAddress,
-  accountSourceRef,
   children,
 }: ShellProps) {
   const copy = getCopy(locale)
@@ -172,7 +160,6 @@ export function OutrunShell({
         locale={locale}
         current={current}
         accountAddress={accountAddress}
-        accountSourceRef={accountSourceRef}
       />
       <div className="product-canvas ax-hud-inner">
         <header className="product-topbar">

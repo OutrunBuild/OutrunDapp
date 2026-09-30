@@ -87,7 +87,7 @@ export function DesignSystemShowcase({ locale }: { locale: Locale }) {
   const copy = getCopy(locale)
 
   return (
-    <OutrunShell locale={locale} current="discover" accountAddress="" accountSourceRef="">
+    <OutrunShell locale={locale} current="discover" accountAddress="">
       {/* v0 Design System Showcase Page */}
       <div className="page-intro">
         <div>

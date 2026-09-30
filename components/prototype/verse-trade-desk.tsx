@@ -3,7 +3,7 @@ import type {
   PrototypeVerse,
   PrototypeVerseTrade,
 } from '@/lib/data/prototype-repository'
-import { getPrototypeAssetUsdSample, getPrototypePolPosition } from '@/lib/data/prototype-repository'
+import { getPrototypeAssetUsdSample, getPrototypeParticipationOptions, getPrototypePolPosition } from '@/lib/data/prototype-repository'
 
 import { CandleChart } from './candle-chart'
 import { CopyAddress } from './copy-address'
@@ -149,11 +149,15 @@ export function VerseTradeDesk({
         <SwapPanel
           locale={locale}
           memecoinSymbol={verse.symbol}
+          memecoinName={verse.name}
           uAssetSymbol={verse.raiseAsset}
           price={stats.price ?? 0}
           uAssetUsd={getPrototypeAssetUsdSample(verse.raiseAsset)}
           memecoinBalance={pol?.myMemecoin ?? null}
           uAssetBalance={pol?.myUAsset ?? null}
+          reserves={getPrototypeParticipationOptions(verse.raiseAsset).reserves}
+          reserveBalance={pol?.myReserve ?? null}
+          pol={pol}
         />
       </div>
     </section>

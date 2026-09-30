@@ -10,7 +10,8 @@ import { VaultActions } from './vault-actions'
  * 两步异步赎回状态列表 Q8 口径——2026-09-26 用户裁定参照 demo：列表收进操作卡标签内
  * （Redeem=仅等待中走秒倒计时 / Withdraw=仅已成熟逐笔），见 VaultActions；链感知跨链质押 Q10）。
  * 标题行（2026-09-24 用户裁定）：标题左、合约地址居中（无 VAULT 前缀文案）、
- * Live on {治理链} 右对齐——恒同一行。
+ * Live on {治理链} 右对齐——恒同一行。头部间距节奏（2026-09-27 用户裁定）：head+stats 收进
+ * .vault-overview（gap-3）+ 面板顶距 space-4，与 DAO 面板头行一致。
  */
 export function VaultPanel({
   locale,
@@ -29,22 +30,22 @@ export function VaultPanel({
 
   return (
     <div className="vault-panel">
-      <header className="vault-panel__head">
-        <h3 className="panel-title">{copy.vaultTitle.replace('{symbol}', verse.symbol)}</h3>
+      <section className="vault-overview">
+        <header className="vault-panel__head">
+          <h3 className="panel-title">{copy.vaultTitle.replace('{symbol}', verse.symbol)}</h3>
+          {staking ? (
+            <>
+              <div className="vault-panel__head-vault" data-numeric>
+                <CopyAddress locale={locale} value={staking.vaultAddress} />
+              </div>
+              <dl className="vault-panel__head-live" data-numeric>
+                <dt>{copy.liveIn}</dt>
+                <dd>{verse.governanceChainName}</dd>
+              </dl>
+            </>
+          ) : null}
+        </header>
         {staking ? (
-          <>
-            <div className="vault-panel__head-vault" data-numeric>
-              <CopyAddress locale={locale} value={staking.vaultAddress} />
-            </div>
-            <dl className="vault-panel__head-live" data-numeric>
-              <dt>{copy.liveIn}</dt>
-              <dd>{verse.governanceChainName}</dd>
-            </dl>
-          </>
-        ) : null}
-      </header>
-      {staking ? (
-        <>
           <dl className="vault-panel__stats" data-numeric>
             <div>
               <dt>{copy.totalStaked}</dt>
@@ -65,6 +66,10 @@ export function VaultPanel({
               </dd>
             </div>
           </dl>
+        ) : null}
+      </section>
+      {staking ? (
+        <>
           <VaultActions
             locale={locale}
             symbol={verse.symbol}

@@ -86,7 +86,6 @@ export function HomePage({ locale }: { locale: Locale }) {
       locale={locale}
       current="home"
       accountAddress={snapshot.sampleAccount.address}
-      accountSourceRef={snapshot.sampleAccount.sourceRef}
     >
       <section className="home-hero" aria-labelledby="home-title">
         <div className="home-hero__copy">

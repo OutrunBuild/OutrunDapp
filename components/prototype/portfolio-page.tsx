@@ -33,7 +33,6 @@ export function PortfolioPage({ locale }: { locale: Locale }) {
       locale={locale}
       current="portfolio"
       accountAddress={snapshot.sampleAccount.address}
-      accountSourceRef={snapshot.sampleAccount.sourceRef}
     >
       <header className="page-intro">
         <div>

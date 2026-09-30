@@ -48,7 +48,6 @@ export function DiscoveryPage({ locale, searchParams }: DiscoveryPageProps) {
       locale={locale}
       current="discover"
       accountAddress={snapshot.sampleAccount.address}
-      accountSourceRef={snapshot.sampleAccount.sourceRef}
     >
       <header className="discovery-intro">
         <div>
