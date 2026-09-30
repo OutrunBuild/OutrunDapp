@@ -281,3 +281,9 @@ C1 结算储备金按 spec 窄口径且 UI 不露出 · C2 建池剩余资金不
 - **决议**：按钮六条 hover 规则（default/outline/.swap-panel__cta/.ax-ghost-cta/.ax-glow-cta 及其 ::after）摘除 `:not(:disabled)`——disabled 钮获得与 enabled 一致的悬停换肤（画皮变量经 @property 平滑过渡，worklet 重绘）；`:active` 仍限 enabled（点击反馈保留给真可点件）。
 - **验证**（4175 生产）：鼠标移入 disabled 的 Add liquidity——`:hover` 命中，`--cb-border`→纯青、`--cb-bg`→青 8% tinted、文字→青。
 - 用户原话要点：「没有悬停 hover 吗？我说的是 add liquidity 按钮」。
+
+## 2026-09-30 · DESIGN.md 追注清理 + 定稿纪律收紧（用户裁定「做」）
+
+- **范围**：7 处时间点追注改写为现行规则或删除——KPI/卡片顶缘青 inset 光两处（改写为现行约束「同边单笔」，why 保留）、按钮 Paint Worklet 日期、决议 010 勘误叙事（保留「去极客≠去风格」口径）、决议 013 原值叙事、头部追认链、`--accent-primary` 对比勘误叙事（勘误全文存档于 `scripts/check-design-contrast.mjs` 文件头）。
+- **决议**：定稿正文只反映最新状态，变更叙事（已删/已改 + 日期）只进本 log；条款写入 `docs/design-system/README.md` §5 变更规则与 DESIGN.md 头部。
+- **token 影响**：无增删（当日另有 §2 表 accent-link 13.06:1 / accent-echo 5.21:1 补实测值、accent-primary 勘误 15.15→15.22，数值复算全表其余吻合）。

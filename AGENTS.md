@@ -44,20 +44,7 @@ Next.js 16 App Router · React 19 · Tailwind v4 · shadcn（`base` 原语，非
 
 ## 速记
 
-- 只用 token 与 shadcn 语义类；禁裸 `#hex`、裸 `px`、`bg-blue-500`
-- 黄 = 唯一主行动（一屏一个 CTA）；青 = 链接/focus/功能信号；品红 = 仅 1–2px 回声
-- 所有数字/地址/时间加 `data-numeric`，零 glow
-- 阶段色走 `data-stage`（genesis 黄 / locked 品红 / unlocked 青 / refund 橙）
-- 文案从 `getCopy(locale)` 取，en/zh 同时加；页面包在 `OutrunShell` 内
-- shadcn base 原语：自定义触发器用 `render`；表单用 `FieldGroup + Field`；用 `gap` 不用 `space-*`
-
-## 命令
-
-```bash
-pnpm dev
-pnpm exec tsc --noEmit
-pnpm dlx shadcn@latest add <component>
-```
+硬约束唯一正文 = `docs/design-system/README.md` §3（十条，含品红三层管辖），此处不复制条文、防漂移。开工保险丝两句话：只用 token 与语义类——裸 `#hex` / 原始调色板类 / `space-*` 由 `pnpm check:design` 自动拦截；触及品牌方向/色板/字体/密度 = 停手走 `docs/design/decision-log.md` 新决议。实施细则（shadcn base 原语 `render`、CSS 命名、复用顺序）见 `agent-workflow.md` §2；`gap` 不用 `space-*`、`data-stage` 阶段色等组件规则见 `components.md` §7/§8。
 
 ## 架构边界
 
@@ -73,6 +60,10 @@ pnpm exec tsc --noEmit            # TS 7.0.2
 pnpm exec vitest run              # 单测
 pnpm node scripts/check-fixture-boundary.mjs --source   # 边界三层（另两个参数见文件头注释）
 pnpm node scripts/check-architecture-compliance.mjs    # §3 版本/目录/RSC 边界
+pnpm check:design                 # 设计裸值扫描（hex/原始色类/space-*/transition:all；--self-test 自检）
+pnpm check:contrast               # tokens.css 对比度闸门（对 DESIGN.md §2 实测值防漂移）
+pnpm test:e2e                     # Playwright 三档视口视觉基线 + axe 无障碍扫描（NEXT_DIST_DIR=.next-e2e 独立构建，不碰 .next）
+pnpm design:detect <file.tsx>     # impeccable 设计反模式检测（agent-workflow §3.3）
 pnpm exec prettier --check .
 pnpm build                        # production；verify ignoreBuildErrors 未开
 pnpm dlx shadcn@latest add <component>   # pnpm workspace-root 检查会拦 dlx，加完后按现有 ui/*.tsx 手工内联
