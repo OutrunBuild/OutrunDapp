@@ -6862,7 +6862,7 @@ svg {
   align-items: end;
   justify-content: space-between;
   gap: var(--space-6);
-  padding-block: var(--space-2) var(--space-4);
+  padding-block: var(--space-4) var(--space-4);
 }
 
 .discovery-intro h1 {
