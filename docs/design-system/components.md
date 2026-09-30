@@ -73,6 +73,7 @@ import { OutrunShell } from '@/components/prototype/app-shell'
 | 模式 | 根 class | 结�� | 状态 | 用于 |
 |---|---|---|---|---|
 | 页面引言 | `.page-intro` | `h1` + `p`（≤66ch），底部黄 2px + 品红 1px 回声 | — | 每个产品页顶部一次 |
+| 首页 hero 双语标题 | `.home-hero h1`（`__title-lead` 灰引言 + `__title-accent` 白主句+黄标 `::after`） | zh 独立缩放（2026-10-01 用户反馈三轮重调，最终 4rem 档）：桌面 `clamp(2.6rem, 5.8vw, 4rem)`（64px=9 字 accent+黄标 ≈86% 列宽，单行且四缘空气充足，与 en 同构两行；68px 半档经用户实测反馈「无感」废弃——可感知缩小需 ≥10% 步长）、≤30rem `clamp(2.5rem, 11.5vw, 3.25rem)`；行距 1.14、字距 −0.01em、lead 0.65em/行距 1.2；黄标 zh 专属 `translateX(-0.3em)` 扣除句号右侧剩余空白（负 margin 会把 fit-content 标题算窄触发折行，须用 transform）；句末句号经 `.home-hero__title-period` 减重缩径（400 字重 + 0.55em≈11px 圆环，2026-10-01 用户两轮「有点大」反馈收敛——全角句号圆环占字身 ~35% 比拉丁句点 ~10% 厚重显大，pwid/hwid 字形替换 Google Fonts 子集不含、无效） | accent 字典串内 `\n` 由 home-page.tsx 转 `.home-hero__title-br` 受控断行：桌面 `display:none` 保单行，≤30rem 显示（「持续运转的/经济体。」不拆词；CJK 无词界自然换行会断在字中间）；en 字典无 `\n` 不渲染 br | 首页营销壳 hero |
 | 阶段 tab | `.stage-tabs` | `a[data-active]` × N，56px 高，激活 = 顶部黄线 + 黄字 + 黄 inset | `data-active` | 单页内阶段切换（Verse 详情） |
 | 生命周期导航 | `.lifecycle-tabs` | `nav > a[data-stage][data-active]` × 3，`__mark` 色点 / `strong` 阶段名 | `data-stage`、`data-active`、`aria-current="page"` | Explore 页市场阶段过滤（Genesis/Locked/Unlocked；Refund 是结算态移交 Portfolio，仅搜索可达） |
 | Portfolio 退款区块 | `.portfolio-refunds` | `h2` + `__sub` + `__list > __row`（`__identity` 标题链接 + StageBadge → `__facts` 参与金额/创世截止 → 主 CTA） | 零可领取项不渲染整块 | Portfolio 页：我参与过且已进入退款的组合 |

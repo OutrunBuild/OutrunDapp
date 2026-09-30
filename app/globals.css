@@ -948,7 +948,12 @@ svg {
 
 .home-hero__title-accent {
   position: relative;
-  white-space: pre-line;
+}
+
+/* 字典 accent 内的 \n 经 home-page.tsx 转成受控断行：仅窄屏显示，
+   桌面保持单行（CJK 无词界，自然换行会把「经济体」拆断） */
+.home-hero__title-br {
+  display: none;
 }
 
 .home-hero__title-accent::after {
@@ -966,14 +971,34 @@ svg {
 .outrun-site[lang='zh-CN'] .home-hero h1 {
   inline-size: 100%;
   max-inline-size: none;
-  font-size: clamp(3.25rem, 5.8vw, 5rem);
-  letter-spacing: -0.03em;
-  line-height: 1.02;
+  /* 4rem 档：9 字 accent+黄标 ≈ 606px ≈ 704px 容器的 86%，单行且四缘空气充足；
+     64px 是可感知缩小的最小步长（较 72px 档 −11%，5.6% 的半步肉眼不可辨，
+     2026-10-01 用户实测反馈确认），对原始 5rem 档累计 −20%；h2 区块标题 38.4px
+     对比 1.67×，首屏统治力仍在 */
+  font-size: clamp(2.6rem, 5.8vw, 4rem);
+  letter-spacing: -0.01em;
+  line-height: 1.14;
 }
 
 .outrun-site[lang='zh-CN'] .home-hero__title-lead {
-  letter-spacing: -0.02em;
-  line-height: 1.08;
+  font-size: 0.65em;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+/* 句末句号减重缩径：全角句号圆环占字身 ~35%（拉丁句点 ~10%），700 字重下厚而显大；
+   400 字重 + 0.55em（圆环 ≈11px，2026-10-01 用户反馈「有点大」后两轮收敛） */
+.home-hero__title-period {
+  font-size: 0.55em;
+  font-weight: 400;
+}
+
+.outrun-site[lang='zh-CN'] .home-hero__title-accent::after {
+  /* 全角句号字身占 1em、墨迹仅居左 ~0.36em，标准间距下黄标离句号墨迹过远；
+     translateX 按句号右侧剩余空白扣除（负 margin 会把 fit-content 标题算窄触发
+     软折行，transform 不参与布局）；−0.3em 对应 0.55em 句号的剩余空白，视觉
+     间距 ≈space-3 */
+  transform: translateX(-0.3em);
 }
 
 .home-hero__copy {
@@ -6656,6 +6681,15 @@ svg {
   .home-hero h1,
   .outrun-site[lang='zh-CN'] .home-hero h1 {
     font-size: clamp(2.75rem, 13vw, 3.5rem);
+  }
+
+  /* CJK 同 vw 光学补偿 + 显示受控断行（「持续运转的 / 经济体。」不拆词） */
+  .outrun-site[lang='zh-CN'] .home-hero h1 {
+    font-size: clamp(2.5rem, 11.5vw, 3.25rem);
+  }
+
+  .home-hero__title-br {
+    display: inline;
   }
 
   .home-hero__title-lead {

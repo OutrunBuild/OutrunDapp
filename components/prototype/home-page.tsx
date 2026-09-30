@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { Fragment } from 'react'
 import { ArrowRight, ExternalLink } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -91,7 +92,20 @@ export function HomePage({ locale }: { locale: Locale }) {
         <div className="home-hero__copy">
           <h1 id="home-title">
             <span className="home-hero__title-lead">{copy.home.titleLead}</span>
-            <span className="home-hero__title-accent">{copy.home.titleAccent}</span>
+            <span className="home-hero__title-accent">
+              {copy.home.titleAccent.split('\n').map((line, index, lines) => {
+                const isLast = index === lines.length - 1;
+                const fullStop = isLast && line.endsWith('。') ? '。' : '';
+                const body = fullStop ? line.slice(0, -1) : line;
+                return (
+                  <Fragment key={line}>
+                    {body}
+                    {fullStop && <span className="home-hero__title-period">{fullStop}</span>}
+                    {isLast ? null : <br className="home-hero__title-br" />}
+                  </Fragment>
+                );
+              })}
+            </span>
           </h1>
           <p className="home-hero__sub">{copy.home.sub}</p>
           <div className="home-hero__actions">
