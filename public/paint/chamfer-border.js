@@ -5,54 +5,54 @@ registerPaint(
   'chamfer-border',
   class {
     static get inputProperties() {
-      return ['--chamfer', '--cb-bg', '--cb-border', '--dpr']
+      return ['--chamfer', '--cb-bg', '--cb-border', '--dpr'];
     }
 
     static get contextOptions() {
-      return { alpha: true }
+      return { alpha: true };
     }
 
     paint(ctx, geometry, props) {
       const num = (name, fallback) => {
-        const v = props.get(name)
-        if (!v) return fallback
-        const n = parseFloat(v.toString())
-        return Number.isFinite(n) ? n : fallback
-      }
-      const dpr = Math.max(1, num('--dpr', 1))
-      const chamfer = num('--chamfer', 8)
-      const bg = (props.get('--cb-bg')?.toString() || 'transparent').trim()
-      const borderColor = (props.get('--cb-border')?.toString() || 'transparent').trim()
-      const w = geometry.width
-      const h = geometry.height
+        const v = props.get(name);
+        if (!v) return fallback;
+        const n = parseFloat(v.toString());
+        return Number.isFinite(n) ? n : fallback;
+      };
+      const dpr = Math.max(1, num('--dpr', 1));
+      const chamfer = num('--chamfer', 8);
+      const bg = (props.get('--cb-bg')?.toString() || 'transparent').trim();
+      const borderColor = (props.get('--cb-border')?.toString() || 'transparent').trim();
+      const w = geometry.width;
+      const h = geometry.height;
 
-      const g = 1 / dpr
-      const q = (v) => Math.round(v / g) * g
+      const g = 1 / dpr;
+      const q = (v) => Math.round(v / g) * g;
 
       // 填充：切角多边形（对角=裸切）
-      ctx.fillStyle = bg
-      ctx.beginPath()
-      ctx.moveTo(q(chamfer), 0)
-      ctx.lineTo(q(w), 0)
-      ctx.lineTo(q(w), q(h - chamfer))
-      ctx.lineTo(q(w - chamfer), q(h))
-      ctx.lineTo(0, q(h))
-      ctx.lineTo(0, q(chamfer))
-      ctx.closePath()
-      ctx.fill()
+      ctx.fillStyle = bg;
+      ctx.beginPath();
+      ctx.moveTo(q(chamfer), 0);
+      ctx.lineTo(q(w), 0);
+      ctx.lineTo(q(w), q(h - chamfer));
+      ctx.lineTo(q(w - chamfer), q(h));
+      ctx.lineTo(0, q(h));
+      ctx.lineTo(0, q(chamfer));
+      ctx.closePath();
+      ctx.fill();
 
-      ctx.fillStyle = borderColor
+      ctx.fillStyle = borderColor;
       // 顶边（让开左上切角）：一条水平条带
-      ctx.fillRect(q(chamfer), 0, q(w) - q(chamfer), g)
+      ctx.fillRect(q(chamfer), 0, q(w) - q(chamfer), g);
       // 底边（让开右下切角）：一条水平条带
-      ctx.fillRect(0, q(h) - g, q(w - chamfer), g)
+      ctx.fillRect(0, q(h) - g, q(w - chamfer), g);
       // 左右边（让开各自的切角）：逐行水平条带堆叠
       for (let y = q(chamfer); y < q(h) - g / 2; y += g) {
-        ctx.fillRect(0, y, g, g) // 左边：上让 TL 切角，下到盒底
+        ctx.fillRect(0, y, g, g); // 左边：上让 TL 切角，下到盒底
       }
       for (let y = 0; y < q(h - chamfer) - g / 2; y += g) {
-        ctx.fillRect(q(w) - g, y, g, g) // 右边：上到盒顶，下让 BR 切角
+        ctx.fillRect(q(w) - g, y, g, g); // 右边：上到盒顶，下让 BR 切角
       }
     }
-  }
-)
+  },
+);

@@ -21,7 +21,9 @@ describe('四池交易对符号：品类前缀 + verse symbol', () => {
     if (!trade) throw new Error('verse-003 fixture 缺 markets');
     for (const pool of trade.pools) {
       if (pool.pool === 'main') continue;
-      expect(pool.baseSymbol.startsWith('POL-WOJAK') || pool.baseSymbol.startsWith('PT-WOJAK')).toBe(true);
+      expect(
+        pool.baseSymbol.startsWith('POL-WOJAK') || pool.baseSymbol.startsWith('PT-WOJAK'),
+      ).toBe(true);
     }
     const ptPol = trade.pools.find((pool) => pool.pool === 'pt-pol');
     expect(ptPol).toMatchObject({ baseSymbol: 'PT-WOJAK', quoteSymbol: 'POL-WOJAK' });

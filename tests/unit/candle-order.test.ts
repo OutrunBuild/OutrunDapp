@@ -30,14 +30,20 @@ describe('K线时间戳严格递增（lightweight-charts setData 前置条件）
     '%s（%s）：1h 全量历史 + 细粒度样本严格递增',
     (verseId) => {
       const trade = getPrototypeVerseTrade(verseId);
-      if (!trade || trade.candles.length === 0) return // 无样本 verse 跳过（B3 降级口径）
-      assertAscending(`${verseId} 1h`, trade.candles.map((candle) => Date.parse(candle.t)))
+      if (!trade || trade.candles.length === 0) return; // 无样本 verse 跳过（B3 降级口径）
+      assertAscending(
+        `${verseId} 1h`,
+        trade.candles.map((candle) => Date.parse(candle.t)),
+      );
       if (trade.fineCandles) {
         for (const gran of ['1m', '5m', '15m'] as const) {
-          const rows = trade.fineCandles[gran]
-          assertAscending(`${verseId} ${gran}`, rows.map((candle) => Date.parse(candle.t)))
+          const rows = trade.fineCandles[gran];
+          assertAscending(
+            `${verseId} ${gran}`,
+            rows.map((candle) => Date.parse(candle.t)),
+          );
         }
       }
     },
-  )
-})
+  );
+});
