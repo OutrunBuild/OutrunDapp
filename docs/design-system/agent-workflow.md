@@ -26,21 +26,21 @@
 ```bash
 pnpm exec tsc --noEmit
 pnpm exec lint        # 本仓已配 ESLint 10 flat config
+pnpm check:design     # 裸值扫描（scripts/check-design-bare-values.mjs，--self-test 自检）
+pnpm check:contrast   # token 对比度双闸门（scripts/check-design-contrast.mjs，--self-test 自检）
 ```
 
-裸值扫描（产品代码应为 0 命中；排除项：`tokens.css`、`globals.css` 的 `@theme`/`:root` 桥接段，以及 `components/axis-choice/` + `app/design-review/`——这是 Stage-01 内部审阅投票工具，不是产品界面，不纳入系统约束也不要改写）：
+裸值扫描（实现、豁免表与排除项见脚本文件头）：产品 `components/`、`app/` 的 `.tsx` 中裸 `#hex`、Tailwind 原始调色板类、`space-x/y-*`、`transition: 'all'`（含内联样式引号形态）；注释先剥离（注释里的 issue 号 `#1178` 不误报）；豁免表唯一条目 = `app/layout.tsx` 的 viewport `themeColor`（meta 无法引用 CSS 变量，品牌锚必要镜像）。排除 Stage-01 内部审阅工具（`components/axis-choice/`、`direction-choice/`、`app/design-review/`）。
 
-```bash
-grep -rnE "#[0-9a-fA-F]{3,8}\b" components app --include=*.tsx | grep -vE "axis-choice|design-review"
-grep -rnE "\b(bg|text|border)-(red|blue|green|yellow|purple|pink|cyan|emerald|slate|zinc|gray)-[0-9]" components app --include=*.tsx
-grep -rnE "transition: all|\bspace-[xy]-" components app
-```
+对比度闸门：从 `tokens.css` 解析实际 hex 按配对表算 WCAG 比率，双校验——低于下限（正文 4.5 / 大字图形 3.0）= 回归 FAIL；与 `DESIGN.md` §2 登记实测值差 >0.05 = 文档漂移 FAIL。改 token 颜色必须同步 `DESIGN.md` §2 与脚本配对表（色值本身变更走 decision-log 决议）。
 
-基线（2026-09-19）：三项扫描产品代码均为 0 命中，`tsc --noEmit` 通过。
+基线（2026-09-30）：裸值 0 命中、对比度 14 配对全过、`tsc --noEmit` 通过。
 
-### 3.2 浏览器
+### 3.2 浏览器（自动基线 + 人工抽查）
 
-用 `agent-browser` 打开预览，暗色方案，三档视口各一张：
+已入基线的路由跑 Playwright 视觉回归：`pnpm test:e2e`。三档视口（1280×800 / 860×900 / 390×844）、DPR 固定 1、时钟钉 2026-10-01、动效冻结后整页截图比对；axe 无障碍扫描同套路由（`e2e/a11y.spec.ts`，新增违规即 FAIL）。构建走 `NEXT_DIST_DIR=.next-e2e` 独立产物目录，**不碰 `.next`**，与运行中的 dev/生产预览无冲突（部署纪律见 AGENTS.md 已知坑）。改样式后直接跑，像素 diff 自动报出。
+
+基线外的新页面/新交互，用 `agent-browser` 人工抽查，随后补进 `e2e/visual.spec.ts` 基线：
 
 ```bash
 agent-browser open <preview-url>/en/memeverse --color-scheme dark
