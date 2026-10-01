@@ -8053,8 +8053,10 @@ svg {
   object-fit: cover;
 }
 
+/* 卡头 flex-wrap（2026-10-01 用户裁定）：窄卡放不下时市值/徽章整组换行，防名称式挤压重叠 */
 .economy-card__header {
   display: flex;
+  flex-wrap: wrap;
   grid-column: 1 / -1;
   align-items: center;
   justify-content: space-between;
@@ -8105,6 +8107,14 @@ svg {
   font-weight: 700;
   color: var(--stage-color);
   text-shadow: 1px 1px 0 color-mix(in srgb, var(--accent-echo) 45%, transparent);
+}
+
+/* 卡头 Name 字号（2026-10-01 用户裁定）：缩一档；
+   长度由 TSX 严格字符数截断（≤12 字形含省略号），CSS 不再做宽度截断——
+   曾用 inline-block+12ch 截断，但 overflow:hidden 按规范把基线退化为盒底缘致文字上浮，
+   改 JS 截断后回归自然基线，无需 vertical-align 补偿 */
+.economy-card__name {
+  font-size: var(--text-sm);
 }
 
 .economy-card__chains {

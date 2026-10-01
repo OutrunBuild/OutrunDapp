@@ -23,7 +23,7 @@ URL scheme（2026-09-22 方案 C，用户裁定）：`en` 无前缀（`proxy.ts`
 |---|---|---|
 | 1 | `/` | 产品落地页（决议 007）：产品介绍（双模块闭环）、三档参与路径、营销指标带（总锁定 uAsset/Verse 总数/累计参与地址）、支持资产说明、CTA；无个性化摘要 |
 | 2 | `/bridge` | 全链资产：uAsset/GenesisCredit 跨链报价、限额、费用、消息状态、历史 |
-| 3 | `/memeverse/explore` | 发现：阶段 tab（创世中默认/锁定中/已解锁/全部）+阶段内排序+治理链/资产族过滤+搜索+参与规模（决议 007：阶段为分组维度，不跨阶段混排；2026-09-23 原 `/memeverse` 收敛于此） |
+| 3 | `/memeverse/explore` | 发现：阶段 tab（创世中默认/锁定中/已解锁）+阶段内排序+治理链/资产族过滤+搜索+参与规模（决议 007：阶段为分组维度，不跨阶段混排；「全部」tab 系原文笔误，2026-10-01 用户勘误删除；2026-09-23 原 `/memeverse` 收敛于此） |
 | 4 | `/memeverse/launch` | 创建：注册参数、symbol 校验、多链选择、费用报价、提交、跨链注册状态（2026-09-23 原 `/memeverse/create`→`/launch` 改名） |
 | 5 | `/memeverse/[verseId]` | Verse 总览：生命周期、Genesis、Preorder、退款、领取、四池、时间、权益；`verseId` 为数字段（链上 uint256 口径） |
 | 6 | `/memeverse/[verseId]/trade` | Swap 与流动性：普通 Swap、Permit2、加减流动性、LP 费用、返佣、动态费率 |

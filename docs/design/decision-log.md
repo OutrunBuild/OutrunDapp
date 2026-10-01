@@ -341,6 +341,14 @@ C1 结算储备金按 spec 窄口径且 UI 不露出 · C2 建池剩余资金不
 - **验证**：① 静态闸全绿；② WAAPI 400 采样×3 层 0 实违例（封锁 clip 全程 ∈ {inset 包裹盒, 带边界多边形}、无左移、无纵移、黑屏恰 [1600,1650)）；③ **三页实速录屏各 13s**，ffmpeg 逐帧定位完整主弧后 30fps 全帧逐帧读（每帧 33ms）：撕裂在字形上（字形中段横断错位+锚定拖丝）、拖丝右延到封界即断、黑屏 2 帧、回锁即恢复，侧栏与顶栏在全部 90 帧中零伪迹；④ e2e 21 passed 基线零变化（v6 静息中性）。录像留档 `/tmp/v6-{explore,create,portfolio}.webm` 交用户实速复核。
 - **登记**：components.md「标题信号失真」条目改写为 v6。
 - **token 影响**：无增删。
+
+## 2026-10-01 · PD-07 勘误：发现页阶段 tab 无「全部」「退款」（用户裁定「全部 tab 是错误的，无法查看全部」「退款 tab 也是错的」）
+
+- **背景**：管线评审引 PRODUCT.md 路由表「阶段 tab（创世中默认/锁定中/已解锁/全部）」提议补「全部」tab；深审补记另有「退款」tab。用户裁定两者皆错。
+- **决议**：发现页阶段 tab 仅三个——创世中（默认）/锁定中/已解锁。阶段为分组维度、不跨阶段混排，无「全部」视图，跨阶段浏览仅经搜索（搜索词存在时越过阶段过滤）；退款态 Verse 的动线由 Portfolio 页承接，发现页内经搜索可达。三 tab 实现自始正确，无需改代码。
+- **文档同步勘误**：PRODUCT.md 路由表 #3；`docs/page-briefs/product-intent.md`（R-03 段）；`docs/page-briefs/memeverse-discovery.md`（阶段 tab 行、排序切换行、URL 状态、fixture 覆盖注记）。连带清理：`copy.ts` `common.stages.all`（en/zh）为不可达孤儿键，经批准删除；`stages.refund` 保留（StageBadge 退款徽章在用）。
+- **token 影响**：无增删。
+
 ## 2026-10-01 · 信号失真 v6 被否（设计感不足），v7 依市场范式重排编舞（用户裁定「你能不能参考一下市场最佳实践啊？设计感不行」）
 
 - **背景**：v6 机械合格（越界已封死、撕裂在字形上）但观感不对——每帧只撕一条整齐带、自上而下太规律、副本位移单调、品红实色盖白核，读作「工程演示」不像「数据坏了」。用户要求参考市场最佳实践。
@@ -357,15 +365,45 @@ C1 结算储备金按 spec 窄口径且 UI 不露出 · C2 建池剩余资金不
 - **对比证据**：会话内 dev server 实机对比（computed font 实测：现状 Saira Condensed vs 注入等宽预览 IBM Plex Mono，2x 放大截图并排）：等宽版数字占固定宽度、更宽更「仪表盘读数」，营销展示张力下降；展示版与 band 标签同字体、视觉一体。等宽不挤破版式（数字格内居中），差距是气质取舍非优劣。用户在「A 删覆盖服从红线 / B 保展示补登记」间拍板 B。
 - **效力范围**：仅首页 `.home-proof-band__item strong` 三个数字；全站其余数字字段等宽红线不变。
 - **token 影响**：无增删。
+
 ## 2026-10-01 · 信号失真 v8 节奏调优（用户反馈「动画有点太快……时间间隔降低一点点，更频繁一些」）
 
 - **决议**：仅调时序不改编舞——① 帧长 40ms→60ms/步（每态在 30fps 屏上占 ~2 帧，此前单帧闪过不可读）；② 周期 10s→8s、窗口前移（主窗 15%=1.2s、微窗 55%=4.4s），首爆 1.2s、窗间隔 ~2.7s/3.5s（v7 为 ~4.9s/5.1s），爆发更频繁且保持不规则；静默期 ~93%。黑屏 60ms（≤100ms 纪律不变）。
 - **验证**：WAAPI 审计 0 违例（黑屏恰 [1500,1560)、封锁全程在场、静默期全净、各相位按谱）；三页实速录屏，explore 全帧差分定位三次爆发 1.03/4.00/9.03s 与帧表吻合，主弧 30fps 逐帧读——每态可读、弧线完整、零越界。e2e visual 20 passed（静息像素不变）。
 - **流程教训（第三次踩同一坑，入库备忘）**：WAAPI 审计 pause 线上动画后必须 `play()` 恢复再录屏——本次又录到一次冻结页（YAVG 全平坦即判据），教训已写入 agent-browser 记忆。
 - **token 影响**：无增删。
+
 ## 2026-10-01 · 信号失真 v8.1 移动端降档（用户反馈「移动端故障都偏离标题的文本老远了，你有录屏检查过吗」）
 
 - **背景**：此前所有录屏验证均为桌面 1280 视口，移动端从未实速检查——用户质询成立。390px 实测（WAAPI 冻结撕裂帧截图）：balance 断行后首行 "Explore" 仅 ~130px 而 h1 盒 254px，桌面编舞的细带高倍拉丝锚在盒子裁剪缘（+0.5em），拖丝飘离短行文字 ~140px 悬在空白上——伪影锚「盒子」不锚「短行文字」，桌面盒≈文字故不可见。
 - **决议**：≤30rem 换 `ax-fault-*-m` 移动特化编舞（时间窗与桌面 v8 相同）：去掉拉丝连击与湍流帧（小字号上噪且必飘），只留小位移局部撕裂——位移 ≤0.12em、scale ≤1.25，主弧 4 态（split/撕裂A/黑屏/回锁）微弧 3 态；封锁内边界同步收紧 ±0.2em 且焊进 core-m 每条 keyframe 形状。桌面（>30rem）规则零改动（animationName 实测切对）。
 - **验证**：390px 冻结帧拖丝贴字；移动端实速录屏 11s，三次爆发 0.9/4.0/8.9s，主弧 30fps 逐帧读——撕裂贴字形、黑屏 2 帧、回锁干净、全程零飘浮；桌面 1280 回归四动画名不变；e2e visual 20 passed（移动静息基线不变）。
+- **token 影响**：无增删。
+
+## 2026-10-01 · Explore 卡头仅留 Symbol + flex-wrap（用户裁定「我在想把 Name 删掉，只保留 Symbol 怎么样？」→「确认」）
+
+- **背景**：移动端 390 卡头文字重叠（`Chrono` 压 `市值$50.40M`、徽章被 `overflow:hidden` 裁切），根因 = 卡头单行 flex 无换行：市值 `nowrap+shrink-0`（2026-09-23 单行裁定副作用）+ 双徽章（Fast Genesis+创世中）`shrink-0` 合计 ~470px 超过 390 可用宽 ~326px，identity `min-inline-size:0` 无截断保护被压塌、不可断行单词直接盖到市值上；自 `5bbac09` 建卡头即存在，桌面 3 列窄卡（~414px）同病（BWOT/CBULL 基线已重叠），仅因 `zoom:0.8` 不显眼。
+- **对照取舍**：三方案截图对照（`tmp-compare/`）后拍板——① 容器查询 480px 阈值被否：桌面 3 列卡全部 <480 一律折行，为修两张卡重排 11 张；② 保留 name 的 `flex-wrap` 版被否：第一行仍有名称折行观感；③ 拍板「仅 Symbol + flex-wrap」组合。另硬事实：双徽章+市值 ~470px 纯 Symbol 也放不下，flex-wrap 不可省。
+- **决议**：① 卡头只留 Symbol 加粗 glitch 标题链接，name 进链接 `aria-label`（详情页全名、搜索按名称均不变）；② `.economy-card__header` 加 `flex-wrap: wrap`（市值/徽章放不下整组换行）；③ 详情页/资产组合页 symbol+name 并列不动（宽度充裕、全名有叙事价值）；④ 已知取舍：真实链上 ticker 可重名，卡片层消歧靠详情页兜底。
+- **验证**：tsc --noEmit / check:design / vitest 70 passed 全绿；e2e explore 三档 + zh 移动基线重录后复跑 4 passed——单徽章卡全档恢复单行，双徽章卡（BWOT/CBULL）窄卡下市值+徽章两行整齐无重叠。
+- **token 影响**：无增删。
+
+## 2026-10-01 · 卡头恢复 Name（12ch 截断省略）+ Fast Genesis 文案简称 Fast（用户裁定「恢复 Name，但是 Name 的显示需要有一个最大长度限制，超出的部分替换成...」「Fast Genesis 的文案改成 Fast，简化一下」）
+
+- **背景**：上一条「仅 Symbol」落地后用户再裁定——ticker 主导保留，但全名叙事不舍弃；且双徽章卡徽章文案过长是挤压源之一。
+- **决议**：① 卡头恢复 Name，`.economy-card__name` 以 `max-inline-size: 12ch + text-overflow: ellipsis` 截断（CSS 截断保完整文本可及性；12ch 保证最坏组合下首行仍容 Symbol+Name+市值；ch 按「0」字宽计量，现行 fixture 名 ≤13 窄字符全部放行不咬合，超长名才截断）；② `copy.ts` 四处 `fastGenesis` 徽章/筛选项 label → `Fast`（en/zh 同；`fastGenesisNote` 说明文字保留全称不变）；③ 上一条的 `flex-wrap` 与本条截断互为冗余防线，均保留。
+- **验证**：tsc / check:design / vitest / prettier 全绿；e2e explore 三档 + zh 移动基线重录复跑 4 passed——全档卡头统一「Symbol+Name+市值」一行 / 徽章一行（含桌面 3 列与单徽章卡，Name 回归后的自然形态），无重叠；Fast 徽章 en/zh 生效。
+- **token 影响**：无增删。
+
+## 2026-10-01 · 卡头 Name 缩档下缘对齐 + Symbol 限 5 字符（用户反馈「怎么 Name 的位置跑到上面去了？Name 的字体大小可以稍微缩小一点，字体的下边缘对齐 Symbol 的下边缘；Symbol 也需要长度限制，最多显示 5 个字符」）
+
+- **根因**：Name 上浮 = `.economy-card__name` 的 `overflow:hidden` 使 inline-block 基线按 CSS2.1 规范退化为盒底缘（不再走文字基线），文字被抬升约一个下伸部高度。
+- **决议**：① Name 字号 `text-md`→`text-sm` 缩一档，`vertical-align: text-bottom` 把盒底贴回父级下伸线，与 Symbol 字形下缘齐平（盒位实测 bottom 完全相等）；② Symbol JS 截断 `slice(0,5)+'…'`、全称进链接 `aria-label`——不用 CSS `ch` 限宽：glitch 字体 letter-spacing 0.08em 下 `5ch` 会把 5 字符 symbol 切成 4+`…`，字符数语义只有 JS 精确；仅 Explore 卡头生效，详情页 hero symbol 不动。
+- **验证**：390 视口 DPR3 盒位量测 symbol/name bottom 相等；3x 截图下缘齐平；tsc / check:design / vitest / prettier 全绿；e2e explore 三档+zh 移动基线重录复跑 4 passed（fixture symbol 全 4 字符，截断对现行数据零像素影响）。
+- **token 影响**：无增删。
+
+## 2026-10-01 · 卡头截断收紧为严格字形数（用户裁定「Symbol 和 Name 我都要更严格的」）
+
+- **决议**：省略号计入额度——Symbol `slice(0,4)+'…'`（≤5 字形）、Name 由 CSS `12ch` 宽度截断改为 TSX `slice(0,11)+'…'`（≤12 字形；`ch` 按「0」字宽计量，窄字形下 12ch 装得下 13+ 字符，字符数语义只有 JS 精确）。Name 改 JS 截断后拆除 inline-block/overflow/ellipsis/text-bottom 机械（overflow 基线退化补偿已无对象），回归自然行内基线，CSS 仅留 `text-sm` 字号。
+- **验证**：tsc / check:design / vitest 70 passed / prettier 全绿；e2e explore 三档+zh 移动基线重录复跑 4 passed——fixture 内 Bitwave Otter/Solar Hamster（13 字符）如实截断为 `Bitwave Ott…`/`Solar Hams…`，短名不受影响。
 - **token 影响**：无增删。

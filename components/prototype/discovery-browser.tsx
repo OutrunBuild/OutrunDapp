@@ -59,6 +59,12 @@ function boundedProgress(value: number) {
   return Math.min(Math.max(value, 0), 100)
 }
 
+/** 可空数值字段排序：null（fixture 无 livePhase 快照）恒沉底，不随升降序翻转 */
+function nullableNumberOrder(direction: 1 | -1, a: number | null, b: number | null) {
+  if (a === null || b === null) return a === b ? 0 : a === null ? 1 : -1
+  return direction * (a - b)
+}
+
 /** 治理链在前，其余主网链按 fixture 白名单顺序跟随（omnichain 部署面） */
 function omnichainChains(verse: PrototypeVerse, chains: PrototypeChain[]) {
   return [
@@ -107,7 +113,8 @@ export function DiscoveryBrowser({
     params.set('sort', next.sort)
     if (next.order !== 'desc') params.set('order', next.order)
     if (next.chain !== 'all') params.set('chain', next.chain)
-    if (next.mode !== 'all') params.set('mode', next.mode)
+    // 模式筛选仅创世阶段有界面（2026-10-01 用户裁定），切出创世时随 URL 一并收敛
+    if (next.stage === 'genesis' && next.mode !== 'all') params.set('mode', next.mode)
     if (next.q) params.set('q', next.q)
     return `${pathname}?${params.toString()}`
   }
@@ -138,6 +145,13 @@ export function DiscoveryBrowser({
     )
     .toSorted((a, b) => {
       if (initialSort === 'endtime') return direction * (Date.parse(a.endsAt) - Date.parse(b.endsAt))
+      if (initialSort === 'unlocktime')
+        return direction * (Date.parse(a.unlockTimeAt) - Date.parse(b.unlockTimeAt))
+      if (initialSort === 'volume') return nullableNumberOrder(direction, a.volume24h, b.volume24h)
+      if (initialSort === 'marketcap')
+        return nullableNumberOrder(direction, a.projectedMarketCap, b.projectedMarketCap)
+      if (initialSort === 'stakingapy') return nullableNumberOrder(direction, a.stakingApy, b.stakingApy)
+      if (initialSort === 'treasury') return nullableNumberOrder(direction, a.treasuryFundUsd, b.treasuryFundUsd)
       if (initialSort === 'participants')
         return direction * (a.participantCount - b.participantCount)
       if (initialSort === 'progress') return direction * (progressValue(a) - progressValue(b))
@@ -172,13 +186,26 @@ export function DiscoveryBrowser({
   }, [])
 
   const stageTabs: VerseStage[] = ['genesis', 'locked', 'unlocked']
-  const sortItems = [
-    { value: 'createtime', label: copy.discovery.sortCreatetime },
-    { value: 'endtime', label: copy.discovery.sortEndtime },
-    { value: 'size', label: copy.discovery.sortSize },
-    { value: 'participants', label: copy.discovery.sortParticipants },
-    { value: 'progress', label: copy.discovery.sortProgress },
-  ]
+  // 排序项随阶段 tab 切换：锁定含 Unlock Time，已解锁不含（2026-10-01 用户参照截图裁定）
+  const sortItems =
+    initialStage === 'genesis'
+      ? [
+          { value: 'createtime', label: copy.discovery.sortCreatetime },
+          { value: 'endtime', label: copy.discovery.sortEndtime },
+          { value: 'size', label: copy.discovery.sortSize },
+          { value: 'participants', label: copy.discovery.sortParticipants },
+          { value: 'progress', label: copy.discovery.sortProgress },
+        ]
+      : [
+          { value: 'createtime', label: copy.discovery.sortCreatetime },
+          ...(initialStage === 'locked'
+            ? [{ value: 'unlocktime', label: copy.discovery.unlockTime }]
+            : []),
+          { value: 'volume', label: copy.discovery.sortVolume },
+          { value: 'marketcap', label: copy.discovery.marketCap },
+          { value: 'stakingapy', label: copy.discovery.stakingApy },
+          { value: 'treasury', label: copy.discovery.treasuryFund },
+        ]
   const chainItems = [
     { value: 'all', label: copy.discovery.allChains },
     ...verses
@@ -361,31 +388,33 @@ export function DiscoveryBrowser({
         </Button>
 
         <div className="discovery-filters" id="discovery-filters" data-open={filtersOpen}>
-          <Field>
-            <FieldLabel className="sr-only">{copy.discovery.mode}</FieldLabel>
-            <Select
-              name="genesis-mode"
-              items={modeItems}
-              value={initialMode}
-              onValueChange={(value) => {
-                const mode = value === 'fast' || value === 'normal' ? value : 'all'
-                replaceQuery({ mode })
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false} align="start">
-                <SelectGroup>
-                  {modeItems.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </Field>
+          {initialStage === 'genesis' ? (
+            <Field>
+              <FieldLabel className="sr-only">{copy.discovery.mode}</FieldLabel>
+              <Select
+                name="genesis-mode"
+                items={modeItems}
+                value={initialMode}
+                onValueChange={(value) => {
+                  const mode = value === 'fast' || value === 'normal' ? value : 'all'
+                  replaceQuery({ mode })
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false} align="start">
+                  <SelectGroup>
+                    {modeItems.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </Field>
+          ) : null}
           <Field>
             <FieldLabel className="sr-only">{copy.discovery.chain}</FieldLabel>
             <Select
@@ -470,8 +499,17 @@ export function DiscoveryBrowser({
                   <header className="economy-card__header">
                     <div className="economy-card__identity">
                       <h3>
-                        <Link href={verseHref(locale, verse.id)}>
-                          <strong className="ax-glitch-text">{verse.symbol}</strong> {verse.name}
+                        <Link
+                          href={verseHref(locale, verse.id)}
+                          aria-label={`${verse.symbol} ${verse.name}`}
+                        >
+                        {/* Symbol ≤5 字形、Name ≤12 字形，省略号计入额度（2026-10-01 用户裁定「更严格」）；全称走 aria-label */}
+                        <strong className="ax-glitch-text">
+                          {verse.symbol.length > 5 ? `${verse.symbol.slice(0, 4)}…` : verse.symbol}
+                        </strong>{' '}
+                        <span className="economy-card__name">
+                          {verse.name.length > 12 ? `${verse.name.slice(0, 11)}…` : verse.name}
+                        </span>
                         </Link>
                       </h3>
                     </div>
@@ -504,7 +542,7 @@ export function DiscoveryBrowser({
                       <span className="economy-card__chain-icons">
                         {omnichainChains(verse, chains).map((chain) => (
                           <Tooltip key={chain.chainId}>
-                            <TooltipTrigger render={<span className="economy-card__chain" />}>
+                            <TooltipTrigger className="economy-card__chain" aria-label={chain.name}>
                               <ChainLogoMark chainId={chain.chainId} size={16} />
                             </TooltipTrigger>
                             <TooltipContent>{chain.name}</TooltipContent>
@@ -555,7 +593,7 @@ export function DiscoveryBrowser({
           <div className="empty-state">
             <h3>{copy.discovery.emptyTitle}</h3>
             <Button
-              className="ax-glow-cta"
+              className="ax-ghost-cta"
               size="lg"
               nativeButton={false}
               render={<Link href={`${pathname}?stage=genesis&sort=createtime`} />}

@@ -30,17 +30,23 @@ export function DiscoveryPage({ locale, searchParams }: DiscoveryPageProps) {
       ? (stageValue as VerseStage)
       : 'genesis'
   const defaultSort = 'createtime'
+  // 排序项按阶段区分：锁定含 Unlock Time，已解锁不含（2026-10-01 用户参照截图裁定）
+  const sortOptionsByStage: Record<VerseStage, string[]> = {
+    genesis: ['createtime', 'endtime', 'size', 'participants', 'progress'],
+    locked: ['createtime', 'unlocktime', 'volume', 'marketcap', 'stakingapy', 'treasury'],
+    unlocked: ['createtime', 'volume', 'marketcap', 'stakingapy', 'treasury'],
+    refund: [],
+  }
   const sortValue = first(searchParams.sort)
-  const sort = ['createtime', 'endtime', 'size', 'participants', 'progress'].includes(sortValue ?? '')
-    ? sortValue!
-    : defaultSort
+  const sort = sortOptionsByStage[stage].includes(sortValue ?? '') ? sortValue! : defaultSort
   const orderValue = first(searchParams.order)
   const order = orderValue === 'asc' ? 'asc' : 'desc'
   const chainValue = first(searchParams.chain)
   const availableChains = new Set(snapshot.verses.map((verse) => String(verse.governanceChain)))
   const chain = chainValue && availableChains.has(chainValue) ? chainValue : 'all'
   const modeValue = first(searchParams.mode)
-  const mode = modeValue === 'fast' || modeValue === 'normal' ? modeValue : 'all'
+  // 模式筛选仅适用于创世阶段（2026-10-01 用户裁定）：其余阶段忽略 mode，防隐藏过滤
+  const mode = stage === 'genesis' && (modeValue === 'fast' || modeValue === 'normal') ? modeValue : 'all'
   const query = first(searchParams.q)?.slice(0, 80) ?? ''
 
   return (
