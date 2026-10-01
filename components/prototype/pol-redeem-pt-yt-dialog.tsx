@@ -59,7 +59,7 @@ export function PolRedeemPtYtDialog({
 
   const ptSymbol = `PT-${verse.symbol}`
   const ytSymbol = `YT-${verse.symbol}`
-  const clean = (raw: string) => setAmount(raw.replace(/[^\d.]/, ''))
+  const clean = (raw: string) => setAmount(raw.replace(/[^\d.]/g, ''))
 
   const parsed = Number(amount)
   const valid = Number.isFinite(parsed) && parsed > 0

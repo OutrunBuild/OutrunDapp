@@ -50,7 +50,7 @@ export function PolSplitMergeDialog({
   const ptSymbol = `PT-${verse.symbol}`
   const ytSymbol = `YT-${verse.symbol}`
   const maxMerge = Math.min(pol.myPt, pol.myYt)
-  const clean = (raw: string) => setAmount(raw.replace(/[^\d.]/, ''))
+  const clean = (raw: string) => setAmount(raw.replace(/[^\d.]/g, ''))
 
   return (
     <Dialog>

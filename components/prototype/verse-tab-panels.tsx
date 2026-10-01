@@ -6,6 +6,7 @@ import type {
   PrototypeVerseTrade,
 } from '@/lib/data/prototype-repository'
 
+import { useId } from 'react'
 import { getPrototypeAssetUsdSample } from '@/lib/data/prototype-repository'
 
 import { Info } from 'lucide-react'
@@ -270,7 +271,7 @@ export function PolPanel({
                   <span className="pol-gauge__legend-label">
                     {copy.nominalValue}
                     <Tooltip>
-                      <TooltipTrigger render={<span className="create-info" aria-label={copy.nominalNote} />}>
+                      <TooltipTrigger className="create-info" aria-label={copy.nominalNote}>
                         <Info aria-hidden="true" />
                       </TooltipTrigger>
                       <TooltipContent>{copy.nominalNote}</TooltipContent>
@@ -322,7 +323,7 @@ export function PolPanel({
             <p className="pol-twin__equation">
               <span data-numeric>{`1 ${polSymbol} = 1 PT + 1 YT`}</span>
               <Tooltip>
-                <TooltipTrigger render={<span className="create-info" aria-label={copy.splitNote} />}>
+                <TooltipTrigger className="create-info" aria-label={copy.splitNote}>
                   <Info aria-hidden="true" />
                 </TooltipTrigger>
                 <TooltipContent>{copy.splitNote}</TooltipContent>
@@ -341,12 +342,8 @@ export function PolPanel({
                       {copy.ptFullName}
                       <Tooltip>
                         <TooltipTrigger
-                          render={
-                            <span
-                              className="create-info"
-                              aria-label={copy.ptTip.replace('{asset}', verse.raiseAsset)}
-                            />
-                          }
+                          className="create-info"
+                          aria-label={copy.ptTip.replace('{asset}', verse.raiseAsset)}
                         >
                           <Info aria-hidden="true" />
                         </TooltipTrigger>
@@ -360,9 +357,7 @@ export function PolPanel({
                   <span className="pol-label">
                     {copy.nominalValue}
                     <Tooltip>
-                      <TooltipTrigger
-                        render={<span className="create-info" aria-label={copy.ptNominalTip} />}
-                      >
+                      <TooltipTrigger className="create-info" aria-label={copy.ptNominalTip}>
                         <Info aria-hidden="true" />
                       </TooltipTrigger>
                       <TooltipContent>{copy.ptNominalTip}</TooltipContent>
@@ -391,12 +386,8 @@ export function PolPanel({
                       {copy.ytFullName}
                       <Tooltip>
                         <TooltipTrigger
-                          render={
-                            <span
-                              className="create-info"
-                              aria-label={copy.ytTip.replace('{asset}', verse.raiseAsset)}
-                            />
-                          }
+                          className="create-info"
+                          aria-label={copy.ytTip.replace('{asset}', verse.raiseAsset)}
                         >
                           <Info aria-hidden="true" />
                         </TooltipTrigger>
@@ -411,9 +402,7 @@ export function PolPanel({
                   <span className="pol-label">
                     {copy.nominalValue}
                     <Tooltip>
-                      <TooltipTrigger
-                        render={<span className="create-info" aria-label={copy.ytNominalTip} />}
-                      >
+                      <TooltipTrigger className="create-info" aria-label={copy.ytNominalTip}>
                         <Info aria-hidden="true" />
                       </TooltipTrigger>
                       <TooltipContent>{copy.ytNominalTip}</TooltipContent>
@@ -490,6 +479,7 @@ export function DaoPanel({
   governance: PrototypeGovernanceState | null
 }) {
   const copy = getCopy(locale).verseDesk
+  const finalizeNoteId = useId()
   if (!governance) {
     return (
       <div className="dao-panel">
@@ -554,7 +544,7 @@ export function DaoPanel({
             <dt className="dao-panel__tally-label">
               {copy.tallyCard}
               <Tooltip>
-                <TooltipTrigger render={<span className="create-info" aria-label={copy.tallyNote} />}>
+                <TooltipTrigger className="create-info" aria-label={copy.tallyNote}>
                   <Info aria-hidden="true" />
                 </TooltipTrigger>
                 <TooltipContent>{copy.tallyNote}</TooltipContent>
@@ -587,15 +577,20 @@ export function DaoPanel({
               size="sm"
               className="cycle-card__head-finalize"
               disabled={governance.finalized}
+              aria-describedby={finalizeNoteId}
             >
               {copy.finalize}
               <Tooltip>
-                <TooltipTrigger render={<span className="create-info" aria-label={copy.finalizeNote} />}>
+                <TooltipTrigger render={<span className="create-info" aria-hidden="true" />}>
                   <Info aria-hidden="true" />
                 </TooltipTrigger>
                 <TooltipContent>{copy.finalizeNote}</TooltipContent>
               </Tooltip>
             </Button>
+            {/* sr-only 置于按钮外：放内部会被并进按钮可访问名称，说明应由 describedby 单独播报 */}
+            <span id={finalizeNoteId} className="sr-only">
+              {copy.finalizeNote}
+            </span>
           </header>
           <dl className="cycle-card__stats" data-numeric>
             <div>
@@ -762,9 +757,7 @@ export function DaoPanel({
                       {copy.yourClaimable}
                       <DaoDots />
                       <Tooltip>
-                        <TooltipTrigger
-                          render={<span className="create-info" aria-label={copy.claimWindowNote} />}
-                        >
+                        <TooltipTrigger className="create-info" aria-label={copy.claimWindowNote}>
                           <Info aria-hidden="true" />
                         </TooltipTrigger>
                         <TooltipContent>{copy.claimWindowNote}</TooltipContent>
@@ -790,9 +783,7 @@ export function DaoPanel({
                   <dt className="cycle-card__claim-label">
                     {copy.yourClaimable}
                     <Tooltip>
-                      <TooltipTrigger
-                        render={<span className="create-info" aria-label={copy.claimWindowNote} />}
-                      >
+                      <TooltipTrigger className="create-info" aria-label={copy.claimWindowNote}>
                         <Info aria-hidden="true" />
                       </TooltipTrigger>
                       <TooltipContent>{copy.claimWindowNote}</TooltipContent>

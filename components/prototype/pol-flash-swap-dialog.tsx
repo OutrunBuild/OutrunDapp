@@ -30,7 +30,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 function SettingsTip({ text }: { text: string }) {
   return (
     <Tooltip>
-      <TooltipTrigger render={<span className="create-info" aria-label={text} />}>
+      <TooltipTrigger className="create-info" aria-label={text}>
         <Info aria-hidden="true" />
       </TooltipTrigger>
       <TooltipContent>{text}</TooltipContent>

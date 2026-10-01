@@ -6688,14 +6688,22 @@ svg {
   gap: var(--space-3);
 }
 
-/* demo 式标签旁 ⊙ 信息图标：悬浮说明，不占版面 */
+/* demo 式标签旁 ⊙ 信息图标：悬浮说明，不占版面；视觉 14px，命中区经 ::before 外扩 5px
+   至 24×24（WCAG 2.5.8 AA 底线）——absolute 伪元素不占版面、不动相邻排版 */
 .create-info {
+  position: relative;
   display: inline-flex;
   inline-size: var(--text-sm);
   block-size: var(--text-sm);
   color: var(--color-text-tertiary);
   cursor: help;
   transition: color var(--motion-fast) var(--ease-out);
+}
+
+.create-info::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
 }
 
 .create-info:hover,

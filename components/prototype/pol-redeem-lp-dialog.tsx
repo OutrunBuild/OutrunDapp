@@ -53,7 +53,7 @@ export function PolRedeemLpDialog({
   const polSymbol = `POL-${verse.symbol}`
   // 主池 LP 对口径（repository main 池 pair [verse.symbol, verse.raiseAsset]）
   const lpSymbol = `${verse.symbol}/${verse.raiseAsset} LP`
-  const clean = (raw: string) => setAmount(raw.replace(/[^\d.]/, ''))
+  const clean = (raw: string) => setAmount(raw.replace(/[^\d.]/g, ''))
 
   const parsed = Number(amount)
   const valid = Number.isFinite(parsed) && parsed > 0

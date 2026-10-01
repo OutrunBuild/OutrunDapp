@@ -35,7 +35,7 @@ export const SCIENTIFIC_AMOUNT_THRESHOLD = 1e21
 function SettingsTip({ text }: { text: string }) {
   return (
     <Tooltip>
-      <TooltipTrigger render={<span className="create-info" aria-label={text} />}>
+      <TooltipTrigger className="create-info" aria-label={text}>
         <Info aria-hidden="true" />
       </TooltipTrigger>
       <TooltipContent>{text}</TooltipContent>

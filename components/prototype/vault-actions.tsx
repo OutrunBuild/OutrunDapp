@@ -203,7 +203,7 @@ export function VaultActions({
               <dt className="swap-settings__label">
                 {copy.crossFee}
                 <Tooltip>
-                  <TooltipTrigger render={<span className="create-info" aria-label={copy.crossFeeNote} />}>
+                  <TooltipTrigger className="create-info" aria-label={copy.crossFeeNote}>
                     <Info aria-hidden="true" />
                   </TooltipTrigger>
                   <TooltipContent>{copy.crossFeeNote}</TooltipContent>
@@ -216,7 +216,7 @@ export function VaultActions({
             <dt className="swap-settings__label">
               {copy.delegateTo}
               <Tooltip>
-                <TooltipTrigger render={<span className="create-info" aria-label={copy.delegateNote} />}>
+                <TooltipTrigger className="create-info" aria-label={copy.delegateNote}>
                   <Info aria-hidden="true" />
                 </TooltipTrigger>
                 <TooltipContent>{copy.delegateNote}</TooltipContent>

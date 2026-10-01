@@ -153,7 +153,10 @@ export function VersePage({ locale, verseId }: { locale: Locale; verseId: string
               <span>
                 {copy.verse.governanceChain}
                 <Tooltip>
-                  <TooltipTrigger render={<span className="verse-identity__chain" />}>
+                  <TooltipTrigger
+                    className="verse-identity__chain"
+                    aria-label={verse.governanceChainName}
+                  >
                     <ChainLogoMark chainId={verse.governanceChain} size={16} />
                   </TooltipTrigger>
                   <TooltipContent>{verse.governanceChainName}</TooltipContent>
@@ -163,7 +166,7 @@ export function VersePage({ locale, verseId }: { locale: Locale; verseId: string
                 {copy.verse.spokeChains}
                 {spokeChains.map((chain) => (
                   <Tooltip key={chain.chainId}>
-                    <TooltipTrigger render={<span className="verse-identity__chain" />}>
+                    <TooltipTrigger className="verse-identity__chain" aria-label={chain.name}>
                       <ChainLogoMark chainId={chain.chainId} size={16} />
                     </TooltipTrigger>
                     <TooltipContent>{chain.name}</TooltipContent>
