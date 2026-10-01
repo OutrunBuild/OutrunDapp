@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { Check, RotateCcw } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -26,7 +27,9 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import type { Locale, PrototypeAsset, PrototypeYieldSource } from '@/lib/data/prototype-repository'
 
 import { getCopy } from './copy'
+import { localePath } from './routes'
 import { formatAmount, ProgressMeter, SourceRef } from './signal-ui'
+import { TxStatus, type TxState } from './tx-status'
 
 // 预购与普通/杠杆创世同级的独立路径（用户裁定 2026-09-21）；普通/杠杆模式内提供一键预购
 type ParticipationMode = 'standard' | 'leverage' | 'preorder'
@@ -86,7 +89,10 @@ export function ParticipationPanel({
   const [preorderEnabled, setPreorderEnabled] = useState(false)
   const [preorderAmount, setPreorderAmount] = useState('')
   const [reviewing, setReviewing] = useState(false)
-  const [confirmed, setConfirmed] = useState(false)
+  // 交易签名模拟（state-matrix T4→T5→T6）：确认后前端定时推进，无钱包
+  const [txState, setTxState] = useState<TxState>('idle')
+  const txTimers = useRef<ReturnType<typeof setTimeout>[]>([])
+  useEffect(() => () => txTimers.current.forEach(clearTimeout), [])
   const [invalid, setInvalid] = useState(false)
   const numericAmount = Number(amount || 0)
   const numericPreorder = Number(preorderAmount || 0)
@@ -187,7 +193,7 @@ export function ParticipationPanel({
 
   function resetReview() {
     setReviewing(false)
-    setConfirmed(false)
+    setTxState('idle')
     setInvalid(false)
   }
 
@@ -268,6 +274,13 @@ export function ParticipationPanel({
     </Field>
   )
 
+  /** 签名模拟推进：T4 等待签名 ≈1.6s → T5 上链确认 ≈1.2s → T6 已确认 */
+  function beginSigning() {
+    setTxState('signing')
+    txTimers.current.push(setTimeout(() => setTxState('confirming'), 1600))
+    txTimers.current.push(setTimeout(() => setTxState('confirmed'), 2800))
+  }
+
   if (reviewing) {
     return (
       <div className="participation-review" aria-live="polite">
@@ -277,7 +290,6 @@ export function ParticipationPanel({
           </span>
           <div>
             <h3>{copy.verse.reviewTitle}</h3>
-            {confirmed ? <p>{copy.verse.reviewReady}</p> : null}
           </div>
         </div>
         <div className="participation-review__rows">
@@ -328,15 +340,41 @@ export function ParticipationPanel({
           </div>
         </section>
         <SourceRef value={sourceRef} />
-        <div className="participation-review__actions">
-          <Button variant="outline" onClick={() => setReviewing(false)}>
-            <RotateCcw data-icon="inline-start" aria-hidden="true" />
-            {copy.verse.revise}
-          </Button>
-          <Button className="ax-ghost-cta" onClick={() => setConfirmed(true)} disabled={confirmed}>
-            {confirmed ? copy.verse.reviewReady : copy.verse.confirmPrototype}
-          </Button>
-        </div>
+        {txState === 'idle' ? (
+          <div className="participation-review__actions">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setReviewing(false)
+                setTxState('idle')
+              }}
+            >
+              <RotateCcw data-icon="inline-start" aria-hidden="true" />
+              {copy.verse.revise}
+            </Button>
+            <Button className="ax-ghost-cta" onClick={beginSigning}>
+              {copy.verse.confirmPrototype}
+            </Button>
+          </div>
+        ) : txState === 'confirmed' ? (
+          <div className="tx-success">
+            <div className="tx-success__head">
+              <span className="review-check" aria-hidden="true">
+                <Check />
+              </span>
+              <p className="tx-success__title">{copy.verse.participateDone}</p>
+            </div>
+            <Button
+              className="ax-ghost-cta"
+              nativeButton={false}
+              render={<Link href={localePath(locale, '/portfolio')} />}
+            >
+              {copy.verse.viewPortfolio}
+            </Button>
+          </div>
+        ) : (
+          <TxStatus locale={locale} state={txState} />
+        )}
       </div>
     )
   }

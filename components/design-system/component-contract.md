@@ -90,6 +90,7 @@
 | 状态映射 | 见 state-matrix.md §3；跨链=`Message pending` 常驻直到目标链确认（源链 hash≠完成，§7） |
 | 动效 | 步骤推进=状态反馈动效（非装饰）；Confirmed=回声确认 |
 | aria | `aria-live="assertive"`（交易状态是关键信息）；每步文本化 |
+| 原型落地 | `components/prototype/tx-status.tsx`（2026-10-01）：T4→T5→T6 三步条，create-form 注册审阅 + participation-panel 参与审阅共用；无钱包——签名/上链由前端定时模拟推进（≈1.6s/≈1.2s），无 hash/gas 故关键事实行省略；T6 展示：注册流=自动弹窗（`.pol-mint` 壳复用，「查看 Verse」CTA→样本 verse-021——新 verseId 链上才产生，生产=注册回执；用户裁定 2026-10-01）、参与流=内联 `.tx-success` 回声块（CTA→portfolio）；拒签 T9 模拟不含 |
 
 ## 9. AccountCapability（账户能力）
 

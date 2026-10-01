@@ -6280,11 +6280,6 @@ svg {
   inline-size: var(--text-md);
 }
 
-.participation-review__heading p {
-  margin-block-start: var(--space-1);
-  color: var(--color-text-secondary);
-}
-
 .participation-review dl {
   margin: 0;
   border-block-start: 1px solid var(--color-border);
@@ -6312,6 +6307,114 @@ svg {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
+}
+
+/* 交易签名状态条 = component-contract §8 TransactionStatus 首个原型落地
+   （state-matrix T4 等待签名 → T5 上链确认 → T6 已确认；create-form + participation-panel
+   共用 tx-status.tsx；签名/上链由前端定时模拟，无 hash/gas，关键事实行省略） */
+.tx-status {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tx-status__step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-tertiary);
+}
+
+.tx-status__step[data-state='active'] {
+  color: var(--color-text);
+}
+
+.tx-status__step[data-state='done'] {
+  color: var(--color-text-secondary);
+}
+
+.tx-status__step[data-state='done'] svg {
+  color: var(--accent-link);
+}
+
+.tx-status svg {
+  inline-size: var(--text-md);
+  block-size: var(--text-md);
+}
+
+.tx-status__dot {
+  inline-size: var(--text-md);
+  block-size: var(--text-md);
+  border: 1px solid var(--color-border-strong);
+}
+
+.tx-status__spinner {
+  animation: tx-spin 0.9s linear infinite;
+}
+
+@keyframes tx-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* T6 已确认：回声确认 moment=抬升淡入进场（dao-fund-dialog 同配方）+ 结果摘要 + 去向 CTA */
+.tx-success {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  animation: tx-success-in var(--motion-base) var(--ease-out);
+}
+
+@keyframes tx-success-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+}
+
+.tx-success__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.tx-success__title {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.tx-success__summary {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+/* 注册成功弹窗体（弹窗实例专用）：✓ 章删除、摘要与主 CTA 居中——2026-10-01 用户裁定 */
+.create-success-pop__body {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: center;
+  text-align: center;
+}
+
+/* 弹窗标题美化（hero 双色标题语言降档）：accent 词=success 语义绿 + 句末斜切小标
+   （home-hero__title-accent::after 同款几何、缩档；en 无 accent 词只挂标） */
+.create-success-pop__title-accent {
+  color: var(--color-success);
+}
+
+.create-success-pop__title-accent::after {
+  content: '';
+  display: inline-block;
+  inline-size: var(--space-4);
+  block-size: var(--space-2);
+  margin-inline-start: var(--space-2);
+  background: var(--color-success);
+  clip-path: polygon(var(--space-1) 0, 100% 0, calc(100% - var(--space-1)) 100%, 0 100%);
+  vertical-align: 0.12em;
 }
 
 /* 审阅屏分组行（participation-panel；用户裁定 2026-09-25 分组化——支付/进创世两段+合计；
