@@ -24,8 +24,18 @@ export function CreatePage({ locale }: { locale: Locale }) {
     >
       <header className="page-intro create-intro">
         <div>
-          <h1 className="ax-glitch-text">
+          <h1 className="ax-glitch-text ax-fault-title">
             {copy.create.titleLead} {copy.create.titleAccent}
+            <span
+              className="ax-fault-title__chroma"
+              data-dup={`${copy.create.titleLead} ${copy.create.titleAccent}`}
+              aria-hidden="true"
+            />
+            <span
+              className="ax-fault-title__rip"
+              data-dup={`${copy.create.titleLead} ${copy.create.titleAccent}`}
+              aria-hidden="true"
+            />
           </h1>
         </div>
         <SourceRef value="docs/page-briefs/memeverse-create.md#2" />

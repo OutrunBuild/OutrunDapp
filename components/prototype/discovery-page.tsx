@@ -51,7 +51,19 @@ export function DiscoveryPage({ locale, searchParams }: DiscoveryPageProps) {
     >
       <header className="discovery-intro">
         <div>
-          <h1>{copy.discovery.title}</h1>
+          <h1 className="ax-fault-title">
+            {copy.discovery.title}
+            <span
+              className="ax-fault-title__chroma"
+              data-dup={copy.discovery.title}
+              aria-hidden="true"
+            />
+            <span
+              className="ax-fault-title__rip"
+              data-dup={copy.discovery.title}
+              aria-hidden="true"
+            />
+          </h1>
           <p>{copy.discovery.sub}</p>
         </div>
         <SourceRef value="docs/page-briefs/memeverse-discovery.md#2" />

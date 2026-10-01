@@ -36,7 +36,19 @@ export function PortfolioPage({ locale }: { locale: Locale }) {
     >
       <header className="page-intro">
         <div>
-          <h1>{copy.portfolio.title}</h1>
+          <h1 className="ax-fault-title">
+            {copy.portfolio.title}
+            <span
+              className="ax-fault-title__chroma"
+              data-dup={copy.portfolio.title}
+              aria-hidden="true"
+            />
+            <span
+              className="ax-fault-title__rip"
+              data-dup={copy.portfolio.title}
+              aria-hidden="true"
+            />
+          </h1>
           <p>{copy.portfolio.sub}</p>
         </div>
       </header>

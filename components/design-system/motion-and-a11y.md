@@ -8,7 +8,7 @@
 - 触发位：交易 Confirmed（T6）、阶段推进完成（VerseStage）、领取成功。
 - reduced-motion 降级：静态双描边（黄+品红 1px 双 outline），无任何位移/闪烁。
 - 全局 reduced-motion 策略（tokens.css）：装饰 animation 全停；状态反馈 transition 保留但仅限非位移属性（opacity/色/边框/阴影）且 ≤100ms——位移与布局过渡自动失效。回声确认属装饰层，降级为双描边。
-- 决议 010 起**装饰性动效共两枚**：回声确认 + 信号脉冲（live 指示青点 steps(2) 1.4s 脉冲——live 数据源在场的信号语义）；其他一切动效必须服务状态反馈。CRT 扫描线/HUD 网格为静态纹理层，非动效。
+- 决议 010 起**装饰性动效共三枚**：回声确认 + 信号脉冲（live 指示青点 steps(2) 1.4s 脉冲——live 数据源在场的信号语义）+ 标题信号失真（`.ax-fault-title`，2026-09-30 用户裁定例外化；8s 周期短促爆窗，静默期 ~93% 完全干净，契约细节见 docs/design-system/components.md 同名条目与 decision-log 2026-10-01）；其他一切动效必须服务状态反馈。CRT 扫描线/HUD 网格为静态纹理层，非动效。
 
 ### 状态反馈动效（允许清单）
 
@@ -23,7 +23,7 @@
 ### 禁止
 
 - 入场编排（多元素错峰进场）、滚动视差、循环装饰动画、未绑定状态的动画、大面积 glow 呼吸。
-- `animation-iteration-count: infinite` 仅限骨架与 spinner。
+- `animation-iteration-count: infinite` 仅限骨架、spinner 与标题信号失真（周期循环爆窗，8s）。
 
 ## 2. 无障碍契约（architecture §10 全量落地）
 

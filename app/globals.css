@@ -2632,6 +2632,558 @@ svg {
     0.06em 0.06em 0 var(--accent-echo);
 }
 
+/* 一级页标题「信号失真」v7（2026-10-01 第三次重做：v6 机械感被否——「参考市场最佳实践」。
+   依 CSS-Tricks/CodePin 经典 glitch 范式重排编舞：爆发期多步连击、每步 1–3 条细散带
+   （3–10% 高、位置乱序）、副本层极性每步交替、mix-blend-mode:screen 让通道在暗底显形/
+   盖白字自然隐去、外加两帧 feTurbulence 横向位移滤镜（每条扫描线随机水平撕 = 信号干扰质感，
+   滤镜 defs 挂 app/layout.tsx 的 .ax-fault-defs）。
+   帧长 40ms、主弧 10 步 ~0.4s + 微弧 3 步，10s 周期，静默期 ~96% 完全干净。
+   不变量沿用：静态层 = 青/品红 0.06em 对角 echo；整题（h1 本体）transform 恒锁定——只有
+   局部带与滤镜位移；越界封死 = h1 clip-path inset(-0.25em -0.5em) + inline-size:fit-content，
+   外边界焊进 core 每条 keyframe 形状（动画声明 clip-path 即接管静态值）；撕裂带位移 |x| ≤0.2em
+   （向右为主、极性交替的小幅左移 ≤0.08em 不及侧栏间距）；每窗末帧显式熄灭三件套；
+   副本基态 opacity:0 + text-shadow:none，reduced-motion（动画仅在 no-preference 内声明）与
+   e2e animation:none 下只剩静态 echo；扫描线/噪点 = 全站 .ax-scanlines 既有层。 */
+.ax-fault-title {
+  position: relative;
+  isolation: isolate;
+  inline-size: fit-content;
+  clip-path: inset(-0.25em -0.5em);
+  text-shadow:
+    -0.06em -0.06em 0 var(--or-cyan),
+    0.06em 0.06em 0 var(--accent-echo);
+}
+
+.ax-fault-defs {
+  position: absolute;
+  inline-size: 0;
+  block-size: 0;
+}
+
+.ax-fault-title__chroma::before,
+.ax-fault-title__chroma::after,
+.ax-fault-title__rip::before {
+  content: attr(data-dup);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+  text-shadow: none;
+  opacity: 0;
+  transform-origin: left center;
+}
+
+/* screen 混合 = 通道重组范式：彩色切片在暗底显形、与白字重叠处自然归白（盖不住本体） */
+.ax-fault-title__chroma::before {
+  color: var(--or-cyan);
+  mix-blend-mode: screen;
+}
+
+.ax-fault-title__chroma::after {
+  color: var(--accent-echo);
+  mix-blend-mode: screen;
+}
+
+.ax-fault-title__rip::before {
+  color: var(--color-text);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ax-fault-title {
+    animation: 8s steps(1, end) infinite ax-fault-core;
+  }
+
+  .ax-fault-title__chroma::before {
+    animation: 8s steps(1, end) infinite ax-fault-cyan;
+  }
+
+  .ax-fault-title__chroma::after {
+    animation: 8s steps(1, end) infinite ax-fault-echo;
+  }
+
+  .ax-fault-title__rip::before {
+    animation: 8s steps(1, end) infinite ax-fault-rip;
+  }
+}
+
+/* 移动端降档（≤30rem）：balance 断行后短行远短于盒子（Explore 行 ~130px vs 盒 254px），
+   细带高倍拉丝锚盒子裁剪缘、会飘离短行文字老远（v8 移动端实测被否）——换移动特化编舞：
+   去掉拉丝连击与湍流帧，只留小位移局部撕裂（位移 ≤0.12em、scale ≤1.25），封锁内边界
+   同步收紧 ±0.2em（焊进 core-m 每条 keyframe 形状，缺口即越界）。桌面规则不动。 */
+@media (prefers-reduced-motion: no-preference) and (max-width: 30rem) {
+  .ax-fault-title {
+    animation: 8s steps(1, end) infinite ax-fault-core-m;
+  }
+
+  .ax-fault-title__chroma::before {
+    animation: 8s steps(1, end) infinite ax-fault-cyan-m;
+  }
+
+  .ax-fault-title__chroma::after {
+    animation: 8s steps(1, end) infinite ax-fault-echo-m;
+  }
+
+  .ax-fault-title__rip::before {
+    animation: 8s steps(1, end) infinite ax-fault-rip-m;
+  }
+}
+
+/* 帧表 v8（8s 周期，60ms = 0.75%/帧——按用户反馈放慢步进、缩短间隔）：
+   静默 0–15% / 21–55% / 56.5–100%；主窗 15.0–20.25%（split 15.0 → 撕裂A 15.75 →
+   撕裂B 16.5 → 湍流+顶部撕 17.25 → 拉丝连击 18.0 → 黑屏 18.75 → 回锁+稳定滤波 19.5 →
+   熄灭 20.25）；微窗 55.0–56.5%（换位 split → 撕裂C → 熄灭）。
+   首爆 1.2s，窗间隔 ~2.7s/3.5s（v7 为 ~4.9s/5.1s）。
+   副本层每步极性交替 ±2–6px，细带 3–10% 高乱序散布。
+   封锁纪律不变：core 每条 keyframe 的 clip 形状都带 ±0.5em/±0.25em 外边界。 */
+@keyframes ax-fault-core {
+  0%,
+  100% {
+    opacity: 1;
+    clip-path: inset(-0.25em -0.5em);
+    filter: none;
+  }
+
+  15.75% {
+    /* 撕裂A：切走上带 14–22% */
+    clip-path: polygon(
+      -0.5em -0.25em,
+      calc(100% + 0.5em) -0.25em,
+      calc(100% + 0.5em) 14%,
+      -0.5em 14%,
+      -0.5em 22%,
+      calc(100% + 0.5em) 22%,
+      calc(100% + 0.5em) calc(100% + 0.25em),
+      -0.5em calc(100% + 0.25em)
+    );
+  }
+
+  16.5% {
+    /* 撕裂B：切走中带 48–56% */
+    clip-path: polygon(
+      -0.5em -0.25em,
+      calc(100% + 0.5em) -0.25em,
+      calc(100% + 0.5em) 48%,
+      -0.5em 48%,
+      -0.5em 56%,
+      calc(100% + 0.5em) 56%,
+      calc(100% + 0.5em) calc(100% + 0.25em),
+      -0.5em calc(100% + 0.25em)
+    );
+  }
+
+  17.25% {
+    /* 湍流帧：切走顶带 6–14% + 横向位移滤镜（信号干扰质感） */
+    clip-path: polygon(
+      -0.5em -0.25em,
+      calc(100% + 0.5em) -0.25em,
+      calc(100% + 0.5em) 6%,
+      -0.5em 6%,
+      -0.5em 14%,
+      calc(100% + 0.5em) 14%,
+      calc(100% + 0.5em) calc(100% + 0.25em),
+      -0.5em calc(100% + 0.25em)
+    );
+    filter: url(#fault-turb-a);
+  }
+
+  18% {
+    /* 拉丝连击帧：切走细带 34–40% */
+    clip-path: polygon(
+      -0.5em -0.25em,
+      calc(100% + 0.5em) -0.25em,
+      calc(100% + 0.5em) 34%,
+      -0.5em 34%,
+      -0.5em 40%,
+      calc(100% + 0.5em) 40%,
+      calc(100% + 0.5em) calc(100% + 0.25em),
+      -0.5em calc(100% + 0.25em)
+    );
+    filter: none;
+  }
+
+  18.75% {
+    /* 信号失落：整题黑屏一帧 */
+    clip-path: inset(-0.25em -0.5em);
+    opacity: 0;
+    filter: none;
+  }
+
+  19.5% {
+    /* 回锁：白核回亮 + 轻湍流（信号稳定中的余颤） */
+    clip-path: inset(-0.25em -0.5em);
+    opacity: 1;
+    filter: url(#fault-turb-b);
+  }
+
+  20.25% {
+    clip-path: inset(-0.25em -0.5em);
+    opacity: 1;
+    filter: none;
+  }
+
+  55.75% {
+    /* 微窗撕裂C：切走中带 28–36% */
+    clip-path: polygon(
+      -0.5em -0.25em,
+      calc(100% + 0.5em) -0.25em,
+      calc(100% + 0.5em) 28%,
+      -0.5em 28%,
+      -0.5em 36%,
+      calc(100% + 0.5em) 36%,
+      calc(100% + 0.5em) calc(100% + 0.25em),
+      -0.5em calc(100% + 0.25em)
+    );
+  }
+
+  56.5% {
+    clip-path: inset(-0.25em -0.5em);
+    opacity: 1;
+    filter: none;
+  }
+}
+
+@keyframes ax-fault-rip {
+  0%,
+  20.25%,
+  56.5%,
+  100% {
+    opacity: 0;
+    transform: none;
+    clip-path: none;
+  }
+
+  15.75% {
+    /* 撕裂A：上带右移 0.07em（补位 core 豁口） */
+    opacity: 1;
+    clip-path: inset(14% 0 78% 0);
+    transform: translateX(0.07em);
+  }
+
+  16.5% {
+    /* 撕裂B：中带左移 0.06em × 1.4（极性交替） */
+    opacity: 1;
+    clip-path: inset(48% 0 44% 0);
+    transform: translateX(-0.06em) scaleX(1.4);
+  }
+
+  17.25% {
+    /* 湍流帧：顶带右移 0.12em */
+    opacity: 1;
+    clip-path: inset(6% 0 86% 0);
+    transform: translateX(0.12em);
+  }
+
+  18% {
+    /* 拉丝帧：细带 34–40% × 3.4 白色拖丝条 */
+    opacity: 1;
+    clip-path: inset(34% 0 62% 0);
+    transform: translateX(0.08em) scaleX(3.4);
+  }
+
+  19.5% {
+    /* 回锁残影 */
+    opacity: 0.4;
+    clip-path: inset(58% 0 36% 0);
+    transform: translateX(0.05em);
+  }
+
+  55.75% {
+    /* 微窗撕裂C：中带右移 0.18em × 1.7 */
+    opacity: 1;
+    clip-path: inset(28% 0 64% 0);
+    transform: translateX(0.18em) scaleX(1.7);
+  }
+}
+
+@keyframes ax-fault-cyan {
+  0%,
+  20.25%,
+  56.5%,
+  100% {
+    opacity: 0;
+    transform: none;
+    clip-path: none;
+  }
+
+  15% {
+    /* 失谐：全像左分离 0.08em */
+    opacity: 1;
+    transform: translateX(-0.08em);
+  }
+
+  15.75% {
+    /* 撕裂A：上带右移 0.12em × 1.6 */
+    opacity: 1;
+    clip-path: inset(14% 0 78% 0);
+    transform: translateX(0.12em) scaleX(1.6);
+  }
+
+  16.5% {
+    /* 撕裂B：中带左移 0.05em（极性交替） */
+    opacity: 1;
+    clip-path: inset(48% 0 44% 0);
+    transform: translateX(-0.05em);
+  }
+
+  17.25% {
+    /* 湍流帧：全像右移 0.05em */
+    opacity: 1;
+    transform: translateX(0.05em);
+  }
+
+  18% {
+    /* 拉丝帧：细带 70–74% × 3.8 青色拖丝条 */
+    opacity: 1;
+    clip-path: inset(70% 0 26% 0);
+    transform: translateX(0.1em) scaleX(3.8);
+  }
+
+  19.5% {
+    /* 回锁残影 */
+    opacity: 0.4;
+    transform: translateX(-0.04em);
+  }
+
+  55% {
+    /* 微窗失谐：换位 +0.10em */
+    opacity: 1;
+    transform: translateX(0.1em);
+  }
+
+  55.75% {
+    /* 微窗撕裂C：下带左移 0.08em */
+    opacity: 1;
+    clip-path: inset(64% 0 30% 0);
+    transform: translateX(-0.08em);
+  }
+}
+
+@keyframes ax-fault-echo {
+  0%,
+  20.25%,
+  56.5%,
+  100% {
+    opacity: 0;
+    transform: none;
+    clip-path: none;
+  }
+
+  15% {
+    /* 失谐：全像右分离 0.08em */
+    opacity: 1;
+    transform: translateX(0.08em);
+  }
+
+  15.75% {
+    /* 撕裂A：下带左移 0.06em（极性交替） */
+    opacity: 1;
+    clip-path: inset(62% 0 30% 0);
+    transform: translateX(-0.06em);
+  }
+
+  16.5% {
+    /* 撕裂B：上带右移 0.14em × 1.8 */
+    opacity: 1;
+    clip-path: inset(24% 0 68% 0);
+    transform: translateX(0.14em) scaleX(1.8);
+  }
+
+  17.25% {
+    /* 湍流帧：顶部细带 6–14% 右移 0.2em × 2.6 拉丝 */
+    opacity: 1;
+    clip-path: inset(6% 0 86% 0);
+    transform: translateX(0.2em) scaleX(2.6);
+  }
+
+  18% {
+    /* 拉丝帧：全像右移 0.04em */
+    opacity: 1;
+    transform: translateX(0.04em);
+  }
+
+  19.5% {
+    /* 回锁残影 */
+    opacity: 0.4;
+    transform: translateX(0.04em);
+  }
+
+  55% {
+    /* 微窗失谐：换位 -0.10em */
+    opacity: 1;
+    transform: translateX(-0.1em);
+  }
+
+  55.75% {
+    /* 微窗撕裂C：中带右移 0.28em × 2.4 拉丝 */
+    opacity: 1;
+    clip-path: inset(28% 0 64% 0);
+    transform: translateX(0.28em) scaleX(2.4);
+  }
+}
+
+/* 移动端特化帧表（≤30rem，ax-fault-*-m；时间窗与桌面 v8 相同）：
+   主弧 4 态（split 15.0 → 撕裂A 15.75 → 黑屏 18.75 → 回锁 19.5 → 熄灭 20.25），
+   微弧 3 态（55.0 / 55.75 / 56.5）。无拉丝、无湍流；位移 ≤0.12em、scale ≤1.25；
+   core 封锁边界收紧 ±0.2em（焊进每条形状）。 */
+@keyframes ax-fault-core-m {
+  0%,
+  100% {
+    opacity: 1;
+    clip-path: inset(-0.25em -0.2em);
+    filter: none;
+  }
+
+  15.75% {
+    /* 撕裂A：切走上带 14–22%（外边界收紧 ±0.2em） */
+    clip-path: polygon(
+      -0.2em -0.25em,
+      calc(100% + 0.2em) -0.25em,
+      calc(100% + 0.2em) 14%,
+      -0.2em 14%,
+      -0.2em 22%,
+      calc(100% + 0.2em) 22%,
+      calc(100% + 0.2em) calc(100% + 0.25em),
+      -0.2em calc(100% + 0.25em)
+    );
+  }
+
+  18.75% {
+    /* 信号失落：整题黑屏一帧 */
+    clip-path: inset(-0.25em -0.2em);
+    opacity: 0;
+  }
+
+  19.5% {
+    /* 回锁 */
+    clip-path: inset(-0.25em -0.2em);
+    opacity: 1;
+  }
+
+  55.75% {
+    /* 微窗撕裂C：切走中带 28–36% */
+    clip-path: polygon(
+      -0.2em -0.25em,
+      calc(100% + 0.2em) -0.25em,
+      calc(100% + 0.2em) 28%,
+      -0.2em 28%,
+      -0.2em 36%,
+      calc(100% + 0.2em) 36%,
+      calc(100% + 0.2em) calc(100% + 0.25em),
+      -0.2em calc(100% + 0.25em)
+    );
+  }
+
+  56.5% {
+    clip-path: inset(-0.25em -0.2em);
+    opacity: 1;
+  }
+}
+
+@keyframes ax-fault-rip-m {
+  0%,
+  20.25%,
+  56.5%,
+  100% {
+    opacity: 0;
+    transform: none;
+    clip-path: none;
+  }
+
+  15.75% {
+    opacity: 1;
+    clip-path: inset(14% 0 78% 0);
+    transform: translateX(0.06em);
+  }
+
+  19.5% {
+    opacity: 0.4;
+    clip-path: inset(58% 0 36% 0);
+    transform: translateX(0.04em);
+  }
+
+  55.75% {
+    opacity: 1;
+    clip-path: inset(28% 0 64% 0);
+    transform: translateX(0.1em);
+  }
+}
+
+@keyframes ax-fault-cyan-m {
+  0%,
+  20.25%,
+  56.5%,
+  100% {
+    opacity: 0;
+    transform: none;
+    clip-path: none;
+  }
+
+  15% {
+    opacity: 1;
+    transform: translateX(-0.06em);
+  }
+
+  15.75% {
+    opacity: 1;
+    clip-path: inset(14% 0 78% 0);
+    transform: translateX(0.09em) scaleX(1.15);
+  }
+
+  19.5% {
+    opacity: 0.4;
+    transform: translateX(-0.03em);
+  }
+
+  55% {
+    opacity: 1;
+    transform: translateX(0.07em);
+  }
+
+  55.75% {
+    opacity: 1;
+    clip-path: inset(64% 0 30% 0);
+    transform: translateX(-0.05em);
+  }
+}
+
+@keyframes ax-fault-echo-m {
+  0%,
+  20.25%,
+  56.5%,
+  100% {
+    opacity: 0;
+    transform: none;
+    clip-path: none;
+  }
+
+  15% {
+    opacity: 1;
+    transform: translateX(0.06em);
+  }
+
+  15.75% {
+    opacity: 1;
+    clip-path: inset(62% 0 30% 0);
+    transform: translateX(0.1em) scaleX(1.2);
+  }
+
+  19.5% {
+    opacity: 0.4;
+    transform: translateX(0.03em);
+  }
+
+  55% {
+    opacity: 1;
+    transform: translateX(-0.07em);
+  }
+
+  55.75% {
+    opacity: 1;
+    clip-path: inset(28% 0 64% 0);
+    transform: translateX(0.12em) scaleX(1.25);
+  }
+}
+
 .verse-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
