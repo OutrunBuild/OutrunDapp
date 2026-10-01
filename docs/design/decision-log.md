@@ -349,6 +349,14 @@ C1 结算储备金按 spec 窄口径且 UI 不露出 · C2 建池剩余资金不
 - **实现事故留档**：sed 行号跨 prettier 格式化失效，keyframes 被插进 `.verse-hero` 规则体内（嵌套 @keyframes 非法整段丢弃、verse-hero 规则体一度丢失）——已脚本修复（keyframes 提回顶层、verse-hero 恢复），e2e 20 passed 佐证无附带损伤。教训：对 prettier 后的文件做行号手术前必须重新 grep 行号。
 - **验证**：静态闸全绿；WAAPI 审计（帧表探针+400 采样）0 实违例（黑屏恰 [1600,1640)、封锁全程在场、位移界内；微窗换位 -0.10em 为设计内极性交替）；三页实速录屏 13s，爆窗段 30fps 全帧逐帧读——split→密集撕裂→湍流腐蚀帧→黑屏→回锁弧线成立、侧栏/顶栏全程零伪迹；e2e 21 passed 基线零变化。录像 `/tmp/v7-{explore,create,portfolio}.webm` 交用户实速裁决。
 - **token 影响**：无增删。
+
+## 2026-10-01 · 首页证明带 KPI 数字豁免等宽红线（用户裁定「选B」）
+
+- **背景**：评审发现 `.home-proof-band__item strong`（app/globals.css）以 `font-family: var(--font-display)` 覆盖 `[data-numeric]` 的 `--font-data` 等宽规则，证明带三个数字（Total value locked 19.69M / Deployed economies 20 / Participants 3）实际渲染为 Saira Condensed 展示体，违反「数字字段必须等宽 + tabular-nums」红线，且是全站唯一既无裁定注释、又未登记的数字字体例外。
+- **决议**：保留现状（评审报告二选一中的 B 案）——证明带数字维持展示体，正式豁免等宽红线。代码不改；globals.css 该规则处补裁定注释（与全站其他例外体例一致），本条即出处。
+- **对比证据**：会话内 dev server 实机对比（computed font 实测：现状 Saira Condensed vs 注入等宽预览 IBM Plex Mono，2x 放大截图并排）：等宽版数字占固定宽度、更宽更「仪表盘读数」，营销展示张力下降；展示版与 band 标签同字体、视觉一体。等宽不挤破版式（数字格内居中），差距是气质取舍非优劣。用户在「A 删覆盖服从红线 / B 保展示补登记」间拍板 B。
+- **效力范围**：仅首页 `.home-proof-band__item strong` 三个数字；全站其余数字字段等宽红线不变。
+- **token 影响**：无增删。
 ## 2026-10-01 · 信号失真 v8 节奏调优（用户反馈「动画有点太快……时间间隔降低一点点，更频繁一些」）
 
 - **决议**：仅调时序不改编舞——① 帧长 40ms→60ms/步（每态在 30fps 屏上占 ~2 帧，此前单帧闪过不可读）；② 周期 10s→8s、窗口前移（主窗 15%=1.2s、微窗 55%=4.4s），首爆 1.2s、窗间隔 ~2.7s/3.5s（v7 为 ~4.9s/5.1s），爆发更频繁且保持不规则；静默期 ~93%。黑屏 60ms（≤100ms 纪律不变）。

@@ -51,8 +51,8 @@ const en = {
       primaryCta: 'Explore communities',
       kpiBand: {
         label: 'Protocol KPIs',
-        tvl: 'Total value locked',
-        memecoins: 'Deployed economies',
+        tvl: 'Total Value Locked',
+        memecoins: 'Deployed Economies',
         users: 'Participants',
       },
       enginesTitle: 'Three engines for a self-sustaining economy',
@@ -78,6 +78,8 @@ const en = {
         title: 'How one launch becomes a living economy',
         subtitle: 'Follow how capital becomes liquidity, rights and recurring community income.',
         capitalLabel: 'Capital that creates the four pools — paid in uAsset',
+        // uAsset 首现定义：渲染在机制段 capitalLabel 带内（mechanism-primer.tsx）
+        assetsSub: 'UETH and UBNB track ETH and BNB. They are ETH/BNB-denominated assets, not fiat stablecoins.',
         sources: [
           {
             title: 'Standard Genesis',
@@ -121,8 +123,9 @@ const en = {
         feeRoutes: [
           {
             asset: 'Memecoin fees',
-            destination: 'YieldVault',
-            description: 'Accrue to Memecoin stakers.',
+            // Yield Vault 首现处带半句定义；destination 拼写对齐 verseDesk.tabVault
+            destination: 'Yield Vault',
+            description: 'Memecoin staking pool — fees accrue to Memecoin stakers.',
           },
           {
             asset: 'uAsset fees',
@@ -135,6 +138,16 @@ const en = {
             description: 'Removed from circulation.',
           },
         ],
+        // 竖向走线图（2026-10-01 用户裁定）：阶段 mono 网络标签 + 时序连接注记。
+        // 纯展示标签，无机制事实；pol/rights 键形状不动——home-page.tsx 把它们作为
+        // 术语表传给 lifecycle 段 TermGlossText（components.md 术语悬停释义条目）。
+        phaseLabels: {
+          participation: 'Genesis entry',
+          pools: 'Four pools',
+          rights: 'Rights split',
+          operation: 'Operation',
+        },
+        operationNote: 'Once trading is live',
       },
       lifecycle: {
         title: 'From Genesis to an enduring community',
@@ -202,7 +215,7 @@ const en = {
       footerResourcesLabel: 'Resources',
       footerRights: 'Community-owned infrastructure for onchain economies.',
       footerNavLabel: 'Memeverse links',
-      assetsSub: 'UETH and UBNB track ETH and BNB. They are ETH/BNB-denominated assets, not fiat stablecoins.',
+      footerSocialLabel: 'Social links',
     },
     discovery: {
       title: 'Explore community economies',
@@ -701,7 +714,7 @@ const zh: typeof en = {
       primaryCta: '探索社区经济网络',
       kpiBand: {
         label: '协议 KPI',
-        tvl: '总锁定价值（uAsset）',
+        tvl: '总锁定价值',
         memecoins: '已部署经济体',
         users: '参与用户数',
       },
@@ -728,6 +741,8 @@ const zh: typeof en = {
         title: '一次创世，如何变成持续运转的经济机制',
         subtitle: '先看资金如何变成流动性、权利和社区持续收入。',
         capitalLabel: '用于建立四池的创世资金——以 uAsset 支付',
+        // 键位同 en 段注释：uAsset 首现定义
+        assetsSub: 'UETH/UBNB 随 ETH/BNB 价格波动，是 ETH/BNB 计价的稳定凭证，不是法币稳定币。',
         sources: [
           {
             title: '普通创世',
@@ -771,8 +786,9 @@ const zh: typeof en = {
         feeRoutes: [
           {
             asset: 'Memecoin 手续费',
+            // 键位同 en 段注释：首现处带半句定义
             destination: '收益库 YieldVault',
-            description: '归 Memecoin 质押者。',
+            description: 'Memecoin 质押池——手续费归 Memecoin 质押者。',
           },
           {
             asset: 'uAsset 手续费',
@@ -785,6 +801,14 @@ const zh: typeof en = {
             description: '永久退出流通。',
           },
         ],
+        // 键位同 en 段注释：走线图阶段标签 + 时序连接注记，纯展示标签
+        phaseLabels: {
+          participation: '创世参与',
+          pools: '建立四池',
+          rights: '权利凭证',
+          operation: '持续运转',
+        },
+        operationNote: '交易开始后',
       },
       lifecycle: {
         title: '从创世，到持续运转的社区',
@@ -849,7 +873,7 @@ const zh: typeof en = {
       footerResourcesLabel: '资源',
       footerRights: '社区共有的链上经济体基础设施。',
       footerNavLabel: 'Memeverse 相关链接',
-      assetsSub: 'UETH/UBNB 随 ETH/BNB 价格波动，是 ETH/BNB 计价的稳定凭证，不是法币稳定币。',
+      footerSocialLabel: '社交链接',
     },
     discovery: {
       title: '探索社区经济体',

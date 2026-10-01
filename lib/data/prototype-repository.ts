@@ -255,9 +255,9 @@ function getSnapshot(): PrototypeSnapshot {
     .filter((verse) => verse.stage === 'locked')
     .flatMap((verse) => verse.markets)
     .reduce((sum, market) => sum + market.tvl, 0);
-  const uniqueAccounts = new Set(
-    fixtureData.accounts.items.map((account) => account.address.value.toLowerCase()),
-  );
+  // 累计参与地址样本：各 verse participants（地址级去重样本）求和；跨 verse 重叠未扣减，
+  // 量级样本、以链上读值为准。勿用 accounts.items 计数——那是组合页 persona 钱包，非全网样本。
+  const participantTotal = verses.reduce((sum, verse) => sum + verse.participantCount, 0);
   const sampleAccount = fixtureData.accounts.items[0];
 
   return {
@@ -277,7 +277,7 @@ function getSnapshot(): PrototypeSnapshot {
       deployedVerseCount: verses.filter(
         (verse) => verse.stage === 'locked' || verse.stage === 'unlocked',
       ).length,
-      participantCount: uniqueAccounts.size,
+      participantCount: participantTotal,
       sourceRefs: [
         ...new Set([
           ...fixtureData.verses.items.map((verse) => verse.sourceRef),

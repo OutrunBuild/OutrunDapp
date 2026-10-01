@@ -12,7 +12,7 @@ import { getCopy } from './copy'
 import { MechanismPrimer } from './mechanism-primer'
 import { localePath } from './routes'
 import { VerseLifecycle } from './verse-lifecycle'
-import { formatAmount, SourceRef } from './signal-ui'
+import { formatMarketCap, SourceRef } from './signal-ui'
 
 const OUTRUN_BOOK_URL = 'https://github.com/OutrunBuild/OutrunBook'
 const OUTRUN_GITHUB_URL = 'https://github.com/OutrunBuild'
@@ -58,7 +58,8 @@ function SiteFooter({ locale }: { locale: Locale }) {
 
       <div className="site-footer__bottom">
         <span>&copy; 2026 Outrun &middot; {copy.home.footerTagline}</span>
-        <nav className="site-footer__social" aria-label="Social links">
+        {/* X/Discord/Telegram 官方账号链接待定（Q），暂以平台根域名占位 */}
+        <nav className="site-footer__social" aria-label={copy.home.footerSocialLabel}>
           <a href="https://x.com" target="_blank" rel="noreferrer" aria-label="X (Twitter)">
             <XIcon />
           </a>
@@ -113,7 +114,7 @@ export function HomePage({ locale }: { locale: Locale }) {
               className="ax-ghost-cta"
               size="lg"
               nativeButton={false}
-              render={<Link href={`${localePath(locale, '/memeverse/explore')}?stage=genesis`} />}
+              render={<Link href={localePath(locale, '/memeverse/explore')} />}
             >
               {copy.home.primaryCta}
               <ArrowRight data-icon="inline-end" aria-hidden="true" />
@@ -123,7 +124,7 @@ export function HomePage({ locale }: { locale: Locale }) {
         <section className="home-proof-band" aria-label={kpi.label}>
           <div className="home-proof-band__item">
             <span>{kpi.tvl}</span>
-            <strong data-numeric="true">{formatAmount(snapshot.homeMetrics.totalLocked, locale, true)}</strong>
+            <strong data-numeric="true">{`$${formatMarketCap(snapshot.homeMetrics.totalLocked)}`}</strong>
           </div>
           <div className="home-proof-band__item">
             <span>{kpi.memecoins}</span>
@@ -131,7 +132,7 @@ export function HomePage({ locale }: { locale: Locale }) {
           </div>
           <div className="home-proof-band__item">
             <span>{kpi.users}</span>
-            <strong data-numeric="true">{snapshot.homeMetrics.participantCount}</strong>
+            <strong data-numeric="true">{formatMarketCap(snapshot.homeMetrics.participantCount)}</strong>
           </div>
         </section>
       </section>
@@ -154,7 +155,10 @@ export function HomePage({ locale }: { locale: Locale }) {
 
       <MechanismPrimer content={copy.home.mechanism} />
 
-      <VerseLifecycle content={copy.home.lifecycle} />
+      <VerseLifecycle
+        content={copy.home.lifecycle}
+        glosses={[copy.home.mechanism.pol, ...copy.home.mechanism.rights]}
+      />
 
       <section className="home-final-cta" aria-labelledby="final-cta-title">
         <div>

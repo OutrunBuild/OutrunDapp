@@ -1,3 +1,5 @@
+import { TermGlossText, type TermGlossEntry } from './term-gloss'
+
 type LifecycleBranch = {
   label: string
   title: string
@@ -21,7 +23,13 @@ type LifecycleContent = {
   stages: readonly LifecycleStage[]
 }
 
-export function VerseLifecycle({ content }: { content: LifecycleContent }) {
+export function VerseLifecycle({
+  content,
+  glosses = [],
+}: {
+  content: LifecycleContent
+  glosses?: readonly TermGlossEntry[]
+}) {
   return (
     <section className="home-section verse-lifecycle" id="lifecycle" aria-labelledby="lifecycle-title">
       <header className="home-section__heading">
@@ -47,7 +55,9 @@ export function VerseLifecycle({ content }: { content: LifecycleContent }) {
                 <strong>{stage.signalTitle}</strong>
                 <ul>
                   {stage.signals.map((signal) => (
-                    <li key={signal}>{signal}</li>
+                    <li key={signal}>
+                      <TermGlossText text={signal} glosses={glosses} />
+                    </li>
                   ))}
                 </ul>
                 {stage.branch ? (
