@@ -8,14 +8,7 @@
       "nodes": 3
     }
   ],
-  "launch": [
-    {
-      "id": "aria-prohibited-attr",
-      "impact": "serious",
-      "help": "Elements must only use permitted ARIA attributes",
-      "nodes": 5
-    }
-  ],
+  "launch": [],
   "verse-21": [
     {
       "id": "aria-allowed-attr",
