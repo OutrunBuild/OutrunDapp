@@ -30,6 +30,7 @@
 
 - `--color-*` 语义色（bg/surface/text/feedback/border）
 - `--accent-*` 强调语义（primary/echo/link）
+- `--shadow-{raised,header}` 抬升层接触阴影（数据层文本零 glow 边界见 §2.1）
 - `--logo-*`/`--or-cyan`/`--site-black` 品牌锚（只读）
 - `--font-{display,body,data}`、`--text-{xs..xl}`、`--space-{1..8}`、`--row-height*`、`--z-*`
 - 组件只引用上述 token；新需求先扩 token 再用（阶段 2 起 PR 审查项）
