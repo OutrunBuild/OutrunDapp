@@ -333,8 +333,7 @@
 | 背景 | Chromium 不在 `:link`/`:visited` 子树光栅化 `paint()` 图像（元素/伪元素/后代全灭；href 增删实时切换复现，Chrome 151/153 有头无头一致；w3c/css-houdini-drafts#1178）。链接渲染的按钮（`render={<Link>/<a href>}`）画皮全灭只剩文字 |
 | 结构 | `ui/button.tsx` 的 `nativeButton={false}` 分支自动包裹：`<span data-slot="button-plate" data-variant>` > 链接锚点。真 `<button>` 不包。调用点 JSX 无感 |
 | 画皮归属 | plate（链接祖先，不在封杀范围）持 `paint(chamfer-border)`；锚点退化为文字层（`background: none !important`——现状画不出，将来上游修复后防双画） |
-| 变体镜像 | plate 上 `data-variant` 镜像 default/outline；class 钩子（`.ax-ghost-cta`/`.ax-glow-cta`）经 `:has()` 镜像。**新增链接可用变体时须同步镜像 plate 规则（globals.css `[data-slot='button-plate']` 段）** |
-| 豁免 | `.ax-glow-cta` 实色伪元素背板不经 paint、不受封杀——plate `background: none`（default 变体裸链会误画黄板，故必须豁免） |
+| 变体镜像 | plate 上 `data-variant` 镜像 default/outline；class 钩子（`.ax-ghost-cta`）经 `:has()` 镜像。**新增链接可用变体时须同步镜像 plate 规则（globals.css `[data-slot='button-plate']` 段）** |
 | 交互 | hover/active/focus 照旧：hover 换肤走 plate `--cb-*`（过渡配方同基类）；active 下压由 plate `translate: 0 1px` 整体承接（锚点 cva 位移归零防 2px 叠加）；focus 走锚点全局青 outline（plate 收缩包裹，视觉盒一致） |
 | 布局边界 | 包裹后 flex/grid 容器的**子项是 plate 不是锚点**——子项级属性（`flex:1`/`margin-inline-start:auto`/`align-self`）须写在 plate 上；锚点经 `flex-grow:1` 在满宽场景跟随。既有迁移：手机断点 `.home-final-cta__actions [data-slot='button-plate'] { flex: 1 1 100% }` |
 | 使用处 | 首页 hero/页尾 CTA、docs 外链、portfolio 退款 CTA、discovery 空态 CTA（2026-09-28 落地，方案 C；A 静态回落被否——分数 DPR 边线质量分叉违背 09-26 实验室验收口径） |

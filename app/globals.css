@@ -529,8 +529,7 @@ svg {
    Paint Worklet 画皮（public/paint/chamfer-border.js + paint-skin.tsx 挂根 layout）——
    边线恒单线无鬼影行、亮度下限 52%（clip-path 路线实测 28%+鬼影行）；形态不变（裸切角）。
    2026-09-26 补裁定对齐：hover 换肤不再排除 disabled（禁用视觉档全删精神的延伸——disabled 钮渲染与 enabled 一致，悬停反馈亦一致；:active 仍限 enabled）。
-   豁免两员：.ax-glow-cta 自带 clip-path（伪元素背板需要切角裁形，自身描边透明无 AA 问题）；
-   .back-to-top 单角切角几何不同，其 0-2-0 !important 边框/底色天然压过基类画皮。 */
+   豁免：.back-to-top 单角切角几何不同，其 0-2-0 !important 边框/底色天然压过基类画皮。 */
 @property --cb-bg {
   syntax: '<color>';
   inherits: false;
@@ -599,52 +598,6 @@ svg {
   --cb-border: var(--accent-primary);
   --cb-bg: transparent;
   color: var(--accent-primary) !important;
-}
-
-/* 主 CTA 品红回声 = Logo「背板错位」语言：品红背板与黄板同切角形，
-   黄板向左下偏移 --line-accent(2px)——品红只从上、右两条边（含切角斜边走向）探出。
-   按钮伪元素为负 z（画在文字之下）。background 必须在 hover/active 一并钉死 transparent：
-   default 变体的 :hover 换色规则（0-3-0!important）会压过本规则（0-2-1!important），
-   把整块板填成 --cta-hover 盖掉品红背板（2026-09-20 根因修复） */
-[data-slot='button'][data-variant='default'].ax-glow-cta,
-[data-slot='button'][data-variant='default'].ax-glow-cta:hover,
-[data-slot='button'][data-variant='default'].ax-glow-cta:active:not(:disabled) {
-  position: relative;
-  /* glow filter 已移除：用 isolation 自建 stacking context，兜住负 z 伪元素 */
-  isolation: isolate;
-  /* 画皮豁免（2026-09-26）：品红背板/黄板伪元素需 clip-path 裁出切角形；自身描边透明无 AA 问题 */
-  clip-path: polygon(
-    var(--chamfer) 0,
-    100% 0,
-    100% calc(100% - var(--chamfer)),
-    calc(100% - var(--chamfer)) 100%,
-    0 100%,
-    0 var(--chamfer)
-  );
-  --cb-bg: transparent;
-  --cb-border: transparent;
-  box-shadow: none !important;
-}
-
-[data-slot='button'][data-variant='default'].ax-glow-cta::before {
-  content: '';
-  position: absolute;
-  z-index: -2;
-  inset: 0;
-  background: var(--accent-echo);
-}
-
-[data-slot='button'][data-variant='default'].ax-glow-cta::after {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  inset: var(--line-accent) var(--line-accent) 0 0;
-  background: var(--accent-primary);
-  transition: background-color var(--motion-fast) var(--ease-out);
-}
-
-[data-slot='button'][data-variant='default'].ax-glow-cta:hover::after {
-  background: var(--cta-hover);
 }
 
 /* 次级操作钮「青色信号面板」（2026-09-24 用户裁定统一）：青 tinted 描边+可读次级文，
@@ -738,11 +691,6 @@ svg {
 [data-slot='button-plate'][data-variant='outline']:hover {
   --cb-border: var(--or-cyan);
   --cb-bg: color-mix(in srgb, var(--or-cyan) 8%, var(--color-surface-raised));
-}
-
-/* 画皮豁免（同基类豁免名单）：glow 自带实色伪元素背板（不经 paint，不受封杀），plate 不画 */
-[data-slot='button-plate']:has(.ax-glow-cta) {
-  background: none !important;
 }
 
 /* active 下压整体承接：边框与文字一起下移 1px（cva 原意），锚点位移已在上方归零 */

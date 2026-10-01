@@ -95,7 +95,7 @@ clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100%
 | `.ax-echo-rail` | 侧栏右缘品红回声轨 | `.product-sidebar` |
 | `.ax-echo-bar` | 标题条几何化回声：青信号贴底边框渐变消隐（`::after`）+ 品红回声下移 1px/左移滞后/长度减半（`::before`，决议 014 统一） | `.section-heading` |
 | `.ax-signal-dot` | live 青点 steps(2) 1.4s 脉冲 | 状态簇、结果计数 |
-| `.ax-glow-nav` / `.ax-glow-cta` / `.ax-glow-card` | 分层 glow | 导航激活项 / 主 CTA / 信号卡 |
+| `.ax-glow-nav` / `.ax-glow-card` | 分层 glow | 导航激活项 / 信号卡 |
 
 规则：环境层低对比、结构层一处一强调、数据层零 glow（011 精修纪律）。新页面直接复用，不新建纹理。
 
