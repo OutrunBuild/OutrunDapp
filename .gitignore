@@ -59,6 +59,10 @@ lcov.info
 next-env.d.ts
 .env*.local
 
+# 临时独立构建（NEXT_DIST_DIR 指向的比较/验证构建，产物按需重建）
+.next-compare/
+.next-verify/
+
 docs/review
 docs/runbooks
 docs/prototype
