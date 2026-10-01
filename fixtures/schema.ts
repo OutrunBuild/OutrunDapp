@@ -394,10 +394,11 @@ export const createConfigSchema = recordSchema
     maxDurationDays: z.number().int().positive(),
     /** 固定锁定期：FIXED_LOCKUP_DURATION=365 days，合约常量非参数（config-matrix §3:83） */
     lockupDays: z.literal(365),
-    /** 每条异链跨链 fan-out 费样本（LayerZero quote；治理链本链 fee=0——SPEC-M8 §9）；无注册费 */
+    /** 每条异链跨链 fan-out 费样本（LayerZero quote；中心链目标 fee=0——SPEC-M8 §9）；无注册费 */
     remoteDeployFee: amountSchema,
-    /** 报价结构 pending-manifest（memeverse-create.md §2）：样本仅示意量级 */
-    quoteState: z.literal('pending-manifest'),
+    /** 异链发起注册时 发起链→注册中心链 的 LayerZero 发送费样本（RegistrarOmnichain quoteRegister；
+     *  同链发起=0）。治理链=注册中心链为样本场景假设（deployment.md §8 中心链归属[未知]） */
+    remoteSendFee: amountSchema,
   })
   .refine((config) => config.minDurationDays < config.maxDurationDays, 'minDurationDays < maxDurationDays');
 export const createConfigFile = fixtureFile(createConfigSchema);

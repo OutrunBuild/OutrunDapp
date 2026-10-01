@@ -6572,8 +6572,8 @@ svg {
 }
 
 /* 创建页（/launch）：面板骨架 .create-layout 与 .verse-workbench 共规则；
-   表单面板复用 .workbench-primary，报价/固定条款复用 .action-panel。
-   锁定期=FIXED_LOCKUP_DURATION 合约常量（config-matrix §3），不提供输入，仅条款面板展示 */
+   表单面板复用 .workbench-primary，侧栏报价卡复用 .action-panel。
+   锁定期=FIXED_LOCKUP_DURATION 合约常量（config-matrix §3），不提供输入，审阅卡「锁定期」行展示 */
 .create-form {
   display: grid;
   gap: var(--space-5);
@@ -6613,6 +6613,18 @@ svg {
 
 .create-logo__box:hover {
   border-color: var(--color-border-signal-strong);
+}
+
+/* 键盘焦点投射：真实 file input 为 sr-only、靶位 label 不可聚焦，Tab 焦点须投射到可见
+   靶位；切角 clip-path 会剪掉 outline，focus 青色走既有 hover 的 border 通道。
+   :has 限定 sr-only input 本身，Replace/Remove 按钮聚焦不误亮 */
+.create-identity__logo:has(.sr-only:focus-visible) .create-logo__box {
+  border-color: var(--or-cyan);
+}
+
+/* 必填失效态：与 Input 的 aria-invalid 红边同构（焦点青 (0,4,0) 压过此红 (0,3,0)，聚焦显青失焦显红） */
+.create-identity__logo[data-invalid='true'] .create-logo__box {
+  border-color: var(--color-destructive);
 }
 
 .create-logo__box svg {
@@ -6759,7 +6771,8 @@ svg {
 .create-disclosure__trigger {
   display: flex;
   inline-size: 100%;
-  min-block-size: calc(var(--control-height) - var(--space-2));
+  /* 触控目标对齐全站控件高 40px（2026-10-02 用户裁定；原 calc(40−8)=32 紧凑档弃用） */
+  min-block-size: var(--control-height);
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
@@ -6835,6 +6848,34 @@ svg {
   text-align: center;
   font-size: var(--text-xs) !important;
   padding-inline: var(--space-1) !important;
+}
+
+/* 创建审阅「社区链接」行：平台图标+平台名+值逐行右对齐（裸值并排不可读——2026-10-01 用户
+   两轮反馈；图标语言同 .create-social 输入块） */
+.create-review-links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.create-review-links li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.create-review-links svg {
+  inline-size: var(--text-md);
+  block-size: var(--text-md);
+  color: var(--color-text-tertiary);
+}
+
+.create-review-links__label {
+  color: var(--color-text-secondary);
 }
 
 /* Fees 卡内 Launch 主 CTA：加宽并居中；样式与 hover/禁用通道=markup 同挂的
@@ -6931,6 +6972,11 @@ svg {
   margin: 0;
 }
 
+/* 迷你费用条专用标签（≤68rem 由 .workbench-secondary--launch 换显）；桌面恒显合计 */
+.create-quote__label-compact {
+  display: none;
+}
+
 .create-quote__row {
   display: flex;
   align-items: center;
@@ -6951,33 +6997,6 @@ svg {
 .create-quote__row--total dd,
 .create-quote__total dd {
   color: var(--accent-primary);
-}
-
-.create-term {
-  display: grid;
-  inline-size: 100%;
-  gap: var(--space-2);
-}
-
-.create-term__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.create-term__head span {
-  color: var(--color-text-secondary);
-}
-
-.create-term__head b {
-  font-size: var(--text-lg);
-}
-
-.create-term p,
-.create-term__note {
-  color: var(--color-text-tertiary);
-  font-size: var(--text-sm);
 }
 
 @media (max-width: 54rem) {
@@ -7094,6 +7113,66 @@ svg {
   .verse-workbench,
   .create-layout {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* 创建页移动端（2026-10-01 用户裁定）：Launch 侧栏收敛为 sticky 迷你费用条，
+     选 Spoke 链时费用与 CTA 常驻视口；≤54rem 再让位固定底导航 */
+  .workbench-secondary--launch {
+    position: sticky;
+    inset-block-end: 0;
+    z-index: var(--z-sticky);
+  }
+
+  .workbench-secondary--launch .action-panel {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  /* 报价组=内容宽不收缩（防 2026-10-01 首版 flex:1 被 CTA 挤成逐字竖排），行内不折行 */
+  .workbench-secondary--launch .create-quote {
+    inline-size: auto;
+    flex: 0 0 auto;
+  }
+
+  .workbench-secondary--launch .create-quote__row {
+    justify-content: flex-start;
+    gap: var(--space-2);
+    white-space: nowrap;
+  }
+
+  /* 条内可见标签=「跨链费」：「合计」无跨链语义（2026-10-01 用户反馈） */
+  .workbench-secondary--launch .create-quote__label-main {
+    display: none;
+  }
+
+  .workbench-secondary--launch .create-quote__label-compact {
+    display: inline;
+  }
+
+  /* CTA 吃满剩余宽度（压过桌面 .create-submit 80% 居中档） */
+  .workbench-secondary--launch .create-submit {
+    flex: 1;
+    inline-size: auto;
+    min-inline-size: 0;
+    margin-inline: 0;
+  }
+
+  /* 标题转 sr-only：aria-labelledby 保持有名可读，条内只留标签+总额+CTA */
+  .workbench-secondary--launch .action-panel__head {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .workbench-secondary--launch [data-slot='field-description'] {
+    display: none;
   }
 
   .filter-rail {
@@ -7231,6 +7310,11 @@ svg {
 
   .product-main {
     padding: var(--space-4) var(--space-3) calc(var(--space-8) + var(--space-5));
+  }
+
+  /* Launch 迷你条让位固定底导航（导航 min-block-size=space-8+safe-area） */
+  .workbench-secondary--launch {
+    inset-block-end: calc(var(--space-8) + env(safe-area-inset-bottom));
   }
 
   .mobile-navigation {

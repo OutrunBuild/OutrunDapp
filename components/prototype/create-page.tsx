@@ -5,6 +5,7 @@ import { SourceRef } from './signal-ui'
 import {
   getPrototypeChains,
   getPrototypeCreateConfig,
+  getPrototypeOccupiedSymbols,
   getPrototypeSnapshot,
   type Locale,
 } from '@/lib/data/prototype-repository'
@@ -14,6 +15,7 @@ export function CreatePage({ locale }: { locale: Locale }) {
   // 创建页只在主网链上发起（六链白名单的主网 3 条——architecture §5；发现页链筛选同口径）
   const chains = getPrototypeChains().filter((chain) => chain.env === 'mainnet')
   const config = getPrototypeCreateConfig()
+  const occupiedSymbols = getPrototypeOccupiedSymbols()
   const copy = getCopy(locale)
 
   return (
@@ -40,7 +42,15 @@ export function CreatePage({ locale }: { locale: Locale }) {
         </div>
         <SourceRef value="docs/page-briefs/memeverse-create.md#2" />
       </header>
-      <CreateForm locale={locale} assets={snapshot.assets} chains={chains} config={config} />
+      <CreateForm
+        locale={locale}
+        assets={snapshot.assets}
+        chains={chains}
+        /* 全六链名单（含测试网替身）：报价按钱包连接链查发起链原生币种 */
+        walletChains={getPrototypeChains()}
+        config={config}
+        occupiedSymbols={occupiedSymbols}
+      />
     </OutrunShell>
   )
 }

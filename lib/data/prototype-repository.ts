@@ -407,10 +407,11 @@ export type PrototypeCreateConfig = {
   maxDurationDays: number;
   /** 固定锁定期：unlockTime = endTime + 365 days（FIXED_LOCKUP_DURATION 合约常量，非注册参数） */
   lockupDays: number;
-  /** 每条异链跨链 fan-out 费样本（治理链原生资产计；本链 fee=0——SPEC-M8 §9）；无注册费 */
+  /** 每条异链跨链 fan-out 费样本（治理链原生资产计；中心链目标 fee=0——SPEC-M8 §9）；无注册费 */
   remoteDeployFee: number;
-  /** pending-manifest：报价结构以冻结 ABI 后为准，样本仅示意量级 */
-  quoteState: 'pending-manifest';
+  /** 异链发起注册时 发起链→注册中心链 的 LayerZero 发送费样本（RegistrarOmnichain quoteRegister；
+   *  同链发起=0）；样本场景假设=治理链即注册中心链（deployment.md §8 中心链归属[未知]） */
+  remoteSendFee: number;
   sourceRef: string;
 };
 
@@ -423,9 +424,21 @@ export function getPrototypeCreateConfig(): PrototypeCreateConfig | null {
     maxDurationDays: config.maxDurationDays,
     lockupDays: config.lockupDays,
     remoteDeployFee: amount(config.remoteDeployFee.raw),
-    quoteState: config.quoteState as PrototypeCreateConfig['quoteState'],
+    remoteSendFee: amount(config.remoteSendFee.raw),
     sourceRef: config.sourceRef,
   };
+}
+
+/** Symbol 占用检测样本：同 symbol 的上一 verse 创世窗口未结束即不可复用
+ *  （MemeverseRegistrationCenterUpgradeable.sol:178 SymbolNotUnlock；endTime=注册+durationDays×DAY
+ *  :186=创世截止——MemeverseLaunchImpl.sol:311-322；创世结束 nonce+1→新 uniqueId 即可复用 :189-195）。
+ *  样本口径：快照 stage='genesis' 的 verse=创世窗口内=锁定中。合约映射键为原始字节串——
+ *  匹配必须大小写敏感、不 trim。生产=previewRegistration+symbolRegistry 链上读值（以链上读值为准） */
+export function getPrototypeOccupiedSymbols(): string[] {
+  return prototypeRepository
+    .verses()
+    .filter((verse) => verse.stage === 'genesis')
+    .map((verse) => verse.symbol);
 }
 
 /** 壳层链选择器数据（GS-2）：六链视图，函数式出口避免 sentinel 对象进入生产 bundle */

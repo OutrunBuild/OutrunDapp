@@ -15,7 +15,10 @@
         "raw": "0.001",
         "decimals": 18
       },
-      "quoteState": "pending-manifest"
+      "remoteSendFee": {
+        "raw": "0.001",
+        "decimals": 18
+      }
     }
   ]
 }
