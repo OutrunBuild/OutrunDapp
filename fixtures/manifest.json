@@ -31,7 +31,7 @@
     },
     "fixtures/data/markets.json": {
       "bytes": 1893671,
-      "sha256": "9c44c6901886a69738657a93fba626ffdafee2b974914acbc222fe41b604442c"
+      "sha256": "d39ef577393b31a20f91a1290e6922a8075a4ddb4100061b8dd45595b3ae6c7f"
     },
     "fixtures/data/notifications.json": {
       "bytes": 566,

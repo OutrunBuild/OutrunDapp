@@ -1,13 +1,6 @@
 {
   "home": [],
-  "explore": [
-    {
-      "id": "button-name",
-      "impact": "critical",
-      "help": "Buttons must have discernible text",
-      "nodes": 3
-    }
-  ],
+  "explore": [],
   "launch": [],
   "verse-21": [
     {

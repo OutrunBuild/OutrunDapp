@@ -8,6 +8,7 @@ import {
 import { OutrunShell } from '../global/app-shell'
 import { getCopy } from '../global/copy'
 import { DiscoveryBrowser } from './discovery-browser'
+import { legalSortForStage } from './sort-options'
 import { LayoutNotes, SourceRef } from '../global/signal-ui'
 
 type QueryValue = string | string[] | undefined
@@ -29,16 +30,7 @@ export function DiscoveryPage({ locale, searchParams }: DiscoveryPageProps) {
   const stage = ['genesis', 'locked', 'unlocked'].includes(stageValue ?? '')
       ? (stageValue as VerseStage)
       : 'genesis'
-  const defaultSort = 'createtime'
-  // 排序项按阶段区分：锁定含 Unlock Time，已解锁不含（2026-10-01 用户参照截图裁定）
-  const sortOptionsByStage: Record<VerseStage, string[]> = {
-    genesis: ['createtime', 'endtime', 'size', 'participants', 'progress'],
-    locked: ['createtime', 'unlocktime', 'volume', 'marketcap', 'stakingapy', 'treasury'],
-    unlocked: ['createtime', 'volume', 'marketcap', 'stakingapy', 'treasury'],
-    refund: [],
-  }
-  const sortValue = first(searchParams.sort)
-  const sort = sortOptionsByStage[stage].includes(sortValue ?? '') ? sortValue! : defaultSort
+  const sort = legalSortForStage(stage, first(searchParams.sort) ?? '')
   const orderValue = first(searchParams.order)
   const order = orderValue === 'asc' ? 'asc' : 'desc'
   const chainValue = first(searchParams.chain)

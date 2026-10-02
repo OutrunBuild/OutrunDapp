@@ -115,13 +115,13 @@
 
 | 方面 | 契约 |
 |---|---|
-| 用途 | Explore 页按阶段过滤（All / Genesis / Locked / Unlocked / Refund） |
+| 用途 | Explore 页按阶段过滤（Genesis / Locked / Unlocked 三 tab；无「全部」「退款」tab——2026-10-01 PD-07 勘误，跨阶段仅经搜索、退款态动线由 Portfolio 承接） |
 | 实现 | `components/discovery/discovery-browser.tsx` → `nav.lifecycle-tabs > a[data-stage][data-active]`；样式 `app/globals.css .lifecycle-tabs*` |
-| 结构 | 每项：`__mark` 色点 + `__copy`（`strong` 阶段名 + `small` 一句说明）+ `__count[data-numeric]` |
+| 结构 | 每项：`__mark` 色点（aria-hidden）+ `strong` 阶段名 |
 | 状态 | default / hover / focus / active（`data-active` + `aria-current="page"`，底部 `--stage-color` 2px 线）；阶段色由 `data-stage` 映射，禁传色 |
-| 行为 | 状态即 URL（`?stage=`），`<a>` 而非按钮；可分享、可后退 |
-| 响应式 | ≤68rem 压缩说明；≤54rem 横向滚动 |
-| aria | `nav[aria-label]`；计数为文本，不靠色点传达 |
+| 行为 | 状态即 URL（`?stage=`），`<a>` 而非按钮；可分享、可后退；切 tab 保留目标阶段仍合法的排序、非法回落 createtime（2026-10-02 P2-5 裁定，href 构造统一走 `discovery-href.ts`、映射共享自 `sort-options.ts`） |
+| 响应式 | ≤68rem 横向滚动（3 列 minmax grid）；≤54rem 负 margin 出血、去边框 |
+| aria | `nav[aria-label]`；阶段名为文本，色点仅装饰 |
 
 ## 12. EconomyCard（经济体卡 · 已落地）
 

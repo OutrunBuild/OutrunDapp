@@ -35,6 +35,8 @@ import {
   FastBadge,
   StageBadge,
 } from '../global/signal-ui'
+import { clearFiltersHref, discoveryHref, stageTabHref } from './discovery-href'
+import { SORT_OPTIONS_BY_STAGE } from './sort-options'
 
 type GenesisMode = 'all' | 'normal' | 'fast'
 
@@ -107,16 +109,7 @@ export function DiscoveryBrowser({
   }
 
   function makeHref(changes: Partial<typeof currentParams>) {
-    const next = { ...currentParams, ...changes }
-    const params = new URLSearchParams()
-    params.set('stage', next.stage)
-    params.set('sort', next.sort)
-    if (next.order !== 'desc') params.set('order', next.order)
-    if (next.chain !== 'all') params.set('chain', next.chain)
-    // 模式筛选仅创世阶段有界面（2026-10-01 用户裁定），切出创世时随 URL 一并收敛
-    if (next.stage === 'genesis' && next.mode !== 'all') params.set('mode', next.mode)
-    if (next.q) params.set('q', next.q)
-    return `${pathname}?${params.toString()}`
+    return discoveryHref(pathname, currentParams, changes)
   }
 
   function replaceQuery(changes: Partial<typeof currentParams>) {
@@ -141,7 +134,8 @@ export function DiscoveryBrowser({
       (verse) =>
         !normalizedQuery ||
         verse.name.toLowerCase().includes(normalizedQuery) ||
-        verse.symbol.toLowerCase().includes(normalizedQuery),
+        verse.symbol.toLowerCase().includes(normalizedQuery) ||
+        (verse.memecoinAddress?.toLowerCase().includes(normalizedQuery) ?? false),
     )
     .toSorted((a, b) => {
       if (initialSort === 'endtime') return direction * (Date.parse(a.endsAt) - Date.parse(b.endsAt))
@@ -186,26 +180,23 @@ export function DiscoveryBrowser({
   }, [])
 
   const stageTabs: VerseStage[] = ['genesis', 'locked', 'unlocked']
-  // 排序项随阶段 tab 切换：锁定含 Unlock Time，已解锁不含（2026-10-01 用户参照截图裁定）
-  const sortItems =
-    initialStage === 'genesis'
-      ? [
-          { value: 'createtime', label: copy.discovery.sortCreatetime },
-          { value: 'endtime', label: copy.discovery.sortEndtime },
-          { value: 'size', label: copy.discovery.sortSize },
-          { value: 'participants', label: copy.discovery.sortParticipants },
-          { value: 'progress', label: copy.discovery.sortProgress },
-        ]
-      : [
-          { value: 'createtime', label: copy.discovery.sortCreatetime },
-          ...(initialStage === 'locked'
-            ? [{ value: 'unlocktime', label: copy.discovery.unlockTime }]
-            : []),
-          { value: 'volume', label: copy.discovery.sortVolume },
-          { value: 'marketcap', label: copy.discovery.marketCap },
-          { value: 'stakingapy', label: copy.discovery.stakingApy },
-          { value: 'treasury', label: copy.discovery.treasuryFund },
-        ]
+  // 排序项值集由 SORT_OPTIONS_BY_STAGE 派生（解析端/发射端/下拉三端单源防漂移），标签按 copy 配对
+  const sortLabels: Record<string, string> = {
+    createtime: copy.discovery.sortCreatetime,
+    endtime: copy.discovery.sortEndtime,
+    size: copy.discovery.sortSize,
+    participants: copy.discovery.sortParticipants,
+    progress: copy.discovery.sortProgress,
+    unlocktime: copy.discovery.unlockTime,
+    volume: copy.discovery.sortVolume,
+    marketcap: copy.discovery.marketCap,
+    stakingapy: copy.discovery.stakingApy,
+    treasury: copy.discovery.treasuryFund,
+  }
+  const sortItems = SORT_OPTIONS_BY_STAGE[initialStage].map((value) => ({
+    value,
+    label: sortLabels[value],
+  }))
   const chainItems = [
     { value: 'all', label: copy.discovery.allChains },
     ...verses
@@ -242,6 +233,7 @@ export function DiscoveryBrowser({
                       <span>{signal.label}</span>
                       <b data-numeric>{formatPercent(signal.value, locale)}%</b>
                     </div>
+                    {/* aria-valuenow 按规范钳在 [0,100]，溢出真值经 aria-valuetext 播报（与视觉数字同口径） */}
                     <span
                       className="economy-progress__track"
                       role="progressbar"
@@ -249,6 +241,7 @@ export function DiscoveryBrowser({
                       aria-valuemin={0}
                       aria-valuemax={100}
                       aria-valuenow={Math.round(boundedProgress(signal.value))}
+                      aria-valuetext={`${formatPercent(signal.value, locale)}%`}
                     >
                       <span style={{ inlineSize: `${boundedProgress(signal.value)}%` }} />
                     </span>
@@ -270,6 +263,7 @@ export function DiscoveryBrowser({
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={Math.round(boundedProgress(verse.preorderProgress))}
+                aria-valuetext={`${formatPercent(verse.preorderProgress, locale)}%`}
               >
                 <span style={{ inlineSize: `${boundedProgress(verse.preorderProgress)}%` }} />
               </span>
@@ -331,7 +325,7 @@ export function DiscoveryBrowser({
       <nav className="lifecycle-tabs" aria-label={copy.discovery.lifecycleLabel}>
         {stageTabs.map((stage) => (
           <Link
-            href={makeHref({ stage, sort: 'createtime' })}
+            href={stageTabHref(pathname, currentParams, stage)}
             key={stage}
             data-active={initialStage === stage}
             data-stage={stage}
@@ -390,7 +384,9 @@ export function DiscoveryBrowser({
         <div className="discovery-filters" id="discovery-filters" data-open={filtersOpen}>
           {initialStage === 'genesis' ? (
             <Field>
-              <FieldLabel className="sr-only">{copy.discovery.mode}</FieldLabel>
+              <FieldLabel className="sr-only" htmlFor="genesis-mode">
+                {copy.discovery.mode}
+              </FieldLabel>
               <Select
                 name="genesis-mode"
                 items={modeItems}
@@ -400,7 +396,7 @@ export function DiscoveryBrowser({
                   replaceQuery({ mode })
                 }}
               >
-                <SelectTrigger>
+                <SelectTrigger id="genesis-mode">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent alignItemWithTrigger={false} align="start">
@@ -416,14 +412,16 @@ export function DiscoveryBrowser({
             </Field>
           ) : null}
           <Field>
-            <FieldLabel className="sr-only">{copy.discovery.chain}</FieldLabel>
+            <FieldLabel className="sr-only" htmlFor="governance-chain">
+              {copy.discovery.chain}
+            </FieldLabel>
             <Select
               name="governance-chain"
               items={chainItems}
               value={initialChain}
               onValueChange={(value) => replaceQuery({ chain: value ?? 'all' })}
             >
-              <SelectTrigger>
+              <SelectTrigger id="governance-chain">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false} align="start">
@@ -438,14 +436,16 @@ export function DiscoveryBrowser({
             </Select>
           </Field>
           <Field>
-            <FieldLabel className="sr-only">{copy.discovery.sort}</FieldLabel>
+            <FieldLabel className="sr-only" htmlFor="discovery-sort">
+              {copy.discovery.sort}
+            </FieldLabel>
             <Select
               name="sort"
               items={sortItems}
               value={initialSort}
               onValueChange={(value) => replaceQuery({ sort: value ?? 'createtime' })}
             >
-              <SelectTrigger>
+              <SelectTrigger id="discovery-sort">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false} align="start">
@@ -474,7 +474,10 @@ export function DiscoveryBrowser({
             )}
           </Button>
           {hasActiveFilters ? (
-            <Link className="discovery-filters__clear" href={makeHref({ chain: 'all', mode: 'all', q: '' })}>
+            <Link
+              className="discovery-filters__clear"
+              href={clearFiltersHref(pathname, currentParams)}
+            >
               {copy.discovery.clear}
             </Link>
           ) : null}
@@ -596,7 +599,7 @@ export function DiscoveryBrowser({
               className="ax-ghost-cta"
               size="lg"
               nativeButton={false}
-              render={<Link href={`${pathname}?stage=genesis&sort=createtime`} />}
+              render={<Link href={clearFiltersHref(pathname, currentParams)} />}
             >
               {copy.discovery.clear}
             </Button>

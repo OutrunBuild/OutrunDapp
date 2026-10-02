@@ -128,7 +128,7 @@ export function ProgressMeter({
   unit?: string
   locale: Locale
 }) {
-  const bounded = Math.min(value, 100)
+  const bounded = Math.min(Math.max(value, 0), 100)
   const unitLabel = unit ?? 'uAsset'
 
   return (
@@ -137,6 +137,7 @@ export function ProgressMeter({
         <span>{label}</span>
         <span data-numeric>{formatPercent(value, locale)}%</span>
       </div>
+      {/* aria-valuenow 按规范钳在 [0,100]，溢出真值经 aria-valuetext 播报（与视觉数字同口径） */}
       <div
         className="progress-meter__track"
         role="progressbar"
@@ -144,6 +145,7 @@ export function ProgressMeter({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={Math.round(bounded)}
+        aria-valuetext={`${formatPercent(value, locale)}%`}
       >
         <span style={{ inlineSize: `${bounded}%` }} />
       </div>

@@ -38,7 +38,7 @@
 | `StageBadge` | `{ stage: VerseStage; locale }` | 阶段徽章，`.stage-badge[data-stage]` 切角 + 色点 | 阶段色由 data-stage 决定，不传颜色；genesis 变体=不透明黄描边 + 黄 tinted 底（`color-mix` 低 alpha；描边不用 60% alpha token——半像素渲染下会拆行发花），locked/unlocked/refund 维持 inset 底 + 默认描边 |
 | `FastBadge` | `{ label }` | Fast Genesis 徽章，`.fast-badge` 切角 + 青色点；label 文案=`Fast`（2026-10-01 用户裁定简称，en/zh 同） | 青=功能信号；仅创世期且链上 fastGenesis 标记为真时展示，不作阶段色 |
 | `SectionHeading` | `{ title; description?; aside? }` | 区块标题（h2）+ `.ax-echo-bar` 青线与品红回声 | 每个 `section` 一个；`aside` 放筛选/计数 |
-| `ProgressMeter` | `{ label; value(%); amount; threshold; locale }` | 单门槛进度条，含 `role="progressbar"` 与文本并行 | 双门槛必须两条独立 meter，禁合并 |
+| `ProgressMeter` | `{ label; value(%); amount; threshold; locale }` | 单门槛进度条，含 `role="progressbar"` 与文本并行；真值经 `aria-valuetext` 播报（`aria-valuenow` 按规范钳 [0,100]） | 双门槛必须两条独立 meter，禁合并 |
 | `SlashMark` | — | 斜杠分隔记号（`aria-hidden`） | 仅装饰 |
 | `formatAmount(value, locale, compact?)` | → string | 金额，<1 保留 6 位，否则 2 位 | 输出放 `data-numeric` 容器 |
 | `formatPercent(value, locale)` | → string | 百分比 1 位小数 | 同上，自己拼 `%` |

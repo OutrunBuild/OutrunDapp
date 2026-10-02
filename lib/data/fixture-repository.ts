@@ -110,6 +110,8 @@ export type FixtureVerse = SourceRecord & {
   unlockedAt: string | null;
   currentPrice: number | null;
   change24h: number | null;
+  /** Memecoin CA（markets 主池 tokenStats 样本）；null=未部署/无样本 → 地址搜索不命中（创世成功后才部署） */
+  memecoinAddress: string | null;
   markets: FixtureMarket[];
 };
 
@@ -244,6 +246,7 @@ function getSnapshot(): FixtureSnapshot {
       unlockedAt: verse.unlock?.unlockedAtTx ?? null,
       currentPrice,
       change24h,
+      memecoinAddress: mainMarket?.tokenStats?.tokenAddress.value ?? null,
       markets: marketsByVerse.get(verse.id) ?? [],
     };
   });
