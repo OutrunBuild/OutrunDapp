@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 
-import { VersePage } from '@/components/prototype/verse-page';
+import { VersePage } from '@/components/verse/verse-page';
 import { getDisplayLocale } from '@/lib/locale';
 
 export default async function LocalizedVerse({

@@ -90,7 +90,7 @@
 | 状态映射 | 见 state-matrix.md §3；跨链=`Message pending` 常驻直到目标链确认（源链 hash≠完成，§7） |
 | 动效 | 步骤推进=状态反馈动效（非装饰）；Confirmed=回声确认 |
 | aria | `aria-live="assertive"`（交易状态是关键信息）；每步文本化 |
-| 原型落地 | `components/prototype/tx-status.tsx`（2026-10-01）：T4→T5→T6 三步条，create-form 注册审阅 + participation-panel 参与审阅共用；无钱包——签名/上链由前端定时模拟推进（≈1.6s/≈1.2s），无 hash/gas 故关键事实行省略；T6 展示：注册流=自动弹窗（`.pol-mint` 壳复用，「查看 Verse」CTA→样本 verse-021——新 verseId 链上才产生，生产=注册回执；用户裁定 2026-10-01）、参与流=内联 `.tx-success` 回声块（CTA→portfolio）；拒签 T9 模拟不含 |
+| 原型落地 | `components/global/tx-status.tsx`（2026-10-01）：T4→T5→T6 三步条，create-form 注册审阅 + participation-panel 参与审阅共用；无钱包——签名/上链由前端定时模拟推进（≈1.6s/≈1.2s），无 hash/gas 故关键事实行省略；T6 展示：注册流=自动弹窗（`.pol-mint` 壳复用，「查看 Verse」CTA→样本 verse-021——新 verseId 链上才产生，生产=注册回执；用户裁定 2026-10-01）、参与流=内联 `.tx-success` 回声块（CTA→portfolio）；拒签 T9 模拟不含 |
 
 ## 9. AccountCapability（账户能力）
 
@@ -116,7 +116,7 @@
 | 方面 | 契约 |
 |---|---|
 | 用途 | Explore 页按阶段过滤（All / Genesis / Locked / Unlocked / Refund） |
-| 实现 | `components/prototype/discovery-browser.tsx` → `nav.lifecycle-tabs > a[data-stage][data-active]`；样式 `app/globals.css .lifecycle-tabs*` |
+| 实现 | `components/discovery/discovery-browser.tsx` → `nav.lifecycle-tabs > a[data-stage][data-active]`；样式 `app/globals.css .lifecycle-tabs*` |
 | 结构 | 每项：`__mark` 色点 + `__copy`（`strong` 阶段名 + `small` 一句说明）+ `__count[data-numeric]` |
 | 状态 | default / hover / focus / active（`data-active` + `aria-current="page"`，底部 `--stage-color` 2px 线）；阶段色由 `data-stage` 映射，禁传色 |
 | 行为 | 状态即 URL（`?stage=`），`<a>` 而非按钮；可分享、可后退 |
@@ -148,13 +148,13 @@
 | 方面 | 契约 |
 |---|---|
 | 用途 | Verse 详情页（`stage=genesis`）参与工作台：选择参与方式、输入金额、审阅后确认（原型不发交易） |
-| 实现 | `components/prototype/participation-panel.tsx`；样式 `app/globals.css .participation-form/.participation-toggle/.participation-toggle--mode/.participation-fixed-asset/.participation-review*` |
+| 实现 | `components/verse/participation-panel.tsx`；样式 `app/globals.css .participation-form/.participation-toggle/.participation-toggle--mode/.participation-fixed-asset/.participation-review*` |
 | 结构 | 模式层三项 ToggleGroup `.participation-toggle--mode`（普通创世/杠杆创世/预购——预购与创世同级，用户裁定 2026-09-21；顶层 tab 风格：无框透明底、激活=黄字+底部黄线，底边线兼作分割线（`ax-echo-bar` 签名线锚定其下），与路径分段框区分——2026-09-22 用户裁定；无可见字段标签，`aria-label`=「参与方式」；section 可见标题/描述删除——与右侧「当前可以做什么」完全重复，纲要由 sr-only h2 维持）→（非预购）路径两项分段 ToggleGroup →（预购）Verse 级容量 ProgressMeter（已用/上限；见「预购面板」行）→ **支付资产+金额并排** `.participation-duo`（grid 两列等宽 1fr/1fr；用户裁定 2026-09-25：单字段各占一行太占空间，同日二次裁定两列等宽；小屏折单列；支付资产多选项=Select、唯一选项=固定值 `.participation-fixed-asset`；**预购模式支付资产同为下拉**——uAsset 直付+储备面值直兑，help 文案 uassetHelp/directHelp 随选切换；**stake=三格同行** `.participation-trio`（来源/参与资产/金额 grid 1fr 1fr 2fr，用户裁定 2026-09-25））→（非预购）一键预购开关+预购 **duo**（Pay with 下拉与主选择独立+预购金额 Input 并排 `.participation-duo`——用户裁定 2026-09-25）→ 审阅卡 |
 | 状态 | 杠杆模式：披露 `form-warning`「损失上限=所付利息 · 无清算 · 创世失败利息全额退」；fixture 缺利率/上限快照=null→显「以链上读值为准」槽位+提交禁用（2026-09-22 起快照齐备即全交互）；金额/预购金额为空提交 → `data-invalid` + FieldError；审阅态 `aria-live="polite"` |
 | 杠杆面板 | 利息金额输入（标签切「利息金额」）；路径三项=用 uAsset 直付/面值直兑（PSM 储备转利息，无 CDP 仓位）/创世积分直付（`leveragedGenesisWithCredit` 锁定时销毁；杠杆无质押项）；实时预览=借贷资金数值（口径=利息÷利率，一次性比例非年化，**UI 只显 label+数值不显公式**——用户裁定 2026-09-25，`leverageDebtPreview` key 已删并入 `leverageDebtQuota`；`data-numeric`；**UI 词「借贷资金/Borrowed funds」=用户裁定 2026-09-25**——OB 原词 debt quota 暗示未使用配额，实为参与即发生的已用借贷资金；机制口径/代码标识符仍 debt quota）；债务上限余量（Debt cap headroom；2026-09-25 用户最终裁定沿用原词）=债务上限−已建债务（已收利息÷利率），超限→FieldError「超出债务上限——剩余可建额度 {quota}」+提交拦截（对照 stockCap 模式）；一键预购上限按借贷资金推导（容量=(普通资金+杠杆债务本金)×70%×容量比例）；审阅屏**分组化**（用户裁定 2026-09-25，可读性；同日二次裁定：组序=进创世在前、你支付在后，两组标题颜色区分）：概要两行（参与方式/Pay with）→「进入创世 ENTERS GENESIS」组（**标题与数值均青** `--accent-link`）=折算/借贷后 uAsset 行（普通=创世金额、杠杆=借贷资金；预购资金主池开放后才买入→preorder-only 无本组）→「你支付 YOU PAY」组（标题 secondary 灰）=实付代币行（杠杆=利息金额；普通=支付金额；+预购金额行；**支付项同资产时出加粗「支付合计」行**，异资产不硬凑）；黄保留给 CTA；结构 `.participation-review__rows/__row/__group/--genesis`（create-form 审阅仍 dl 平铺不受影响）；审阅头部图标 32px 描边框+与标题居中对齐（对齐 §15 CurrentAction 先例，2026-09-25） |
 | 一键预购 | 开关开启才出现预购金额输入；**实时可预购上限**=创世资金按面值折算 uAsset×70%×容量比例（`verse.preorderCapacityRatio` fixture 快照，缺失=null→仅显「以链上读值为准」槽位）；上限随创世金额输入实时更新（`data-numeric`）；超限→FieldError「超出可预购上限——最多可预购 {cap}」+提交拦截（对照 stockCap 模式）；提交校验两项均 >0 |
 | 预购面板 | Verse 级容量进度条 ProgressMeter（标签「预购容量」，位于金额输入前）：容量=（普通创世资金+杠杆债务本金）×70%×容量比例（`MemeverseLauncherLib.preorderMaxCapacity`，真源口径同 glossary；债务本金=已收利息÷利率），已用=`verse.preorderRaised` 快照（合约 `PreorderState.totalFunds`）；容量随创世资金实时变化（合约 dev comment）→ 注「以链上实时值为准」；金额约束=剩余容量（容量−已用，先到先得、合约超 cap revert，`IMemeverseLauncher preorder`）→「可预购余量」FieldDescription+超限 FieldError「超出预购容量——最多可预购 {cap}」+提交拦截（对照杠杆 stockCap 模式）；比例或利率快照缺失=null→槽位「预购容量待链上读值」+CTA 禁用（对照 leverageRateSlot） |
-| 规则 | **路径决定支付资产**（用户裁定 2026-09-22；同日二次裁定合并直付与面值直兑）：直接参与=支付资产下拉「募集 uAsset（直付，默认首选）+ PSM 配对储备资产（面值即时兑换）」，说明文案随所选资产切换（**渲染于 Pay with 下拉下方**——用户裁定 2026-09-25：direct/credit/预购统一移至支付资产处，stake 路径说明仍随路由分段框）；质押参与=**两级联动下拉**（用户裁定 2026-09-22）——先选「质押来源」（Lido/Aave…，读 `fixtures/data/yield-sources.json` registry，样本口径=OutrunBook vision.md 协议清单+OutStake adapters；**来源按本 Verse uAsset 族过滤**（来源 `anchor`=uAsset 符号去 U 前缀；用户裁定 2026-09-22：UETH verse 不出现 USD 族来源如 sUSDe）；切来源→参与资产组随之切换并回落首项，如 Lido→ETH/wstETH/stETH、Aave→ETH/aETH），再选「参与资产」——由 `getPrototypeParticipationOptions(verse.raiseAsset)` 出口 `yieldSourceRegistry`，不写死；无选项路径项禁用；预购模式**金额仍按募集 uAsset 计价**、支付资产组与直付同款可选（uAsset 直付+储备面值直兑——用户裁定 2026-09-25）。审阅屏分组化见「杠杆面板」行（用户裁定 2026-09-25）；折算口径：质押路径 sy 资产按实时价值折算 uAsset——fixture `anchorValue` 样本率（OB:outstake/uasset.md:21 机制、:48 wstETH≈1.05 样本），direct 路径面值 1:1 直兑；**折算一律出数值不显槽位**——sy 资产缺 `anchorValue` 快照时兜底面值 1（用户裁定 2026-09-25），一键预购上限同口径联动折算值。数字全部 `data-numeric`；一屏唯一黄 CTA（审阅按钮） |
+| 规则 | **路径决定支付资产**（用户裁定 2026-09-22；同日二次裁定合并直付与面值直兑）：直接参与=支付资产下拉「募集 uAsset（直付，默认首选）+ PSM 配对储备资产（面值即时兑换）」，说明文案随所选资产切换（**渲染于 Pay with 下拉下方**——用户裁定 2026-09-25：direct/credit/预购统一移至支付资产处，stake 路径说明仍随路由分段框）；质押参与=**两级联动下拉**（用户裁定 2026-09-22）——先选「质押来源」（Lido/Aave…，读 `fixtures/data/yield-sources.json` registry，样本口径=OutrunBook vision.md 协议清单+OutStake adapters；**来源按本 Verse uAsset 族过滤**（来源 `anchor`=uAsset 符号去 U 前缀；用户裁定 2026-09-22：UETH verse 不出现 USD 族来源如 sUSDe）；切来源→参与资产组随之切换并回落首项，如 Lido→ETH/wstETH/stETH、Aave→ETH/aETH），再选「参与资产」——由 `getFixtureParticipationOptions(verse.raiseAsset)` 出口 `yieldSourceRegistry`，不写死；无选项路径项禁用；预购模式**金额仍按募集 uAsset 计价**、支付资产组与直付同款可选（uAsset 直付+储备面值直兑——用户裁定 2026-09-25）。审阅屏分组化见「杠杆面板」行（用户裁定 2026-09-25）；折算口径：质押路径 sy 资产按实时价值折算 uAsset——fixture `anchorValue` 样本率（OB:outstake/uasset.md:21 机制、:48 wstETH≈1.05 样本），direct 路径面值 1:1 直兑；**折算一律出数值不显槽位**——sy 资产缺 `anchorValue` 快照时兜底面值 1（用户裁定 2026-09-25），一键预购上限同口径联动折算值。数字全部 `data-numeric`；一屏唯一黄 CTA（审阅按钮） |
 | 密度 | 路径分段框行高=`--row-height`（44px，T2 表格档；2026-09-22 用户裁定自 T3 放松档 56px 收紧）；模式 tab 行高=`--control-height`（40px）；参与卡 padding-block-start=`--space-2`（8px，`.workbench-primary` 专属覆盖——用户裁定二次收紧；其余三边 16px）；面板无表头附加间距（`.participation-form` 不设 padding-block-start） |
 
 
@@ -162,7 +162,7 @@
 
 | 方面 | 契约 |
 |---|---|
-| 用途 | Verse 详情页副工作台（`workbench-secondary` 首位）：按阶段告知用户当下可做什么、解释阶段推进入口状态（`components/prototype/verse-page.tsx` CurrentAction；样式 `.action-panel*`） |
+| 用途 | Verse 详情页副工作台（`workbench-secondary` 首位）：按阶段告知用户当下可做什么、解释阶段推进入口状态（`components/verse/verse-page.tsx` CurrentAction；样式 `.action-panel*`） |
 | 创世文案四态 | 按双口径达标+Fast Genesis 分派（真源 lifecycle.md:53-55，2026-09-22 文案重写）：①常规（未达标未截止）=「创世开放参与中。截止后任何人可触发阶段推进。」②非 Fast 已达标=「成功门槛已达标——创世将进入锁定。阶段推进待创世截止后触发。」③Fast 未达标=「任一门槛达标，任何人即可触发阶段推进——无需等到截止。」④Fast 已达标=「任何人现在即可触发阶段推进，提前结束创世。」；旧第二句「截止后参与仍计入判断」属黄昏区口径（决议 008），只在截止后未推进态成立，当前 fixture 无该态样本、不常驻渲染 |
 | 按钮 | 创世=「触发阶段推进」outline disabled+title「Sample data — the clock does not advance」（原型时钟固定，全站原型按钮不发交易）；非创世=「Connect to check eligibility」disabled；locked 额外出行「触发费用分配」说明块 |
 | 结构 | `.action-panel__head` 横排=阶段图标（32px 描边框，`--space-6`；2026-09-25 用户裁定框 40→32，内图形 `--text-md` 不缩）+「What you can do now」标题同行；下方正文/按钮/费用分配块纵向 `gap: var(--space-3)` |
@@ -174,11 +174,11 @@
 | 方面 | 契约 |
 |---|---|
 | 用途 | `/memeverse/launch`（R-04，原 /launch、更早 /memeverse/create；2026-09-23 裁定并入 /memeverse/* 域）发起人表单：身份信息 → 社区链接（选填）→ 创世规则 → 侧栏报价 → 审阅（原型不发交易） |
-| 实现 | `components/prototype/create-form.tsx` + `create-page.tsx`；样式 `app/globals.css .create-*`；读链参数快照 `fixtures/data/create-config.json`（经 `getPrototypeCreateConfig`；缺失=null→「以链上读值为准」槽位+提交禁用） |
+| 实现 | `components/create/create-form.tsx` + `create-page.tsx`；样式 `app/globals.css .create-*`；读链参数快照 `fixtures/data/create-config.json`（经 `getFixtureCreateConfig`；缺失=null→「以链上读值为准」槽位+提交禁用） |
 | 字段（demo 布局序） | Flash Genesis=**Switch 切换开关**（首项：标签+⊙+开关，base-ui Switch 内联；青=Fast 功能信号）→ logo/名称/Symbol 并排（logo 限 PNG/JPG/WebP、≤3 MB——`accept` 白名单+onChange 二次复核（2026-10-02 用户裁定 3 MB+文案含 WebP；真源不含此值，产品口径），超限/坏类型可见 FieldError、格式体积说明收 ⊙；name/symbol 1–31 字节，SPEC-M8 registration-details §3；错误文案承载字节规则，无可见 hint）→ 创世时长独立行（+「天」后缀；**唯一可见 hint**=「Must be between 1 and 3 days.」，demo 同款；区间来源收 ⊙ tooltip）→ 资金类型/治理链/Omnichains 三下拉（uAsset 白名单；治理链说明收 ⊙；Omnichains=base-ui `Select multiple`，空值显「Select Chains」，治理链必含不可取消——本链 fan-out fee=0 SPEC-M8 §9；**全部 SelectContent `alignItemWithTrigger={false} align="start"`**——弹层落触发器下方禁覆盖，Explore 同款；详情页 participation-panel 三个 Select 同步修）→ 描述（1–255 字节必填，`data-numeric` 字节计数器，textarea 加高至 ~112px）→ **Communities 折叠面板**（边框容器：表头+⊙+chevron；展开=4 输入两列、品牌图标在输入框内——Website URL/X handle/**Discord invite url**/Telegram handle；底部注记「All community links are optional.」——本系统无斜体用 tertiary）。**除时长 hint 外全部字段说明收进 ⊙ `.create-info` Tooltip**。**无初始定价/最低成功额度字段**（非注册参数，SPEC-M8 §3+demo 均无，2026-09-22 用户裁定；OB lifecycle.md:22 张力登记 source-map §6） |
 | 校验时机 | **即时（2026-10-01 用户裁定：只改报错时机，name/symbol 不加计数器——计数器仅 desc 有）**：超字节上限（name/symbol >31、desc >255）输入过程中即报（值驱动，无需失焦）；必填缺失失焦后再报（未动过的字段不提前报警）；提交失败仍一次性全显。config=null 时失焦不报时长错误（提交已禁用，参数不可得≠输入错误）。desc 计数器维持现状不复用到 name/symbol |
 | 锁定期 | **无输入**：`unlockTime = endTime + FIXED_LOCKUP_DURATION`（365 days 合约常量非参数，config-matrix §3:83）——无常驻「合约固定条款」块，展示=审阅卡「锁定期」行（`config.lockupDays` 天） |
-| Symbol 占用 | 同 symbol 上一 verse **创世窗口未结束即锁定**（RegistrationCenter:178 `SymbolNotUnlock`；endTime=注册+durationDays×DAY :186=创世截止——LaunchImpl:311-322；窗口结束 nonce+1→新 uniqueId 即可复用 :189-195）。值驱动即时判定（同字节超限口径）+ 提交拦截；FieldError=`Symbol is temporarily taken. Please try again later.` / `Symbol 暂时被占用，请稍候再试。`——**不带解锁时刻与条件、不加 ⊙ 气泡**（2026-10-02 用户裁定）；可用=静默（无对勾、无计数器）。匹配=精确字节串（大小写敏感、不 trim——合约 mapping(string) 原始字节键；提交按 trim 后值拦截）。样本=`getPrototypeOccupiedSymbols`（verses 快照 `stage='genesis'` 行派生，经 create-page 传入）；占用判定以链上读值为准（生产=debounce 后 `previewRegistration`+`symbolRegistry` 读值，revert `SymbolNotUnlock` 解码兜底） |
+| Symbol 占用 | 同 symbol 上一 verse **创世窗口未结束即锁定**（RegistrationCenter:178 `SymbolNotUnlock`；endTime=注册+durationDays×DAY :186=创世截止——LaunchImpl:311-322；窗口结束 nonce+1→新 uniqueId 即可复用 :189-195）。值驱动即时判定（同字节超限口径）+ 提交拦截；FieldError=`Symbol is temporarily taken. Please try again later.` / `Symbol 暂时被占用，请稍候再试。`——**不带解锁时刻与条件、不加 ⊙ 气泡**（2026-10-02 用户裁定）；可用=静默（无对勾、无计数器）。匹配=精确字节串（大小写敏感、不 trim——合约 mapping(string) 原始字节键；提交按 trim 后值拦截）。样本=`getFixtureOccupiedSymbols`（verses 快照 `stage='genesis'` 行派生，经 create-page 传入）；占用判定以链上读值为准（生产=debounce 后 `previewRegistration`+`symbolRegistry` 读值，revert `SymbolNotUnlock` 解码兜底） |
 | 报价 | 一行总额=逐条异链 fan-out（Center quoteSend，中心链目标 fee=0——SPEC-M8 §9「本链」主语=注册中心链，非治理链）+ 异链发起时 发起链→中心链 发送费（RegistrarOmnichain quoteRegister，fixture `remoteSendFee`）；「治理链=注册中心链」为样本场景假设（deployment.md §8 中心链归属[未知]，登记 create-config schema 注释）；quoteRegister 只回总和（AtLocal:56）不暴露逐链拆分——界面只呈现总额（#69）；旧 `quoteState='pending-manifest'` 警告已撤，该字段数据层残留、UI 不消费；随 Omnichains chips 即时重算；审阅卡复列（合计黄字） |
 | 链感知 | 钱包连接链=报价「发起链」维度（2026-10-02 用户裁定进创建页）：连接链≠治理链（`GOVERNANCE_TESTNET` 测试网替身映射，vault 卡同款粘合层）→ Total 加 `remoteSendFee`、币种换发起链原生符号（§9 源链一笔支付）；**不显示跨链提示/横幅**——跨链是注册常态（连接链=治理链时只要有其他部署目标照样跨链），提示会造「仅此情况才跨链」歧义（2026-10-02 用户裁定）；未连接=按本链发起处理（vault 先例）。**0 态（Total=0，即本链发起且未选 Spoke）跨链费整块不显示**：卡头+总额+支付说明全隐、报价区仅剩 Launch 按钮，侧栏与审阅卡同口径；quoteEmpty（config 缺失）态不受影响（2026-10-02 用户裁定） |
 | 状态 | 提交全量校验（participation 同模式：单次 invalid 标记+字段级 FieldError 不弹窗）；审阅态复用 `.participation-review`（`aria-live="polite"`）；确认=复用「确认原型状态」；返回修改表单保留 |
@@ -189,7 +189,7 @@
 
 | 方面 | 契约 |
 |---|---|
-| 用途 | Tokenization 标签 POL 卡 Mint 按钮触发的双币供给弹窗（`components/prototype/pol-mint-dialog.tsx`；样式 `.pol-mint*` + 复用 `.swap-panel__*` 字段原语；2026-09-24 用户裁定：按钮改弹窗，功能参照 demo 双币供给弹窗、视觉按本站品牌适配） |
+| 用途 | Tokenization 标签 POL 卡 Mint 按钮触发的双币供给弹窗（`components/verse/pol-mint-dialog.tsx`；样式 `.pol-mint*` + 复用 `.swap-panel__*` 字段原语；2026-09-24 用户裁定：按钮改弹窗，功能参照 demo 双币供给弹窗、视觉按本站品牌适配） |
 | 机制口径 | uAsset + memecoin 按主池配比供给，按实际加池量 1:1 铸 POL（`IMemeverseLiquidityImpl.sol:31` mintPOLToken：双侧 desired/min + deadline；pt-yt-splitter.md:251 POL:主池 LP=1:1）；阶段门=Locked/Unlocked 开放（state-machines.md:47，pol 标签仅这两态渲染） |
 | 双侧联动 | 主池全范围两侧等值（OutrunBook pol-splitter.md §What POL is）：输入 memecoin 侧 → uAsset 侧 = 金额 × price；输入 uAsset 侧 → memecoin 侧 = 金额 ÷ price（price=`trade.tokenStats.price` fixture 蜡烛收盘；null 时输入互不联动、报价槽位） |
 | 输出推导 | POL ≈ uAsset 侧 ÷ `pol.uAssetPerPol`（fixture 样本线性推导）；Min. received = POL × (1−滑点)；Rate 行同 SwapPanel 主池口径；示意/链上读值/原型未接线类元文案一律不进 UI（含 title 悬浮）——内部开发原型，开发者不需要提示（2026-09-24 用户裁定） |
@@ -205,7 +205,7 @@
 
 | 方面 | 契约 |
 |---|---|
-| 用途 | Verse 详情 Yield Vault 标签操作卡（`components/prototype/vault-actions.tsx`；2026-09-24 用户裁定按 demo.outrun.build/memeverse 布局重设计：Tabs → Amount 卡 → Details 卡 → 全宽 CTA → 脚注；**2026-09-27 用户裁定改双列 `.vault-actions`**——原三标签单卡通栏把 swap 窄卡原语拉到 ~1100px 内容稀疏，改左列 Stake 常驻卡（`__bar-label` 静态卡头）+ 右列 Redeem/Withdraw 标签切换卡，列比/断点随 POL 先例 1.15:0.85、<1024px 退单列、双卡自然高；两列金额状态独立（`stakeAmount`/`redeemAmount` 不串值）；样式 `.vault-card*` + 复用 `.swap-panel__field/__details/__cta` 原语） |
+| 用途 | Verse 详情 Yield Vault 标签操作卡（`components/verse/vault-actions.tsx`；2026-09-24 用户裁定按 demo.outrun.build/memeverse 布局重设计：Tabs → Amount 卡 → Details 卡 → 全宽 CTA → 脚注；**2026-09-27 用户裁定改双列 `.vault-actions`**——原三标签单卡通栏把 swap 窄卡原语拉到 ~1100px 内容稀疏，改左列 Stake 常驻卡（`__bar-label` 静态卡头）+ 右列 Redeem/Withdraw 标签切换卡，列比/断点随 POL 先例 1.15:0.85、<1024px 退单列、双卡自然高；两列金额状态独立（`stakeAmount`/`redeemAmount` 不串值）；样式 `.vault-card*` + 复用 `.swap-panel__field/__details/__cta` 原语） |
 | 机制口径 | vault 全部操作（stake/redeem/withdraw）走治理链（OutrunBook omnichain.md §The governance chain）；跨链质押=Memecoin 经 LayerZero 跨到治理链入库存份额（omnichain.md §Cross-chain staking）；赎回两步异步、REDEEM_DELAY=1 days（`MemecoinYieldVault.sol:22`）；跨链费=LayerZero 发送时报价、按源链原生币精确支付（omnichain.md §Cross-chain reliability），无 fixture 字段 → 明细行槽位 `--` + ⊙ 气泡 `crossFeeNote` |
 | 链感知 | 连接网络 = header GS-2 链选择器**唯一入口**（2026-09-24 用户裁定：卡内网络芯片删除）——选择器读写 mock 钱包 `chainId`（`useMockWallet`，默认 chains[0]=Ethereum Sepolia 11155111；仍写 URL `?chain=` 供 discovery 过滤）。vault 判定「在治理链」用治理链主网 id→测试网对应链映射（1→11155111/8453→84532/56→97，模拟粘合层非领域数值）：连接且不同 → Stake 进跨链模式（青 tinted 横幅 + Cross-chain fee 行 + CTA `stakeCrossCta` 跨链存入，禁用）、Redeem/Withdraw 的 CTA 变 `switchChainCta`「Switch to {治理链}」**可点**=mock switchChain 切到治理链对应测试网（非链上写，header 触发器同源联动）；切回后恢复正常 CTA（禁用） |
 | 兑换率方向 | Stake 行 `1 {symbol} ≈ (1/assetsPerShare) {s-symbol}`、Redeem 行 `1 {s-symbol} ≈ assetsPerShare {symbol}`（demo 同向；到账=amount÷/× assetsPerShare） |
@@ -231,7 +231,7 @@
 
 | 方面 | 契约 |
 |---|---|
-| 用途 | PT/YT 井组下通栏操作行 locked 态钮 2/3 触发的操作弹窗（`components/prototype/pol-split-merge-dialog.tsx`，`mode='split'/'merge'` 单组件两态；2026-09-26 用户裁定：两钮从恒禁用改弹窗做实际操作；2026-09-28 v3 从通栏第二/三枚随操作区统一迁移；壳/原语复用 `.pol-mint` + `.swap-panel__field/__details/__cta`，无新 class） |
+| 用途 | PT/YT 井组下通栏操作行 locked 态钮 2/3 触发的操作弹窗（`components/verse/pol-split-merge-dialog.tsx`，`mode='split'/'merge'` 单组件两态；2026-09-26 用户裁定：两钮从恒禁用改弹窗做实际操作；2026-09-28 v3 从通栏第二/三枚随操作区统一迁移；壳/原语复用 `.pol-mint` + `.swap-panel__field/__details/__cta`，无新 class） |
 | 机制口径 | Split=1 POL → 1 PT + 1 YT（`IPOLSplitter.sol:102`）、Merge=等额销毁 PT 与 YT 换回同额 POL（`:104`，同一 amount 两侧 burn）——严格 1:1，合约无滑点/无 deadline 参数 → **不设设置齿轮**（与 Mint 弹窗的结构差异=机制差异）；闸门仅 locked（unlocked 态由 §21 Redeem 钮接替，2026-09-27） |
 | 联动/Max | split：单输入 POL、Max=全部 `myPol`；merge：PT/YT 双输入恒等额联动（单状态驱动两框），两框各挂 Max、同填 `min(myPt, myYt)`（Max 语义=最大可合并对数——单侧全额会破另一侧约束；2026-09-26 用户问「为何只有 YT 有 Max」后改双挂） |
 | 估值 | 无换算行（2026-09-26 用户裁定删 split 输入 ≈$；PT/YT 本就无独立价样本） |
@@ -245,7 +245,7 @@
 
 | 方面 | 契约 |
 |---|---|
-| 用途 | PT/YT 井组下通栏操作行 unlocked 态两钮触发的操作弹窗（2026-09-28 v3 从井底迁通栏；`components/prototype/pol-redeem-pt-yt-dialog.tsx`，`mode='pt'/'yt'` 单组件两态；2026-09-27 用户裁定：unlocked 删 split/merge UI、补燃烧/赎回 PT/YT 功能；壳/原语复用 `.pol-mint` + `.swap-panel__field/__details/__cta`，无新 class） |
+| 用途 | PT/YT 井组下通栏操作行 unlocked 态两钮触发的操作弹窗（2026-09-28 v3 从井底迁通栏；`components/verse/pol-redeem-pt-yt-dialog.tsx`，`mode='pt'/'yt'` 单组件两态；2026-09-27 用户裁定：unlocked 删 split/merge UI、补燃烧/赎回 PT/YT 功能；壳/原语复用 `.pol-mint` + `.swap-panel__field/__details/__cta`，无新 class） |
 | 机制口径 | Redeem PT=`POLSplitterUpgradeable.sol:365` 销毁 PT 按创世锁仓一次性登记的固定比率兑回 uAsset（`_ptToUAsset:470`，比率=`mainPoolUAssetUsed/mainPoolPOLRawAmount`——`MemeverseLiquidityImpl.sol:239`，即 fixture `uAssetPerPol` 口径，非 1:1——2026-09-25 对账裁定）；Redeem YT=`:387` 销毁 YT 按份额领结算剩余池两币（uAsset+memecoin，每份率=池×份额/流通 YT，`:404-405`）。闸门仅 unlocked（unlock 自动 settle——`MemeverseSettlementImpl.sol:536-537`；locked 态不渲染赎回行）；合约无滑点/deadline → 不设设置齿轮 |
 | 联动/Max | 单输入（PT 框余额=`myPt`、YT 框=`myYt`），Max=各自全额；props `price`/`uAssetUsd`（美元行换算源，同卡片井读数）；打开即预填全部余额（2026-09-27 用户裁定：空输入 You receive 摆 0.00 观感差——打开就用样本余额示全额兑付预估，清空/改数照常重算） |
 | 明细 | 2026-09-27 第三轮参照图裁定改双框：输入框（label=burnLabel）+ Receive 独立框（同输入框款式、只读 `output`+代币章；PT=单框 uAsset 章、YT=双腿合一个框（memecoin 主腿在前与井读数同序、行间 hairline=`.swap-panel__field-row ~ .swap-panel__field-row` 仅多 row 时生效——单 Receive 标签管两腿，2026-09-27 第四轮裁定：双框版第二框空标签行观感残缺）；rate 缺样本=框内 ax-slot）+ 每框下 ≈$ 美元行（2026-09-27 用户裁定补：uAsset 腿×uAssetUsd、memecoin 腿×主池价×uAssetUsd，样本缺→不渲染）——You receive 明细行随之删除（信息不重复；非 1:1 恒等、与 §20 删输出区裁定不冲突）：PT=`amount × uAssetPerPol {raiseAsset}`；YT=`amount × ytRedeemUAssetPerUnit {raiseAsset} + amount × ytRedeemMemecoinPerUnit {symbol}`（fixture `ytRedeem*PerUnit` 可选样本——仅 unlocked polp 记录携带；双缺=整行 ax-slot 槽位）；note 行 2026-09-27 用户裁定两轮全删（先 PT 后 YT——等式/You receive 已示比率与产出，冗余；「以链上读值为准」标注由 ax-slot 槽位承载） |
@@ -258,7 +258,7 @@
 
 | 方面 | 契约 |
 |---|---|
-| 用途 | Liquidity 标签池卡 Add Liquidity 钮触发的双币供给弹窗（`components/prototype/pool-add-liquidity-dialog.tsx`；2026-09-27 用户裁定：钮文案 `Add liquidity`→`Add Liquidity` 且恒禁用改弹窗，同日再裁定池卡钮短文案 `Add`（`addLiquidityShort`，弹窗标题/CTA 仍全称），功能结构同 §17 Mint 弹窗；壳/原语复用 `.pol-mint` + `.swap-panel__field/__details/__cta`，无新 class；触发器行样式与卡内 32px 中档走 `.pool-card__actions` 组（2026-09-27 双钮裁定，见 §24）） |
+| 用途 | Liquidity 标签池卡 Add Liquidity 钮触发的双币供给弹窗（`components/verse/pool-add-liquidity-dialog.tsx`；2026-09-27 用户裁定：钮文案 `Add liquidity`→`Add Liquidity` 且恒禁用改弹窗，同日再裁定池卡钮短文案 `Add`（`addLiquidityShort`，弹窗标题/CTA 仍全称），功能结构同 §17 Mint 弹窗；壳/原语复用 `.pol-mint` + `.swap-panel__field/__details/__cta`，无新 class；触发器行样式与卡内 32px 中档走 `.pool-card__actions` 组（2026-09-27 双钮裁定，见 §24）） |
 | 机制口径 | 四池统一=router addLiquidity：双侧按池配比供给、铸 **LP 代币**给 to（`IMemeverseSwapRouter.sol`，双侧 desired/min+deadline）。**2026-09-27 用户裁定：Add Liquidity 收 LP 而非 POL**——主池按加池量 1:1 铸 POL 的 mintPOLToken 入口（`IMemeverseLiquidityImpl.sol:26-31`）归 Tokenization 标签 Mint 弹窗（§17），两入口机制分立 |
 | 输出推导 | LP 铸得 = quote 侧 × `pool.lpPerQuote`（markets fixture 铸得率样本，totalSupply/R_quote v2 式口径、费累积使比率<1；`gen-market-lp-rate.mjs` 幂等生成，80 行全覆盖）；Min received = LP × (1−滑点)；缺样本池获得侧/Min received 才走 ax-slot/'--' 槽位（2026-09-27 用户裁定：造样本出数不留空槽）；获得侧无 Balance 行（无 LP 余额 fixture）。**LP 名 = `{baseSymbol}/{quoteSymbol} LP`**（池卡交易对同口径 + LP 后缀，四池各得专名；v4 仓位制无 ERC20 LP 命名真源，展示层命名——2026-09-27 用户裁定不统称 "LP"） |
 | 双侧联动 | 池配比 1 base=ratio quote：主池=`tokenStats.price`、POL/uAsset=fixture `marketPricePerPol` 样本；PT 两池=**锚定汇率推导样本**（2026-09-27 用户裁定造样本出数，不再不联动/'--'）：PT/uAsset 池 1 PT=`uAssetPerPol` uAsset（`MemeverseLiquidityImpl.sol:239` 固定兑付）、PT/POL 池再按 POL/uAsset 市场价折算 1 PT=`uAssetPerPol÷marketPricePerPol` POL；pol 记录缺失 → 退不联动/'--'；Rate flip 同 §17 |
@@ -274,7 +274,7 @@
 
 | 方面 | 契约 |
 |---|---|
-| 用途 | Tokenization 标签 POL 资产卡 Redeem 钮触发的赎回弹窗（`components/prototype/pol-redeem-lp-dialog.tsx`；2026-09-27 用户裁定：恒禁用改弹窗，POL 赎回成主池 LP 代币；壳/原语复用 `.pol-mint` + `.swap-panel__field/__details/__cta`，无新 class） |
+| 用途 | Tokenization 标签 POL 资产卡 Redeem 钮触发的赎回弹窗（`components/verse/pol-redeem-lp-dialog.tsx`；2026-09-27 用户裁定：恒禁用改弹窗，POL 赎回成主池 LP 代币；壳/原语复用 `.pol-mint` + `.swap-panel__field/__details/__cta`，无新 class） |
 | 机制口径 | 销毁 POL 按主池构造 **1:1** 换回主池（memecoin/uAsset）LP 代币（`MemeverseLiquidityImpl.sol:861/888` `amountInLP=amountInPOL`——:841 注释；`IMemeverseLiquidityImpl.sol:64`）。unwrap=false LP 直转非价格敏感（`:850-852`）→ 合约无滑点/deadline，**不设设置齿轮**（unwrap=true 拆 memecoin+uAsset 两币的 6 参滑点入口不进原型）。闸门仅 unlocked（`:857/884` NotUnlockedStage；OutrunBook lifecycle.md:18/97 From Unlocked；fixture 域 pol 持仓仅 locked/unlocked，渲染域与旧 `!locked` 等价） |
 | 联动/Max | 单输入（余额=`myPol`），Max=全额；打开即预填全部余额（同 §21 2026-09-27 裁定） |
 | 明细 | You receive 一行=`amount {MEME}/{uAsset} LP`（主池对口径 lpSymbol，同 §22/§24 惯例——链上 ERC20 全池静态同名 symbol `MLP`/name `Memeverse LP`（`SwapFacet.sol:313`），按池区分靠对口径；1:1 恒等但 POL→LP 代币身份不同、非 §20 输入复述 → 保留；机制恒等无槽位态、无 Rate/note/≈$ 行——§21 同款删冗余口径） |
@@ -287,7 +287,7 @@
 
 | 方面 | 契约 |
 |---|---|
-| 用途 | Liquidity 标签池卡 Remove 钮触发的移除流动性弹窗（`components/prototype/pool-remove-liquidity-dialog.tsx`；2026-09-27 用户裁定：池卡新增 Remove 钮移除流动性、Add 同步短文案，双钮收进 `.pool-card__actions` 行尾组（flex+space-2+auto-margin，原 `.pool-card > button` 单钮规则退役）；壳/原语复用 `.pol-mint` + `.swap-panel__field/__details/__cta`，无新 class；触发器同走卡内 32px 中档） |
+| 用途 | Liquidity 标签池卡 Remove 钮触发的移除流动性弹窗（`components/verse/pool-remove-liquidity-dialog.tsx`；2026-09-27 用户裁定：池卡新增 Remove 钮移除流动性、Add 同步短文案，双钮收进 `.pool-card__actions` 行尾组（flex+space-2+auto-margin，原 `.pool-card > button` 单钮规则退役）；壳/原语复用 `.pol-mint` + `.swap-panel__field/__details/__cta`，无新 class；触发器同走卡内 32px 中档） |
 | 机制口径 | 四池统一=router removeLiquidity：burn **LP 代币**（uint128 liquidity）按池配比双侧取回，amount0Min/amount1Min+deadline（`IMemeverseSwapRouter.sol:292-300`，:308 "LP liquidity to burn"）——双侧 min 即滑点保护，保留设置齿轮（tip 为移除语境 `removeLiquiditySlippageTip`/`removeLiquidityDeadlineTip`） |
 | 输出推导 | §22 铸得反向：quote 取回 = burnLP ÷ `pool.lpPerQuote`、base 取回 = quote ÷ ratio（PT 两池 ratio=锚定推导样本，同 §22；pol 记录缺失才退 ax-slot）；Min received 一行双值 `minBase {base} + minQuote {quote}`（对应合约双侧 min，各自仅可推导侧显示） |
 | 输入侧 | 单输入=burn LP 数量（Balance/Max；余额=pol-positions `myLp` 四池样本——`gen-pol-my-lp.mjs` 幂等生成，量级锚=各侧持仓×供给比例×lpPerQuote）；pol 记录缺失 → '--'+Max 禁用；不预填（推导链复杂，同 §22；§21/§23 的打开预填仅恒等单输入） |
@@ -301,8 +301,8 @@
 
 | 方面 | 契约 |
 |---|---|
-| 用途 | Swap 卡输入/输出侧代币芯片（`.swap-panel__token--select` 幽灵描边钮：符号+下箭头，hover/focus 转青）点开选择弹窗（`components/prototype/swap-token-select-dialog.tsx`；2026-09-27 用户裁定双侧可选）。弹窗结构=标题+✕+搜索+行列表（AssetSelector §2 变体），壳复用 `.pol-mint`；**受限集合不设「常用/全部」分组**、搜索按符号/名称过滤 |
-| 可选集 | 用户裁定 2026-09-27：稳定侧=募集 uAsset + 其 PSM 配对储备（psm.json 按 uAssetId 过滤，`getPrototypeParticipationOptions().reserves` 出口）；Meme 侧=memecoin/POL/PT（**YT 不入卡**——2026-09-27 方案 B 用户裁定：Flash Swap 是 POL↔YT 单通道工具且买卖均指定 YT 数量，卡的 exact-in 双侧配对模型无法表达，移入 §26 YT 井专属弹窗；同轮删除真源不支持的 uAsset↔YT 复合路由）。翻转钮只换方向（集合跟侧走：当前输入侧在稳定侧则弹稳定集）。**行名=代币本名**（2026-09-27 用户裁定：机制标签不得当名字显示——储备行=assets.json `name` canonical 名如 Ethereum/USD Coin（缺失回退 symbol），uAsset 行=mintSideUasset，memecoin=verse.name，POL/PT=polTag/ptFullName） |
+| 用途 | Swap 卡输入/输出侧代币芯片（`.swap-panel__token--select` 幽灵描边钮：符号+下箭头，hover/focus 转青）点开选择弹窗（`components/verse/swap-token-select-dialog.tsx`；2026-09-27 用户裁定双侧可选）。弹窗结构=标题+✕+搜索+行列表（AssetSelector §2 变体），壳复用 `.pol-mint`；**受限集合不设「常用/全部」分组**、搜索按符号/名称过滤 |
+| 可选集 | 用户裁定 2026-09-27：稳定侧=募集 uAsset + 其 PSM 配对储备（psm.json 按 uAssetId 过滤，`getFixtureParticipationOptions().reserves` 出口）；Meme 侧=memecoin/POL/PT（**YT 不入卡**——2026-09-27 方案 B 用户裁定：Flash Swap 是 POL↔YT 单通道工具且买卖均指定 YT 数量，卡的 exact-in 双侧配对模型无法表达，移入 §26 YT 井专属弹窗；同轮删除真源不支持的 uAsset↔YT 复合路由）。翻转钮只换方向（集合跟侧走：当前输入侧在稳定侧则弹稳定集）。**行名=代币本名**（2026-09-27 用户裁定：机制标签不得当名字显示——储备行=assets.json `name` canonical 名如 Ethereum/USD Coin（缺失回退 symbol），uAsset 行=mintSideUasset，memecoin=verse.name，POL/PT=polTag/ptFullName） |
 | 报价口径 | 原型参考价线性换算：每代币 uAsset 计价——uAsset=1、储备=PSM 面值 1:1 平价（OutStake）、memecoin=主池价、POL=`marketPricePerPol`、PT=`marketPricePerPol×ptPricePerPol`（PT/POL 池样本，`gen-pol-pt-price.mjs` 锚 yt-flash-swap.md 示例 PT≈0.9 POL）；率=卖出价÷买入价，任一侧缺样本→'--' 槽位 |
 | 余额/估值 | 行余额=uAsset/储备(myReserve 样本——2026-09-28 用户裁定造数，gen-pol-my-reserve.mjs 锚 myUAsset 20–60%，null 槽位)/myMemecoin/myPol/myPt；≈$ 换算两侧各按其 uAsset 计价×uAssetUsd（储备借平价等值）；Max 只挂卖出侧（余额 null 禁用）；**打开即预填默认卖出侧（uAsset）全部余额**（空输入 0.00/'--' 观感差——2026-09-28 用户裁定，§21/Flash Swap 同规；翻转/换币保留输入） |
 | 路径行 | 随所选对组词：储备腿前缀 `PSM`；meme=主池、POL=POL/uAsset 池、PT=PT/uAsset 池；` → ` 连接（原静态 `routeValue` 键删除） |
@@ -314,7 +314,7 @@
 
 | 方面 | 契约 |
 |---|---|
-| 用途 | Tokenization 标签 PT/YT 井组下通栏操作行 locked 态首钮触发（`components/prototype/pol-flash-swap-dialog.tsx`；2026-09-27 方案 B 用户裁定：YT 交易从 Swap 卡移出进专属弹窗——POL↔YT 单通道 yt-flash-swap.md；2026-09-28 v3 从 YT 井底迁井组下通栏第一枚）。壳/原语复用 `.pol-mint` + `.swap-panel__field/__output/__details/__settings-toggle/__cta/__rate-flip` + `.vault-actions__bar`（模式条 tab 风；弹窗语境加 scoped 规则 `.pol-mint .vault-actions__bar`=两段等宽铺满——ToggleGroup 根收缩为内容宽，grid 拉伸不生效需 inline-size:100% 兜底），无新命名 class（panel-note 杠杆行 2026-09-28 删除）|
+| 用途 | Tokenization 标签 PT/YT 井组下通栏操作行 locked 态首钮触发（`components/verse/pol-flash-swap-dialog.tsx`；2026-09-27 方案 B 用户裁定：YT 交易从 Swap 卡移出进专属弹窗——POL↔YT 单通道 yt-flash-swap.md；2026-09-28 v3 从 YT 井底迁井组下通栏第一枚）。壳/原语复用 `.pol-mint` + `.swap-panel__field/__output/__details/__settings-toggle/__cta/__rate-flip` + `.vault-actions__bar`（模式条 tab 风；弹窗语境加 scoped 规则 `.pol-mint .vault-actions__bar`=两段等宽铺满——ToggleGroup 根收缩为内容宽，grid 拉伸不生效需 inline-size:100% 兜底），无新命名 class（panel-note 杠杆行 2026-09-28 删除）|
 | 机制口径 | yt-flash-swap.md：复用 PT/POL 池流动性、单笔原子；**买卖均「指定 YT 数量」**（买=到手 y、支付 y−R 上限 Max paid；卖=收到 y−Q 下限 Min received）；费率=PT/POL 池动态费单次（杠杆成本结构：费按 PT 全腿计、本金只付差额）——Fee 行=**用户手续费率样本直读**（`pol.flashUserFeeRate`，相对用户支付额，谱系 0.3%–85% 覆盖 <1% 到极高——`gen-pol-flash-fee.mjs` 平方根分布；2026-09-28 用户裁定：费率=用户付的手续费、假数据不做推导链（首版从池费率×PT 价推导费额+有效百分比已废）；口径：池动态费（FEE_BASE_BPS=100 下限，DynamicFeeMath.sol:41）按 PT 全腿名义收取、用户只付差额（MemeverseYTFlashSwapRouter._executeBuy）→ 支付额基数上杠杆化，可 <1% 也可极高，费率吃掉成本或超上限时 InvalidBuyCost/MaxPOLInExceeded 回滚无法成交；markets.feeRate（池费率样本 1%–8%）保留备用不进本行；完整机制说明挂 ⊙=flashFeeNote）。**对手侧展示=uAsset 而非 POL**（2026-09-28 用户裁定：理解成本更低——前端按 POL/uAsset 池价折算组合，链上仍以 POL 成交） |
 | UI 同构 | 上块=YT 驱动输入（买卖共用不翻转——真源两向都指定 YT 数量），下块=uAsset 派生只读（余额行=myUAsset）；模式条 Buy/Sell 只改下块标签（You pay / You receive）与保护行方向（Max paid / Min received）；模式条=vault 操作卡同款 ToggleGroup |
 | 报价口径 | 线性参考（uAsset 计价）：1 YT ≈ (1−`ptPricePerPol`)×`marketPricePerPol` uAsset（隐含价 1 POL=1 PT+1 YT，经 POL/uAsset 池折算）；支付/收到 uAsset=YT 数量×隐含价；保护值=参考值×(1±滑点)；≈$=uAsset 腿×uAssetUsd；Rate 行 ⊙ 注明折算路径与「市场侧参考价非结算价值」 |
@@ -343,7 +343,7 @@
 
 | 方面 | 契约 |
 | --- | --- |
-| 用途 | DAO 标签四枚带 `>>>` 动态符（DaoDots）的可点数据芯片——当期国库/上期国库/未领取滚存/可领奖励——点开资金构成明细弹窗（`components/prototype/dao-fund-dialog.tsx`；结构参照 demo.outrun.build/memeverse/26：标题+✕+Total Value+多资产行；2026-09-30 可领变体+底部 CTA） |
+| 用途 | DAO 标签四枚带 `>>>` 动态符（DaoDots）的可点数据芯片——当期国库/上期国库/未领取滚存/可领奖励——点开资金构成明细弹窗（`components/verse/dao-fund-dialog.tsx`；结构参照 demo.outrun.build/memeverse/26：标题+✕+Total Value+多资产行；2026-09-30 可领变体+底部 CTA） |
 | 壳 | `DialogContent` 内必须包 `<div className="pol-mint">`——底色/描边光/padding 全在该层伪元素（雨夜材质），缺了弹窗透底只剩虚化遮罩（2026-09-30 修复透明 bug 时立此为契约）；内容 class `.dao-fund-pop__hero/__hero-main/__hero-meta`（读数带：24px mono 大数+资产数 meta+顶缘青光渗）`__row/__list/__glyph/__token/__qty/__share/__track`（资产行+配比条=占总额比 2px 青填充，% 定宽右对齐；分隔线退位给配比条节奏）；进场=抬升淡入（`data-starting-style` translateY 8px+scale 0.985，reduced-motion 全局策略自动降级）——2026-09-30 质感升级 |
 | 机制口径 | 可领奖励=多 token 按票权份额：`getClaimableReward(user)→(tokens[],rewards[])`（GovernanceCycleIncentivizerUpgradeable.sol:199）；未领取滚存并入国库不补发（下一次 finalize 清零 prevCycle.rewardBalances 并入当期国库——:376-380）；领取窗口=**结算窗口**（开=本周期 finalize、奖励仅结算时写入 :388-389；闭=下次 finalize；周期 endTime 到而结算未触发时领取 revert NoRewardsToClaim——claimReward 读 prevCycle :434-439）——2026-09-30 用户澄清口径，与 OB 叙事一致，对账关闭（source-map 对账区同日行）；明细只覆盖治理注册的代币注册表（treasuryTokenList/rewardTokenList，注册/注销 onlyGovernance、奖励代币须先注册为国库代币 :504、上限 50 :26；上期明细=finalize 过滤后的实际派生子集 :116——已注册∧余额>0∧有票） |
 | 数据 | governance fixture `treasuryAssets/lastCycle.treasuryAssets/unclaimedAssets/claimableAssets`（S 级样本，`gen-verse-fixture-coverage.mjs` composeAssets 固定权重拆分，usdValue 之和锚各自总额 treasuryUAsset/remainingRewards/myClaimable；宇宙=ETH/USDC/USDT/DAI(+WBTC 国库)；null=无样本→芯片退普通 div 不渲染入口）；四弹窗底部 `__note` 白名单注脚（`registeredAssetsNote`，2026-09-30 源码对账用户裁定统一一条——Governor 持有的未注册代币不入账不显示） |

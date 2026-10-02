@@ -1,12 +1,12 @@
 import Link from 'next/link'
 
-import type { Locale, VerseStage } from '@/lib/data/prototype-repository'
+import type { Locale, VerseStage } from '@/lib/data/fixture-repository'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
-import { OutrunShell } from '@/components/prototype/app-shell'
-import { getCopy } from '@/components/prototype/copy'
-import { ProgressMeter, SectionHeading, StageBadge } from '@/components/prototype/signal-ui'
+import { OutrunShell } from '@/components/global/app-shell'
+import { getCopy } from '@/components/global/copy'
+import { ProgressMeter, SectionHeading, StageBadge } from '@/components/global/signal-ui'
 
 const STAGES: readonly VerseStage[] = ['genesis', 'locked', 'unlocked', 'refund']
 

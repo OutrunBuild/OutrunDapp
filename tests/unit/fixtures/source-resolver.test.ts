@@ -1,7 +1,7 @@
 // source-resolver 单测（阶段 2 步骤 10）：
 // ① 生产分支只返回真实 repository / 结构化 unavailable，永不出现 fixture 回退
-// ② 生产 resolver 源文本禁含 prototype-repository / scenario / OUTRUN_FIXTURE_ONLY_v1
-// ③ prototype 与 production 是不同 import 分支（图级差异由 boundary 测试证明）
+// ② 生产 resolver 源文本禁含 fixture-repository / scenario / OUTRUN_FIXTURE_ONLY_v1
+// ③ fixture 与 production 是不同 import 分支（图级差异由 boundary 测试证明）
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -25,14 +25,14 @@ describe('production source-resolver', () => {
   it('生产 resolver 源文本不含 prototype/scenario/哨兵', () => {
     for (const f of ['lib/data/source-resolver.ts', 'lib/data/repository.ts']) {
       const src = read(f);
-      expect(src.includes('prototype-repository'), f).toBe(false);
+      expect(src.includes('fixture-repository'), f).toBe(false);
       expect(src.includes('OUTRUN_FIXTURE_ONLY_v1'), f).toBe(false);
       expect(src.includes('scenario'), f).toBe(false);
     }
   });
-  it('prototype 分支确实存在且独立（消费 fixtures；生产图不可达——见 boundary.test）', async () => {
-    const proto = await import('../../../lib/data/prototype-repository');
-    expect(proto.PROTOTYPE_ONLY_SENTINEL).toBe('OUTRUN_FIXTURE_ONLY_v1');
-    expect(proto.prototypeRepository.verses().length).toBeGreaterThan(0);
+  it('fixture 分支确实存在且独立（消费 fixtures；生产图不可达——见 boundary.test）', async () => {
+    const proto = await import('../../../lib/data/fixture-repository');
+    expect(proto.FIXTURE_ONLY_SENTINEL).toBe('OUTRUN_FIXTURE_ONLY_v1');
+    expect(proto.fixtureRepository.verses().length).toBeGreaterThan(0);
   });
 });

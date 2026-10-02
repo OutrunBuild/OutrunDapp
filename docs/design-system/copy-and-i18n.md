@@ -4,7 +4,7 @@
 
 ## 1. 机制
 
-- 路由：`/[locale]/...`，`locale ∈ 'en' | 'zh'`；`/` → `/en`。校验用 `isLocale()`（`components/prototype/copy.ts`）。
+- 路由：`/[locale]/...`，`locale ∈ 'en' | 'zh'`；`/` → `/en`。校验用 `isLocale()`（`components/global/copy.ts`）。
 - 文案字典：`getCopy(locale)` 返回按页面分组的对象（`common` / `home` / `discovery` / `verse` …）。**所有用户可见字符串都从字典取**，组件内禁止硬编码文案。
 - 新增字符串：同时在 `en` 与 `zh` 两个分支添加，保持键名一致；缺一即视为未完成。
 - 壳层 `lang` 属性由 `OutrunShell` 设置（`zh-CN` / `en`），中文 `h1` 有独立缩放规则（`.outrun-site[lang='zh-CN'] .home-hero h1`）。

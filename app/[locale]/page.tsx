@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-import { HomePage } from '@/components/prototype/home-page';
+import { HomePage } from '@/components/home/home-page';
 import { getDisplayLocale } from '@/lib/locale';
 
 export async function generateMetadata(): Promise<Metadata> {

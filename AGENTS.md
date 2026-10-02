@@ -4,7 +4,7 @@
 
 ## 项目
 
-Next.js 16 App Router · React 19 · Tailwind v4 · shadcn（`base` 原语，非 radix）· `pnpm`。路由 `app/[locale]/…`，`locale ∈ en | zh`，默认 `en`。URL scheme（2026-09-22 方案 C）：en 无前缀（`proxy.ts` 内部 rewrite 到 `/en/**`），zh 带 `/zh` 前缀；语言切换走 `components/prototype/routes.ts` 的 `localePath`，勿手拼 `/${locale}`。memeverse 详情页 URL 用数字段 `/memeverse/<verseId 数字>`（= 链上 uint256 verseId 口径），fixture 行 id（`verse-021`）不进 URL；创建页=`/memeverse/launch`（原 `/launch`）、发现页=`/memeverse/explore`（原 `/memeverse`）（2026-09-23 用户裁定，旧地址由 `proxy.ts` 307 收敛）。产品代码在 `components/prototype/`；`components/axis-choice/`、`components/direction-choice/`、`app/design-review/` 是 Stage-01 内部审阅工具，不是产品界面，不要按产品规范改写。
+Next.js 16 App Router · React 19 · Tailwind v4 · shadcn（`base` 原语，非 radix）· `pnpm`。路由 `app/[locale]/…`，`locale ∈ en | zh`，默认 `en`。URL scheme（2026-09-22 方案 C）：en 无前缀（`proxy.ts` 内部 rewrite 到 `/en/**`），zh 带 `/zh` 前缀；语言切换走 `components/global/routes.ts` 的 `localePath`，勿手拼 `/${locale}`。memeverse 详情页 URL 用数字段 `/memeverse/<verseId 数字>`（= 链上 uint256 verseId 口径），fixture 行 id（`verse-021`）不进 URL；创建页=`/memeverse/launch`（原 `/launch`）、发现页=`/memeverse/explore`（原 `/memeverse`）（2026-09-23 用户裁定，旧地址由 `proxy.ts` 307 收敛）。产品代码按域分桶：`components/verse/`（详情页/交易台/POL·池·赎回弹窗群）、`components/home/`、`components/discovery/`、`components/create/`、`components/portfolio/`，跨页共享件在 `components/global/`（shell/wallet/copy/routes/signal-ui 等）（2026-10-02 由 `components/prototype/` 按 import 闭包拆分）；`components/axis-choice/`、`components/direction-choice/`、`app/design-review/` 是 Stage-01 内部审阅工具，不是产品界面，不要按产品规范改写。
 
 ## 产品真源
 
@@ -48,7 +48,7 @@ Next.js 16 App Router · React 19 · Tailwind v4 · shadcn（`base` 原语，非
 
 ## 架构边界
 
-- **fixture 数据边界（三层强制）**：`fixtures/**` → `lib/data/prototype-repository.ts`（唯一合法消费方）→ `components/prototype/**`。页面/组件禁止直接 import `fixtures/`，生产代码禁止反向到达；派生纪律：组件不自造领域数值——数值口径从产品真源取、样本数据落 `fixtures/`（见「产品真源」），fixture 快照缺失的字段才渲染「以链上读值为准」槽位。由 `scripts/check-fixture-boundary.mjs` 的 `--source` / `--graph production` / `--bundle .next` 三层验证。
+- **fixture 数据边界（三层强制）**：`fixtures/**` → `lib/data/fixture-repository.ts`（唯一合法消费方）→ `components/**`（`ui/`、`design-system/` 通用层除外）。页面/组件禁止直接 import `fixtures/`，生产代码禁止反向到达；派生纪律：组件不自造领域数值——数值口径从产品真源取、样本数据落 `fixtures/`（见「产品真源」），fixture 快照缺失的字段才渲染「以链上读值为准」槽位。由 `scripts/check-fixture-boundary.mjs` 的 `--source` / `--graph production` / `--bundle .next` 三层验证。
 - **双编译器桥**：`typescript` 包 = `vendor/typescript-bridge`（bin/tsc 走 TS 7.0.2 CLI，require 转发 TS 6.0.2 API）。不要直接改桥、不要用 `typescript` 的程序 API 写 TS7 语法；tsconfig 禁 TS7 废弃选项（`baseUrl`、`target: es5` 等）。
 - **runbook 纪律**：阶段执行走 `docs/runbooks/stage-0N-*.md`，每步结果必须登记 `docs/runbooks/progress.md`；人工决策步骤逐项问答，不得默认替签；证据链（manifest→handoff→checker）变更后需重新冻结。
 

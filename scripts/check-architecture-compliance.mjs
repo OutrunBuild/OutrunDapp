@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // check-architecture-compliance.mjs —— §3 版本/运行时 allowlist、§4 目录、RSC/Client 边界、
-// prototype-only 数据源（阶段 2 步骤 10 建立；阶段 3 检查 v0/create-next-app 导出物必须复用本检查器）。
+// fixture 数据源（阶段 2 步骤 10 建立；阶段 3 检查 v0/create-next-app 导出物必须复用本检查器）。
 // 基础阶段（无 app/）允许 deferred-to-stage-3，不把缺失应用代码误报为通过。
 import { readFileSync, existsSync } from 'node:fs';
 import { argv, exit } from 'node:process';
@@ -22,6 +22,7 @@ const ALLOWLIST = {
     '@types/node': '24.13.3',
     // §3 全集（阶段 3 步骤 2 落地，2026-09-19）
     '@playwright/test': '1.62.1',
+    '@axe-core/playwright': '4.13.0',
     '@tailwindcss/postcss': '4.3.3',
     '@testing-library/dom': '10.4.1',
     '@testing-library/react': '16.3.3',
@@ -48,6 +49,7 @@ const ALLOWLIST = {
     clsx: '2.1.1',
     'tailwind-merge': '3.3.1',
     'tw-animate-css': '1.4.0',
+    'lightweight-charts': '5.2.1',
   },
 };
 if (existsSync('package.json')) {
@@ -107,7 +109,7 @@ if (existsSync('.node-version')) {
   if (v !== '24.20.0') problems.push(`.node-version=${v} != 24.20.0`);
 } else problems.push('.node-version 缺失');
 
-// 3) §4 目录与 RSC/Client 边界 + prototype-only 数据源
+// 3) §4 目录与 RSC/Client 边界 + fixture 数据源
 if (!existsSync('app')) {
   deferred.push(
     '§4 RSC/Client 边界与目录结构：app/ 尚未创建（deferred-to-stage-3，v0 导出物落地时按 docs/prototype/architecture-compliance.md 检查）',
@@ -116,7 +118,7 @@ if (!existsSync('app')) {
   deferred.push('app/ 已存在：阶段 3 首轮运行完整 RSC/Client 扫描（本检查器扩展点）');
 }
 deferred.push(
-  'prototype-only 数据源运行时证明：随阶段 3 原型页落地，由 check-fixture-boundary --source/--graph/--bundle 三层强制',
+  'fixture 数据源运行时证明：随阶段 3 原型页落地，由 check-fixture-boundary --source/--graph/--bundle 三层强制',
 );
 
 console.log('architecture compliance ' + (problems.length ? 'FAIL' : 'OK'));

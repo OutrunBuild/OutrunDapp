@@ -3,11 +3,11 @@
 // （Memeverse/src/verse/MemeverseLaunchImpl.sol:117-119、Memeverse/src/polend/POLSplitterUpgradeable.sol:225）
 import { describe, expect, it } from 'vitest';
 
-import { getPrototypeVerseTrade } from '../../lib/data/prototype-repository';
+import { getFixtureVerseTrade } from '../../lib/data/fixture-repository';
 
 describe('四池交易对符号：品类前缀 + verse symbol', () => {
   it('locked verse（verse-002 / PEPE2）四池对符号带 MEME 后缀', () => {
-    const trade = getPrototypeVerseTrade('verse-002');
+    const trade = getFixtureVerseTrade('verse-002');
     if (!trade) throw new Error('verse-002 fixture 缺 markets');
     const pairs = trade.pools.map((pool) => `${pool.baseSymbol}/${pool.quoteSymbol}`);
     expect(pairs).toContain('PEPE2/UETH');
@@ -17,7 +17,7 @@ describe('四池交易对符号：品类前缀 + verse symbol', () => {
   });
 
   it('unlocked verse（verse-003 / WOJAK）同口径', () => {
-    const trade = getPrototypeVerseTrade('verse-003');
+    const trade = getFixtureVerseTrade('verse-003');
     if (!trade) throw new Error('verse-003 fixture 缺 markets');
     for (const pool of trade.pools) {
       if (pool.pool === 'main') continue;

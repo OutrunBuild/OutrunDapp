@@ -6,7 +6,7 @@
 
 1. 读 `docs/design-system/README.md`（本目录入口）与硬约束十条。
 2. 按任务读对应章节：foundations / components / patterns / copy-and-i18n。
-3. 打开真实源确认细节：`components/design-system/tokens.css`、`app/globals.css` 中相关 class、`components/prototype/signal-ui.tsx`、`copy.ts`。
+3. 打开真实源确认细节：`components/design-system/tokens.css`、`app/globals.css` 中相关 class、`components/global/signal-ui.tsx`、`copy.ts`。
 4. 若任务涉及领域组件行为（金额输入、资产/链选择、交易审阅/状态、账户能力、空态）：读 `components/design-system/component-contract.md` 对应条目 + `state-matrix.md`。
 5. 若任务会改变品牌方向、色板、字体角色、密度：**停止**，这需要新决议写入 `docs/design/decision-log.md` 并由人工签署。
 
@@ -56,7 +56,7 @@ agent-browser set viewport 390 844  && agent-browser screenshot /tmp/agent-brows
 本仓库自带 `impeccable` 技能（`.agents/skills/impeccable`）：
 
 ```bash
-rtk node .agents/skills/impeccable/scripts/detect.mjs --target components/prototype/<file>.tsx
+rtk node .agents/skills/impeccable/scripts/detect.mjs --target components/<域>/<file>.tsx
 ```
 
 v0 平台侧的同名技能位于其团队记忆（`v0_memories/`），不在本仓库；两份规则以本目录真相源层级为准。

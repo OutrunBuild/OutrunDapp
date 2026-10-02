@@ -1,4 +1,4 @@
-import { PortfolioPage } from '@/components/prototype/portfolio-page';
+import { PortfolioPage } from '@/components/portfolio/portfolio-page';
 import { getDisplayLocale } from '@/lib/locale';
 
 export default async function LocalizedPortfolio() {

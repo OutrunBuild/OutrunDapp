@@ -1,6 +1,6 @@
 // Fixture 唯一导出入口（阶段 2 步骤 9）。
 // 哨兵常量供边界检查器扫描：生产代码出现该标识即违规（scripts/check-fixture-boundary.mjs）。
-// 允许的 import 图：fixtures/** → lib/data/prototype-repository.ts → components/prototype/** 或 fixtures/inspector/**
+// 允许的 import 图：fixtures/** → lib/data/fixture-repository.ts → components/**（ui/design-system 除外）或 fixtures/inspector/**
 export const OUTRUN_FIXTURE_ONLY_v1 = 'OUTRUN_FIXTURE_ONLY_v1' as const;
 
 export type * from './schema';

@@ -5,9 +5,9 @@
 //   node scripts/check-fixture-boundary.mjs --graph production  从生产入口走 import 图，禁止到达 fixtures/**
 //   node scripts/check-fixture-boundary.mjs --bundle <dir>      产物扫描（OUTRUN_FIXTURE_ONLY_v1 哨兵；阶段 3 构建后）
 //     <dir>=.next 时正向枚举生产子目录（server/static/standalone）；dev 缓存（.next/dev）经合法路径
-//     （prototype-repository → fixtures）无 tree-shake 含哨兵，扫它=假警，且 dev 产物不随部署分发
+//     （fixture-repository → fixtures）无 tree-shake 含哨兵，扫它=假警，且 dev 产物不随部署分发
 //   node scripts/check-fixture-boundary.mjs --self-test         临时副本注入三类违规→必须三杀→自动清理
-// 唯一合法 import 图：fixtures/** → lib/data/prototype-repository.ts → components/prototype/** 或 fixtures/inspector/**
+// 唯一合法 import 图：fixtures/** → lib/data/fixture-repository.ts → components/**（ui/design-system 通用层除外）或 fixtures/inspector/**
 import {
   readdirSync,
   readFileSync,
@@ -26,8 +26,9 @@ import { argv, exit } from 'node:process';
 const args = new Set(argv.slice(2));
 const ROOT = argv.includes('--root') ? argv[argv.indexOf('--root') + 1] : process.cwd();
 
-const PROD_DIR_RE =
-  /^(app|features|entities|components(?!\/prototype)|lib(?!\/data\/prototype-repository))\//;
+// components 不再豁免任何子目录：域组件（verse/home/…）与通用层一律禁直接引 fixtures，
+// fixtures 的唯一合法消费方就是 lib/data/fixture-repository.ts 本身
+const PROD_DIR_RE = /^(app|features|entities|components|lib(?!\/data\/fixture-repository))\//;
 const FIXTURE_RE = /^fixtures(\/|$)/;
 const JS_EXT = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
 
@@ -129,18 +130,18 @@ function sourceScan() {
         note(rel, im.line, 'direct-fixture-import', `生产文件直接导入 fixture：${im.target}`);
       }
     }
-    // prototype-repository 只允许被 components/prototype/**、fixtures/**、tests/** 引用
-    if (rel === 'lib/data/prototype-repository.ts') continue;
+    // fixture-repository 只允许被 components/**（ui/design-system 通用层除外）、fixtures/**、tests/** 引用
+    if (rel === 'lib/data/fixture-repository.ts') continue;
     for (const im of importsOf(f)) {
       if (
-        im.target === 'lib/data/prototype-repository.ts' &&
-        !/^(components\/prototype|fixtures|tests)\//.test(rel)
+        im.target === 'lib/data/fixture-repository.ts' &&
+        !/^(components\/(?!ui\/|design-system\/)|fixtures\/|tests\/)/.test(rel)
       ) {
         note(
           rel,
           im.line,
           'illegal-bridge-consumer',
-          `prototype-repository 非法消费方：仅 components/prototype/**、fixtures/**、tests/** 可引用`,
+          `fixture-repository 非法消费方：仅 components/**（ui/design-system 除外）、fixtures/**、tests/** 可引用`,
         );
       }
     }
@@ -180,7 +181,7 @@ function bundleScan(dir) {
     return;
   }
   // `.next` 只扫生产子目录：dev server 编译缓存（.next/dev/**）无 tree-shake，合法消费方
-  // prototype-repository 会把哨兵留在 dev SSR chunk 里——那是允许的 import 图，不是泄漏。
+  // fixture-repository 会把哨兵留在 dev SSR chunk 里——那是允许的 import 图，不是泄漏。
   // 非 `.next` 的自定义产物目录维持整扫（原接口语义不变）。
   const roots =
     basename(dir) === '.next'
@@ -206,8 +207,8 @@ function bundleScan(dir) {
 }
 
 function resolverTokenScan() {
-  // runbook：拒绝 production resolver 中出现 prototype-repository / scenario selector / 哨兵常量
-  const TOKENS = ['prototype-repository', 'OUTRUN_FIXTURE_ONLY_v1', 'scenario'];
+  // runbook：拒绝 production resolver 中出现 fixture-repository / scenario selector / 哨兵常量
+  const TOKENS = ['fixture-repository', 'OUTRUN_FIXTURE_ONLY_v1', 'scenario'];
   for (const f of ['lib/data/source-resolver.ts', 'lib/data/repository.ts']) {
     const abs = join(ROOT, f);
     if (!existsSync(abs)) continue;

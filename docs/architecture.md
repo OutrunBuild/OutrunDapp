@@ -99,6 +99,7 @@ Outrun DApp 提供 Memeverse 与 OutStake 的完整用户功能、全部核心�
 | CSS build support                    | PostCSS + `@tailwindcss/postcss`   | 8.5.26 / 4.3.3                     | Tailwind CSS 4 的 Next.js/PostCSS 构建支持                                                                                                                       |
 | Components                           | shadcn/ui                          | 4.19.0                             | 可访问性基础组件，源码归仓库                                                                                                                                     |
 | Icons                                | lucide-react                       | 1.37.0                             | 统一图标系统                                                                                                                                                     |
+| Charting                             | lightweight-charts                 | 5.2.1                              | Verse 详情页 K 线交易台（candle-chart），客户端渲染不进 RSC 树                                                                                                    |
 | i18n                                 | next-intl                          | 4.14.1                             | App Router 中英文路由与消息格式化                                                                                                                                |
 | Async state                          | TanStack Query                     | 5.102.8                            | RPC、GraphQL、交易和缓存状态                                                                                                                                     |
 | Validation                           | Zod                                | 4.5.4                              | 配置、部署 manifest、表单和 API 边界校验                                                                                                                         |
@@ -115,6 +116,7 @@ Outrun DApp 提供 Memeverse 与 OutStake 的完整用户功能、全部核心�
 | Testing Library peer                 | `@testing-library/dom`             | 10.4.1                             | `@testing-library/react` 16.3.3 必填 peer `^10.0.0`                                                                                                              |
 | Test DOM environment                 | jsdom                              | 30.0.1                             | 组件测试 DOM 环境                                                                                                                                                |
 | End-to-end tests                     | Playwright                         | 1.62.1                             | 双语、响应式、视觉和交易流程测试                                                                                                                                 |
+| Accessibility scan                   | `@axe-core/playwright`             | 4.13.0                             | Playwright e2e 内嵌 axe 无障碍扫描（`check:e2e` 门禁组成部分）                                                                                                    |
 | Ethereum Virtual Machine integration | Foundry/Anvil                      | 1.8.1                              | 与合约仓一致的本地链和 fork 测试                                                                                                                                 |
 | Monitoring                           | `@sentry/nextjs`                   | 10.72.0                            | 客户端、服务端、RPC 和交易错误监控                                                                                                                               |
 
@@ -569,6 +571,7 @@ Sentry 中的钱包地址默认哈希化；只有用户主动复制或进入区�
 - Tailwind CSS `4.3.3`：[release](https://github.com/tailwindlabs/tailwindcss/releases/tag/v4.3.3)。
 - shadcn `4.19.0`：[release](https://github.com/shadcn-ui/ui/releases/tag/shadcn%404.19.0)。
 - lucide-react `1.37.0`：[npm](https://www.npmjs.com/package/lucide-react/v/1.37.0)、[repository](https://github.com/lucide-icons/lucide)。
+- lightweight-charts `5.2.1`：[npm](https://www.npmjs.com/package/lightweight-charts/v/5.2.1)、[repository](https://github.com/tradingview/lightweight-charts)。
 - next-intl `4.14.1`：[release](https://github.com/amannn/next-intl/releases/tag/v4.14.1)。
 - TanStack Query `5.102.8`：[npm](https://www.npmjs.com/package/@tanstack/react-query/v/5.102.8)、[repository](https://github.com/TanStack/query)。
 - Zod `4.5.4`：[npm](https://www.npmjs.com/package/zod/v/4.5.4)、[repository](https://github.com/colinhacks/zod)。
@@ -578,6 +581,7 @@ Sentry 中的钱包地址默认哈希化；只有用户主动复制或进入区�
 - ZeroDev Kernel V3.3：[固定 tag](https://github.com/zerodevapp/kernel/tree/v3.3)、[`execute` 访问边界](https://github.com/zerodevapp/kernel/blob/v3.3/src/Kernel.sol#L330)、[batch 与失败语义](https://github.com/zerodevapp/kernel/blob/v3.3/src/utils/ExecLib.sol)、[Kernel 地址](https://github.com/zerodevapp/kernel/tree/v3.3#addresses)。
 - The Graph CLI `0.98.1`：[release](https://github.com/graphprotocol/graph-tooling/releases/tag/%40graphprotocol%2Fgraph-cli%400.98.1)、[Studio](https://thegraph.com/docs/en/subgraphs/providers/subgraph-studio/introduction/)。
 - Playwright `1.62.1`：[release](https://github.com/microsoft/playwright/releases/tag/v1.62.1)。
+- `@axe-core/playwright 4.13.0`：[npm](https://www.npmjs.com/package/@axe-core/playwright/v/4.13.0)。
 - Vitest `4.1.11`：[release](https://github.com/vitest-dev/vitest/releases/tag/v4.1.11)。
 - Testing Library `16.3.3`：[release](https://github.com/testing-library/react-testing-library/releases/tag/v16.3.3)。
 - vite `8.2.2`：[npm](https://www.npmjs.com/package/vite/v/8.2.2)、[repository](https://github.com/vitejs/vite)。
@@ -638,5 +642,5 @@ Sentry 中的钱包地址默认哈希化；只有用户主动复制或进入区�
 
 - locale 路由内部统一（`proxy.ts`）：`/zh/**` 与无前缀形态一律内部 rewrite 到 `/en/**` 路由树（`[locale]` 段内部恒为 `en`），跨语言客户端软导航命中同键段缓存、页面树不重挂载（组件 state 全保）。展示语言由 proxy 写入 `x-locale` 请求头下传；生产环境 rewrite 目标会二次进入 proxy，首跳已写入的 `x-locale` 不得覆写（en 分支带已设跳过守卫）。
 - 页面渲染语言改从 `lib/locale.ts getDisplayLocale()`（读 `x-locale`，缺失回退 `en`）取得，不再读 `params.locale`；7 个页面与 home `generateMetadata` 同步切换。
-- 语言切换导航（`components/prototype/locale-menu.tsx`）：软导航 `router.push` 后紧跟 `router.refresh()` 强制应用新语言载荷（路由树两侧同键时 push 拿不到新载荷——这是统一内部树的代价，refresh 保留组件 state）；popstate 对账（URL 前缀 vs 壳层 `lang` 不一致则 refresh）修正返回/前进的语言错配。首页例外走整页跳转：`/` 依 cookie 307，push+refresh 与预取缓存交错会漂到内部 canonical `/en`，首页无会话内状态可保，取确定性。对端链接在菜单挂载时预取（消除下拉初开即点的预取竞速整页刷新回退）；首页对端 href（`/`、`/zh`）不预取（307 跟随会污染预取缓存）。
+- 语言切换导航（`components/global/locale-menu.tsx`）：软导航 `router.push` 后紧跟 `router.refresh()` 强制应用新语言载荷（路由树两侧同键时 push 拿不到新载荷——这是统一内部树的代价，refresh 保留组件 state）；popstate 对账（URL 前缀 vs 壳层 `lang` 不一致则 refresh）修正返回/前进的语言错配。首页例外走整页跳转：`/` 依 cookie 307，push+refresh 与预取缓存交错会漂到内部 canonical `/en`，首页无会话内状态可保，取确定性。对端链接在菜单挂载时预取（消除下拉初开即点的预取竞速整页刷新回退）；首页对端 href（`/`、`/zh`）不预取（307 跟随会污染预取缓存）。
 - 事实依据（2026-09-26 生产预览实测）：跨 `[locale]` 段值变化的软导航必然重挂载页面子树（Next.js App Router 客户端缓存按段值索引），为本次修订前「切语言重置全站状态」的根因；模块级状态（如 `mock-wallet`）不受影响，故钱包在软导航下存活。

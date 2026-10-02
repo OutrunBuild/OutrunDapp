@@ -2,7 +2,7 @@
 
 ## 用途与边界
 
-- 仅用于原型渲染与测试（`fixtures/inspector/`、`components/prototype/**` 经 `lib/data/prototype-repository.ts`）。
+- 仅用于原型渲染与测试（`fixtures/inspector/`、`components/**`（ui/design-system 通用层除外）经 `lib/data/fixture-repository.ts`）。
 - **禁止生产导入**：唯一合法入口 `fixtures/index.ts`（导出带 `OUTRUN_FIXTURE_ONLY_v1` 哨兵）；生产代码路径见 `docs/page-briefs/fixture-boundary-contract.md` 与 `scripts/check-fixture-boundary.mjs`。
 - 所有地址 `fixtureOnly: true`，不冒充任何部署地址；部署地址只来自 `deployments/{chainId}.json`（阶段 4–6）。
 

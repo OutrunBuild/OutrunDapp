@@ -2,8 +2,8 @@
   "note": "fixture 冻结清单；自身条目 hash=self 不递归；重建：node scripts/write-fixture-manifest.mjs（输出确定性字节）",
   "items": {
     "fixtures/README.md": {
-      "bytes": 1896,
-      "sha256": "fb753d22697c528f97e0ff3bf195dfff74eead132f4c3338d9ea32554f3c3a6c"
+      "bytes": 1921,
+      "sha256": "57206dd93c0dfc8e12814ce77b3510fb556670406d81809d43833f6d628fbc9f"
     },
     "fixtures/data/accounts.json": {
       "bytes": 1361,
@@ -78,8 +78,8 @@
       "sha256": "60f5aebfe0be13a21645e90f59d86a9e06ca8e0a8d2053fc43c1f279f091b1c6"
     },
     "fixtures/index.ts": {
-      "bytes": 1531,
-      "sha256": "5df72ad532749de52f9df51f983c392996841e296514c5368c3c0c6ccc962f94"
+      "bytes": 1547,
+      "sha256": "7664b0c8be46cfc673532d0cf51f95e8863b6f0571721a35c8ce3cc1a11b7c2a"
     },
     "fixtures/inspector/index.html": {
       "bytes": 15533,

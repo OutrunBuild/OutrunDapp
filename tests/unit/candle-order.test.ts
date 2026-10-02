@@ -4,7 +4,7 @@
 // 有序性必须由数据层保证（fixture 快照 + extendHourlyHistory 派生接缝）。
 import { describe, expect, it } from 'vitest';
 
-import { getPrototypeSnapshot, getPrototypeVerseTrade } from '../../lib/data/prototype-repository';
+import { getFixtureSnapshot, getFixtureVerseTrade } from '../../lib/data/fixture-repository';
 
 function assertAscending(label: string, times: number[]) {
   for (let i = 1; i < times.length; i++) {
@@ -15,13 +15,13 @@ function assertAscending(label: string, times: number[]) {
 }
 
 describe('K线时间戳严格递增（lightweight-charts setData 前置条件）', () => {
-  const verses = getPrototypeSnapshot().verses.filter(
+  const verses = getFixtureSnapshot().verses.filter(
     (verse) => verse.stage === 'locked' || verse.stage === 'unlocked',
   );
 
   it('有 K 线样本的 locked/unlocked verse 数量 > 0（防快照掏空导致空转通过）', () => {
     const withCandles = verses.filter(
-      (verse) => (getPrototypeVerseTrade(verse.id)?.candles.length ?? 0) > 0,
+      (verse) => (getFixtureVerseTrade(verse.id)?.candles.length ?? 0) > 0,
     );
     expect(withCandles.length).toBeGreaterThan(0);
   });
@@ -29,7 +29,7 @@ describe('K线时间戳严格递增（lightweight-charts setData 前置条件）
   it.each(verses.map((verse) => [verse.id, verse.stage] as const))(
     '%s（%s）：1h 全量历史 + 细粒度样本严格递增',
     (verseId) => {
-      const trade = getPrototypeVerseTrade(verseId);
+      const trade = getFixtureVerseTrade(verseId);
       if (!trade || trade.candles.length === 0) return; // 无样本 verse 跳过（B3 降级口径）
       assertAscending(
         `${verseId} 1h`,

@@ -29,7 +29,7 @@
 
 ## 3. 已落地的页面组合
 
-### 3.1 Explore（`components/prototype/discovery-page.tsx` + `discovery-browser.tsx`）
+### 3.1 Explore（`components/discovery/discovery-page.tsx` + `discovery-browser.tsx`）
 
 `.discovery-intro` → `.lifecycle-tabs`（All + 四阶段，带计数）→ `.discovery-tools`（搜索 / 链筛选 ToggleGroup / 清除）→ `.discovery-results`（header 计数 + `.economy-grid` 卡片）→ 无结果 `.empty-state`。
 - 阶段过滤是 URL 状态（`?stage=`、`?chain=`、`?q=`），tab 是 `<a aria-current>`，可分享、可后退。

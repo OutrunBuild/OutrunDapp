@@ -1,4 +1,4 @@
-import { DiscoveryPage } from '@/components/prototype/discovery-page';
+import { DiscoveryPage } from '@/components/discovery/discovery-page';
 import { getDisplayLocale } from '@/lib/locale';
 
 export default async function LocalizedDiscovery({

@@ -5,12 +5,12 @@ import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { Check, ChevronDown } from 'lucide-react'
 
-import { ChainLogoMark } from '@/components/prototype/chain-icons'
+import { ChainLogoMark } from '@/components/global/chain-icons'
 
-import type { Locale, PrototypeChain } from '@/lib/data/prototype-repository'
+import type { Locale, FixtureChain } from '@/lib/data/fixture-repository'
 
-import { getCopy } from '@/components/prototype/copy'
-import { useMockWallet } from '@/components/prototype/mock-wallet'
+import { getCopy } from '@/components/global/copy'
+import { useMockWallet } from '@/components/global/mock-wallet'
 
 /**
  * GS-2 查看链选择器（弹窗版）：header 触发器显示当前链，弹窗列六链、背景虚化。
@@ -18,7 +18,7 @@ import { useMockWallet } from '@/components/prototype/mock-wallet'
  * 2026-09-24 用户裁定：本选择器=链切换唯一入口——当前链状态存 mock 钱包 chainId
  * （Yield Vault 链感知消费；卡内网络芯片已删），弹窗打开时仍从 URL 深链同步。
  */
-export function ChainSelectorDialog({ locale, chains }: { locale: Locale; chains: PrototypeChain[] }) {
+export function ChainSelectorDialog({ locale, chains }: { locale: Locale; chains: FixtureChain[] }) {
   const copy = getCopy(locale)
   const router = useRouter()
   const [open, setOpen] = useState(false)
