@@ -6,6 +6,11 @@ import { FIXED_NOW, PAGES, ZH_PAGES } from './pages';
 // 动效冻结走 reduced-motion + animation:none 双保险。
 // 首次跑自动写入基线（e2e/*-snapshots/，入库）；更新基线必须人工确认 diff：
 //   pnpm test:e2e -- --update-snapshots
+//
+// 整页截图对 position:fixed/sticky 有已知采集伪影（captureBeyondViewport 单帧采集，fixed 冻结于
+// 初始视口位、sticky 落回流位）：mobile/tablet 基线里固定底导航悬浮在 y=视口高−64（390 档 780、
+// 860 档 836）压住中部内容；desktop 基线里 100dvh 侧栏只画首屏 ~800px、launch 费用条画在导航下方。
+// 真人视口不存在这些画面（底栏钉视口底缘、内容滚过其下）——预期噪音，勿据此修页面（§3.2 告示）。
 
 test.beforeEach(async ({ page }) => {
   // install 后 pauseAt：时间冻结不走表，跑测试的几秒内 Date.now() 也恒定

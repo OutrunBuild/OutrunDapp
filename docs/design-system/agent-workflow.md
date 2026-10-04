@@ -32,13 +32,15 @@ pnpm check:contrast   # token 对比度双闸门（scripts/check-design-contrast
 
 裸值扫描（实现、豁免表与排除项见脚本文件头）：产品 `components/`、`app/` 的 `.tsx` 中裸 `#hex`、Tailwind 原始调色板类、`space-x/y-*`、`transition: 'all'`（含内联样式引号形态）；注释先剥离（注释里的 issue 号 `#1178` 不误报）；豁免表唯一条目 = `app/layout.tsx` 的 viewport `themeColor`（meta 无法引用 CSS 变量，品牌锚必要镜像）。排除 Stage-01 内部审阅工具（`components/axis-choice/`、`direction-choice/`、`app/design-review/`）。
 
-对比度闸门：从 `tokens.css` 解析实际 hex 按配对表算 WCAG 比率，双校验——低于下限（正文 4.5 / 大字图形 3.0）= 回归 FAIL；与 `DESIGN.md` §2 登记实测值差 >0.05 = 文档漂移 FAIL。改 token 颜色必须同步 `DESIGN.md` §2 与脚本配对表（色值本身变更走 decision-log 决议）。
+对比度闸门：从 `tokens.css` 解析实际 hex 按配对表算 WCAG 比率，双校验——低于下限（正文 4.5 / 大字图形 3.0）= 回归 FAIL；与 `DESIGN.md` §2 登记实测值差 >0.05 = 文档漂移 FAIL。边框装饰对（`--color-border(-strong)`）无 WCAG 下限（min 1.0），doc 按登记 hex 现算、仅承担值锁防漂移——边框渲染面积低于视觉基线 `maxDiffPixelRatio` 阈值，像素闸门不保证拦截，值锁补位。改 token 颜色必须同步 `DESIGN.md` §2 与脚本配对表（色值本身变更走 decision-log 决议）。
 
-基线（2026-09-30）：裸值 0 命中、对比度 14 配对全过、`tsc --noEmit` 通过。
+基线（2026-09-30）：裸值 0 命中、对比度 14 配对全过、`tsc --noEmit` 通过（2026-10-03 扩入边框值锁对 → 16 配对，含漂移开火双向验证，重跑全过）。
 
 ### 3.2 浏览器（自动基线 + 人工抽查）
 
 已入基线的路由跑 Playwright 视觉回归：`pnpm test:e2e`。三档视口（1280×800 / 860×900 / 390×844）、DPR 固定 1、时钟钉 2026-10-01、动效冻结后整页截图比对；axe 无障碍扫描同套路由（`e2e/a11y.spec.ts`，新增违规即 FAIL）。构建走 `NEXT_DIST_DIR=.next-e2e` 独立产物目录，**不碰 `.next`**，与运行中的 dev/生产预览无冲突（部署纪律见 AGENTS.md 已知坑）。改样式后直接跑，像素 diff 自动报出。
+
+整页截图伪影告示：fullPage 走 CDP captureBeyondViewport 单帧采集，`position:fixed` 元素冻结在初始视口位、`sticky` 落回流位——mobile-390/tablet-860 基线里固定底导航悬浮于 y=780/836（视口高−64px）压住中部内容，desktop-1280 基线里 100dvh 侧栏只画首屏 ~800px、launch 费用条画在导航下方（空间关系倒错）。真人视口中底栏恒钉视口底缘、内容从其下滚过（`.product-main` ≤54rem 有 88px 底部预留）。看基线图/处理视觉 diff 时，这些是**预期噪音，勿当遮挡 bug 修页面**。
 
 基线外的新页面/新交互，用 `agent-browser` 人工抽查，随后补进 `e2e/visual.spec.ts` 基线：
 

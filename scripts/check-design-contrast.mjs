@@ -83,6 +83,21 @@ const PAIRS = [
     min: 3.0,
     why: '品红仅 ≥20px 大字/图形（决议 015）',
   },
+  // 边框（装饰性冷灰阶，DESIGN.md §2 无对比度档位；doc=按登记 hex 现算，仅值锁防漂移）
+  {
+    fg: '--color-border',
+    bg: '--color-surface',
+    doc: 1.29,
+    min: 1.0,
+    why: '装饰边框值锁（无 WCAG 下限）',
+  },
+  {
+    fg: '--color-border-strong',
+    bg: '--color-surface',
+    doc: 1.76,
+    min: 1.0,
+    why: 'hover/激活边框值锁（无 WCAG 下限）',
+  },
   // on --color-bg（页面底；文档未单列，回归闸兜底）
   { fg: '--color-text', bg: '--color-bg', doc: null, min: 4.5, why: '正文 on 页面底' },
   { fg: '--color-text-secondary', bg: '--color-bg', doc: null, min: 4.5, why: '次级 on 页面底' },
