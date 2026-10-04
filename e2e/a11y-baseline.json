@@ -2,20 +2,7 @@
   "home": [],
   "explore": [],
   "launch": [],
-  "verse-21": [
-    {
-      "id": "aria-allowed-attr",
-      "impact": "critical",
-      "help": "Elements must only use supported ARIA attributes",
-      "nodes": 3
-    },
-    {
-      "id": "button-name",
-      "impact": "critical",
-      "help": "Buttons must have discernible text",
-      "nodes": 1
-    }
-  ],
+  "verse-21": [],
   "portfolio": [],
   "design-system": []
 }

@@ -402,6 +402,8 @@ const en = {
       granularity: 'Candle size',
       syncing: 'Syncing — history unavailable in this snapshot',
       ohlc: { open: 'O', high: 'H', low: 'L', close: 'C' },
+      chartAlt: 'candlestick chart',
+      vol: 'Vol',
       // —— Swap ——
       swapTitle: 'Swap',
       swapSell: 'Sell',
@@ -421,8 +423,12 @@ const en = {
       totalSupplyFull: 'Total Supply',
       slippageTolerance: 'Slippage tolerance',
       slippageTip: 'If the price moves against you by more than this percent, the swap reverts.',
+      slippageTooLow:
+        'Slippage under 0.01% reverts the transaction on any price move — enter 0.01% or higher.',
+      slippageTooHigh: 'Slippage cannot exceed 50% — enter a lower tolerance.',
       transactionDeadline: 'Transaction deadline',
       deadlineTip: 'If the swap stays pending longer than this, it reverts.',
+      deadlineWholeMinutes: 'Deadline only accepts whole minutes.',
       route: 'Route',
       // —— Swap 代币选择（2026-09-27：输入/输出侧代币可点开选择弹窗；路径行随所选对组词——
       //     四池路由 four-pools.md、YT 走 PT/POL 池 Flash Swap yt-flash-swap.md）——
@@ -1065,6 +1071,8 @@ const zh: typeof en = {
       granularity: '蜡烛粒度',
       syncing: '同步中 · 本快照暂无该粒度历史',
       ohlc: { open: '开', high: '高', low: '低', close: '收' },
+      chartAlt: 'K 线图',
+      vol: '量',
       swapTitle: '兑换',
       swapSell: '卖出',
       swapBuy: '买入',
@@ -1083,8 +1091,11 @@ const zh: typeof en = {
       totalSupplyFull: '总供应',
       slippageTolerance: '滑点容忍度',
       slippageTip: '若价格向不利方向变动超过该比例，兑换将回退。',
+      slippageTooLow: '滑点低于 0.01% 时，价格稍有波动交易就会回退，请设为 0.01% 或更高。',
+      slippageTooHigh: '滑点不能超过 50%，请调低。',
       transactionDeadline: '交易截止时间',
       deadlineTip: '若兑换在此时长内未完成确认，将回退。',
+      deadlineWholeMinutes: '截止时间只接受整数分钟。',
       route: '路径',
       // —— Swap 代币选择（2026-09-27：键位同 en 段注释）——
       routePoolMain: '主池',

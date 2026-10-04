@@ -8,6 +8,7 @@ import type { Locale, FixtureStaking } from '@/lib/data/fixture-repository'
 import { getCopy } from '../global/copy'
 import { useMockWallet } from '../global/mock-wallet'
 import { formatAmount, formatDay } from '../global/signal-ui'
+import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
 import { Button } from '@/components/ui/button'
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -165,7 +166,7 @@ export function VaultActions({
                 type="button"
                 className="swap-panel__max"
                 disabled={myMemecoin == null || myMemecoin <= 0}
-                onClick={() => setStakeAmount(String(myMemecoin ?? 0))}
+                onClick={() => setStakeAmount(amountToInputString(myMemecoin ?? 0))}
               >
                 {copy.max}
               </button>
@@ -177,7 +178,8 @@ export function VaultActions({
               inputMode="decimal"
               placeholder="0.00"
               value={stakeAmount}
-              onChange={(event) => setStakeAmount(event.target.value.replace(/[^\d.]/g, ''))}
+              maxLength={AMOUNT_MAX_CHARS}
+              onChange={(event) => setStakeAmount(sanitizeAmount(event.target.value))}
               aria-label={`${copy.amount} (${symbol})`}
             />
             <div className="swap-panel__token">
@@ -307,7 +309,7 @@ export function VaultActions({
                     type="button"
                     className="swap-panel__max"
                     disabled={myShares <= 0}
-                    onClick={() => setRedeemAmount(String(myShares))}
+                    onClick={() => setRedeemAmount(amountToInputString(myShares))}
                   >
                     {copy.max}
                   </button>
@@ -319,7 +321,8 @@ export function VaultActions({
                   inputMode="decimal"
                   placeholder="0.00"
                   value={redeemAmount}
-                  onChange={(event) => setRedeemAmount(event.target.value.replace(/[^\d.]/g, ''))}
+                  maxLength={AMOUNT_MAX_CHARS}
+                  onChange={(event) => setRedeemAmount(sanitizeAmount(event.target.value))}
                   aria-label={`${copy.amount} (${shareSymbol})`}
                 />
                 <div className="swap-panel__token">

@@ -1,20 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { ArrowDown, ArrowLeftRight, Info, Settings2, X } from 'lucide-react'
 
 import type { Locale, FixturePolPosition, FixtureVerseTrade } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { useMockWallet } from '../global/mock-wallet'
-import {
-  AMOUNT_MAX_CHARS,
-  COMPACT_AMOUNT_THRESHOLD,
-  DEADLINE_PRESETS,
-  SCIENTIFIC_AMOUNT_THRESHOLD,
-  SLIPPAGE_PRESETS,
-} from './swap-panel'
+import { DEADLINE_PRESETS, SLIPPAGE_PRESETS, isWholeMinutes } from './swap-panel'
 import { formatAmount } from '../global/signal-ui'
+import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
+import { fmtTokenAmount, fmtUsd } from '../global/amount-format'
+import { getSlippageIssue, slippageErrorCopyKey } from '../global/slippage-input'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -23,6 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -73,6 +71,9 @@ export function PoolAddLiquidityDialog({
   const common = getCopy(locale).common
   const { connected, toggle } = useMockWallet()
   const [baseAmount, setBaseAmount] = useState('')
+  const receiveLabelId = useId()
+  const slippageErrorId = useId()
+  const deadlineErrorId = useId()
   const [quoteAmount, setQuoteAmount] = useState('')
   const [slippage, setSlippage] = useState<number>(0.5)
   const [deadlineMin, setDeadlineMin] = useState<number>(10)
@@ -109,37 +110,27 @@ export function PoolAddLiquidityDialog({
   const valid = Number.isFinite(baseVal) && baseVal > 0 && Number.isFinite(quoteVal) && quoteVal > 0
   // LP 铸得 = quote 侧 × lpPerQuote（铸得率 fixture 样本，线性推导、以链上读值为准）
   const lpOut = valid && pool.lpPerQuote != null && pool.lpPerQuote > 0 ? quoteVal * pool.lpPerQuote : null
-  const minLp = lpOut != null ? lpOut * (1 - slippage / 100) : null
+  // 滑点校验=§25 口径（slippage-input.ts）：越界期间保护值推导退 '--' 槽位
+  const slippageIssue = getSlippageIssue(slippage)
+  const deadlineValid = isWholeMinutes(deadlineMin)
+  const minLp = lpOut != null && slippageIssue == null ? lpOut * (1 - slippage / 100) : null
 
   // 双侧联动：有配比样本的池按 ratio 补算另一侧（同 PolMintDialog，清空同步清另一侧）；
   // ratio 缺失（pol 记录缺失的 PT 池）→ 两侧独立输入互不干扰
-  const fmtDerived = (value: number) => (Number.isFinite(value) && value > 0 ? String(Number(value.toFixed(6))) : '')
   const onBaseInput = (raw: string) => {
     setBaseAmount(raw)
     if (ratio == null || ratio <= 0) return
     const value = Number(raw)
-    setQuoteAmount(value > 0 ? fmtDerived(value * ratio) : '')
+    setQuoteAmount(value > 0 ? amountToInputString(value * ratio) : '')
   }
   const onQuoteInput = (raw: string) => {
     setQuoteAmount(raw)
     if (ratio == null || ratio <= 0) return
     const value = Number(raw)
-    setBaseAmount(value > 0 ? fmtDerived(value / ratio) : '')
+    setBaseAmount(value > 0 ? amountToInputString(value / ratio) : '')
   }
 
-  // 大数分层展示：同 swap-panel 口径（≥1e15 紧凑 / ≥1e21 科学记法）
-  const localeTag = locale === 'zh' ? 'zh-CN' : 'en-US'
-  const fmtTiered = (value: number, compactDigits: number, normal: (v: number) => string) => {
-    const abs = Math.abs(value)
-    if (abs >= SCIENTIFIC_AMOUNT_THRESHOLD)
-      return value.toLocaleString(localeTag, { notation: 'scientific', maximumFractionDigits: compactDigits })
-    if (abs >= COMPACT_AMOUNT_THRESHOLD)
-      return value.toLocaleString(localeTag, { notation: 'compact', maximumFractionDigits: compactDigits })
-    return normal(value)
-  }
-  const fmtUsd = (value: number) =>
-    fmtTiered(value, 2, (v) => v.toLocaleString(localeTag, { maximumFractionDigits: 2 }))
-  const fmtTokenAmount = (value: number) => fmtTiered(value, 4, (v) => v.toFixed(6))
+  // 大数分层口径=global/amount-format（fmtUsd/fmtTokenAmount）
   // ≈$ 换算价（uAsset 计）：base 侧主池/POL 池有市场价样本、PT 侧=锚定汇率 uAssetPerPol；
   // quote 侧 uAsset=1、PT/POL 池=polPrice
   const baseUsdPrice =
@@ -148,11 +139,11 @@ export function PoolAddLiquidityDialog({
   const baseUsd =
     uAssetUsd == null || !valid || baseUsdPrice == null || baseUsdPrice <= 0
       ? null
-      : fmtUsd(baseVal * baseUsdPrice * uAssetUsd)
+      : fmtUsd(baseVal * baseUsdPrice * uAssetUsd, locale)
   const quoteUsd =
     uAssetUsd == null || !valid || quoteUsdPrice == null || quoteUsdPrice <= 0
       ? null
-      : fmtUsd(quoteVal * quoteUsdPrice * uAssetUsd)
+      : fmtUsd(quoteVal * quoteUsdPrice * uAssetUsd, locale)
 
   return (
     <Dialog>
@@ -199,15 +190,22 @@ export function PoolAddLiquidityDialog({
                           className="swap-settings__custom numeric-input"
                           inputMode="decimal"
                           aria-label={`${copy.slippageTolerance} %`}
+                          aria-invalid={slippageIssue != null || undefined}
+                          aria-describedby={slippageIssue != null ? slippageErrorId : undefined}
                           value={slippage}
                           onChange={(event) => {
-                            const next = Number(event.target.value.replace(/[^\d.]/g, ''))
+                            const next = Number(sanitizeAmount(event.target.value))
                             setSlippage(Number.isFinite(next) && next >= 0 ? next : 0)
                           }}
                         />
                         <b aria-hidden="true">%</b>
                       </span>
                     </div>
+                    {slippageIssue != null ? (
+                      <FieldError id={slippageErrorId}>
+                        {copy[slippageErrorCopyKey(slippageIssue)]}
+                      </FieldError>
+                    ) : null}
                   </div>
                   <div className="swap-settings__row">
                     <span className="swap-settings__label">
@@ -230,15 +228,20 @@ export function PoolAddLiquidityDialog({
                           className="swap-settings__custom numeric-input"
                           inputMode="numeric"
                           aria-label={`${copy.transactionDeadline} min`}
+                          aria-invalid={!deadlineValid || undefined}
+                          aria-describedby={!deadlineValid ? deadlineErrorId : undefined}
                           value={deadlineMin}
                           onChange={(event) => {
-                            const next = Number(event.target.value.replace(/[^\d.]/g, ''))
+                            const next = Number(sanitizeAmount(event.target.value))
                             setDeadlineMin(Number.isFinite(next) && next > 0 ? next : 1)
                           }}
                         />
                         <b aria-hidden="true">min</b>
                       </span>
                     </div>
+                    {!deadlineValid ? (
+                      <FieldError id={deadlineErrorId}>{copy.deadlineWholeMinutes}</FieldError>
+                    ) : null}
                   </div>
                 </PopoverContent>
               </Popover>
@@ -267,7 +270,7 @@ export function PoolAddLiquidityDialog({
                   type="button"
                   className="swap-panel__max"
                   disabled={baseBalance == null || baseBalance <= 0}
-                  onClick={() => onBaseInput(fmtDerived(baseBalance ?? 0))}
+                  onClick={() => onBaseInput(amountToInputString(baseBalance ?? 0))}
                 >
                   {copy.max}
                 </button>
@@ -280,7 +283,7 @@ export function PoolAddLiquidityDialog({
                 placeholder="0.00"
                 value={baseAmount}
                 maxLength={AMOUNT_MAX_CHARS}
-                onChange={(event) => onBaseInput(event.target.value.replace(/[^\d.]/g, ''))}
+                onChange={(event) => onBaseInput(sanitizeAmount(event.target.value))}
                 aria-label={`${copy.addLiquidityDialogTitle} ${pool.baseSymbol}`}
               />
               <div className="swap-panel__token">
@@ -303,7 +306,7 @@ export function PoolAddLiquidityDialog({
                   type="button"
                   className="swap-panel__max"
                   disabled={quoteBalance == null || quoteBalance <= 0}
-                  onClick={() => onQuoteInput(fmtDerived(quoteBalance ?? 0))}
+                  onClick={() => onQuoteInput(amountToInputString(quoteBalance ?? 0))}
                 >
                   {copy.max}
                 </button>
@@ -316,7 +319,7 @@ export function PoolAddLiquidityDialog({
                 placeholder="0.00"
                 value={quoteAmount}
                 maxLength={AMOUNT_MAX_CHARS}
-                onChange={(event) => onQuoteInput(event.target.value.replace(/[^\d.]/g, ''))}
+                onChange={(event) => onQuoteInput(sanitizeAmount(event.target.value))}
                 aria-label={`${copy.addLiquidityDialogTitle} ${pool.quoteSymbol}`}
               />
               <div className="swap-panel__token">
@@ -330,14 +333,18 @@ export function PoolAddLiquidityDialog({
             <ArrowDown size={16} />
           </span>
 
-          <div className="swap-panel__field">
+          <div className="swap-panel__field" role="group" aria-labelledby={receiveLabelId}>
             <div className="swap-panel__field-head">
-              <span>{copy.mintYouReceive}</span>
+              <span id={receiveLabelId}>{copy.mintYouReceive}</span>
             </div>
             <div className="swap-panel__field-row">
-              <output className="swap-panel__output numeric-input" data-numeric>
+              <output
+                className="swap-panel__output numeric-input"
+                data-numeric
+                aria-label={`${copy.mintYouReceive} ${lpSymbol}`}
+              >
                 {lpOut != null ? (
-                  fmtTokenAmount(lpOut)
+                  fmtTokenAmount(lpOut, locale)
                 ) : valid ? (
                   <span className="ax-slot">{copy.onChainSlot}</span>
                 ) : (
@@ -358,8 +365,8 @@ export function PoolAddLiquidityDialog({
                   <span data-numeric>
                     {ratio != null && ratio > 0
                       ? rateInverted
-                        ? `1 ${pool.quoteSymbol} ≈ ${(1 / ratio).toFixed(6)} ${pool.baseSymbol}`
-                        : `1 ${pool.baseSymbol} ≈ ${ratio.toFixed(6)} ${pool.quoteSymbol}`
+                        ? `1 ${pool.quoteSymbol} ≈ ${fmtTokenAmount(1 / ratio, locale)} ${pool.baseSymbol}`
+                        : `1 ${pool.baseSymbol} ≈ ${fmtTokenAmount(ratio, locale)} ${pool.quoteSymbol}`
                       : '--'}
                   </span>
                   <button
@@ -376,12 +383,12 @@ export function PoolAddLiquidityDialog({
               <div>
                 <dt>{copy.minReceived}</dt>
                 <dd data-numeric>
-                  {minLp != null ? `${fmtTokenAmount(minLp)} ${lpSymbol}` : '--'}
+                  {minLp != null ? `${fmtTokenAmount(minLp, locale)} ${lpSymbol}` : '--'}
                 </dd>
               </div>
               <div>
                 <dt>{copy.maxSlippage}</dt>
-                <dd data-numeric>{slippage}%</dd>
+                <dd data-numeric>{slippageIssue == null ? `${slippage}%` : '--'}</dd>
               </div>
             </dl>
           ) : null}

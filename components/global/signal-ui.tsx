@@ -96,15 +96,17 @@ export function SectionHeading({
   title,
   description,
   aside,
+  id,
 }: {
   title: string
   description?: string
   aside?: React.ReactNode
+  id?: string
 }) {
   return (
     <header className="section-heading ax-echo-bar">
       <div className="section-heading__row">
-        <h2>{title}</h2>
+        <h2 id={id}>{title}</h2>
         {aside ? <div className="section-heading__aside">{aside}</div> : null}
       </div>
       {description ? <p>{description}</p> : null}

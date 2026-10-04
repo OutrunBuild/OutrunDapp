@@ -160,8 +160,8 @@ export function CandleChart({
       rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.1, bottom: 0.22 } },
       timeScale: { borderVisible: false, timeVisible: true, secondsVisible: false },
       crosshair: {
-        vertLine: { color: 'rgba(0, 240, 255, 0.35)', labelBackgroundColor: cssVar('--color-surface-raised') },
-        horzLine: { color: 'rgba(0, 240, 255, 0.35)', labelBackgroundColor: cssVar('--color-surface-raised') },
+        vertLine: { color: withAlpha(cssVar('--or-cyan'), 0.35), labelBackgroundColor: cssVar('--color-surface-raised') },
+        horzLine: { color: withAlpha(cssVar('--or-cyan'), 0.35), labelBackgroundColor: cssVar('--color-surface-raised') },
       },
     })
     const up = cssVar('--color-success')
@@ -295,7 +295,7 @@ export function CandleChart({
         </ToggleGroup>
       </div>
       {series.length > 0 && active ? (
-        <div className="candle-chart__plot" role="img" aria-label={`${pairLabel} OHLC`}>
+        <div className="candle-chart__plot">
           <div className="candle-chart__legend" data-numeric>
             <span>
               {copy.ohlc.open} <i>{active.o.toFixed(6)}</i>
@@ -314,7 +314,7 @@ export function CandleChart({
               {change.toFixed(2)}%
             </i>
             <span>
-              Vol <i>{formatAmount(active.v, locale, true)}</i>
+              {copy.vol} <i>{formatAmount(active.v, locale, true)}</i>
             </span>
             {MA_WINDOWS.map((window, i) =>
               activeMas[i] != null ? (
@@ -324,7 +324,12 @@ export function CandleChart({
               ) : null,
             )}
           </div>
-          <div className="candle-chart__holder" ref={containerRef} />
+          <div
+            className="candle-chart__holder"
+            ref={containerRef}
+            role="img"
+            aria-label={`${pairLabel} ${copy.chartAlt}`}
+          />
         </div>
       ) : (
         <div className="candle-chart__empty">{copy.syncing}</div>

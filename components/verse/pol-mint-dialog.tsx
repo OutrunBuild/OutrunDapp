@@ -1,20 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { ArrowDown, ArrowLeftRight, Info, Settings2, X } from 'lucide-react'
 
 import type { Locale, FixturePolPosition, FixtureVerse } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { useMockWallet } from '../global/mock-wallet'
-import {
-  AMOUNT_MAX_CHARS,
-  COMPACT_AMOUNT_THRESHOLD,
-  DEADLINE_PRESETS,
-  SCIENTIFIC_AMOUNT_THRESHOLD,
-  SLIPPAGE_PRESETS,
-} from './swap-panel'
+import { DEADLINE_PRESETS, SLIPPAGE_PRESETS, isWholeMinutes } from './swap-panel'
 import { formatAmount } from '../global/signal-ui'
+import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
+import { fmtTokenAmount, fmtUsd } from '../global/amount-format'
+import { getSlippageIssue, slippageErrorCopyKey } from '../global/slippage-input'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -23,6 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -65,6 +63,9 @@ export function PolMintDialog({
   const common = getCopy(locale).common
   const { connected, toggle } = useMockWallet()
   const [memeAmount, setMemeAmount] = useState('')
+  const receiveLabelId = useId()
+  const slippageErrorId = useId()
+  const deadlineErrorId = useId()
   const [uAmount, setUAmount] = useState('')
   const [slippage, setSlippage] = useState<number>(0.5)
   const [deadlineMin, setDeadlineMin] = useState<number>(10)
@@ -76,36 +77,29 @@ export function PolMintDialog({
   const valid = Number.isFinite(memeVal) && memeVal > 0 && Number.isFinite(uVal) && uVal > 0
   // POL 输出 = uAsset 侧 ÷ 每 POL 的 uAsset 侧（线性推导样本，以链上读值为准）
   const polOut = valid && pol.uAssetPerPol > 0 ? uVal / pol.uAssetPerPol : null
-  const minPol = polOut != null ? polOut * (1 - slippage / 100) : null
+  // 滑点校验=§25 口径（slippage-input.ts）：越界期间保护值推导退 '--' 槽位
+  const slippageIssue = getSlippageIssue(slippage)
+  const deadlineValid = isWholeMinutes(deadlineMin)
+  const minPol = polOut != null && slippageIssue == null ? polOut * (1 - slippage / 100) : null
 
   // 双侧联动：主池全范围两侧等值（OutrunBook pol-splitter.md），另一侧按 price 配比补算
-  const fmtDerived = (value: number) => (Number.isFinite(value) && value > 0 ? String(Number(value.toFixed(6))) : '')
   const onMemeInput = (raw: string) => {
     setMemeAmount(raw)
     const value = Number(raw)
-    setUAmount(price != null && price > 0 && value > 0 ? fmtDerived(value * price) : '')
+    setUAmount(price != null && price > 0 && value > 0 ? amountToInputString(value * price) : '')
   }
   const onUInput = (raw: string) => {
     setUAmount(raw)
     const value = Number(raw)
-    setMemeAmount(price != null && price > 0 && value > 0 ? fmtDerived(value / price) : '')
+    setMemeAmount(price != null && price > 0 && value > 0 ? amountToInputString(value / price) : '')
   }
 
-  // 大数分层展示：同 swap-panel 口径（≥1e15 紧凑 / ≥1e21 科学记法）
-  const localeTag = locale === 'zh' ? 'zh-CN' : 'en-US'
-  const fmtTiered = (value: number, compactDigits: number, normal: (v: number) => string) => {
-    const abs = Math.abs(value)
-    if (abs >= SCIENTIFIC_AMOUNT_THRESHOLD)
-      return value.toLocaleString(localeTag, { notation: 'scientific', maximumFractionDigits: compactDigits })
-    if (abs >= COMPACT_AMOUNT_THRESHOLD)
-      return value.toLocaleString(localeTag, { notation: 'compact', maximumFractionDigits: compactDigits })
-    return normal(value)
-  }
-  const fmtUsd = (value: number) =>
-    fmtTiered(value, 2, (v) => v.toLocaleString(localeTag, { maximumFractionDigits: 2 }))
-  const fmtTokenAmount = (value: number) => fmtTiered(value, 4, (v) => v.toFixed(6))
-  const memeUsd = uAssetUsd == null || !valid ? null : fmtUsd(memeVal * price! * uAssetUsd)
-  const uUsd = uAssetUsd == null || !valid ? null : fmtUsd(uVal * uAssetUsd)
+  // 大数分层口径=global/amount-format（fmtUsd/fmtTokenAmount）
+  const memeUsd =
+    uAssetUsd == null || !valid || price == null || price <= 0
+      ? null
+      : fmtUsd(memeVal * price * uAssetUsd, locale)
+  const uUsd = uAssetUsd == null || !valid ? null : fmtUsd(uVal * uAssetUsd, locale)
 
   return (
     <Dialog>
@@ -152,15 +146,22 @@ export function PolMintDialog({
                           className="swap-settings__custom numeric-input"
                           inputMode="decimal"
                           aria-label={`${copy.slippageTolerance} %`}
+                          aria-invalid={slippageIssue != null || undefined}
+                          aria-describedby={slippageIssue != null ? slippageErrorId : undefined}
                           value={slippage}
                           onChange={(event) => {
-                            const next = Number(event.target.value.replace(/[^\d.]/g, ''))
+                            const next = Number(sanitizeAmount(event.target.value))
                             setSlippage(Number.isFinite(next) && next >= 0 ? next : 0)
                           }}
                         />
                         <b aria-hidden="true">%</b>
                       </span>
                     </div>
+                    {slippageIssue != null ? (
+                      <FieldError id={slippageErrorId}>
+                        {copy[slippageErrorCopyKey(slippageIssue)]}
+                      </FieldError>
+                    ) : null}
                   </div>
                   <div className="swap-settings__row">
                     <span className="swap-settings__label">
@@ -183,15 +184,20 @@ export function PolMintDialog({
                           className="swap-settings__custom numeric-input"
                           inputMode="numeric"
                           aria-label={`${copy.transactionDeadline} min`}
+                          aria-invalid={!deadlineValid || undefined}
+                          aria-describedby={!deadlineValid ? deadlineErrorId : undefined}
                           value={deadlineMin}
                           onChange={(event) => {
-                            const next = Number(event.target.value.replace(/[^\d]/g, ''))
+                            const next = Number(sanitizeAmount(event.target.value))
                             setDeadlineMin(Number.isFinite(next) && next > 0 ? next : 1)
                           }}
                         />
                         <b aria-hidden="true">min</b>
                       </span>
                     </div>
+                    {!deadlineValid ? (
+                      <FieldError id={deadlineErrorId}>{copy.deadlineWholeMinutes}</FieldError>
+                    ) : null}
                   </div>
                 </PopoverContent>
               </Popover>
@@ -211,7 +217,7 @@ export function PolMintDialog({
               <span>{copy.mintSideMeme}</span>
               <span className="swap-panel__balance">
                 {copy.balance}: <span data-numeric>{formatAmount(pol.myMemecoin, locale)}</span>
-                <button type="button" className="swap-panel__max" onClick={() => onMemeInput(fmtDerived(pol.myMemecoin))}>
+                <button type="button" className="swap-panel__max" onClick={() => onMemeInput(amountToInputString(pol.myMemecoin))}>
                   {copy.max}
                 </button>
               </span>
@@ -223,7 +229,7 @@ export function PolMintDialog({
                 placeholder="0.00"
                 value={memeAmount}
                 maxLength={AMOUNT_MAX_CHARS}
-                onChange={(event) => onMemeInput(event.target.value.replace(/[^\d.]/g, ''))}
+                onChange={(event) => onMemeInput(sanitizeAmount(event.target.value))}
                 aria-label={`${copy.mintSupply} ${verse.symbol}`}
               />
               <div className="swap-panel__token">
@@ -237,7 +243,7 @@ export function PolMintDialog({
               <span>{copy.mintSideUasset}</span>
               <span className="swap-panel__balance">
                 {copy.balance}: <span data-numeric>{formatAmount(pol.myUAsset, locale)}</span>
-                <button type="button" className="swap-panel__max" onClick={() => onUInput(fmtDerived(pol.myUAsset))}>
+                <button type="button" className="swap-panel__max" onClick={() => onUInput(amountToInputString(pol.myUAsset))}>
                   {copy.max}
                 </button>
               </span>
@@ -249,7 +255,7 @@ export function PolMintDialog({
                 placeholder="0.00"
                 value={uAmount}
                 maxLength={AMOUNT_MAX_CHARS}
-                onChange={(event) => onUInput(event.target.value.replace(/[^\d.]/g, ''))}
+                onChange={(event) => onUInput(sanitizeAmount(event.target.value))}
                 aria-label={`${copy.mintSupply} ${verse.raiseAsset}`}
               />
               <div className="swap-panel__token">
@@ -263,16 +269,20 @@ export function PolMintDialog({
             <ArrowDown size={16} />
           </span>
 
-          <div className="swap-panel__field">
+          <div className="swap-panel__field" role="group" aria-labelledby={receiveLabelId}>
             <div className="swap-panel__field-head">
-              <span>{copy.mintYouReceive}</span>
+              <span id={receiveLabelId}>{copy.mintYouReceive}</span>
               <span>
                 {copy.balance}: <span data-numeric>{formatAmount(pol.myPol, locale)}</span> {polSymbol}
               </span>
             </div>
             <div className="swap-panel__field-row">
-              <output className="swap-panel__output numeric-input" data-numeric>
-                {polOut != null ? fmtTokenAmount(polOut) : '0.00'}
+              <output
+                className="swap-panel__output numeric-input"
+                data-numeric
+                aria-label={`${copy.mintYouReceive} ${polSymbol}`}
+              >
+                {polOut != null ? fmtTokenAmount(polOut, locale) : '0.00'}
               </output>
               <div className="swap-panel__token">
                 <strong>{polSymbol}</strong>
@@ -288,8 +298,8 @@ export function PolMintDialog({
                   <span data-numeric>
                     {price != null && price > 0
                       ? rateInverted
-                        ? `1 ${verse.raiseAsset} ≈ ${(1 / price).toFixed(6)} ${verse.symbol}`
-                        : `1 ${verse.symbol} ≈ ${price.toFixed(6)} ${verse.raiseAsset}`
+                        ? `1 ${verse.raiseAsset} ≈ ${fmtTokenAmount(1 / price, locale)} ${verse.symbol}`
+                        : `1 ${verse.symbol} ≈ ${fmtTokenAmount(price, locale)} ${verse.raiseAsset}`
                       : '--'}
                   </span>
                   <button
@@ -306,12 +316,12 @@ export function PolMintDialog({
               <div>
                 <dt>{copy.minReceived}</dt>
                 <dd data-numeric>
-                  {minPol != null ? `${fmtTokenAmount(minPol)} ${polSymbol}` : '--'}
+                  {minPol != null ? `${fmtTokenAmount(minPol, locale)} ${polSymbol}` : '--'}
                 </dd>
               </div>
               <div>
                 <dt>{copy.maxSlippage}</dt>
-                <dd data-numeric>{slippage}%</dd>
+                <dd data-numeric>{slippageIssue == null ? `${slippage}%` : '--'}</dd>
               </div>
             </dl>
           ) : null}

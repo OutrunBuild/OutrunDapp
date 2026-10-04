@@ -12,7 +12,9 @@ import { SwapPanel } from './swap-panel'
 import { formatAmount, formatMarketCap, formatPercent } from '../global/signal-ui'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
-/** 统计胶囊：本体走 dl/dt/dd，挂悬停气泡（全称+完整数值+口径说明——2026-09-23 用户裁定） */
+/** 统计胶囊：本体走 dl/dt/dd；触发器=dd 内可聚焦 button（Tab 可达——2026-10-03 修键盘不可达，对齐 f50ea4d 触发器契约，
+ *  此前 render={<div/>} 整体替换默认 button 不进 Tab 链）；aria-label 含可见值+全称+全量（WCAG 2.5.3 可访问名须含可见
+ *  文本，槽位芯片 value===tipValue 去重）；气泡=全称+完整数值（2026-09-23 用户裁定） */
 function StatChip({
   label,
   value,
@@ -26,10 +28,16 @@ function StatChip({
 }) {
   return (
     <Tooltip>
-      <TooltipTrigger render={<div />}>
+      <div>
         <dt>{label}:</dt>
-        <dd>{value}</dd>
-      </TooltipTrigger>
+        <dd>
+          <TooltipTrigger
+            aria-label={value === tipValue ? `${tipTitle}: ${tipValue}` : `${tipTitle}: ${value} (${tipValue})`}
+          >
+            {value}
+          </TooltipTrigger>
+        </dd>
+      </div>
       <TooltipContent>
         <span className="token-strip__tip">
           <b>{tipTitle}</b>

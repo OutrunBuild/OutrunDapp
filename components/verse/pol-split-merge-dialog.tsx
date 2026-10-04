@@ -7,8 +7,8 @@ import type { Locale, FixturePolPosition, FixtureVerse } from '@/lib/data/fixtur
 
 import { getCopy } from '../global/copy'
 import { useMockWallet } from '../global/mock-wallet'
-import { AMOUNT_MAX_CHARS } from './swap-panel'
 import { formatAmount } from '../global/signal-ui'
+import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -50,7 +50,7 @@ export function PolSplitMergeDialog({
   const ptSymbol = `PT-${verse.symbol}`
   const ytSymbol = `YT-${verse.symbol}`
   const maxMerge = Math.min(pol.myPt, pol.myYt)
-  const clean = (raw: string) => setAmount(raw.replace(/[^\d.]/g, ''))
+  const clean = (raw: string) => setAmount(sanitizeAmount(raw))
 
   return (
     <Dialog>
@@ -81,7 +81,7 @@ export function PolSplitMergeDialog({
                 <span>POL</span>
                 <span className="swap-panel__balance">
                   {copy.balance}: <span data-numeric>{formatAmount(pol.myPol, locale)}</span>
-                  <button type="button" className="swap-panel__max" onClick={() => clean(String(pol.myPol))}>
+                  <button type="button" className="swap-panel__max" onClick={() => clean(amountToInputString(pol.myPol))}>
                     {copy.max}
                   </button>
                 </span>
@@ -108,7 +108,7 @@ export function PolSplitMergeDialog({
                   <span>PT</span>
                   <span className="swap-panel__balance">
                     {copy.balance}: <span data-numeric>{formatAmount(pol.myPt, locale)}</span>
-                    <button type="button" className="swap-panel__max" onClick={() => clean(String(maxMerge))}>
+                    <button type="button" className="swap-panel__max" onClick={() => clean(amountToInputString(maxMerge))}>
                       {copy.max}
                     </button>
                   </span>
@@ -133,7 +133,7 @@ export function PolSplitMergeDialog({
                   <span>YT</span>
                   <span className="swap-panel__balance">
                     {copy.balance}: <span data-numeric>{formatAmount(pol.myYt, locale)}</span>
-                    <button type="button" className="swap-panel__max" onClick={() => clean(String(maxMerge))}>
+                    <button type="button" className="swap-panel__max" onClick={() => clean(amountToInputString(maxMerge))}>
                       {copy.max}
                     </button>
                   </span>

@@ -1,20 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { ArrowDown, ArrowLeftRight, Info, Settings2, X } from 'lucide-react'
 
 import type { Locale, FixturePolPosition, FixtureVerseTrade } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { useMockWallet } from '../global/mock-wallet'
-import {
-  AMOUNT_MAX_CHARS,
-  COMPACT_AMOUNT_THRESHOLD,
-  DEADLINE_PRESETS,
-  SCIENTIFIC_AMOUNT_THRESHOLD,
-  SLIPPAGE_PRESETS,
-} from './swap-panel'
+import { DEADLINE_PRESETS, SLIPPAGE_PRESETS, isWholeMinutes } from './swap-panel'
 import { formatAmount } from '../global/signal-ui'
+import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
+import { fmtTokenAmount, fmtUsd } from '../global/amount-format'
+import { getSlippageIssue, slippageErrorCopyKey } from '../global/slippage-input'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -23,6 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -70,14 +68,16 @@ export function PoolRemoveLiquidityDialog({
   const common = getCopy(locale).common
   const { connected, toggle } = useMockWallet()
   const [lpAmount, setLpAmount] = useState('')
+  const receiveLabelId = useId()
+  const slippageErrorId = useId()
+  const deadlineErrorId = useId()
   const [slippage, setSlippage] = useState<number>(0.5)
   const [deadlineMin, setDeadlineMin] = useState<number>(10)
   const [rateInverted, setRateInverted] = useState(false)
 
   const lpBalance = pol == null ? null : pol.myLp[pool.pool]
   // Max 填入值（null/≤0 → 空）；提前算好避免闭包内丢窄化
-  const maxLp =
-    lpBalance != null && lpBalance > 0 ? String(Number(lpBalance.toFixed(6))) : ''
+  const maxLp = amountToInputString(lpBalance ?? 0)
   // POL/uAsset 池市场价样本（POL 计价侧 ≈$ 换算用）
   const polPrice = pol?.marketPricePerPol ?? null
   const lpSymbol = `${pool.baseSymbol}/${pool.quoteSymbol} LP`
@@ -99,22 +99,15 @@ export function PoolRemoveLiquidityDialog({
   const quoteOut =
     valid && pool.lpPerQuote != null && pool.lpPerQuote > 0 ? lpVal / pool.lpPerQuote : null
   const baseOut = quoteOut != null && ratio != null && ratio > 0 ? quoteOut / ratio : null
-  const minQuote = quoteOut != null ? quoteOut * (1 - slippage / 100) : null
-  const minBase = baseOut != null ? baseOut * (1 - slippage / 100) : null
+  // 滑点校验=§25 口径（slippage-input.ts）：越界期间保护值推导退 '--' 槽位
+  const slippageIssue = getSlippageIssue(slippage)
+  const deadlineValid = isWholeMinutes(deadlineMin)
+  const minQuote =
+    quoteOut != null && slippageIssue == null ? quoteOut * (1 - slippage / 100) : null
+  const minBase =
+    baseOut != null && slippageIssue == null ? baseOut * (1 - slippage / 100) : null
 
-  // 大数分层展示：同 swap-panel 口径（≥1e15 紧凑 / ≥1e21 科学记法）
-  const localeTag = locale === 'zh' ? 'zh-CN' : 'en-US'
-  const fmtTiered = (value: number, compactDigits: number, normal: (v: number) => string) => {
-    const abs = Math.abs(value)
-    if (abs >= SCIENTIFIC_AMOUNT_THRESHOLD)
-      return value.toLocaleString(localeTag, { notation: 'scientific', maximumFractionDigits: compactDigits })
-    if (abs >= COMPACT_AMOUNT_THRESHOLD)
-      return value.toLocaleString(localeTag, { notation: 'compact', maximumFractionDigits: compactDigits })
-    return normal(value)
-  }
-  const fmtUsd = (value: number) =>
-    fmtTiered(value, 2, (v) => v.toLocaleString(localeTag, { maximumFractionDigits: 2 }))
-  const fmtTokenAmount = (value: number) => fmtTiered(value, 4, (v) => v.toFixed(6))
+  // 大数分层口径=global/amount-format（fmtUsd/fmtTokenAmount）
   // ≈$ 换算价（uAsset 计）：base 侧主池/POL 池有市场价样本、PT 侧=锚定汇率 uAssetPerPol；
   // quote 侧 uAsset=1、PT/POL 池=polPrice
   const baseUsdPrice =
@@ -123,11 +116,11 @@ export function PoolRemoveLiquidityDialog({
   const baseUsd =
     uAssetUsd == null || !valid || baseOut == null || baseUsdPrice == null || baseUsdPrice <= 0
       ? null
-      : fmtUsd(baseOut * baseUsdPrice * uAssetUsd)
+      : fmtUsd(baseOut * baseUsdPrice * uAssetUsd, locale)
   const quoteUsd =
     uAssetUsd == null || !valid || quoteOut == null || quoteUsdPrice == null || quoteUsdPrice <= 0
       ? null
-      : fmtUsd(quoteOut * quoteUsdPrice * uAssetUsd)
+      : fmtUsd(quoteOut * quoteUsdPrice * uAssetUsd, locale)
 
   return (
     <Dialog>
@@ -173,15 +166,22 @@ export function PoolRemoveLiquidityDialog({
                           className="swap-settings__custom numeric-input"
                           inputMode="decimal"
                           aria-label={`${copy.slippageTolerance} %`}
+                          aria-invalid={slippageIssue != null || undefined}
+                          aria-describedby={slippageIssue != null ? slippageErrorId : undefined}
                           value={slippage}
                           onChange={(event) => {
-                            const next = Number(event.target.value.replace(/[^\d.]/g, ''))
+                            const next = Number(sanitizeAmount(event.target.value))
                             setSlippage(Number.isFinite(next) && next >= 0 ? next : 0)
                           }}
                         />
                         <b aria-hidden="true">%</b>
                       </span>
                     </div>
+                    {slippageIssue != null ? (
+                      <FieldError id={slippageErrorId}>
+                        {copy[slippageErrorCopyKey(slippageIssue)]}
+                      </FieldError>
+                    ) : null}
                   </div>
                   <div className="swap-settings__row">
                     <span className="swap-settings__label">
@@ -204,15 +204,20 @@ export function PoolRemoveLiquidityDialog({
                           className="swap-settings__custom numeric-input"
                           inputMode="numeric"
                           aria-label={`${copy.transactionDeadline} min`}
+                          aria-invalid={!deadlineValid || undefined}
+                          aria-describedby={!deadlineValid ? deadlineErrorId : undefined}
                           value={deadlineMin}
                           onChange={(event) => {
-                            const next = Number(event.target.value.replace(/[^\d.]/g, ''))
+                            const next = Number(sanitizeAmount(event.target.value))
                             setDeadlineMin(Number.isFinite(next) && next > 0 ? next : 1)
                           }}
                         />
                         <b aria-hidden="true">min</b>
                       </span>
                     </div>
+                    {!deadlineValid ? (
+                      <FieldError id={deadlineErrorId}>{copy.deadlineWholeMinutes}</FieldError>
+                    ) : null}
                   </div>
                 </PopoverContent>
               </Popover>
@@ -254,7 +259,7 @@ export function PoolRemoveLiquidityDialog({
                 placeholder="0.00"
                 value={lpAmount}
                 maxLength={AMOUNT_MAX_CHARS}
-                onChange={(event) => setLpAmount(event.target.value.replace(/[^\d.]/g, ''))}
+                onChange={(event) => setLpAmount(sanitizeAmount(event.target.value))}
                 aria-label={`${copy.removeLiquidityDialogTitle} ${lpSymbol}`}
               />
               <div className="swap-panel__token">
@@ -267,14 +272,20 @@ export function PoolRemoveLiquidityDialog({
             <ArrowDown size={16} />
           </span>
 
-          <div className="swap-panel__field">
+          {/* 输出框：base/quote 两腿合一个框、单「预计获得」标签管两腿（§21 2026-09-27 参照图
+              裁定模式，2026-10-03 对齐；行间 hairline 由 ~ 兄弟选择器提供） */}
+          <div className="swap-panel__field" role="group" aria-labelledby={receiveLabelId}>
             <div className="swap-panel__field-head">
-              <span>{copy.mintYouReceive}</span>
+              <span id={receiveLabelId}>{copy.mintYouReceive}</span>
             </div>
             <div className="swap-panel__field-row">
-              <output className="swap-panel__output numeric-input" data-numeric>
+              <output
+                className="swap-panel__output numeric-input"
+                data-numeric
+                aria-label={`${copy.mintYouReceive} ${pool.baseSymbol}`}
+              >
                 {baseOut != null ? (
-                  fmtTokenAmount(baseOut)
+                  fmtTokenAmount(baseOut, locale)
                 ) : valid ? (
                   <span className="ax-slot">{copy.onChainSlot}</span>
                 ) : (
@@ -286,15 +297,14 @@ export function PoolRemoveLiquidityDialog({
               </div>
             </div>
             {baseUsd != null ? <span className="swap-panel__field-usd">≈ ${baseUsd}</span> : null}
-          </div>
-          <div className="swap-panel__field">
-            <div className="swap-panel__field-head">
-              <span>{copy.mintYouReceive}</span>
-            </div>
             <div className="swap-panel__field-row">
-              <output className="swap-panel__output numeric-input" data-numeric>
+              <output
+                className="swap-panel__output numeric-input"
+                data-numeric
+                aria-label={`${copy.mintYouReceive} ${pool.quoteSymbol}`}
+              >
                 {quoteOut != null ? (
-                  fmtTokenAmount(quoteOut)
+                  fmtTokenAmount(quoteOut, locale)
                 ) : valid ? (
                   <span className="ax-slot">{copy.onChainSlot}</span>
                 ) : (
@@ -316,8 +326,8 @@ export function PoolRemoveLiquidityDialog({
                   <span data-numeric>
                     {ratio != null && ratio > 0
                       ? rateInverted
-                        ? `1 ${pool.quoteSymbol} ≈ ${(1 / ratio).toFixed(6)} ${pool.baseSymbol}`
-                        : `1 ${pool.baseSymbol} ≈ ${ratio.toFixed(6)} ${pool.quoteSymbol}`
+                        ? `1 ${pool.quoteSymbol} ≈ ${fmtTokenAmount(1 / ratio, locale)} ${pool.baseSymbol}`
+                        : `1 ${pool.baseSymbol} ≈ ${fmtTokenAmount(ratio, locale)} ${pool.quoteSymbol}`
                       : '--'}
                   </span>
                   <button
@@ -336,8 +346,8 @@ export function PoolRemoveLiquidityDialog({
                 <dd data-numeric>
                   {minBase != null || minQuote != null
                     ? [
-                        minBase != null ? `${fmtTokenAmount(minBase)} ${pool.baseSymbol}` : null,
-                        minQuote != null ? `${fmtTokenAmount(minQuote)} ${pool.quoteSymbol}` : null,
+                        minBase != null ? `${fmtTokenAmount(minBase, locale)} ${pool.baseSymbol}` : null,
+                        minQuote != null ? `${fmtTokenAmount(minQuote, locale)} ${pool.quoteSymbol}` : null,
                       ]
                         .filter(Boolean)
                         .join(' + ')
@@ -346,7 +356,7 @@ export function PoolRemoveLiquidityDialog({
               </div>
               <div>
                 <dt>{copy.maxSlippage}</dt>
-                <dd data-numeric>{slippage}%</dd>
+                <dd data-numeric>{slippageIssue == null ? `${slippage}%` : '--'}</dd>
               </div>
             </dl>
           ) : null}

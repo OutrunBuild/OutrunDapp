@@ -3649,6 +3649,7 @@ svg {
   padding: 2px var(--space-2);
   border: 1px solid var(--color-border-signal);
   background: var(--color-surface-inset);
+  position: relative; /* 命中区外扩的定位锚：button::before 以本胶囊为包含块盖满整只胶囊 */
   clip-path: polygon(
     var(--chamfer) 0,
     100% 0,
@@ -3657,6 +3658,21 @@ svg {
     0 100%,
     0 var(--chamfer)
   );
+}
+
+/* 悬停/触控命中区=整只胶囊（2026-10-03 触发器移入 dd 后恢复原命中面——::before 外扩，
+   同 .create-info 先例；button 保持 static，伪元素包含块=上面 position:relative 的胶囊壳） */
+.token-strip__chips dd button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+/* 键盘焦点信号：触发器=dd 内可聚焦 button（2026-10-03 修 Tab 不可达）；
+   切角 clip-path 剪 outline（同 create-logo__box 先例），focus 青色走胶囊 border 通道；
+   :has(:focus-visible) 键盘限定（鼠标点击聚焦不亮青），同 6574 行先例语义 */
+.token-strip__chips div:has(dd button:focus-visible) {
+  border-color: var(--or-cyan);
 }
 
 /* 悬停气泡内容：全称/完整数值/口径说明 */

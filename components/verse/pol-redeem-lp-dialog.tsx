@@ -7,8 +7,8 @@ import type { Locale, FixturePolPosition, FixtureVerse } from '@/lib/data/fixtur
 
 import { getCopy } from '../global/copy'
 import { useMockWallet } from '../global/mock-wallet'
-import { AMOUNT_MAX_CHARS } from './swap-panel'
 import { formatAmount } from '../global/signal-ui'
+import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -48,12 +48,12 @@ export function PolRedeemLpDialog({
   const copy = getCopy(locale).verseDesk
   const common = getCopy(locale).common
   const { connected, toggle } = useMockWallet()
-  const [amount, setAmount] = useState(String(pol.myPol))
+  const [amount, setAmount] = useState(amountToInputString(pol.myPol))
 
   const polSymbol = `POL-${verse.symbol}`
   // 主池 LP 对口径（repository main 池 pair [verse.symbol, verse.raiseAsset]）
   const lpSymbol = `${verse.symbol}/${verse.raiseAsset} LP`
-  const clean = (raw: string) => setAmount(raw.replace(/[^\d.]/g, ''))
+  const clean = (raw: string) => setAmount(sanitizeAmount(raw))
 
   const parsed = Number(amount)
   const valid = Number.isFinite(parsed) && parsed > 0
@@ -86,7 +86,7 @@ export function PolRedeemLpDialog({
               <span>POL</span>
               <span className="swap-panel__balance">
                 {copy.balance}: <span data-numeric>{formatAmount(pol.myPol, locale)}</span>
-                <button type="button" className="swap-panel__max" onClick={() => clean(String(pol.myPol))}>
+                <button type="button" className="swap-panel__max" onClick={() => clean(amountToInputString(pol.myPol))}>
                   {copy.max}
                 </button>
               </span>

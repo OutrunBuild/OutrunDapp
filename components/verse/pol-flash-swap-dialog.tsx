@@ -1,19 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { ArrowDown, ArrowLeftRight, Info, Settings2, X } from 'lucide-react'
 
 import type { Locale, FixturePolPosition, FixtureVerse } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { useMockWallet } from '../global/mock-wallet'
-import {
-  AMOUNT_MAX_CHARS,
-  COMPACT_AMOUNT_THRESHOLD,
-  SCIENTIFIC_AMOUNT_THRESHOLD,
-  SLIPPAGE_PRESETS,
-} from './swap-panel'
+import { SLIPPAGE_PRESETS } from './swap-panel'
 import { formatAmount } from '../global/signal-ui'
+import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
+import { fmtTokenAmount, fmtUsd } from '../global/amount-format'
+import { getSlippageIssue, slippageErrorCopyKey } from '../global/slippage-input'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -22,6 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -68,13 +67,15 @@ export function PolFlashSwapDialog({
   const common = getCopy(locale).common
   const { connected, toggle } = useMockWallet()
   const [mode, setMode] = useState<'buy' | 'sell'>('buy')
+  const legLabelId = useId()
+  const slippageErrorId = useId()
   // 打开即预填全部 YT 余额（两模式同规——空输入 0.00/-- 观感差，2026-09-28 用户裁定）
-  const [amount, setAmount] = useState(String(pol.myYt))
+  const [amount, setAmount] = useState(amountToInputString(pol.myYt))
   const [slippage, setSlippage] = useState<number>(0.5)
   const [rateInverted, setRateInverted] = useState(false)
 
   const ytSymbol = `YT-${verse.symbol}`
-  const clean = (raw: string) => setAmount(raw.replace(/[^\d.]/g, ''))
+  const clean = (raw: string) => setAmount(sanitizeAmount(raw))
 
   // uAsset 计价隐含价（2026-09-28 用户裁定：对手侧直接用 uAsset，理解成本更低——内部两步：
   // 1 POL=1 PT+1 YT → 1 YT ≈ 1 POL−PT 池市价（yt-flash-swap.md），再按 POL/uAsset 池价折 uAsset；
@@ -84,25 +85,22 @@ export function PolFlashSwapDialog({
   const valid = Number.isFinite(parsed) && parsed > 0 && ytPerUAsset > 0
   // 买卖同为线性参考价：支付/收到 uAsset = YT 数量 × 隐含价（执行价由池状态决定，见杠杆警示）
   const uAssetLeg = valid ? parsed * ytPerUAsset : null
+  // 滑点校验=§25 口径（slippage-input.ts）：越界期间保护值推导退 '--' 槽位
+  const slippageIssue = getSlippageIssue(slippage)
   const protectedLeg =
-    uAssetLeg != null
+    uAssetLeg != null && slippageIssue == null
       ? uAssetLeg * (mode === 'buy' ? 1 + slippage / 100 : 1 - slippage / 100)
       : null
-  // 大数分层展示：同 swap-panel 口径（≥1e15 紧凑 / ≥1e21 科学记法；裸乘积有 float64 尾噪必须过层）
+  // 大数分层口径=global/amount-format（fmtUsd/fmtTokenAmount；裸乘积有 float64 尾噪必须过层）；
+  // localeTag 留给费率行
   const localeTag = locale === 'zh' ? 'zh-CN' : 'en-US'
-  const fmtUsd = (value: number) =>
-    Math.abs(value) >= SCIENTIFIC_AMOUNT_THRESHOLD
-      ? value.toLocaleString(localeTag, { notation: 'scientific', maximumFractionDigits: 2 })
-      : Math.abs(value) >= COMPACT_AMOUNT_THRESHOLD
-        ? value.toLocaleString(localeTag, { notation: 'compact', maximumFractionDigits: 2 })
-        : value.toLocaleString(localeTag, { maximumFractionDigits: 2 })
   // 费率行=用户手续费率样本（相对支付额，fixture 直读不做推导——2026-09-28 用户裁定：
   // 假数据不算精确值；谱系与过高回滚口径见 flashFeeNote ⊙ 与 fixture 注释）
   // ≈$：两侧同为 uAsset 计价 × uAssetUsd
   const uAssetUsdText =
-    uAssetUsd == null || uAssetLeg == null ? null : fmtUsd(uAssetLeg * uAssetUsd)
+    uAssetUsd == null || uAssetLeg == null ? null : fmtUsd(uAssetLeg * uAssetUsd, locale)
   const ytUsd =
-    uAssetUsd == null || !valid ? null : fmtUsd(parsed * ytPerUAsset * uAssetUsd)
+    uAssetUsd == null || !valid ? null : fmtUsd(parsed * ytPerUAsset * uAssetUsd, locale)
 
   return (
     <Dialog>
@@ -147,15 +145,22 @@ export function PolFlashSwapDialog({
                           className="swap-settings__custom numeric-input"
                           inputMode="decimal"
                           aria-label={`${copy.slippageTolerance} %`}
+                          aria-invalid={slippageIssue != null || undefined}
+                          aria-describedby={slippageIssue != null ? slippageErrorId : undefined}
                           value={slippage}
                           onChange={(event) => {
-                            const next = Number(event.target.value.replace(/[^\d.]/g, ''))
+                            const next = Number(sanitizeAmount(event.target.value))
                             setSlippage(Number.isFinite(next) && next >= 0 ? next : 0)
                           }}
                         />
                         <b aria-hidden="true">%</b>
                       </span>
                     </div>
+                    {slippageIssue != null ? (
+                      <FieldError id={slippageErrorId}>
+                        {copy[slippageErrorCopyKey(slippageIssue)]}
+                      </FieldError>
+                    ) : null}
                   </div>
                 </PopoverContent>
               </Popover>
@@ -178,7 +183,7 @@ export function PolFlashSwapDialog({
               if (!next) return
               setMode(next)
               // Sell 空输入预填全部余额（§21 先例）；Buy 无本金锚不预填
-              if (next === 'sell' && amount === '') setAmount(String(pol.myYt))
+              if (next === 'sell' && amount === '') setAmount(amountToInputString(pol.myYt))
             }}
           >
             <ToggleGroupItem value="buy">{copy.flashBuy}</ToggleGroupItem>
@@ -195,7 +200,7 @@ export function PolFlashSwapDialog({
                   <button
                     type="button"
                     className="swap-panel__max"
-                    onClick={() => clean(String(pol.myYt))}
+                    onClick={() => clean(amountToInputString(pol.myYt))}
                   >
                     {copy.max}
                   </button>
@@ -225,16 +230,20 @@ export function PolFlashSwapDialog({
 
           {/* 下块=uAsset 派生只读（对手侧=uAsset——用户裁定 2026-09-28；内部经 POL/uAsset 池折算）：
               Buy=You pay（上限见 Max paid 行）、Sell=You receive（下限见 Min received） */}
-          <div className="swap-panel__field">
+          <div className="swap-panel__field" role="group" aria-labelledby={legLabelId}>
             <div className="swap-panel__field-head">
-              <span>{mode === 'buy' ? copy.flashYouPay : copy.youReceive}</span>
+              <span id={legLabelId}>{mode === 'buy' ? copy.flashYouPay : copy.youReceive}</span>
               <span className="swap-panel__balance">
                 {copy.balance}: <span data-numeric>{formatAmount(pol.myUAsset, locale)}</span>
               </span>
             </div>
             <div className="swap-panel__field-row">
-              <output className="swap-panel__output numeric-input" data-numeric>
-                {uAssetLeg != null ? uAssetLeg.toFixed(6) : '0.00'}
+              <output
+                className="swap-panel__output numeric-input"
+                data-numeric
+                aria-label={`${mode === 'buy' ? copy.flashYouPay : copy.youReceive} ${verse.raiseAsset}`}
+              >
+                {uAssetLeg != null ? fmtTokenAmount(uAssetLeg, locale) : '0.00'}
               </output>
               <div className="swap-panel__token">
                 <strong>{verse.raiseAsset}</strong>
@@ -255,8 +264,8 @@ export function PolFlashSwapDialog({
                 <span data-numeric>
                   {ytPerUAsset > 0
                     ? rateInverted
-                      ? `1 ${verse.raiseAsset} ≈ ${(1 / ytPerUAsset).toFixed(6)} ${ytSymbol}`
-                      : `1 ${ytSymbol} ≈ ${ytPerUAsset.toFixed(6)} ${verse.raiseAsset}`
+                      ? `1 ${verse.raiseAsset} ≈ ${fmtTokenAmount(1 / ytPerUAsset, locale)} ${ytSymbol}`
+                      : `1 ${ytSymbol} ≈ ${fmtTokenAmount(ytPerUAsset, locale)} ${verse.raiseAsset}`
                     : '--'}
                 </span>
                 <button
@@ -273,7 +282,7 @@ export function PolFlashSwapDialog({
             <div>
               <dt>{mode === 'buy' ? copy.maxPaid : copy.minReceived}</dt>
               <dd data-numeric>
-                {protectedLeg != null ? `${protectedLeg.toFixed(6)} ${verse.raiseAsset}` : '--'}
+                {protectedLeg != null ? `${fmtTokenAmount(protectedLeg, locale)} ${verse.raiseAsset}` : '--'}
               </dd>
             </div>
             <div>

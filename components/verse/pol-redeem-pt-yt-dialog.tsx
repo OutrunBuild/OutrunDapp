@@ -1,14 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { X } from 'lucide-react'
 
 import type { Locale, FixturePolPosition, FixtureVerse } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { useMockWallet } from '../global/mock-wallet'
-import { AMOUNT_MAX_CHARS } from './swap-panel'
 import { formatAmount } from '../global/signal-ui'
+import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -55,11 +55,12 @@ export function PolRedeemPtYtDialog({
   const { connected, toggle } = useMockWallet()
   // 打开即预填全部余额（2026-09-27 用户裁定：空输入 You receive 摆 0.00 观感差，
   // 打开就用样本余额示全额兑付预估；用户清空/改数后照常重算）
-  const [amount, setAmount] = useState(mode === 'pt' ? String(pol.myPt) : String(pol.myYt))
+  const [amount, setAmount] = useState(mode === 'pt' ? amountToInputString(pol.myPt) : amountToInputString(pol.myYt))
+  const receiveLabelId = useId()
 
   const ptSymbol = `PT-${verse.symbol}`
   const ytSymbol = `YT-${verse.symbol}`
-  const clean = (raw: string) => setAmount(raw.replace(/[^\d.]/g, ''))
+  const clean = (raw: string) => setAmount(sanitizeAmount(raw))
 
   const parsed = Number(amount)
   const valid = Number.isFinite(parsed) && parsed > 0
@@ -104,7 +105,7 @@ export function PolRedeemPtYtDialog({
               <span>{copy.burnLabel}</span>
               <span className="swap-panel__balance">
                 {copy.balance}: <span data-numeric>{formatAmount(balance, locale)}</span>
-                <button type="button" className="swap-panel__max" onClick={() => clean(String(balance))}>
+                <button type="button" className="swap-panel__max" onClick={() => clean(amountToInputString(balance))}>
                   {copy.max}
                 </button>
               </span>
@@ -129,12 +130,16 @@ export function PolRedeemPtYtDialog({
               PT=单腿；YT=双腿合一个框（memecoin 主腿在前与井读数同序，行间 hairline）——
               单 Receive 标签管两腿，不重复标也不留空标签行 */}
           {mode === 'pt' ? (
-            <div className="swap-panel__field">
+            <div className="swap-panel__field" role="group" aria-labelledby={receiveLabelId}>
               <div className="swap-panel__field-head">
-                <span>{copy.receiveLabel}</span>
+                <span id={receiveLabelId}>{copy.receiveLabel}</span>
               </div>
               <div className="swap-panel__field-row">
-                <output className="swap-panel__output numeric-input" data-numeric>
+                <output
+                  className="swap-panel__output numeric-input"
+                  data-numeric
+                  aria-label={`${copy.receiveLabel} ${verse.raiseAsset}`}
+                >
                   {ptOut != null ? formatAmount(ptOut, locale) : '0.00'}
                 </output>
                 <div className="swap-panel__token">
@@ -146,12 +151,16 @@ export function PolRedeemPtYtDialog({
               ) : null}
             </div>
           ) : (
-            <div className="swap-panel__field">
+            <div className="swap-panel__field" role="group" aria-labelledby={receiveLabelId}>
               <div className="swap-panel__field-head">
-                <span>{copy.receiveLabel}</span>
+                <span id={receiveLabelId}>{copy.receiveLabel}</span>
               </div>
               <div className="swap-panel__field-row">
-                <output className="swap-panel__output numeric-input" data-numeric>
+                <output
+                  className="swap-panel__output numeric-input"
+                  data-numeric
+                  aria-label={`${copy.receiveLabel} ${verse.symbol}`}
+                >
                   {pol.ytRedeemMemecoinPerUnit == null ? (
                     <span className="ax-slot">{copy.onChainSlot}</span>
                   ) : ytMemeOut != null ? (
@@ -168,7 +177,11 @@ export function PolRedeemPtYtDialog({
                 <span className="swap-panel__field-usd">≈ ${formatAmount(ytMemeUsd, locale)}</span>
               ) : null}
               <div className="swap-panel__field-row">
-                <output className="swap-panel__output numeric-input" data-numeric>
+                <output
+                  className="swap-panel__output numeric-input"
+                  data-numeric
+                  aria-label={`${copy.receiveLabel} ${verse.raiseAsset}`}
+                >
                   {pol.ytRedeemUAssetPerUnit == null ? (
                     <span className="ax-slot">{copy.onChainSlot}</span>
                   ) : ytUAssetOut != null ? (

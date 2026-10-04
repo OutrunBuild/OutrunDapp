@@ -29,6 +29,7 @@ import type { Locale, FixtureAsset, FixtureYieldSource } from '@/lib/data/fixtur
 import { getCopy } from '../global/copy'
 import { localePath } from '../global/routes'
 import { formatAmount, ProgressMeter, SourceRef } from '../global/signal-ui'
+import { AMOUNT_MAX_CHARS, sanitizeAmount } from '../global/amount-input'
 import { TxStatus, type TxState } from '../global/tx-status'
 
 // 预购与普通/杠杆创世同级的独立路径（用户裁定 2026-09-21）；普通/杠杆模式内提供一键预购
@@ -39,12 +40,6 @@ type ParticipationRoute = 'direct' | 'stake' | 'credit'
 
 // 预购容量公式系数（容量=(普通资金+杠杆债务本金)×70%×容量比例——glossary；一次性比例非年化）
 const PREORDER_CAP_RATE = 0.7
-
-function sanitizeAmount(value: string) {
-  const cleaned = value.replace(/[^\d.]/g, '')
-  const [whole, ...fraction] = cleaned.split('.')
-  return fraction.length ? `${whole}.${fraction.join('')}` : whole
-}
 
 /** 帮助文案模板填充：{asset}=所选支付资产、{raise}=本 Verse 募集 uAsset 符号 */
 function fill(template: string, values: { asset: string; raise: string }) {
@@ -218,6 +213,7 @@ export function ParticipationPanel({
         inputMode="decimal"
         autoComplete="off"
         value={amount}
+        maxLength={AMOUNT_MAX_CHARS}
         aria-invalid={
           amountInvalid || (mode === 'leverage' && leverageExceeded) || preorderTabExceeded ? true : undefined
         }
@@ -544,7 +540,7 @@ export function ParticipationPanel({
             /* 支付资产与金额并排（用户裁定 2026-09-25：单行各占一格太占空间）；预购支付资产组与直付同款（uAsset 直付+储备面值直兑） */
             <div className="participation-duo">
               <Field>
-                <FieldLabel>{copy.verse.payAsset}</FieldLabel>
+                <FieldLabel htmlFor="payment-asset">{copy.verse.payAsset}</FieldLabel>
                 {routeAssets.length > 1 ? (
                   <Select
                     name="payment-asset"
@@ -555,7 +551,7 @@ export function ParticipationPanel({
                       resetReview()
                     }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="payment-asset">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent alignItemWithTrigger={false} align="start">
@@ -618,7 +614,7 @@ export function ParticipationPanel({
               {preorderEnabled ? (
                 <div className="participation-duo">
                   <Field>
-                    <FieldLabel>{copy.verse.payAsset}</FieldLabel>
+                    <FieldLabel htmlFor="preorder-asset">{copy.verse.payAsset}</FieldLabel>
                     {preorderAssets.length > 1 ? (
                       <Select
                         name="preorder-asset"
@@ -629,7 +625,7 @@ export function ParticipationPanel({
                           resetReview()
                         }}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger id="preorder-asset">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent alignItemWithTrigger={false} align="start">
@@ -657,6 +653,7 @@ export function ParticipationPanel({
                     inputMode="decimal"
                     autoComplete="off"
                     value={preorderAmount}
+                    maxLength={AMOUNT_MAX_CHARS}
                     aria-invalid={preorderInvalid || preorderExceeded ? true : undefined}
                     onChange={(event) => {
                       setPreorderAmount(sanitizeAmount(event.target.value))

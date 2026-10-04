@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { ArrowLeftRight, ArrowUpDown, Info, Settings2 } from 'lucide-react'
 
 import type {
@@ -11,25 +11,29 @@ import type {
 import { getCopy } from '../global/copy'
 import { useMockWallet } from '../global/mock-wallet'
 import { formatAmount } from '../global/signal-ui'
+import { AMOUNT_MAX_CHARS, sanitizeAmount } from '../global/amount-input'
+import { fmtTokenAmount, fmtUsd } from '../global/amount-format'
+import { getSlippageIssue, slippageErrorCopyKey } from '../global/slippage-input'
 import { SwapTokenSelectDialog, type SwapTokenOption } from './swap-token-select-dialog'
 import { Button } from '@/components/ui/button'
+import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 /** 滑点/截止默认与预设档（R-06：常态默认 0.5%；demo 参照档位 0.1/0.5/1.0 与 10/20/30 分钟）；
- * pol-mint-dialog 复用同档（mintPOLToken 双侧 min + deadline 同族参数） */
+ * pol-mint-dialog 复用同档（mintPOLToken 双侧 min + deadline 同族参数）。
+ * 自定义滑点校验域 0.01–50%（slippage-input.ts）：0 零容忍必回退、>100 时 (1−s/100)
+ * 转负，越界 FieldError 就地报错、推导行退 '--' 槽位（2026-10-03 评审修） */
 export const SLIPPAGE_PRESETS = [0.1, 0.5, 1] as const
 export const DEADLINE_PRESETS = [10, 20, 30] as const
 
-/** 大数边界（demo 参照页输入 180 位数字撑破 Swap 卡的教训，2026-09-23）：
- * 金额输入 40 字符上限（float64 有效数字 ~17 位，40 已冗余）；派生值分层降级——
- * ≥1e15 Intl 紧凑记法（`39,226T`/`39,226万亿`；注意 compact 在超大值不省略，
- * 会退化为全量数字+单位后缀）、≥1e21 科学记法（`4.3585E40`），全展开长串与
- * toFixed 科学计数法禁止进卡面；CSS 截断省略兜底见 globals.css */
-export const AMOUNT_MAX_CHARS = 40
-export const COMPACT_AMOUNT_THRESHOLD = 1e15
-export const SCIENTIFIC_AMOUNT_THRESHOLD = 1e21
+/** 交易截止时间整分钟校验（2026-10-03 拍板 A：全站整分钟数，自定义输入保留小数点
+ * 以便就地报错——不再剥点把 1.5 静默变 15；空/0 仍回退 1 分钟）；
+ * §17/§22/§24 弹窗同构设置层复用 */
+export function isWholeMinutes(value: number) {
+  return Number.isInteger(value) && value > 0
+}
 
 /** 设置项标签旁的解释气泡（复用 create 页 ⊙ 提示语言） */
 function SettingsTip({ text }: { text: string }) {
@@ -93,6 +97,7 @@ export function SwapPanel({
   const copy = getCopy(locale).verseDesk
   const { connected, toggle } = useMockWallet()
   const [direction, setDirection] = useState<'stable-to-meme' | 'meme-to-stable'>('stable-to-meme')
+  const buyLabelId = useId()
   const [stableId, setStableId] = useState(uAssetSymbol)
   const [memeId, setMemeId] = useState<MemeTokenId>('meme')
   // 打开即预填默认卖出侧（uAsset）全部余额（§21/Flash Swap 同规——空输入 0.00/'--' 观感差，
@@ -164,31 +169,21 @@ export function SwapPanel({
   const pairRate =
     sellPrice != null && buyPrice != null && buyPrice > 0 ? sellPrice / buyPrice : null
   const quote = valid && pairRate != null ? parsed * pairRate : null
-  const minReceived = quote != null ? quote * (1 - slippage / 100) : null
-  // 美元换算：两侧各自按 uAsset 计价 × uAssetUsd（储备借 PSM 平价等值 uAsset 价）
-  const localeTag = locale === 'zh' ? 'zh-CN' : 'en-US'
-  // 大数分层：≥1e21 科学记法（compact 超大值不省略，会退化成全量数字+单位后缀）、
-  // ≥1e15 紧凑记法、常态走 normal 格式
-  const fmtTiered = (value: number, compactDigits: number, normal: (v: number) => string) => {
-    const abs = Math.abs(value)
-    if (abs >= SCIENTIFIC_AMOUNT_THRESHOLD)
-      return value.toLocaleString(localeTag, { notation: 'scientific', maximumFractionDigits: compactDigits })
-    if (abs >= COMPACT_AMOUNT_THRESHOLD)
-      return value.toLocaleString(localeTag, { notation: 'compact', maximumFractionDigits: compactDigits })
-    return normal(value)
-  }
-  const fmtUsd = (value: number) =>
-    fmtTiered(value, 2, (v) => v.toLocaleString(localeTag, { maximumFractionDigits: 2 }))
-  // 到账展示：常态 toFixed(6)（裸 toFixed 对 ≥1e21 会吐 `2.74e+109` 科学计数法长串）
-  const fmtTokenAmount = (value: number) => fmtTiered(value, 4, (v) => v.toFixed(6))
+  // 滑点越界期间不做 (1−s/100) 推导（s>100 得负数代币），最少收到/最大滑点行退槽位
+  const slippageIssue = getSlippageIssue(slippage)
+  // deadline 非整分钟（如 1.5）就地报错，见 isWholeMinutes 头注
+  const deadlineValid = isWholeMinutes(deadlineMin)
+  const minReceived = quote != null && slippageIssue == null ? quote * (1 - slippage / 100) : null
+  // 美元换算：两侧各自按 uAsset 计价 × uAssetUsd（储备借 PSM 平价等值 uAsset 价）；
+  // fmtUsd/fmtTokenAmount 及大数分层口径=global/amount-format
   const sellUsd =
     uAssetUsd == null || !valid || sellPrice == null
       ? null
-      : fmtUsd(parsed * sellPrice * uAssetUsd)
+      : fmtUsd(parsed * sellPrice * uAssetUsd, locale)
   const buyUsd =
     uAssetUsd == null || quote == null || buyPrice == null
       ? null
-      : fmtUsd(quote * buyPrice * uAssetUsd)
+      : fmtUsd(quote * buyPrice * uAssetUsd, locale)
   // 路径行组词：储备腿前缀 PSM；meme 侧按池（YT 已移出卡——见组件头注）
   const routeLegs: string[] = []
   if (stableSide.id !== uAssetSymbol) routeLegs.push(copy.routeLegPsm)
@@ -241,15 +236,22 @@ export function SwapPanel({
                     className="swap-settings__custom numeric-input"
                     inputMode="decimal"
                     aria-label={`${copy.slippageTolerance} %`}
+                    aria-invalid={slippageIssue != null || undefined}
+                    aria-describedby={slippageIssue != null ? 'swap-slippage-error' : undefined}
                     value={slippage}
                     onChange={(event) => {
-                      const next = Number(event.target.value.replace(/[^\d.]/g, ''))
+                      const next = Number(sanitizeAmount(event.target.value))
                       setSlippage(Number.isFinite(next) && next >= 0 ? next : 0)
                     }}
                   />
                   <b aria-hidden="true">%</b>
                 </span>
               </div>
+              {slippageIssue != null ? (
+                <FieldError id="swap-slippage-error">
+                  {copy[slippageErrorCopyKey(slippageIssue)]}
+                </FieldError>
+              ) : null}
             </div>
             <div className="swap-settings__row">
               <span className="swap-settings__label">
@@ -272,15 +274,20 @@ export function SwapPanel({
                     className="swap-settings__custom numeric-input"
                     inputMode="numeric"
                     aria-label={`${copy.transactionDeadline} min`}
+                    aria-invalid={!deadlineValid || undefined}
+                    aria-describedby={!deadlineValid ? 'swap-deadline-error' : undefined}
                     value={deadlineMin}
                     onChange={(event) => {
-                      const next = Number(event.target.value.replace(/[^\d]/g, ''))
+                      const next = Number(sanitizeAmount(event.target.value))
                       setDeadlineMin(Number.isFinite(next) && next > 0 ? next : 1)
                     }}
                   />
                   <b aria-hidden="true">min</b>
                 </span>
               </div>
+              {!deadlineValid ? (
+                <FieldError id="swap-deadline-error">{copy.deadlineWholeMinutes}</FieldError>
+              ) : null}
             </div>
           </PopoverContent>
         </Popover>
@@ -312,7 +319,7 @@ export function SwapPanel({
             placeholder="0.00"
             value={amount}
             maxLength={AMOUNT_MAX_CHARS}
-            onChange={(event) => setAmount(event.target.value.replace(/[^\d.]/g, ''))}
+            onChange={(event) => setAmount(sanitizeAmount(event.target.value))}
             aria-label={`${copy.swapSell} ${sellToken.symbol}`}
           />
           <SwapTokenSelectDialog
@@ -335,17 +342,21 @@ export function SwapPanel({
       >
         <ArrowUpDown aria-hidden="true" size={18} />
       </button>
-      <div className="swap-panel__field">
+      <div className="swap-panel__field" role="group" aria-labelledby={buyLabelId}>
         <div className="swap-panel__field-head">
-          <span>{copy.swapBuy}</span>
+          <span id={buyLabelId}>{copy.swapBuy}</span>
           <span>
             {copy.balance}:{' '}
             {buyBalance != null ? <span data-numeric>{formatAmount(buyBalance, locale)}</span> : '--'}
           </span>
         </div>
         <div className="swap-panel__field-row">
-          <output className="swap-panel__output numeric-input" data-numeric>
-            {quote != null ? fmtTokenAmount(quote) : '0.00'}
+          <output
+            className="swap-panel__output numeric-input"
+            data-numeric
+            aria-label={`${copy.swapBuy} ${buyToken.symbol}`}
+          >
+            {quote != null ? fmtTokenAmount(quote, locale) : '0.00'}
           </output>
           <SwapTokenSelectDialog
             locale={locale}
@@ -366,8 +377,8 @@ export function SwapPanel({
             <span data-numeric>
               {memePriceInUAsset != null && stablePriceInUAsset != null && rateReady
                 ? rateInverted
-                  ? `1 ${stableSide.symbol} ≈ ${(stablePriceInUAsset / memePriceInUAsset).toFixed(6)} ${memeSide.symbol}`
-                  : `1 ${memeSide.symbol} ≈ ${(memePriceInUAsset / stablePriceInUAsset).toFixed(6)} ${stableSide.symbol}`
+                  ? `1 ${stableSide.symbol} ≈ ${fmtTokenAmount(stablePriceInUAsset / memePriceInUAsset, locale)} ${memeSide.symbol}`
+                  : `1 ${memeSide.symbol} ≈ ${fmtTokenAmount(memePriceInUAsset / stablePriceInUAsset, locale)} ${stableSide.symbol}`
                 : '--'}
             </span>
             <button
@@ -387,11 +398,11 @@ export function SwapPanel({
         </div>
         <div>
           <dt>{copy.minReceived}</dt>
-          <dd data-numeric>{minReceived != null ? `${fmtTokenAmount(minReceived)} ${buyToken.symbol}` : '--'}</dd>
+          <dd data-numeric>{minReceived != null ? `${fmtTokenAmount(minReceived, locale)} ${buyToken.symbol}` : '--'}</dd>
         </div>
         <div>
           <dt>{copy.maxSlippage}</dt>
-          <dd data-numeric>{slippage}%</dd>
+          <dd data-numeric>{slippageIssue == null ? `${slippage}%` : '--'}</dd>
         </div>
         <div>
           <dt>{copy.route}</dt>
