@@ -5778,7 +5778,7 @@ svg {
   transform: translateY(8px) scale(0.985);
 }
 
-/* 总值读数带：label + 24px 等宽大数 + 资产数 meta；顶缘青光渗呼应卡面雨夜材质 */
+/* 总值读数带：label + 20px 等宽大数 + 资产数 meta；顶缘青光渗呼应卡面雨夜材质 */
 .dao-fund-pop__hero {
   display: flex;
   justify-content: space-between;
@@ -5804,7 +5804,8 @@ svg {
 
 .dao-fund-pop__hero-main strong {
   font-family: var(--font-data);
-  font-size: 24px;
+  /* 三轮终定 20px `--text-lg`（2026-10-03 用户裁定：24→22 感不足→18 偏小→20） */
+  font-size: var(--text-lg);
   font-variant-numeric: tabular-nums;
 }
 
@@ -5812,7 +5813,8 @@ svg {
   padding-block-end: 2px;
   color: var(--color-text-secondary);
   font-family: var(--font-data);
-  font-size: 11px;
+  /* 11px 裸值升 token 档 12px（2026-10-03 用户裁定稍增大） */
+  font-size: var(--text-xs);
   font-variant-numeric: tabular-nums;
 }
 
@@ -6271,6 +6273,8 @@ svg {
   border: 0 !important;
   background: transparent !important;
   color: var(--color-text-secondary) !important;
+  /* 项均分 ⅓ 行宽，窄屏装不下 "Standard genesis" 等长英文标签，放开换行防截字（基类是 nowrap，同 --routes 做法） */
+  white-space: normal;
 }
 
 .participation-toggle--mode [data-slot='toggle-group-item'][data-pressed] {
@@ -7244,14 +7248,11 @@ svg {
     display: none !important;
   }
 
+  /* 图标化（font-size:0）已废除：#48 漏修的产品壳侧——文案与首页壳同一套
+     full/short 双标签机制（30rem 内换短文案，见下方断点） */
   .product-topbar .wallet-control {
     min-inline-size: var(--control-height);
     padding-inline: var(--space-3) !important;
-    font-size: 0 !important;
-  }
-
-  .product-topbar .wallet-control svg {
-    margin: 0;
   }
 
   .product-topbar__actions {
@@ -7505,11 +7506,13 @@ svg {
     padding-inline: var(--space-3) !important;
   }
 
-  .marketing-header .wallet-control__label-full {
+  .marketing-header .wallet-control__label-full,
+  .product-topbar .wallet-control__label-full {
     display: none;
   }
 
-  .marketing-header .wallet-control__label-short {
+  .marketing-header .wallet-control__label-short,
+  .product-topbar .wallet-control__label-short {
     display: inline;
   }
 
