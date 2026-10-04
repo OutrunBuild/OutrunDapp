@@ -128,7 +128,6 @@ export function VersePage({ locale, verseId }: { locale: Locale; verseId: string
   return (
     <OutrunShell
       locale={locale}
-      current="verse"
       accountAddress={snapshot.sampleAccount.address}
     >
       <header className="verse-hero" data-stage={verse.stage}>

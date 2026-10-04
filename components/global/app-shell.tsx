@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { Compass, GitBranch, Home, Plus, UserRound, WalletCards } from 'lucide-react'
+import { Compass, Home, Plus, UserRound, WalletCards } from 'lucide-react'
 
 import { ChainSelectorDialog } from '@/components/global/chain-selector-dialog'
 
@@ -11,11 +11,9 @@ import { LocaleMenu } from './locale-menu'
 import { localePath } from './routes'
 import { WalletControl } from './wallet-control'
 
-type CurrentSurface = 'home' | 'discover' | 'create' | 'verse' | 'portfolio'
-
 type ShellProps = {
   locale: Locale
-  current: CurrentSurface
+  current?: NavKey
   accountAddress: string
   children: React.ReactNode
 }
@@ -24,10 +22,12 @@ const navItems = [
   { key: 'home', href: '', icon: Home, available: true },
   { key: 'discover', href: '/memeverse/explore', icon: Compass, available: true },
   { key: 'create', href: '/memeverse/launch', icon: Plus, available: true },
-  { key: 'bridge', href: '/bridge', icon: GitBranch, available: false },
   { key: 'portfolio', href: '/portfolio', icon: WalletCards, available: true },
   { key: 'account', href: '/account', icon: UserRound, available: false },
 ] as const
+
+// current 的合法值直接取导航键表：两份清单无法漂移
+type NavKey = (typeof navItems)[number]['key']
 
 function Brand({ compact = false }: { compact?: boolean }) {
   return compact ? (
@@ -107,7 +107,7 @@ function ProductSidebar({ locale, current, accountAddress }: Omit<ShellProps, 'c
   )
 }
 
-function MobileNavigation({ locale, current }: { locale: Locale; current: CurrentSurface }) {
+function MobileNavigation({ locale, current }: { locale: Locale; current?: NavKey }) {
   const copy = getCopy(locale)
   const items = navItems.slice(0, 4)
   return (

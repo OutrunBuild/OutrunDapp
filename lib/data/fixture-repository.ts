@@ -315,6 +315,8 @@ export type FixtureParticipation = {
   verseId: string;
   owner: string;
   kind: 'normal' | 'leverage' | 'preorder';
+  /** 参与路径（仅 kind=normal；null=杠杆/预购等无路径维记录） */
+  route: 'direct' | 'stake' | null;
   amount: number;
   sourceRef: string;
 };
@@ -393,12 +395,13 @@ export function getFixtureParticipationOptions(
   };
 }
 
-/** 样本账户的创世参与记录（Portfolio 退款区块数据源；金额换算同 ViewModel 口径） */
+/** 样本账户的创世参与记录（Portfolio 退款/凭证区数据源；金额换算同 ViewModel 口径） */
 export function getFixtureParticipations(): FixtureParticipation[] {
   return fixtureRepository.participations().map((p) => ({
     verseId: p.verseId,
     owner: p.owner.value,
     kind: p.kind as FixtureParticipation['kind'],
+    route: (p as { route?: 'direct' | 'stake' }).route ?? null,
     amount: amount(p.amount.raw),
     sourceRef: p.sourceRef,
   }));
@@ -846,5 +849,539 @@ export function getFixtureGovernanceState(verseId: string): FixtureGovernanceSta
       total: record.proposals.length,
       active: record.proposals.filter((proposal) => proposal.state === 'active').length,
     },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Portfolio 页 ViewModel（2026-10-02 用户裁定四分区：①待办 ②资产与跨链 ③仓位与储蓄
+// ④参与凭证）。口径与裁定：跨链功能并入本页（v1 无 /bridge 独立页）、「1:1 转换」=PSM
+// par swap 用户面命名（不与交易台「兑换/Swap」撞词）、待办区只收「逾期有后果」项且同类
+// 跨 Verse 聚合（无截止的可领收益沉到④区筛选）。时间全部锚定 FIXTURE_TIME_ANCHOR。
+// ---------------------------------------------------------------------------
+
+const ANCHOR_MS = Date.parse(FIXTURE_TIME_ANCHOR);
+
+/** 24 小时流动性保护窗（genesis.md:43——锚定实际解锁交易时刻非 unlockTime） */
+const PROTECTION_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/** 样本账户钱包余额视图（②区资产行）：资产 → 链分布聚合 */
+export type FixtureWalletAsset = {
+  assetId: string;
+  symbol: string;
+  kind: 'uasset' | 'reserve' | 'credit';
+  /** uAsset 美元样本价（fixture 样本）；null=隐藏换算 */
+  usdSample: number | null;
+  total: number;
+  chains: Array<{ chainId: number; chainName: string; amount: number }>;
+  /** 可经协议 OFT 跨链（uAsset 族 + GenesisCredit——genesis-credit.md；储备/原生只读） */
+  bridgeable: boolean;
+};
+
+export function getFixtureWalletAssets(): FixtureWalletAsset[] {
+  const chainMeta = new Map(fixtureData.chains.items.map((chain) => [chain.chainId, chain]));
+  const assetMeta = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
+  const byAsset = new Map<string, Array<{ chainId: number; amount: number }>>();
+  for (const row of fixtureData.balances.items) {
+    const current = byAsset.get(row.assetId) ?? [];
+    current.push({ chainId: row.chainId, amount: amount(row.amount.raw) });
+    byAsset.set(row.assetId, current);
+  }
+  const rows: FixtureWalletAsset[] = [];
+  for (const [assetId, chains] of byAsset) {
+    const asset = assetMeta.get(assetId);
+    if (!asset) continue;
+    rows.push({
+      assetId,
+      symbol: asset.symbol,
+      kind: asset.kind as FixtureWalletAsset['kind'],
+      usdSample: asset.usdSample ?? null,
+      total: chains.reduce((sum, row) => sum + row.amount, 0),
+      chains: chains.map((row) => ({
+        chainId: row.chainId,
+        chainName: chainMeta.get(row.chainId)?.name ?? String(row.chainId),
+        amount: row.amount,
+      })),
+      bridgeable: asset.kind === 'uasset' || asset.kind === 'credit',
+    });
+  }
+  // uAsset 族在前（参与货币），其后创世积分、储备；族内按符号排序
+  const kindOrder: Record<FixtureWalletAsset['kind'], number> = {
+    uasset: 0,
+    credit: 1,
+    reserve: 2,
+  };
+  return rows.sort(
+    (a, b) => kindOrder[a.kind] - kindOrder[b.kind] || a.symbol.localeCompare(b.symbol),
+  );
+}
+
+/** PSM 1:1 转换对（②区转换弹窗）：按 uAsset 符号取配对 */
+export type FixturePsmPair = {
+  chainId: number;
+  reserveSymbol: string;
+  /** mint 费 / redeem 费（bps→比率） */
+  feeIn: number;
+  feeOut: number;
+  /** 剩余可铸额度 = stockCap − netMinted（SPEC-S8 §3 headroom） */
+  headroom: number;
+  /** 储备可兑余量 */
+  reserveAvailable: number;
+};
+
+export function getFixturePsmPair(uAssetSymbol: string): FixturePsmPair | null {
+  const assetMeta = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
+  const uAsset = fixtureData.assets.items.find(
+    (asset) => asset.kind === 'uasset' && asset.symbol === uAssetSymbol,
+  );
+  if (!uAsset) return null;
+  const pair = fixtureData.psm.items.find((item) => item.uAssetId === uAsset.id);
+  if (!pair) return null;
+  return {
+    chainId: pair.chainId,
+    reserveSymbol: assetMeta.get(pair.reserveId)?.symbol ?? '',
+    feeIn: Number(pair.tin.raw) / 1e4,
+    feeOut: Number(pair.tout.raw) / 1e4,
+    headroom: amount(pair.stockCap.raw) - amount(pair.netMinted.raw),
+    reserveAvailable: amount(pair.reserveAvailable.raw),
+  };
+}
+
+/** 跨链消息视图（②区在途/滞留；历史不展示——PD-02 删跨链历史 + M4 否决持久历史） */
+export type FixtureBridgeMessageView = {
+  id: string;
+  fromChainId: number;
+  fromChainName: string;
+  toChainId: number;
+  toChainName: string;
+  assetSymbol: string;
+  amount: number;
+  sentAt: string;
+  stage: 'sent' | 'delivered' | 'settled' | 'stranded';
+  /** 6 位小数余数留源链（OutrunOFTInit.sol:70）；null=无余数 */
+  remainder: number | null;
+};
+
+export function getFixtureBridgeMessages(): FixtureBridgeMessageView[] {
+  const chainMeta = new Map(fixtureData.chains.items.map((chain) => [chain.chainId, chain]));
+  const assetMeta = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
+  return fixtureData.bridgeMessages.items.map((row) => ({
+    id: row.id,
+    fromChainId: row.fromChain,
+    fromChainName: chainMeta.get(row.fromChain)?.name ?? String(row.fromChain),
+    toChainId: row.toChain,
+    toChainName: chainMeta.get(row.toChain)?.name ?? String(row.toChain),
+    assetSymbol: assetMeta.get(row.assetId)?.symbol ?? '',
+    amount: amount(row.amount.raw),
+    sentAt: row.sentAt,
+    stage: row.stage as FixtureBridgeMessageView['stage'],
+    remainder: row.remainderOnSource ? amount(row.remainderOnSource.raw) : null,
+  }));
+}
+
+/** CDP 仓位视图（③区）：债务单位经 yield-sources registry 锚族推导（Lido→ETH→UETH） */
+export type FixtureCdpPosition = {
+  id: string;
+  chainId: number;
+  chainName: string;
+  collateralSymbol: string;
+  collateralAmount: number;
+  /** 未偿 uAsset 债务（v1 面值平价 = 抵押数值） */
+  debt: number;
+  uAssetSymbol: string;
+  yieldSource: string;
+  /** 仓位来源 Verse（质押参与同笔原子开仓）；null=独立 Genesis Staking */
+  openedFor: { id: string; symbol: string; name: string } | null;
+};
+
+export function getFixtureCdpPositions(): FixtureCdpPosition[] {
+  const chainMeta = new Map(fixtureData.chains.items.map((chain) => [chain.chainId, chain]));
+  const assetMeta = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
+  const verseMeta = new Map(fixtureData.verses.items.map((verse) => [verse.id, verse]));
+  const anchorBySource = new Map(
+    fixtureData.yieldSources.items.map((source) => [source.name, source.anchor]),
+  );
+  return fixtureData.positions.items.map((row) => {
+    const collateral = assetMeta.get(row.collateral.assetId);
+    const anchor = anchorBySource.get(row.yieldSource);
+    const verse = row.openedFor ? verseMeta.get(row.openedFor) : undefined;
+    return {
+      id: row.id,
+      chainId: row.chainId,
+      chainName: chainMeta.get(row.chainId)?.name ?? String(row.chainId),
+      collateralSymbol: collateral?.symbol ?? '',
+      collateralAmount: amount(row.collateral.amount.raw),
+      debt: amount(row.debt.raw),
+      uAssetSymbol: anchor ? `U${anchor}` : 'UAsset',
+      yieldSource: row.yieldSource,
+      openedFor: verse != null ? { id: verse.id, symbol: verse.symbol, name: verse.name } : null,
+    };
+  });
+}
+
+/** USR 储蓄视图（③区）：suETH→UETH 族映射；存款价值 = 份额 × accrualIndex/1e18 */
+export type FixtureUsrSavings = {
+  id: string;
+  /** 份额符号（suETH/suUSD/suBNB） */
+  shareSymbol: string;
+  /** 底层 uAsset 符号（UETH/UUSD/UBNB） */
+  uAssetSymbol: string;
+  chainId: number;
+  chainName: string;
+  /** 利率（ratio→百分比由展示层处理）；0=未激活（PD-04 未激活态照常显示） */
+  rate: number;
+  rateActive: boolean;
+  /** 封顶钳制标记（SPEC-S9 capped） */
+  capped: boolean;
+  myShares: number;
+  /** 存款价值（推导值） */
+  myAssets: number;
+  lastSettledAt: string;
+};
+
+export function getFixtureUsrSavings(): FixtureUsrSavings[] {
+  const chainMeta = new Map(fixtureData.chains.items.map((chain) => [chain.chainId, chain]));
+  const assetMeta = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
+  return fixtureData.usrVaults.items
+    .map((row) => {
+      const asset = assetMeta.get(row.assetId);
+      if (!asset) return null;
+      const rate = Number(row.usrRate.raw);
+      const myShares = row.myShares ? amount(row.myShares.raw) : 0;
+      return {
+        id: row.id,
+        shareSymbol: asset.symbol,
+        uAssetSymbol: `U${asset.symbol.replace(/^su/, '')}`,
+        chainId: row.chainId,
+        chainName: chainMeta.get(row.chainId)?.name ?? String(row.chainId),
+        rate,
+        rateActive: rate > 0,
+        capped: row.capped,
+        myShares,
+        myAssets: (myShares * Number(row.accrualIndexRaw)) / 1e18,
+        lastSettledAt: row.lastSettledAt,
+      } satisfies FixtureUsrSavings;
+    })
+    .filter((row): row is FixtureUsrSavings => row !== null);
+}
+
+/** 收益库存单行（③区紧凑表）：staking + governance 按 verse 联结 */
+export type FixtureVaultRow = {
+  verse: { id: string; symbol: string; name: string; stage: VerseStage };
+  shareSymbol: string;
+  myShares: number;
+  /** 份额价值 = myShares × assetsPerShare（推导值） */
+  shareValue: number;
+  apy7d: number;
+  /** 等待中赎回笔数（REDEEM_DELAY 内） */
+  waitingCount: number;
+  /** 已成熟可提取合计（待执行第二步——memecoin-staking.md:30） */
+  readyTotal: number;
+  /** 周期激励可领（窗口内；null=无样本或窗口已过） */
+  incentive: { claimable: number; windowEndsAt: string; remainingMs: number } | null;
+};
+
+export function getFixtureVaultRows(): FixtureVaultRow[] {
+  const verseMeta = new Map(getSnapshot().verses.map((verse) => [verse.id, verse]));
+  const rows: FixtureVaultRow[] = [];
+  for (const record of fixtureData.staking.items) {
+    const verse = verseMeta.get(record.verseId);
+    if (!verse) continue;
+    const staking = getFixtureStaking(record.verseId);
+    const governance = getFixtureGovernanceState(record.verseId);
+    const incentiveClaimable = governance?.lastCycle?.myClaimable ?? 0;
+    const windowEndsAt = governance?.claimWindowEndsAt ?? null;
+    const remainingMs = windowEndsAt ? Date.parse(windowEndsAt) - ANCHOR_MS : 0;
+    rows.push({
+      verse: {
+        id: verse.id,
+        symbol: verse.symbol,
+        name: verse.name,
+        stage: verse.stage,
+      },
+      shareSymbol: `s${verse.symbol}`,
+      myShares: staking?.myShares ?? 0,
+      shareValue: staking?.myShareValue ?? 0,
+      apy7d: staking ? staking.apy7d * 100 : 0,
+      waitingCount: staking ? staking.pendingRedeems.filter((entry) => !entry.ready).length : 0,
+      readyTotal: staking?.claimableTotal ?? 0,
+      incentive:
+        incentiveClaimable > 0 && windowEndsAt && remainingMs > 0
+          ? { claimable: incentiveClaimable, windowEndsAt, remainingMs }
+          : null,
+    });
+  }
+  return rows.sort((a, b) => a.verse.id.localeCompare(b.verse.id));
+}
+
+/** ①待办区聚合（2026-10-02 裁定：只收「逾期有后果」项；同类跨 Verse 聚合、聚合卡显最近截止；
+ *  窗口已过的激励不展示——逾期已并入国库、无动作可做（dao-governance.md:51）） */
+export type PortfolioActionKind =
+  'protection' | 'incentive' | 'vault-ready' | 'refund' | 'bridge-stranded';
+
+export type FixturePortfolioAction = {
+  kind: PortfolioActionKind;
+  /** 单 verse 目标（聚合卡=null） */
+  verse: { id: string; symbol: string; name: string; raiseAsset: string } | null;
+  /** 聚合计数（null=单卡） */
+  count: number | null;
+  /** 截止 ISO（null=无截止；聚合卡=最近截止） */
+  deadline: string | null;
+  /** 快照锚点距截止剩余毫秒（null=无截止） */
+  remainingMs: number | null;
+  /** 金额锚：退款=合计参与额（verse 募集 uAsset 计）；其余=null（单位随 verse 不同不跨 verse 求和） */
+  amount: number | null;
+  bridgeMessageId: string | null;
+};
+
+const KIND_ORDER: Record<PortfolioActionKind, number> = {
+  protection: 0,
+  incentive: 1,
+  'vault-ready': 2,
+  refund: 3,
+  'bridge-stranded': 4,
+};
+
+export function getFixturePortfolioActions(): FixturePortfolioAction[] {
+  const snapshot = getSnapshot();
+  const actions: FixturePortfolioAction[] = [];
+
+  // 24h 保护窗（解锁后未满 24h——锚定 unlockedAtTx，genesis.md:43）
+  for (const verse of snapshot.verses) {
+    if (verse.stage !== 'unlocked' || !verse.unlockedAt) continue;
+    const remainingMs = Date.parse(verse.unlockedAt) + PROTECTION_WINDOW_MS - ANCHOR_MS;
+    if (remainingMs <= 0) continue;
+    actions.push({
+      kind: 'protection',
+      verse: {
+        id: verse.id,
+        symbol: verse.symbol,
+        name: verse.name,
+        raiseAsset: verse.raiseAsset,
+      },
+      count: null,
+      deadline: new Date(Date.parse(verse.unlockedAt) + PROTECTION_WINDOW_MS).toISOString(),
+      remainingMs,
+      amount: null,
+      bridgeMessageId: null,
+    });
+  }
+
+  // 周期激励可领（窗口未过；聚合卡）
+  const incentives: Array<{
+    verse: { id: string; symbol: string; name: string; raiseAsset: string };
+    deadline: string;
+    remainingMs: number;
+  }> = [];
+  for (const gov of fixtureData.governance.items) {
+    const verse = snapshot.verses.find((candidate) => candidate.id === gov.verseId);
+    const claimable = gov.lastCycle ? amount(gov.lastCycle.myClaimable.raw) : 0;
+    if (!verse || claimable <= 0 || !gov.claimWindowEndsAt) continue;
+    const remainingMs = Date.parse(gov.claimWindowEndsAt) - ANCHOR_MS;
+    if (remainingMs <= 0) continue;
+    incentives.push({
+      verse: {
+        id: verse.id,
+        symbol: verse.symbol,
+        name: verse.name,
+        raiseAsset: verse.raiseAsset,
+      },
+      deadline: gov.claimWindowEndsAt,
+      remainingMs,
+    });
+  }
+  if (incentives.length > 0) {
+    const nearest = incentives.reduce((min, item) =>
+      item.remainingMs < min.remainingMs ? item : min,
+    );
+    actions.push({
+      kind: 'incentive',
+      verse: incentives.length === 1 ? nearest.verse : null,
+      count: incentives.length,
+      deadline: nearest.deadline,
+      remainingMs: nearest.remainingMs,
+      amount: null,
+      bridgeMessageId: null,
+    });
+  }
+
+  // 收益库待执行赎回（已成熟第二步；聚合卡——跨 verse 币种不同不求和）
+  const readyVerses = getFixtureVaultRows().filter((row) => row.readyTotal > 0);
+  if (readyVerses.length > 0) {
+    actions.push({
+      kind: 'vault-ready',
+      verse: null,
+      count: readyVerses.length,
+      deadline: null,
+      remainingMs: null,
+      amount: null,
+      bridgeMessageId: null,
+    });
+  }
+
+  // 创世退款（每地址一次；无截止——refund 态随时可领）
+  const refundRows = [...new Set(getFixtureParticipations().map((p) => p.verseId))]
+    .map((verseId) => {
+      const verse = snapshot.verses.find((candidate) => candidate.id === verseId);
+      const rows = getFixtureParticipations().filter((p) => p.verseId === verseId);
+      return verse && verse.stage === 'refund'
+        ? {
+            verse: {
+              id: verse.id,
+              symbol: verse.symbol,
+              name: verse.name,
+              raiseAsset: verse.raiseAsset,
+            },
+            total: rows.reduce((sum, row) => sum + row.amount, 0),
+          }
+        : null;
+    })
+    .filter(
+      (
+        row,
+      ): row is {
+        verse: { id: string; symbol: string; name: string; raiseAsset: string };
+        total: number;
+      } => row !== null,
+    );
+  for (const row of refundRows) {
+    actions.push({
+      kind: 'refund',
+      verse: row.verse,
+      count: null,
+      deadline: null,
+      remainingMs: null,
+      amount: row.total,
+      bridgeMessageId: null,
+    });
+  }
+
+  // 跨链滞留（已发出未到账——资金不丢失，就地处理）
+  for (const message of fixtureData.bridgeMessages.items) {
+    if (message.stage !== 'stranded') continue;
+    actions.push({
+      kind: 'bridge-stranded',
+      verse: null,
+      count: null,
+      deadline: null,
+      remainingMs: null,
+      amount: null,
+      bridgeMessageId: message.id,
+    });
+  }
+
+  // 排序：有截止者按剩余时间升序（最紧急置顶）；无截止者按类别序殿后
+  return actions.sort((a, b) => {
+    if (a.remainingMs != null && b.remainingMs != null) return a.remainingMs - b.remainingMs;
+    if (a.remainingMs != null) return -1;
+    if (b.remainingMs != null) return 1;
+    return KIND_ORDER[a.kind] - KIND_ORDER[b.kind];
+  });
+}
+
+/** ④参与凭证行：创世中=参与记录（未来凭证）；锁定/已解锁=POL/PT/YT/LP 持仓 */
+export type FixtureVoucherRow = {
+  verse: {
+    id: string;
+    symbol: string;
+    name: string;
+    stage: VerseStage;
+    raiseAsset: string;
+    endsAt: string;
+    unlockedAt: string | null;
+  };
+  /** 创世中参与合计（按 kind 分列）+ 质押参与路径标记（PD-01） */
+  genesis: {
+    total: number;
+    normal: number;
+    leverage: number;
+    preorder: number;
+    /** 存在质押参与的普通创世记录=true → 显示「质押参与」徽章 + ③区仓位互链 */
+    stakeRoute: boolean;
+  } | null;
+  /** POL/PT/YT/LP 持仓（锁定中/已解锁）；null=创世中无凭证 */
+  holdings: {
+    pol: number;
+    pt: number;
+    yt: number;
+    /** 可领 YT（Stage≥Locked 一次性按出资比例） */
+    claimableYt: number;
+    /** 四池 LP 合计 */
+    lp: number;
+    /** 每 1 YT 赎回摊得 uAsset 样本（null=槽位） */
+    ytRedeemUAssetPerUnit: number | null;
+  } | null;
+};
+
+export function getFixtureVoucherRows(): FixtureVoucherRow[] {
+  const snapshot = getSnapshot();
+  const participations = getFixtureParticipations();
+  const rows: FixtureVoucherRow[] = [];
+
+  for (const verse of snapshot.verses) {
+    const mine = participations.filter((p) => p.verseId === verse.id);
+    const pol = getFixturePolPosition(verse.id);
+    const head = {
+      id: verse.id,
+      symbol: verse.symbol,
+      name: verse.name,
+      stage: verse.stage,
+      raiseAsset: verse.raiseAsset,
+      endsAt: verse.endsAt,
+      unlockedAt: verse.unlockedAt,
+    };
+    if (verse.stage === 'genesis' && mine.length > 0) {
+      rows.push({
+        verse: head,
+        genesis: {
+          total: mine.reduce((sum, row) => sum + row.amount, 0),
+          normal: mine
+            .filter((row) => row.kind === 'normal')
+            .reduce((sum, row) => sum + row.amount, 0),
+          leverage: mine
+            .filter((row) => row.kind === 'leverage')
+            .reduce((sum, row) => sum + row.amount, 0),
+          preorder: mine
+            .filter((row) => row.kind === 'preorder')
+            .reduce((sum, row) => sum + row.amount, 0),
+          stakeRoute: mine.some((row) => row.kind === 'normal' && row.route === 'stake'),
+        },
+        holdings: null,
+      });
+    } else if ((verse.stage === 'locked' || verse.stage === 'unlocked') && pol) {
+      rows.push({
+        verse: head,
+        genesis: null,
+        holdings: {
+          pol: pol.myPol,
+          pt: pol.myPt,
+          yt: pol.myYt,
+          claimableYt: pol.claimableYt,
+          lp: pol.myLp.main + pol.myLp['pol-uasset'] + pol.myLp['pt-uasset'] + pol.myLp['pt-pol'],
+          ytRedeemUAssetPerUnit: pol.ytRedeemUAssetPerUnit,
+        },
+      });
+    }
+  }
+
+  // 分组序 = 生命周期方向（创世中 → 锁定中 → 已解锁；refund 由①待办承接）
+  const stageOrder: Record<VerseStage, number> = { genesis: 0, locked: 1, unlocked: 2, refund: 3 };
+  return rows.sort(
+    (a, b) =>
+      stageOrder[a.verse.stage] - stageOrder[b.verse.stage] || a.verse.id.localeCompare(b.verse.id),
+  );
+}
+
+/** ①待办区/状态行共用：页级信号计数（待办/可领/在途/滞留） */
+export function getFixturePortfolioSignals() {
+  const actions = getFixturePortfolioActions();
+  const claimableVerses = getFixtureVoucherRows().filter(
+    (row) => (row.holdings?.claimableYt ?? 0) > 0,
+  ).length;
+  const messages = getFixtureBridgeMessages();
+  return {
+    actionCount: actions.length,
+    claimableVerses,
+    inTransit: messages.filter((message) => message.stage === 'sent').length,
+    stranded: messages.filter((message) => message.stage === 'stranded').length,
   };
 }

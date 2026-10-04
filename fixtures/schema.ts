@@ -144,6 +144,7 @@ export const positionSchema = recordSchema.extend({
   debt: amountSchema, // 未偿 uAsset 债务
   yieldSource: z.string(), // 生息来源品牌（质押参与副文案）
   noMaturity: z.literal(true), // 大白话口径数据锚（PD-09）
+  openedFor: idSchema.optional(), // 仓位来源 Verse（质押参与同笔交易原子开仓——PD-01/PD-03；缺失=独立 Genesis Staking 铸造，2026-10-02 用户裁定展示来源）
 });
 
 /** psm.json */
@@ -166,6 +167,7 @@ export const usrVaultSchema = recordSchema.extend({
   accrualIndexRaw: decimalString, // 1e18 域
   lastSettledAt: isoTimeSchema,
   capped: z.boolean(), // 封顶钳制域标记
+  myShares: amountSchema.optional(), // 样本账户份额（2026-10-02 用户裁定造样本；缺失=0→Portfolio 空态）
 });
 
 /** bridge-messages.json（三阶段各自成败——OB omnichain.md:31-43） */
@@ -361,10 +363,20 @@ export const participationSchema = recordSchema.extend({
   verseId: idSchema,
   owner: fixtureAddressSchema,
   kind: z.enum(['normal', 'leverage', 'preorder']),
+  route: z.enum(['direct', 'stake']).optional(), // 参与路径（仅 kind=normal：PD-01 直接/质押两门；质押=同笔交易开出 OutStake 仓位；杠杆/预购面板各自独立路径无此维）
   amount: amountSchema,
 });
 export const participationsFile = fixtureFile(participationSchema);
 export const positionsFile = fixtureFile(positionSchema);
+
+/** balances.json（样本账户钱包余额——链×资产快照，2026-10-02 用户裁定造样本；
+ *  Portfolio ②区资产与跨链数据源；数值为样本，生产以链上读值为准） */
+export const balanceSchema = recordSchema.extend({
+  chainId: chainIdSchema,
+  assetId: idSchema,
+  amount: amountSchema,
+});
+export const balancesFile = fixtureFile(balanceSchema);
 export const psmFile = fixtureFile(psmSchema);
 export const marketsFile = fixtureFile(marketSchema);
 export const usrVaultsFile = fixtureFile(usrVaultSchema);

@@ -6,19 +6,22 @@
       "id": "usr-001", "scenario": ["normal", "usr-share-growth"], "sourceRef": "docs/page-briefs/source-map.md#S9",
       "chainId": 1, "assetId": "asset-041",
       "usrRate": { "raw": "0.05", "unit": "ratio", "scale": 18 },
-      "accrualIndexRaw": "1050000000000000000", "lastSettledAt": "2026-09-16T11:00:00Z", "capped": false
+      "accrualIndexRaw": "1050000000000000000", "lastSettledAt": "2026-09-16T11:00:00Z", "capped": false,
+      "myShares": { "raw": "42000", "decimals": 18 }
     },
     {
       "id": "usr-002", "scenario": ["usr-rate-zero"], "sourceRef": "docs/page-briefs/source-map.md#S9",
       "chainId": 1, "assetId": "asset-042",
       "usrRate": { "raw": "0", "unit": "ratio", "scale": 18 },
-      "accrualIndexRaw": "1000000000000000000", "lastSettledAt": "2026-09-16T11:00:00Z", "capped": false
+      "accrualIndexRaw": "1000000000000000000", "lastSettledAt": "2026-09-16T11:00:00Z", "capped": false,
+      "myShares": { "raw": "18500", "decimals": 18 }
     },
     {
       "id": "usr-003", "scenario": ["usr-capped"], "sourceRef": "docs/page-briefs/source-map.md#S9",
       "chainId": 56, "assetId": "asset-043",
       "usrRate": { "raw": "0.08", "unit": "ratio", "scale": 18 },
-      "accrualIndexRaw": "1020000000000000000", "lastSettledAt": "2026-09-16T11:00:00Z", "capped": true
+      "accrualIndexRaw": "1020000000000000000", "lastSettledAt": "2026-09-16T11:00:00Z", "capped": true,
+      "myShares": { "raw": "9200", "decimals": 18 }
     }
   ]
 }

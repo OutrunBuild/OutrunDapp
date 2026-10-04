@@ -14,6 +14,7 @@
         "fixtureOnly": true
       },
       "kind": "normal",
+      "route": "stake",
       "amount": {
         "raw": "12000",
         "decimals": 18
@@ -32,6 +33,7 @@
         "fixtureOnly": true
       },
       "kind": "normal",
+      "route": "direct",
       "amount": {
         "raw": "15000",
         "decimals": 18

@@ -10,7 +10,7 @@ import {
   usrVaultsFile, bridgeMessagesFile, transactionsFile, governanceFile,
   stakingFile, polPositionsFile,
   accountsFile, notificationsFile, participationsFile, yieldSourcesFile,
-  createConfigFile, scenariosFile, scenarioIdSchema, fixtureAddressSchema, CHAIN_IDS,
+  createConfigFile, balancesFile, scenariosFile, scenarioIdSchema, fixtureAddressSchema, CHAIN_IDS,
 } from '../../../fixtures/schema';
 
 const fx = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'fixtures');
@@ -24,7 +24,7 @@ const files = {
   'data/staking.json': stakingFile, 'data/pol-positions.json': polPositionsFile,
   'data/accounts.json': accountsFile, 'data/notifications.json': notificationsFile,
   'data/participations.json': participationsFile, 'data/yield-sources.json': yieldSourcesFile,
-  'data/create-config.json': createConfigFile,
+  'data/create-config.json': createConfigFile, 'data/balances.json': balancesFile,
 } as const;
 
 describe('fixture 数据文件全部通过 schema', () => {
@@ -139,6 +139,15 @@ describe('数值关系与守卫（invariants machine-checkable 子集）', () =>
     const used = new Set<number>();
     for (const c of load('data/chains.json').items as Array<{ chainId: number }>) used.add(c.chainId);
     expect([...used].every((c) => (CHAIN_IDS as readonly number[]).includes(c))).toBe(true);
+  });
+  it('余额：assetId 全部存在于 assets.json；同 (chain,asset) 不重复', () => {
+    const assetIds = new Set(
+      (load('data/assets.json').items as Array<{ id: string }>).map((a) => a.id),
+    );
+    const rows = load('data/balances.json').items as Array<{ id: string; chainId: number; assetId: string }>;
+    expect(rows.every((r) => assetIds.has(r.assetId))).toBe(true);
+    const keys = rows.map((r) => `${r.chainId}:${r.assetId}`);
+    expect(new Set(keys).size).toBe(keys.length);
   });
   it('地址全部 fixtureOnly 且拒绝裸地址字符串', () => {
     const raws: unknown[] = [];

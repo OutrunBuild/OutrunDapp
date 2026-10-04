@@ -415,6 +415,19 @@ C1 结算储备金按 spec 窄口径且 UI 不露出 · C2 建池剩余资金不
 - **验证**：tsc / check:design / vitest 70 passed / prettier 全绿；e2e explore 三档+zh 移动基线重录复跑 4 passed——fixture 内 Bitwave Otter/Solar Hamster（13 字符）如实截断为 `Bitwave Ott…`/`Solar Hams…`，短名不受影响。
 - **token 影响**：无增删。
 
+## 2026-10-02 · 决议 016 · Portfolio 四分区重设计（P0-1 兑现 + 五项产品裁定，会话逐项裁决）
+
+- **背景**：管线评审 P0-1——决议 007 PD-02+PD-08 拍板的 Portfolio 三分区只兑现退款（`portfolio-page.tsx` 仅「退款中」一节），副标题承诺与页面交付矛盾；样本账户 verse-001 创世参与 12,000 在整页不可见。本轮重设计经会话逐项拍板后实现。
+- **裁定 1（三分区→四分区，修订 PD-02/PD-10）**：①待办 ②资产与跨链 ③仓位与储蓄 ④参与凭证。**跨链功能并入 Portfolio 为页内功能**（发起弹窗 + 在途状态 + 滞留就地恢复），v1 无 /bridge 独立页（PD-10 的 /bridge 路由与「跨链在途→深链 /bridge」出口规则作废；在途/滞留=当前状态可见、完成即隐——「删跨链历史」与 M4 否决维持）。用户原话要点：「跨链功能也应该放在 Portfolio 页面作为一个功能，而不是放在其他的地方」。
+- **裁定 2（OutStake 仓位展示 + 叙事互链）**：质押参与创世同笔交易开出 OutStake 仓位（PD-01/PD-03 口径），③区以「质押仓位」展示（机制词 CDP 不上 UI），fixture 新增 `participations.route`（direct|stake）与 `positions.openedFor` 两字段、part-001 改 stake 样本——④创世中行显「质押参与」徽章、③仓位卡显「来自 {verse} 创世参与」，链路闭合。用户原话要点：「用户在通过 Stake 参与创世时会产生 OutStake 的仓位」。
+- **裁定 3（PSM 用户面命名「1:1 转换」）**：brief 旧词「面值兑换」否决——「面值」是债券纸面语言且按钮名词化即术语腔；更实际的缺陷是撞词：交易台 CTA 已名「兑换/Swap」（swapTitle），同词必须同义。定名 **「1:1 转换 / 1:1 convert」**（OB psm.md 自用 conversions 语言；UETH↔ETH 非稳定币对，禁「稳定互换」类名）。psm.json 配对数据驱动弹窗（费后到账/额度余量/双向）。
+- **裁定 4（待办区判据=「逾期有后果」+ 同类跨 Verse 聚合）**：无截止的可领收益（YT 等）不进①区（情绪寄存器分离——混放稀释紧急信号）；有截止的周期激励与已成熟的收益库赎回**同类多 verse 聚合为单卡、聚合卡显最近截止**（fixture 激励可领 20 verse / 待执行 20 verse，逐卡即爆区）；窗口已过的激励不展示（已并入国库、无动作可做）。④区以「只看可领 (n)」URL 筛选（?claimable=1，发现页 ?stage= 同款）承接明细。
+- **裁定 5（布局与页级签名）**：纵向四区全宽序贯（brief §2 桌面两列布局偏离——凭证表 20 行×6+列塞窄栏必然挤坏，形态随内容：待办=卡横排、资产=同构行清单、仓位=异构卡网格+同构表、凭证=阶段分组表）；页级签名=**信号状态行**（页头下四段锚点链接：待办/可领/在途/滞留，语义色点+等宽计数，摘要即导航）。用户原话要点：「站在专业设计师的角度深度思考……高级的审美，恰到好处的布局，清晰的页面可读性与可交互性，以及网站视觉一致性」。
+- **fixture 造样本授权（Q2/Q3/Q7）**：新增 `balances.json`（样本账户链×资产余额，11 行）；`usr-vaults` 增 `myShares`；manifest/fixture-hashes 同步重出。三仓库机制口径不变，数值为样本。
+- **效力**：PD-02/PD-10 中被本决议覆盖的条目以本决议为准（brief `portfolio.md`/`bridge.md` 的同步勘误待冻结窗口，暂以本条为真源登记）；token 无增删（全部复用既有语义色/间距/切角 token）。
+- **验证**：tsc --noEmit / vitest 86 passed / check:design 0 命中 / check-fixture-boundary --source / check-architecture 全绿；agent-browser 计算样式断言（截止色阶边条 #FF5468、单黄 CTA、信号四色点、表格右对齐、移动无横向溢出——grid blowout 已修：`.pf-vouchers__group min-inline-size:0`）；en/zh × desktop/mobile 截图过 presentations:visual-judge 3/3 pass；e2e 视觉基线 portfolio 三档重录后全套 21 passed（a11y 零新增违规）。
+- 签名：approved by Jasonrale（2026-10-02 会话逐项裁决：「确认」收口 Q2–Q7）
+
 ## 2026-10-02 · 三列卡 zoom:0.8 登记为已知密度妥协（P1-2 登记类收口，用户裁定「做」）
 
 - **背景**：P1-2 评审指出 ≥80rem 三列 `.economy-card` 整卡 `zoom: 0.8`（globals.css 三列断点）比例失调——内部版式按宽卡设计后整体缩到列宽，缩放后字号/间距不对应任何 token 档位，报告将其归为登记类（需人工决议，非顺手小修）。

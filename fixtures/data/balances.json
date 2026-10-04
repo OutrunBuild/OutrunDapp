@@ -1,0 +1,116 @@
+{
+  "seed": "seed-001",
+  "generatedFrom": "fixtures/data/seed.json",
+  "items": [
+    {
+      "id": "bal-001",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#OB",
+      "chainId": 1,
+      "assetId": "asset-001",
+      "amount": { "raw": "80000", "decimals": 18 }
+    },
+    {
+      "id": "bal-002",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#OB",
+      "chainId": 8453,
+      "assetId": "asset-001",
+      "amount": { "raw": "40000", "decimals": 18 }
+    },
+    {
+      "id": "bal-003",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#OB",
+      "chainId": 56,
+      "assetId": "asset-001",
+      "amount": { "raw": "5000", "decimals": 18 }
+    },
+    {
+      "id": "bal-004",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#OB",
+      "chainId": 1,
+      "assetId": "asset-002",
+      "amount": { "raw": "150000", "decimals": 18 }
+    },
+    {
+      "id": "bal-005",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#OB",
+      "chainId": 8453,
+      "assetId": "asset-002",
+      "amount": { "raw": "25000", "decimals": 18 }
+    },
+    {
+      "id": "bal-006",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#OB",
+      "chainId": 56,
+      "assetId": "asset-002",
+      "amount": { "raw": "10000", "decimals": 18 }
+    },
+    {
+      "id": "bal-007",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#OB",
+      "chainId": 56,
+      "assetId": "asset-003",
+      "amount": { "raw": "8000", "decimals": 18 }
+    },
+    {
+      "id": "bal-008",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#OB",
+      "chainId": 1,
+      "assetId": "asset-051",
+      "amount": { "raw": "2400", "decimals": 18 }
+    },
+    {
+      "id": "bal-009",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#OB",
+      "chainId": 1,
+      "assetId": "asset-011",
+      "amount": { "raw": "30000", "decimals": 6 }
+    },
+    {
+      "id": "bal-010",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#OB",
+      "chainId": 1,
+      "assetId": "asset-013",
+      "amount": { "raw": "12.5", "decimals": 18 }
+    },
+    {
+      "id": "bal-011",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#OB",
+      "chainId": 56,
+      "assetId": "asset-014",
+      "amount": { "raw": "40", "decimals": 18 }
+    }
+  ]
+}

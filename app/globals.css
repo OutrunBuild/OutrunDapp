@@ -7848,39 +7848,98 @@ svg {
 }
 
 /* ---------- Portfolio 退款区块（仅参与过且已进入退款的组合可见，零项不渲染） ---------- */
-.portfolio-refunds {
+/* ==========================================================================
+   Portfolio 四分区（2026-10-02 裁定；同日二轮面板化重排：分区 = SectionHeading
+   + 具名面板，面板语法按 DESIGN §3.1——Data surface（中性边框/零 glow/hover 抬升
+   + 2px 青选择线）承载资产清单与表格，Signal panel（青 tinted 描边）承载在途状态
+   与筛选，KPI 状态带 = 12px 对角双切（§4 KPI 带版型）。①待办=悬浮警报卡（紧急
+   内容不上容器）；④凭证组=顶缘 2px 阶段主线面板（--stage-color 双线规律）。
+   ========================================================================== */
+
+/* 页级 KPI 状态带：摘要即导航（点击滚动到分区锚点）。
+   page-intro 为 flex 且首块收缩到内容宽——含 KPI 带时放开占满行宽（读数条不折行） */
+.page-intro:has(.pf-kpi) > div:first-child {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+.pf-kpi {
   display: grid;
-  gap: var(--space-3);
-  margin-block-start: var(--space-5);
-}
-
-.portfolio-refunds h2 {
-  font-family: var(--font-display);
-  font-size: var(--text-xl);
-  letter-spacing: -0.015em;
-}
-
-.portfolio-refunds__sub {
-  margin-block-start: var(--space-1);
-  color: var(--color-text-secondary);
-  font-size: var(--text-sm);
-}
-
-.portfolio-refunds__list {
-  display: grid;
-  gap: var(--space-3);
-  margin: var(--space-2) 0 0;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: var(--space-2);
+  margin: 0;
   padding: 0;
-  list-style: none;
+  margin-block-start: var(--space-4);
 }
 
-.portfolio-refunds__row {
+.pf-kpi a {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) auto auto;
+  gap: 2px;
+  justify-items: start;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-signal);
+  background: var(--color-surface-inset);
+  clip-path: polygon(
+    var(--chamfer-card) 0,
+    100% 0,
+    100% calc(100% - var(--chamfer-card)),
+    calc(100% - var(--chamfer-card)) 100%,
+    0 100%,
+    0 var(--chamfer-card)
+  );
+  text-decoration: none;
+}
+
+.pf-kpi a:hover,
+.pf-kpi a:focus-visible {
+  border-color: var(--color-border-signal-strong);
+}
+
+.pf-kpi__label {
+  display: inline-flex;
   align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-4);
-  border: 1px solid var(--color-border-strong);
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+}
+
+.pf-kpi__label i {
+  inline-size: 6px;
+  block-size: 6px;
+  background: var(--or-cyan);
+}
+
+.pf-kpi a[data-tone='warning'] .pf-kpi__label i {
+  background: var(--color-warning);
+}
+.pf-kpi a[data-tone='success'] .pf-kpi__label i {
+  background: var(--color-success);
+}
+.pf-kpi a[data-tone='danger'] .pf-kpi__label i {
+  background: var(--color-danger);
+}
+
+.pf-kpi a strong {
+  color: var(--color-text);
+  font-family: var(--font-data);
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.pf-kpi a[data-zero] {
+  opacity: 0.55;
+}
+
+.pf-kpi a[data-zero] .pf-kpi__label i {
+  background: var(--color-text-tertiary);
+}
+
+/* —— 面板原语：Data surface（默认）与 Signal panel（--signal，青 tinted 描边）—— */
+.pf-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   clip-path: polygon(
     0 0,
     calc(100% - var(--chamfer-panel)) 0,
@@ -7888,40 +7947,638 @@ svg {
     100% 100%,
     0 100%
   );
-  background: var(--color-surface);
 }
 
-.portfolio-refunds__identity {
+.pf-panel--signal {
+  border-color: var(--color-border-signal);
+}
+
+/* 面板 nameplate：模块铭牌行（mono 小写间距大写 + 计数），面板由此可辨起止 */
+.pf-panel__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border-block-end: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+}
+
+.pf-panel__body {
+  padding: var(--space-2) var(--space-4) var(--space-3);
+}
+
+.pf-panel__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-5);
+  padding: var(--space-2) var(--space-4);
+  border-block-start: 1px solid var(--color-border);
+  background: var(--color-surface-inset);
+  color: var(--color-text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.pf-panel__footer strong {
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.pf-panel__footer [data-numeric] {
+  color: var(--color-text-secondary);
+}
+
+/* 面板内表格：去外距，首末列与铭牌行对齐 */
+.pf-panel .pf-table-wrap {
+  margin-block-start: 0;
+}
+
+.pf-panel .pf-table th:first-child,
+.pf-panel .pf-table td:first-child {
+  padding-inline-start: var(--space-4);
+}
+
+.pf-panel .pf-table th:last-child,
+.pf-panel .pf-table td:last-child {
+  padding-inline-end: var(--space-4);
+}
+
+/* Data surface 行为（§3.1）：hover 抬升一档 + 首列 2px 青选择线 */
+.pf-table tbody tr:hover {
+  background: var(--color-surface-raised);
+}
+
+.pf-table tbody tr:hover th:first-child,
+.pf-table tbody tr:hover td:first-child {
+  box-shadow: inset 2px 0 0 var(--or-cyan);
+}
+
+/* ①待办区：悬浮警报卡（不上容器——紧急内容直接在画布上），截止色阶走左缘色条 */
+.pf-actions {
+  margin-block-start: var(--space-5);
+}
+
+.pf-actions__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pf-action {
+  position: relative;
   display: grid;
   gap: var(--space-2);
-  justify-items: start;
+  align-content: start;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--chamfer-panel)) 0,
+    100% var(--chamfer-panel),
+    100% 100%,
+    0 100%
+  );
 }
 
-.portfolio-refunds__identity h3 {
-  font-size: var(--text-md);
-  line-height: 1.2;
+.pf-action::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 3px;
+  background: transparent;
 }
 
-.portfolio-refunds__facts {
+.pf-action[data-tone='warning']::before {
+  background: var(--color-warning);
+}
+.pf-action[data-tone='danger']::before {
+  background: var(--color-danger);
+}
+.pf-action[data-primary] {
+  border-color: var(--color-border-signal-strong);
+}
+
+.pf-action__head {
   display: flex;
-  gap: var(--space-6);
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.pf-action__head h3 {
+  font-size: var(--text-md);
+  line-height: 1.25;
+}
+
+.pf-action__head [data-numeric] {
+  color: var(--color-warning);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.pf-action[data-tone='danger'] .pf-action__head [data-numeric] {
+  color: var(--color-danger);
+}
+
+.pf-action__body {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.pf-action__meta {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+.pf-action__meta a {
+  color: var(--or-cyan);
+  text-decoration: none;
+}
+
+.pf-action__meta a:hover,
+.pf-action__meta a:focus-visible {
+  text-decoration: underline;
+}
+
+.pf-action__cta {
+  display: flex;
+  justify-content: flex-start;
+  margin-block-start: var(--space-1);
+}
+
+/* ②资产与跨链：Data surface 面板 + 行式清单；只读资产压缩进面板页脚 */
+.pf-assets {
+  margin-block-start: var(--space-8);
+}
+
+.pf-assets__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pf-asset-row {
+  display: grid;
+  grid-template-columns: minmax(9rem, auto) auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-block-end: 1px solid var(--color-border);
+}
+
+.pf-asset-row:last-child {
+  border-block-end: none;
+}
+
+.pf-asset-row__id {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.pf-asset-row__id strong {
+  font-size: var(--text-md);
+}
+
+.pf-asset-row__kind {
+  color: var(--color-text-tertiary);
+  font-size: var(--text-xs);
+  max-inline-size: 32ch;
+}
+
+.pf-asset-row__total {
+  font-size: var(--text-md);
+}
+
+.pf-asset-row__chains {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.pf-asset-row__chain {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.pf-asset-row__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+/* 在途状态：Signal panel（状态面板语法，青 tinted 描边） */
+.pf-transit {
+  margin-block-start: var(--space-4);
+}
+
+.pf-transit ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pf-transit li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  border-block-end: 1px solid var(--color-border);
+  font-size: var(--text-sm);
+}
+
+.pf-transit li:last-child {
+  border-block-end: none;
+}
+
+.pf-transit li[data-stage='stranded'] {
+  box-shadow: inset 3px 0 0 var(--color-danger);
+}
+
+.pf-transit__route {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+}
+
+.pf-transit__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-inline-start: auto;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.pf-transit__stage {
+  color: var(--or-cyan);
+}
+
+.pf-transit__stage[data-stage='stranded'] {
+  color: var(--color-danger);
+}
+
+/* ③仓位与储蓄：异构少量=悬浮卡网格；库存单=Data surface 面板 + 紧凑表 */
+.pf-positions {
+  margin-block-start: var(--space-8);
+}
+
+.pf-holdings {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-3);
+}
+
+.pf-positions .pf-panel {
+  margin-block-start: var(--space-4);
+}
+
+.pf-card {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--chamfer-panel)) 0,
+    100% var(--chamfer-panel),
+    100% 100%,
+    0 100%
+  );
+}
+
+.pf-card__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+}
+
+.pf-card__facts {
+  display: grid;
+  gap: var(--space-2);
   margin: 0;
 }
 
-.portfolio-refunds__facts dt {
+.pf-card__facts dt {
   color: var(--color-text-secondary);
   font-size: var(--text-xs);
 }
 
-.portfolio-refunds__facts dd {
+.pf-card__facts dd {
   margin: 0;
   font-size: var(--text-base);
 }
 
-@media (max-width: 48rem) {
-  .portfolio-refunds__row {
+.pf-card__facts [data-state='active'] {
+  color: var(--color-success);
+}
+
+.pf-card__flag {
+  margin-inline-start: var(--space-2);
+  padding: 0 var(--space-1);
+  border: 1px solid var(--color-warning);
+  color: var(--color-warning);
+  font-size: var(--text-xs);
+}
+
+.pf-card__meta {
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.pf-card__source a {
+  margin: 0;
+  color: var(--or-cyan);
+  font-size: var(--text-xs);
+  text-decoration: none;
+}
+
+.pf-card__source a:hover,
+.pf-card__source a:focus-visible {
+  text-decoration: underline;
+}
+
+.pf-card__note {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+}
+
+.pf-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* 紧凑表（③库存单 + ④凭证共用）：数字右对齐、hairline 行、窄视口横向滚动 */
+.pf-table-wrap {
+  margin-block-start: var(--space-3);
+  max-inline-size: 100%;
+  overflow-x: auto;
+}
+
+.pf-table {
+  inline-size: 100%;
+  min-inline-size: 640px;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.pf-table th,
+.pf-table td {
+  padding: var(--space-2) var(--space-3);
+  border-block-end: 1px solid var(--color-border);
+  text-align: start;
+  vertical-align: middle;
+}
+
+.pf-table tbody tr:last-child th,
+.pf-table tbody tr:last-child td {
+  border-block-end: none;
+}
+
+.pf-table thead th {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pf-table tbody th[scope='row'] {
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+.pf-table td[data-numeric],
+.pf-table th[data-numeric] {
+  text-align: end;
+  white-space: nowrap;
+}
+
+.pf-table .stage-badge {
+  margin-inline-start: var(--space-2);
+}
+
+.pf-table__link {
+  color: var(--or-cyan);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.pf-table__link:hover,
+.pf-table__link:focus-visible {
+  text-decoration: underline;
+}
+
+.pf-claimable {
+  display: grid;
+  gap: 2px;
+  color: var(--color-success);
+  text-align: end;
+}
+
+.pf-claimable small {
+  color: var(--color-text-tertiary);
+  font-size: var(--text-xs);
+}
+
+/* ④参与凭证：筛选=Signal 面板芯片（筛选语法）；阶段组=顶缘 2px 阶段主线面板
+   （--stage-color 由全站阶段变量组提供，双线规律见 economy-card 段） */
+.pf-vouchers {
+  margin-block-start: var(--space-8);
+}
+
+.pf-vouchers__filter {
+  display: inline-flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--color-border-signal);
+  background: var(--color-surface-inset);
+  clip-path: polygon(
+    var(--chamfer) 0,
+    100% 0,
+    100% calc(100% - var(--chamfer)),
+    calc(100% - var(--chamfer)) 100%,
+    0 100%,
+    0 var(--chamfer)
+  );
+}
+
+.pf-vouchers__filter a {
+  padding: var(--space-1) var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.pf-vouchers__filter a[data-selected] {
+  background: color-mix(in srgb, var(--or-cyan) 10%, transparent);
+  color: var(--or-cyan);
+}
+
+.pf-vouchers__groups {
+  display: grid;
+  gap: var(--space-4);
+  margin-block-start: var(--space-4);
+}
+
+.pf-vouchers__group {
+  position: relative;
+  min-inline-size: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--chamfer-panel)) 0,
+    100% var(--chamfer-panel),
+    100% 100%,
+    0 100%
+  );
+}
+
+.pf-vouchers__group::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  block-size: 2px;
+  background: var(--stage-color, var(--color-border-strong));
+}
+
+.pf-vouchers__group-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border-block-end: 1px solid var(--color-border);
+}
+
+.pf-vouchers__group-head span {
+  margin-inline-start: auto;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.pf-vouchers__flags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-inline-start: var(--space-2);
+}
+
+.pf-vouchers__flag {
+  padding: 0 var(--space-1);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+/* Portfolio 弹窗链选择/方向 chips（复用 .pol-mint 壳内的选项行） */
+.pf-dialog__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block-end: var(--space-3);
+}
+
+.pf-dialog__chips button {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.pf-dialog__chips button[data-selected] {
+  border-color: var(--or-cyan);
+  background: color-mix(in srgb, var(--or-cyan) 10%, transparent);
+  color: var(--or-cyan);
+}
+
+@media (max-width: 54rem) {
+  .pf-asset-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'id total'
+      'chains chains'
+      'actions actions';
+    row-gap: var(--space-2);
+  }
+
+  .pf-asset-row__id {
+    grid-area: id;
+  }
+  .pf-asset-row__total {
+    grid-area: total;
+    justify-self: end;
+  }
+  .pf-asset-row__chains {
+    grid-area: chains;
+  }
+  .pf-asset-row__actions {
+    grid-area: actions;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 30rem) {
+  .pf-actions__list {
     grid-template-columns: minmax(0, 1fr);
-    justify-items: start;
+  }
+
+  .pf-holdings {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pf-transit__meta {
+    margin-inline-start: 0;
+  }
+
+  .pf-panel__bar,
+  .pf-panel__footer,
+  .pf-asset-row,
+  .pf-transit li,
+  .pf-vouchers__group-head {
+    padding-inline: var(--space-3);
+  }
+
+  .pf-panel .pf-table th:first-child,
+  .pf-panel .pf-table td:first-child {
+    padding-inline-start: var(--space-3);
+  }
+
+  .pf-panel .pf-table th:last-child,
+  .pf-panel .pf-table td:last-child {
+    padding-inline-end: var(--space-3);
   }
 }
 
@@ -7987,22 +8644,22 @@ svg {
 
 /* 阶段双线规律（2026-09-26 用户裁定）：上边缘主线 = 当前阶段色，回声线 = 下一阶段色
    （genesis 黄→locked 品红→unlocked 青→回环 genesis 黄；refund 终态无下一阶段，回声保持品牌品红） */
-:is(.economy-card, .back-to-top, .verse-hero)[data-stage='genesis'] {
+:is(.economy-card, .back-to-top, .verse-hero, .pf-vouchers__group)[data-stage='genesis'] {
   --stage-color: var(--accent-primary);
   --stage-next: var(--accent-echo);
 }
 
-:is(.economy-card, .back-to-top, .verse-hero)[data-stage='locked'] {
+:is(.economy-card, .back-to-top, .verse-hero, .pf-vouchers__group)[data-stage='locked'] {
   --stage-color: var(--accent-echo);
   --stage-next: var(--or-cyan);
 }
 
-:is(.economy-card, .back-to-top, .verse-hero)[data-stage='unlocked'] {
+:is(.economy-card, .back-to-top, .verse-hero, .pf-vouchers__group)[data-stage='unlocked'] {
   --stage-color: var(--or-cyan);
   --stage-next: var(--accent-primary);
 }
 
-:is(.economy-card, .back-to-top, .verse-hero)[data-stage='refund'] {
+:is(.economy-card, .back-to-top, .verse-hero, .pf-vouchers__group)[data-stage='refund'] {
   --stage-color: var(--color-warning);
   --stage-next: var(--accent-echo);
 }
