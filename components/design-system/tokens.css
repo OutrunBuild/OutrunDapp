@@ -45,6 +45,9 @@
   --color-border: #262A38;         /* 冷灰阶边框（默认 1px） */
   --color-border-strong: #3A3F52;  /* hover/激活边框 */
 
+  /* ---------- 样张井（design-system showcase 色彩角色区专用） ---------- */
+  --swatch-well: #646875; /* 色样恒定背衬（P1-2）：深色系/黄/青/成功/警告对井 ≥3.1:1；品红/危险中明度与深色系亮度窗口互斥（单井值实算不可两全），靠饱和色相对中性井可辨 */
+
   /* ---------- 强调语义（01 决议：黄=唯一主光） ---------- */
   --accent-primary: var(--logo-yellow);
   --accent-echo: var(--logo-magenta-bright);  /* 回声层专用，正文禁用 */

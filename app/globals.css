@@ -9241,7 +9241,15 @@ svg {
   flex: none;
   inline-size: var(--space-7);
   block-size: var(--space-7);
+  padding: var(--space-1);
   border: 1px solid var(--color-border-strong);
+  background: var(--swatch-well);
+}
+
+.ds-swatch__core {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
 }
 
 .ds-swatch__meta {
@@ -9253,11 +9261,9 @@ svg {
 }
 
 .ds-swatch__meta code {
-  overflow: hidden;
   color: var(--color-text-tertiary);
   font-size: var(--text-xs);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .ds-type-list {
@@ -9286,7 +9292,7 @@ svg {
 
 .ds-type-display {
   font-family: var(--font-display);
-  font-size: var(--text-xl);
+  font-size: var(--display-title);
   font-weight: 700;
   letter-spacing: var(--display-tracking);
   text-transform: uppercase;
@@ -9310,6 +9316,20 @@ svg {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.ds-specimen {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.ds-specimen code,
+.ds-type-list code {
+  color: var(--color-text-tertiary);
+  font-size: var(--text-xs);
+  overflow-wrap: anywhere;
 }
 
 .ds-tones li {

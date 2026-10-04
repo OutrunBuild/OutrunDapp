@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { OutrunShell } from '@/components/global/app-shell'
 import { getCopy } from '@/components/global/copy'
+import { localePath } from '@/components/global/routes'
 import { ProgressMeter, SectionHeading, StageBadge } from '@/components/global/signal-ui'
 
 const STAGES: readonly VerseStage[] = ['genesis', 'locked', 'unlocked', 'refund']
@@ -87,7 +88,7 @@ export function DesignSystemShowcase({ locale }: { locale: Locale }) {
   const copy = getCopy(locale)
 
   return (
-    <OutrunShell locale={locale} current="discover" accountAddress="">
+    <OutrunShell locale={locale} accountAddress="">
       {/* v0 Design System Showcase Page */}
       <div className="page-intro">
         <div>
@@ -97,11 +98,13 @@ export function DesignSystemShowcase({ locale }: { locale: Locale }) {
       </div>
 
       <section className="ds-section" aria-labelledby="ds-tokens">
-        <SectionHeading title={t.tokens} description={t.tokensDesc} />
-        <ul className="ds-swatches" id="ds-tokens">
+        <SectionHeading id="ds-tokens" title={t.tokens} description={t.tokensDesc} />
+        <ul className="ds-swatches">
           {COLOR_ROLES.map((role) => (
             <li key={role.token} className="ds-swatch">
-              <span className="ds-swatch__chip" style={{ background: `var(${role.token})` }} aria-hidden="true" />
+              <span className="ds-swatch__chip" aria-hidden="true">
+                <span className="ds-swatch__core" style={{ background: `var(${role.token})` }} />
+              </span>
               <span className="ds-swatch__meta">
                 <strong>{role[locale]}</strong>
                 <code data-numeric>{role.token}</code>
@@ -112,37 +115,67 @@ export function DesignSystemShowcase({ locale }: { locale: Locale }) {
       </section>
 
       <section className="ds-section" aria-labelledby="ds-type">
-        <SectionHeading title={t.type} description={t.typeDesc} />
-        <ul className="ds-type-list" id="ds-type">
+        <SectionHeading id="ds-type" title={t.type} description={t.typeDesc} />
+        <ul className="ds-type-list">
           {TYPE_ROLES.map((role) => (
             <li key={role.className}>
               <small>{role[locale]}</small>
               <span className={role.className} data-numeric={role.className === 'ds-type-data' ? true : undefined}>
                 {role.className === 'ds-type-data' ? t.dataSample : t.sample}
               </span>
+              <code data-numeric>{role.className}</code>
             </li>
           ))}
         </ul>
       </section>
 
       <section className="ds-section" aria-labelledby="ds-controls">
-        <SectionHeading title={t.controls} description={t.controlsDesc} />
-        <div className="ds-row" id="ds-controls">
-          <Button>{copy.common.connect}</Button>
-          <Button variant="outline">{copy.discovery.clear}</Button>
-          <Button variant="secondary">{copy.common.home}</Button>
-          <Button variant="ghost">{copy.common.discover}</Button>
-          <Button disabled>{copy.common.unavailable}</Button>
+        <SectionHeading id="ds-controls" title={t.controls} description={t.controlsDesc} />
+        <div className="ds-row">
+          <div className="ds-specimen">
+            <Button>{copy.common.connect}</Button>
+            <code data-numeric>default</code>
+          </div>
+          <div className="ds-specimen">
+            <Button variant="outline">{copy.discovery.clear}</Button>
+            <code data-numeric>variant="outline"</code>
+          </div>
+          <div className="ds-specimen">
+            <Button variant="secondary">{copy.common.home}</Button>
+            <code data-numeric>variant="secondary"</code>
+          </div>
+          <div className="ds-specimen">
+            <Button variant="ghost">{copy.common.discover}</Button>
+            <code data-numeric>variant="ghost"</code>
+          </div>
+          <div className="ds-specimen">
+            <Button variant="destructive">{copy.common.home}</Button>
+            <code data-numeric>variant="destructive"</code>
+          </div>
+          <div className="ds-specimen">
+            <Button variant="link">{copy.common.discover}</Button>
+            <code data-numeric>variant="link"</code>
+          </div>
+          <div className="ds-specimen">
+            <Button disabled>{copy.common.unavailable}</Button>
+            <code data-numeric>disabled</code>
+          </div>
         </div>
         <div className="ds-row">
-          <Button size="sm">{copy.common.connect}</Button>
-          <Button size="lg">{copy.common.connect}</Button>
+          <div className="ds-specimen">
+            <Button size="sm">{copy.common.connect}</Button>
+            <code data-numeric>size="sm"</code>
+          </div>
+          <div className="ds-specimen">
+            <Button size="lg">{copy.common.connect}</Button>
+            <code data-numeric>size="lg"</code>
+          </div>
         </div>
       </section>
 
       <section className="ds-section" aria-labelledby="ds-stages">
-        <SectionHeading title={t.stages} description={t.stagesDesc} />
-        <div className="ds-row" id="ds-stages">
+        <SectionHeading id="ds-stages" title={t.stages} description={t.stagesDesc} />
+        <div className="ds-row">
           {STAGES.map((stage) => (
             <StageBadge key={stage} stage={stage} locale={locale} />
           ))}
@@ -161,8 +194,8 @@ export function DesignSystemShowcase({ locale }: { locale: Locale }) {
       </section>
 
       <section className="ds-section" aria-labelledby="ds-form">
-        <SectionHeading title={t.form} description={t.formDesc} />
-        <div className="ds-form" id="ds-form">
+        <SectionHeading id="ds-form" title={t.form} description={t.formDesc} />
+        <div className="ds-form">
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="ds-amount">{t.amountLabel}</FieldLabel>
@@ -174,11 +207,11 @@ export function DesignSystemShowcase({ locale }: { locale: Locale }) {
       </section>
 
       <section className="ds-section" aria-labelledby="ds-empty">
-        <SectionHeading title={t.empty} />
-        <div className="empty-state" id="ds-empty">
+        <SectionHeading id="ds-empty" title={t.empty} />
+        <div className="empty-state">
           <h3>{t.emptyTitle}</h3>
           <p>{t.emptyBody}</p>
-          <Button nativeButton={false} render={<Link href={`/${locale}/memeverse`} />}>
+          <Button nativeButton={false} render={<Link href={localePath(locale, '/memeverse/explore')} />}>
             {t.back}
           </Button>
         </div>

@@ -31,8 +31,10 @@
 - `--color-*` 语义色（bg/surface/text/feedback/border）
 - `--accent-*` 强调语义（primary/echo/link）
 - `--shadow-{raised,header}` 抬升层接触阴影（数据层文本零 glow 边界见 §2.1）
+- `--swatch-well` 样张井（design-system showcase 色样恒定背衬，P1-2 修复；亮度窗口实算取值，深色系样张对井 ≥3:1 显形）
 - `--logo-*`/`--or-cyan`/`--site-black` 品牌锚（只读）
 - `--font-{display,body,data}`、`--text-{xs..xl}`、`--space-{1..8}`、`--row-height*`、`--z-*`
+- `--display-title` 展示档字号（h1/营销大标题唯一字号源，`clamp(30px, 1em+22px, 44px)`，1em 随使用点继承解析、16px 上下文≈38px；DESIGN.md §3 + foundations.md §2 钉死口径）。角色专用尺寸 token，**不在 `--text-*` 字阶梯内**——展示档不得以 `--text-xl` 等档位 token 替代（2026-10-04 showcase 样张失真裁决后补登）
 - 组件只引用上述 token；新需求先扩 token 再用（阶段 2 起 PR 审查项）
 
 ## 4. 字族（010 终选，r10 部署实证）
