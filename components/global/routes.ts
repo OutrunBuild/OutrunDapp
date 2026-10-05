@@ -21,6 +21,17 @@ export function versePathSegment(verseId: string): string {
   return match ? match[1] : verseId
 }
 
-export function verseHref(locale: Locale, verseId: string): string {
-  return localePath(locale, `/memeverse/${versePathSegment(verseId)}`)
+export function verseHref(
+  locale: Locale,
+  verseId: string,
+  /** 交易台页签深链（?tab=；liquidity=默认不带 query——VersePage 白名单校验） */
+  tab?: 'liquidity' | 'pol' | 'vault' | 'dao',
+  /** 页签内视图深链（?action=，当前仅 vault 页签接受 withdraw——VersePage 白名单校验） */
+  action?: 'withdraw',
+): string {
+  const params = new URLSearchParams()
+  if (tab && tab !== 'liquidity') params.set('tab', tab)
+  if (action) params.set('action', action)
+  const query = params.size > 0 ? `?${params.toString()}` : ''
+  return localePath(locale, `/memeverse/${versePathSegment(verseId)}${query}`)
 }

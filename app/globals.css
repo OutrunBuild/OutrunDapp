@@ -4412,6 +4412,8 @@ svg {
   isolation: isolate;
   margin-block-start: var(--space-5);
   padding: 0;
+  /* ?tab= 深链 scrollIntoView 的定位余量：避开 sticky 顶栏（值同 h1-h3 锚点惯例） */
+  scroll-margin-block-start: calc(var(--space-8) + var(--space-2));
   box-shadow:
     0 24px 48px rgba(0, 0, 0, 0.45),
     0 2px 8px rgba(0, 0, 0, 0.3);

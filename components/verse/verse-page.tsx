@@ -95,10 +95,27 @@ function participationKindLabel(kind: FixtureParticipation['kind'], locale: Loca
   return copy.verse.preorderKind
 }
 
-export function VersePage({ locale, verseId }: { locale: Locale; verseId: string }) {
+/** 交易台四页签 key（?tab= 深链白名单——与 VerseTabs 的 ToggleGroupItem value 一致） */
+const VERSE_TAB_KEYS = ['liquidity', 'pol', 'vault', 'dao'] as const
+
+export function VersePage({
+  locale,
+  verseId,
+  tab,
+  action,
+}: {
+  locale: Locale
+  verseId: string
+  /** URL ?tab= 原始值；不在白名单内回落 Liquidity */
+  tab?: string
+  /** URL ?action= 原始值；当前仅 vault 页签接受 withdraw（金库操作卡初值） */
+  action?: string
+}) {
   const snapshot = getFixtureSnapshot()
   const verse = getFixtureVerse(verseId)
   if (!verse) notFound()
+  const initialTab = VERSE_TAB_KEYS.find((key) => key === tab)
+  const vaultInitialView = initialTab === 'vault' && action === 'withdraw' ? 'withdraw' : undefined
   const copy = getCopy(locale)
   const participationOptions = getFixtureParticipationOptions(verse.raiseAsset)
   // Fast Genesis 达标判定：双口径任一达标（预购与债务本金不计入——lifecycle.md:35-49）
@@ -338,11 +355,19 @@ export function VersePage({ locale, verseId }: { locale: Locale; verseId: string
         /* locked / unlocked：交易台持久区 + 四标签（2026-09-23 用户裁定） */
         <>
           <VerseTradeDesk locale={locale} verse={verse} trade={trade} />
-          <VerseTabs locale={locale}>
+          <VerseTabs locale={locale} initialTab={initialTab}>
             {{
               liquidity: <LiquidityPanel locale={locale} verse={verse} trade={trade} pol={polPosition} />,
               pol: <PolPanel locale={locale} verse={verse} pol={polPosition} price={trade.tokenStats.price} />,
-              vault: <VaultPanel locale={locale} verse={verse} staking={staking} myMemecoin={polPosition?.myMemecoin ?? null} />,
+              vault: (
+                <VaultPanel
+                  locale={locale}
+                  verse={verse}
+                  staking={staking}
+                  myMemecoin={polPosition?.myMemecoin ?? null}
+                  initialView={vaultInitialView}
+                />
+              ),
               dao: <DaoPanel locale={locale} verse={verse} governance={governance} />,
             }}
           </VerseTabs>

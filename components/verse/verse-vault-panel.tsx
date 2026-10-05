@@ -18,12 +18,15 @@ export function VaultPanel({
   verse,
   staking,
   myMemecoin,
+  initialView,
 }: {
   locale: Locale
   verse: FixtureVerse
   staking: FixtureStaking | null
   /** 样本账户本 verse memecoin 余额（pol-positions 样本；Stake 档 Balance/Max，null=槽位态） */
   myMemecoin: number | null
+  /** ?action=withdraw 深链：操作卡直接停在 Withdraw 子页签 */
+  initialView?: 'redeem' | 'withdraw'
 }) {
   const copy = getCopy(locale).verseDesk
   const shareSymbol = `s${verse.symbol}`
@@ -82,6 +85,7 @@ export function VaultPanel({
             delegatee={staking.delegatee}
             governanceChain={verse.governanceChain}
             governanceChainName={verse.governanceChainName}
+            initialRedeemMode={initialView}
           />
         </>
       ) : (

@@ -77,6 +77,7 @@ export function VaultActions({
   delegatee,
   governanceChain,
   governanceChainName,
+  initialRedeemMode,
 }: {
   locale: Locale
   symbol: string
@@ -94,11 +95,13 @@ export function VaultActions({
   /** 治理链 chainId（vault 所在链，omnichain.md §The governance chain） */
   governanceChain: number
   governanceChainName: string
+  /** ?action=withdraw 深链初值：组合表 Withdraw 落进来直接见 READY 列表（2026-10-04 用户裁定） */
+  initialRedeemMode?: RedeemMode
 }) {
   const copy = getCopy(locale).verseDesk
   const { connected, chainId, toggle, switchChain } = useMockWallet()
   /** 双卡同屏：左右列金额各自独立（共享会在两卡间串值） */
-  const [redeemMode, setRedeemMode] = useState<RedeemMode>('redeem')
+  const [redeemMode, setRedeemMode] = useState<RedeemMode>(initialRedeemMode ?? 'redeem')
   const [stakeAmount, setStakeAmount] = useState('')
   const [redeemAmount, setRedeemAmount] = useState('')
   const [delegateSelf, setDelegateSelf] = useState(true)
