@@ -40,7 +40,7 @@ pnpm check:contrast   # token 对比度双闸门（scripts/check-design-contrast
 
 已入基线的路由跑 Playwright 视觉回归：`pnpm test:e2e`。三档视口（1280×800 / 860×900 / 390×844）、DPR 固定 1、时钟钉 2026-10-01、动效冻结后整页截图比对；axe 无障碍扫描同套路由（`e2e/a11y.spec.ts`，新增违规即 FAIL）。构建走 `NEXT_DIST_DIR=.next-e2e` 独立产物目录，**不碰 `.next`**，与运行中的 dev/生产预览无冲突（部署纪律见 AGENTS.md 已知坑）。改样式后直接跑，像素 diff 自动报出。
 
-整页截图伪影告示：fullPage 走 CDP captureBeyondViewport 单帧采集，`position:fixed` 元素冻结在初始视口位、`sticky` 落回流位——mobile-390/tablet-860 基线里固定底导航悬浮于 y=780/836（视口高−64px）压住中部内容，desktop-1280 基线里 100dvh 侧栏只画首屏 ~800px、launch 费用条画在导航下方（空间关系倒错）。真人视口中底栏恒钉视口底缘、内容从其下滚过（`.product-main` ≤54rem 有 88px 底部预留）。看基线图/处理视觉 diff 时，这些是**预期噪音，勿当遮挡 bug 修页面**。
+整页截图伪影告示：fullPage 走 CDP captureBeyondViewport 单帧采集，`position:fixed` 元素冻结在初始视口位、`sticky` 落回流位——mobile-390/tablet-860 基线里固定底导航悬浮于 y=780/836（视口高−64px）压住中部内容，desktop-1280 基线里 100dvh 侧栏只画首屏 ~800px。真人视口中底栏恒钉视口底缘、内容从其下滚过（`.product-main` ≤54rem 有 88px 底部预留）。看基线图/处理视觉 diff 时，这些是**预期噪音，勿当遮挡 bug 修页面**。
 
 基线外的新页面/新交互，用 `agent-browser` 人工抽查，随后补进 `e2e/visual.spec.ts` 基线：
 

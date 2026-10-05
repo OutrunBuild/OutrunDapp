@@ -55,7 +55,8 @@ import { TxStatus, type TxState } from '../global/tx-status'
 // endTime=创世截止 :186+LaunchImpl:311-322；窗口结束 nonce+1→新 uniqueId 可复用 :189-195）。
 // 样本=verses 快照 genesis 行派生（repository）；精确字节串匹配（大小写敏感、不 trim）；
 // 占用判定以链上读值为准；错误行不带解锁时刻与条件、不加 ⊙（2026-10-02 用户裁定）。
-// 布局与 demo（demo.outrun.build/memeverse/create）一致：可见帮助文案仅时长下方一句，
+// 布局：Fees 卡并入表单卡 Communities 下方（2026-10-04 用户裁定，脱离 demo 双栏——
+// demo.outrun.build/memeverse/create 为右列侧栏旧制）；可见帮助文案仅时长下方一句，
 // 其余说明收进标签旁 ⊙ 悬浮提示（Info）
 const NAME_SYMBOL_MAX_BYTES = 31
 const DESC_MAX_BYTES = 255
@@ -300,66 +301,52 @@ export function CreateForm({
     )
   }
 
-  function renderSidebar(showCreate: boolean) {
+  /** Fees 卡并入表单卡尾部（2026-10-04 用户裁定）：Communities 折叠行下方顺排
+      报价头/总额行/支付说明/Launch CTA；0 态（费用真为 0）头部与报价行一并隐藏，
+      只留启动按钮（2026-10-02 用户裁定沿用） */
+  function renderLaunchFoot() {
     return (
-      // --launch 修饰：≤68rem 单列下由 CSS 收敛为 sticky 迷你费用条（review 步不带）
-      <aside
-        className={
-          showCreate ? 'workbench-secondary workbench-secondary--launch' : 'workbench-secondary'
-        }
+      <section
+        className="create-launch-foot"
+        aria-labelledby={showFee || !config || !govChainOption ? 'create-quote-title' : undefined}
       >
-        <section
-          className="action-panel"
-          aria-labelledby={
-            showFee || !config || !govChainOption ? 'create-quote-title' : undefined
-          }
+        {showFee || !config || !govChainOption ? (
+          <div className="action-panel__head">
+            <span className="action-panel__icon" aria-hidden="true">
+              <Calculator />
+            </span>
+            <h2 id="create-quote-title">{copy.create.quoteTitle}</h2>
+          </div>
+        ) : null}
+        {showFee ? (
+          <>
+            {/* quoteRegister 只回跨链费总和（AtLocal:56 / RegistrarOmnichain:59-66），不暴露
+                逐链拆分——界面只呈现一行总额（#69 用户裁定） */}
+            <dl className="create-quote">
+              <div className="create-quote__row create-quote__row--total">
+                <dt>{copy.create.quoteTotal}</dt>
+                <dd data-numeric>
+                  {formatAmount(crossChainFee, locale)} {nativeSymbol}
+                </dd>
+              </div>
+            </dl>
+            {/* 支付口径=SPEC-M8 §9：随注册交易 msg.value 一笔支付（本链=治理链原生；
+                异链发起=发起链原生），金额=quoteRegister 链上实时报价 */}
+            <FieldDescription>{copy.create.quotePaidNote}</FieldDescription>
+          </>
+        ) : !config || !govChainOption ? (
+          <p>{copy.create.quoteEmpty}</p>
+        ) : null}
+        <Button
+          type="submit"
+          className="ax-ghost-cta create-submit"
+          size="lg"
+          disabled={assets.length === 0 || chains.length === 0 || config == null}
         >
-          {/* 0 态卡头一并隐藏：报价区只剩启动按钮（2026-10-02 用户裁定） */}
-          {showFee || !config || !govChainOption ? (
-            <div className="action-panel__head">
-              <span className="action-panel__icon" aria-hidden="true">
-                <Calculator />
-              </span>
-              <h2 id="create-quote-title">{copy.create.quoteTitle}</h2>
-            </div>
-          ) : null}
-          {showFee ? (
-            <>
-              {/* quoteRegister 只回跨链费总和（AtLocal:56 / RegistrarOmnichain:59-66），不暴露
-                  逐链拆分——界面只呈现一行总额（#69 用户裁定） */}
-              <dl className="create-quote">
-                <div className="create-quote__row create-quote__row--total">
-                  {/* 迷你条内可见标签换「跨链费」（quoteTotal 无跨链语义，2026-10-01 用户反馈）；桌面仍显合计 */}
-                  <dt>
-                    <span className="create-quote__label-main">{copy.create.quoteTotal}</span>
-                    <span className="create-quote__label-compact">{copy.create.quoteTitle}</span>
-                  </dt>
-                  <dd data-numeric>
-                    {formatAmount(crossChainFee, locale)} {nativeSymbol}
-                  </dd>
-                </div>
-              </dl>
-              {/* 支付口径=SPEC-M8 §9：随注册交易 msg.value 一笔支付（本链=治理链原生；
-                  异链发起=发起链原生），金额=quoteRegister 链上实时报价 */}
-              <FieldDescription>{copy.create.quotePaidNote}</FieldDescription>
-            </>
-          ) : !config || !govChainOption ? (
-            <p>{copy.create.quoteEmpty}</p>
-          ) : null}
-          {showCreate ? (
-            <Button
-              type="submit"
-              form="create-form"
-              className="ax-ghost-cta create-submit"
-              size="lg"
-              disabled={assets.length === 0 || chains.length === 0 || config == null}
-            >
-              {copy.create.submit}
-            </Button>
-          ) : null}
-          {config ? <SourceRef value={config.sourceRef} /> : null}
-        </section>
-      </aside>
+          {copy.create.submit}
+        </Button>
+        {config ? <SourceRef value={config.sourceRef} /> : null}
+      </section>
     )
   }
 
@@ -433,16 +420,16 @@ export function CreateForm({
                 </dd>
               </div>
               {showFee ? (
-                <>
-                  <div className="create-quote__total">
-                    <dt>{copy.create.quoteTotal}</dt>
-                    <dd data-numeric>
-                      {formatAmount(crossChainFee, locale)} {nativeSymbol}
-                    </dd>
-                  </div>
-                </>
+                <div className="create-quote__total">
+                  <dt>{copy.create.quoteTotal}</dt>
+                  <dd data-numeric>
+                    {formatAmount(crossChainFee, locale)} {nativeSymbol}
+                  </dd>
+                </div>
               ) : null}
             </dl>
+            {/* 支付说明随侧栏并入审阅卡（总额行下方，同侧栏原文案） */}
+            {showFee ? <FieldDescription>{copy.create.quotePaidNote}</FieldDescription> : null}
             {txState === 'idle' ? (
               <div className="participation-review__actions">
                 <Button
@@ -476,7 +463,6 @@ export function CreateForm({
             )}
           </div>
         </div>
-        {renderSidebar(false)}
       </div>
       <Dialog
         open={txState === 'confirmed' && successOpen}
@@ -915,9 +901,9 @@ export function CreateForm({
               </div>
             </FieldGroup>
           </FieldSet>
+          {renderLaunchFoot()}
         </form>
       </div>
-      {renderSidebar(true)}
     </div>
   )
 }

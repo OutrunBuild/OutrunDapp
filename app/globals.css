@@ -3472,12 +3472,16 @@ svg {
   font-size: var(--text-sm);
 }
 
-.verse-workbench,
-.create-layout {
+.verse-workbench {
   display: grid;
   grid-template-columns: minmax(0, 1.22fr) minmax(calc(var(--space-8) * 4.6), 0.78fr);
   align-items: start;
   gap: var(--space-4);
+  margin-block-start: var(--space-4);
+}
+
+/* 创建页单列：Fees 卡并入表单卡 Communities 下方（2026-10-04 用户裁定），右列退役 */
+.create-layout {
   margin-block-start: var(--space-4);
 }
 
@@ -6865,11 +6869,23 @@ svg {
   color: var(--color-text-secondary);
 }
 
-/* Fees 卡内 Launch 主 CTA：加宽并居中；样式与 hover/禁用通道=markup 同挂的
+/* Fees 卡并入表单卡尾部（2026-10-04 用户裁定）：右列侧栏退役，报价头/总额行/支付说明/
+   Launch CTA 顺排在 Communities 折叠行下方；顶边框分区（review dl 同语言） */
+.create-launch-foot {
+  display: grid;
+  gap: var(--space-3);
+  padding-block-start: var(--space-4);
+  border-block-start: 1px solid var(--color-border);
+}
+
+.create-launch-foot p {
+  color: var(--color-text-secondary);
+}
+
+/* 表单卡内 Launch 主 CTA：吃满卡宽；样式与 hover/禁用通道=markup 同挂的
    .ax-ghost-cta「透明信号面板」（2026-09-25 用户裁定，见上方通道段） */
 .create-submit {
-  inline-size: 80%;
-  margin-inline: auto;
+  inline-size: 100%;
 }
 
 /* 数字输入的单位后缀（如创世时长「天」——demo 先例结构） */
@@ -6957,11 +6973,6 @@ svg {
 .create-quote {
   inline-size: 100%;
   margin: 0;
-}
-
-/* 迷你费用条专用标签（≤68rem 由 .workbench-secondary--launch 换显）；桌面恒显合计 */
-.create-quote__label-compact {
-  display: none;
 }
 
 .create-quote__row {
@@ -7097,69 +7108,8 @@ svg {
   }
 
   .discovery-layout,
-  .verse-workbench,
-  .create-layout {
+  .verse-workbench {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  /* 创建页移动端（2026-10-01 用户裁定）：Launch 侧栏收敛为 sticky 迷你费用条，
-     选 Spoke 链时费用与 CTA 常驻视口；≤54rem 再让位固定底导航 */
-  .workbench-secondary--launch {
-    position: sticky;
-    inset-block-end: 0;
-    z-index: var(--z-sticky);
-  }
-
-  .workbench-secondary--launch .action-panel {
-    flex-direction: row;
-    align-items: center;
-    gap: var(--space-3);
-  }
-
-  /* 报价组=内容宽不收缩（防 2026-10-01 首版 flex:1 被 CTA 挤成逐字竖排），行内不折行 */
-  .workbench-secondary--launch .create-quote {
-    inline-size: auto;
-    flex: 0 0 auto;
-  }
-
-  .workbench-secondary--launch .create-quote__row {
-    justify-content: flex-start;
-    gap: var(--space-2);
-    white-space: nowrap;
-  }
-
-  /* 条内可见标签=「跨链费」：「合计」无跨链语义（2026-10-01 用户反馈） */
-  .workbench-secondary--launch .create-quote__label-main {
-    display: none;
-  }
-
-  .workbench-secondary--launch .create-quote__label-compact {
-    display: inline;
-  }
-
-  /* CTA 吃满剩余宽度（压过桌面 .create-submit 80% 居中档） */
-  .workbench-secondary--launch .create-submit {
-    flex: 1;
-    inline-size: auto;
-    min-inline-size: 0;
-    margin-inline: 0;
-  }
-
-  /* 标题转 sr-only：aria-labelledby 保持有名可读，条内只留标签+总额+CTA */
-  .workbench-secondary--launch .action-panel__head {
-    position: absolute;
-    inline-size: 1px;
-    block-size: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
-  .workbench-secondary--launch [data-slot='field-description'] {
-    display: none;
   }
 
   .filter-rail {
@@ -7294,11 +7244,6 @@ svg {
 
   .product-main {
     padding: var(--space-4) var(--space-3) calc(var(--space-8) + var(--space-5));
-  }
-
-  /* Launch 迷你条让位固定底导航（导航 min-block-size=space-8+safe-area） */
-  .workbench-secondary--launch {
-    inset-block-end: calc(var(--space-8) + env(safe-area-inset-bottom));
   }
 
   .mobile-navigation {

@@ -435,3 +435,12 @@ C1 结算储备金按 spec 窄口径且 UI 不露出 · C2 建池剩余资金不
 - **效力**：globals.css ≥80rem 断点的 `zoom: 0.8` 保留；后续评审不再将其作为待修复项重复报告；未来若要移除，须走新决议并同步落地三列窄卡 token 版式，禁止单独删除（会加重卡头挤压）。
 - **验证**：纯登记，无代码变更；对照演示为 /tmp 独立页（不入库），依据链 = P1-2 台账 + f0563ea（卡头 wrap+截断）+ 本日志 2026-10-01 三条卡头条目。
 - **token 影响**：无增删。
+## 2026-10-04 · Launch 页 Fees 卡并入表单卡（用户裁定「右半边卡片合并到左半边卡片的 Communities 下方」）
+
+- **背景**：`/memeverse/launch` 沿用 demo 双栏（左表单卡 + 右 Fees 报价侧栏，`.verse-workbench` 共规则 1.22fr/0.78fr）；≤68rem 侧栏另收敛为 sticky 迷你费用条（2026-10-01 裁定）。用户裁定右卡并入左卡 Communities 下方。
+- **决议**：`.create-layout` 退单列，右列侧栏退役。报价头（复用 `.action-panel__head/__icon`）/总额行/支付说明/Launch CTA 顺排进表单卡尾部新分区 `.create-launch-foot`（顶边框 1px 分隔，review dl 同语言）；`.create-submit` 由 80% 居中改吃满卡宽。review 步同并：无侧栏，费用总额本就在审阅 dl 行内，支付说明（quotePaidNote）补到 dl 之下防信息丢失。连带退役：sticky 迷你费用条全套（`--launch` 修饰、`__label-main/__label-compact` 换档、≤54rem 让位规则）——移动端 CTA 回归表单流底部，`.product-main` 既有底部预留承接固定底导航。
+- **效力**：修订 components.md 创建页工作台行；`.workbench-secondary` 基类仍归 verse 页 CurrentAction 使用，不受影响；报价语义（quoteRegister 总额一行、0 态只留 CTA、SPEC-M8 §9 支付口径）不变。
+- **token 影响**：无增删。
+- **验证**：tsc / lint / check:design / check:contrast / vitest 全绿；e2e launch 三档基线重录。
+- 签名：approved by Jasonrale（2026-10-04 会话裁定）
+
