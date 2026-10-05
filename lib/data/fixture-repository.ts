@@ -868,11 +868,12 @@ const ANCHOR_MS = Date.parse(FIXTURE_TIME_ANCHOR);
 /** 24 小时流动性保护窗（genesis.md:43——锚定实际解锁交易时刻非 unlockTime） */
 const PROTECTION_WINDOW_MS = 24 * 60 * 60 * 1000;
 
-/** 样本账户钱包余额视图（②区资产行）：资产 → 链分布聚合 */
+/** 样本账户钱包余额视图（②区资产行）：资产 → 链分布聚合（产品资产=uAsset 族+创世积分；
+ *  储备/原生余额与本产品无关，不出表——2026-10-02 用户裁定） */
 export type FixtureWalletAsset = {
   assetId: string;
   symbol: string;
-  kind: 'uasset' | 'reserve' | 'credit';
+  kind: 'uasset' | 'credit';
   /** uAsset 美元样本价（fixture 样本）；null=隐藏换算 */
   usdSample: number | null;
   total: number;
@@ -893,12 +894,18 @@ export function getFixtureWalletAssets(): FixtureWalletAsset[] {
   const rows: FixtureWalletAsset[] = [];
   for (const [assetId, chains] of byAsset) {
     const asset = assetMeta.get(assetId);
-    if (!asset) continue;
+    if (!asset || asset.kind === 'reserve') continue;
     rows.push({
       assetId,
       symbol: asset.symbol,
       kind: asset.kind as FixtureWalletAsset['kind'],
-      usdSample: asset.usdSample ?? null,
+      // Credit 无独立报价：与配对 uAsset 1:1 同份额兑换（OB:genesis-credit.md:19），
+      // 美元样本价=配对 uAsset 样本价；无配对=隐藏换算
+      usdSample:
+        asset.usdSample ??
+        (asset.kind === 'credit' && asset.pairedUAssetId
+          ? (assetMeta.get(asset.pairedUAssetId)?.usdSample ?? null)
+          : null),
       total: chains.reduce((sum, row) => sum + row.amount, 0),
       chains: chains.map((row) => ({
         chainId: row.chainId,
@@ -908,15 +915,27 @@ export function getFixtureWalletAssets(): FixtureWalletAsset[] {
       bridgeable: asset.kind === 'uasset' || asset.kind === 'credit',
     });
   }
-  // uAsset 族在前（参与货币），其后创世积分、储备；族内按符号排序
+  // uAsset 族在前（参与货币），其后创世积分；族内按符号排序
   const kindOrder: Record<FixtureWalletAsset['kind'], number> = {
     uasset: 0,
     credit: 1,
-    reserve: 2,
   };
   return rows.sort(
     (a, b) => kindOrder[a.kind] - kindOrder[b.kind] || a.symbol.localeCompare(b.symbol),
   );
+}
+
+/** 储备资产余额表（PSM Convert 弹窗 Redeem 侧 Max 来源；储备不作为资产出表） */
+export function getFixtureReserveBalances(): Record<string, number> {
+  const assetMeta = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
+  const balances: Record<string, number> = {};
+  for (const row of fixtureData.balances.items) {
+    const asset = assetMeta.get(row.assetId);
+    if (asset && asset.kind === 'reserve') {
+      balances[asset.symbol] = (balances[asset.symbol] ?? 0) + amount(row.amount.raw);
+    }
+  }
+  return balances;
 }
 
 /** 全币种钱包余额表（按符号跨链合计；创世参与表单 Balance/Max 来源）。
@@ -1007,21 +1026,17 @@ export type FixtureCdpPosition = {
   debt: number;
   uAssetSymbol: string;
   yieldSource: string;
-  /** 仓位来源 Verse（质押参与同笔原子开仓）；null=独立 Genesis Staking */
-  openedFor: { id: string; symbol: string; name: string } | null;
 };
 
 export function getFixtureCdpPositions(): FixtureCdpPosition[] {
   const chainMeta = new Map(fixtureData.chains.items.map((chain) => [chain.chainId, chain]));
   const assetMeta = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
-  const verseMeta = new Map(fixtureData.verses.items.map((verse) => [verse.id, verse]));
   const anchorBySource = new Map(
     fixtureData.yieldSources.items.map((source) => [source.name, source.anchor]),
   );
   return fixtureData.positions.items.map((row) => {
     const collateral = assetMeta.get(row.collateral.assetId);
     const anchor = anchorBySource.get(row.yieldSource);
-    const verse = row.openedFor ? verseMeta.get(row.openedFor) : undefined;
     return {
       id: row.id,
       chainId: row.chainId,
@@ -1031,7 +1046,6 @@ export function getFixtureCdpPositions(): FixtureCdpPosition[] {
       debt: amount(row.debt.raw),
       uAssetSymbol: anchor ? `U${anchor}` : 'UAsset',
       yieldSource: row.yieldSource,
-      openedFor: verse != null ? { id: verse.id, symbol: verse.symbol, name: verse.name } : null,
     };
   });
 }
@@ -1053,22 +1067,27 @@ export type FixtureUsrSavings = {
   myShares: number;
   /** 存款价值（推导值） */
   myAssets: number;
+  /** uAsset 美元样本价（fixture 假数据；缺失为 null → UI 隐藏美元换算） */
+  usdSample: number | null;
   lastSettledAt: string;
 };
 
 export function getFixtureUsrSavings(): FixtureUsrSavings[] {
   const chainMeta = new Map(fixtureData.chains.items.map((chain) => [chain.chainId, chain]));
   const assetMeta = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
+  // 美元样本价挂在底层 uAsset 上（su* 份额代币无价），按符号反查
+  const assetBySymbol = new Map(fixtureData.assets.items.map((asset) => [asset.symbol, asset]));
   return fixtureData.usrVaults.items
     .map((row) => {
       const asset = assetMeta.get(row.assetId);
       if (!asset) return null;
       const rate = Number(row.usrRate.raw);
       const myShares = row.myShares ? amount(row.myShares.raw) : 0;
+      const uAssetSymbol = `U${asset.symbol.replace(/^su/, '')}`;
       return {
         id: row.id,
         shareSymbol: asset.symbol,
-        uAssetSymbol: `U${asset.symbol.replace(/^su/, '')}`,
+        uAssetSymbol,
         chainId: row.chainId,
         chainName: chainMeta.get(row.chainId)?.name ?? String(row.chainId),
         rate,
@@ -1076,6 +1095,7 @@ export function getFixtureUsrSavings(): FixtureUsrSavings[] {
         capped: row.capped,
         myShares,
         myAssets: (myShares * Number(row.accrualIndexRaw)) / 1e18,
+        usdSample: assetBySymbol.get(uAssetSymbol)?.usdSample ?? null,
         lastSettledAt: row.lastSettledAt,
       } satisfies FixtureUsrSavings;
     })
@@ -1084,18 +1104,14 @@ export function getFixtureUsrSavings(): FixtureUsrSavings[] {
 
 /** 收益库存单行（③区紧凑表）：staking + governance 按 verse 联结 */
 export type FixtureVaultRow = {
-  verse: { id: string; symbol: string; name: string; stage: VerseStage };
+  verse: { id: string; symbol: string; name: string };
   shareSymbol: string;
   myShares: number;
-  /** 份额价值 = myShares × assetsPerShare（推导值） */
-  shareValue: number;
   apy7d: number;
-  /** 等待中赎回笔数（REDEEM_DELAY 内） */
-  waitingCount: number;
-  /** 已成熟可提取合计（待执行第二步——memecoin-staking.md:30） */
+  /** 等待中赎回锁定的代币合计（requestRedeem→REDEEM_DELAY，MemecoinYieldVault.sol:334） */
+  waitingTotal: number;
+  /** 已成熟可取出合计（claimableRedeemRequest 口径——MemecoinYieldVault.sol:500） */
   readyTotal: number;
-  /** 周期激励可领（窗口内；null=无样本或窗口已过） */
-  incentive: { claimable: number; windowEndsAt: string; remainingMs: number } | null;
 };
 
 export function getFixtureVaultRows(): FixtureVaultRow[] {
@@ -1105,30 +1121,28 @@ export function getFixtureVaultRows(): FixtureVaultRow[] {
     const verse = verseMeta.get(record.verseId);
     if (!verse) continue;
     const staking = getFixtureStaking(record.verseId);
-    const governance = getFixtureGovernanceState(record.verseId);
-    const incentiveClaimable = governance?.lastCycle?.myClaimable ?? 0;
-    const windowEndsAt = governance?.claimWindowEndsAt ?? null;
-    const remainingMs = windowEndsAt ? Date.parse(windowEndsAt) - ANCHOR_MS : 0;
     rows.push({
       verse: {
         id: verse.id,
         symbol: verse.symbol,
         name: verse.name,
-        stage: verse.stage,
       },
       shareSymbol: `s${verse.symbol}`,
       myShares: staking?.myShares ?? 0,
-      shareValue: staking?.myShareValue ?? 0,
       apy7d: staking ? staking.apy7d * 100 : 0,
-      waitingCount: staking ? staking.pendingRedeems.filter((entry) => !entry.ready).length : 0,
+      waitingTotal: staking
+        ? staking.pendingRedeems
+            .filter((entry) => !entry.ready)
+            .reduce((sum, entry) => sum + entry.lockedAssets, 0)
+        : 0,
       readyTotal: staking?.claimableTotal ?? 0,
-      incentive:
-        incentiveClaimable > 0 && windowEndsAt && remainingMs > 0
-          ? { claimable: incentiveClaimable, windowEndsAt, remainingMs }
-          : null,
     });
   }
-  return rows.sort((a, b) => a.verse.id.localeCompare(b.verse.id));
+  // 库存单只列实际持仓：myShares=0 的 verse 不进组合（金库样本仍服务 verse 页签，
+  // 2026-10-04 用户裁定：组合假数据减量——持仓集中到 10 个 verse，其余 myShares=0）
+  return rows
+    .filter((row) => row.myShares > 0)
+    .sort((a, b) => a.verse.id.localeCompare(b.verse.id));
 }
 
 /** ①待办区聚合（2026-10-02 裁定：只收「逾期有后果」项；同类跨 Verse 聚合、聚合卡显最近截止；
@@ -1140,6 +1154,8 @@ export type FixturePortfolioAction = {
   kind: PortfolioActionKind;
   /** 单 verse 目标（聚合卡=null） */
   verse: { id: string; symbol: string; name: string; raiseAsset: string } | null;
+  /** 聚合卡的焦点 verse（如激励聚合卡=最近截止的 verse，深链落点）；null=无 */
+  focusVerseId: string | null;
   /** 聚合计数（null=单卡） */
   count: number | null;
   /** 截止 ISO（null=无截止；聚合卡=最近截止） */
@@ -1180,6 +1196,7 @@ export function getFixturePortfolioActions(): FixturePortfolioAction[] {
       deadline: new Date(Date.parse(verse.unlockedAt) + PROTECTION_WINDOW_MS).toISOString(),
       remainingMs,
       amount: null,
+      focusVerseId: null,
       bridgeMessageId: null,
     });
   }
@@ -1218,6 +1235,7 @@ export function getFixturePortfolioActions(): FixturePortfolioAction[] {
       deadline: nearest.deadline,
       remainingMs: nearest.remainingMs,
       amount: null,
+      focusVerseId: nearest.verse.id,
       bridgeMessageId: null,
     });
   }
@@ -1232,6 +1250,7 @@ export function getFixturePortfolioActions(): FixturePortfolioAction[] {
       deadline: null,
       remainingMs: null,
       amount: null,
+      focusVerseId: null,
       bridgeMessageId: null,
     });
   }
@@ -1269,6 +1288,7 @@ export function getFixturePortfolioActions(): FixturePortfolioAction[] {
       deadline: null,
       remainingMs: null,
       amount: row.total,
+      focusVerseId: null,
       bridgeMessageId: null,
     });
   }
@@ -1283,6 +1303,7 @@ export function getFixturePortfolioActions(): FixturePortfolioAction[] {
       deadline: null,
       remainingMs: null,
       amount: null,
+      focusVerseId: null,
       bridgeMessageId: message.id,
     });
   }
@@ -1305,6 +1326,8 @@ export type FixtureVoucherRow = {
     stage: VerseStage;
     raiseAsset: string;
     endsAt: string;
+    /** 创世截止 + 365d 固定锁期（MemeverseRegistrationLib.sol:14 合约常量）= 锁定行预计解锁日 */
+    unlockAt: string;
     unlockedAt: string | null;
   };
   /** 创世中参与合计（按 kind 分列）+ 质押参与路径标记（PD-01） */
@@ -1323,10 +1346,6 @@ export type FixtureVoucherRow = {
     yt: number;
     /** 可领 YT（Stage≥Locked 一次性按出资比例） */
     claimableYt: number;
-    /** 四池 LP 合计 */
-    lp: number;
-    /** 每 1 YT 赎回摊得 uAsset 样本（null=槽位） */
-    ytRedeemUAssetPerUnit: number | null;
   } | null;
 };
 
@@ -1345,6 +1364,7 @@ export function getFixtureVoucherRows(): FixtureVoucherRow[] {
       stage: verse.stage,
       raiseAsset: verse.raiseAsset,
       endsAt: verse.endsAt,
+      unlockAt: verse.unlockTimeAt,
       unlockedAt: verse.unlockedAt,
     };
     if (verse.stage === 'genesis' && mine.length > 0) {
@@ -1374,8 +1394,6 @@ export function getFixtureVoucherRows(): FixtureVoucherRow[] {
           pt: pol.myPt,
           yt: pol.myYt,
           claimableYt: pol.claimableYt,
-          lp: pol.myLp.main + pol.myLp['pol-uasset'] + pol.myLp['pt-uasset'] + pol.myLp['pt-pol'],
-          ytRedeemUAssetPerUnit: pol.ytRedeemUAssetPerUnit,
         },
       });
     }
@@ -1389,7 +1407,7 @@ export function getFixtureVoucherRows(): FixtureVoucherRow[] {
   );
 }
 
-/** ①待办区/状态行共用：页级信号计数（待办/可领/在途/滞留） */
+/** ①待办区/状态行共用：页级信号计数（待办/可领/滞留） */
 export function getFixturePortfolioSignals() {
   const actions = getFixturePortfolioActions();
   const claimableVerses = getFixtureVoucherRows().filter(
@@ -1399,7 +1417,6 @@ export function getFixturePortfolioSignals() {
   return {
     actionCount: actions.length,
     claimableVerses,
-    inTransit: messages.filter((message) => message.stage === 'sent').length,
     stranded: messages.filter((message) => message.stage === 'stranded').length,
   };
 }

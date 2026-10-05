@@ -4,6 +4,7 @@ import {
   getFixtureChains,
   getFixturePsmPair,
   getFixturePortfolioActions,
+  getFixtureReserveBalances,
   getFixturePortfolioSignals,
   getFixtureSnapshot,
   getFixtureUsrSavings,
@@ -17,14 +18,14 @@ import { OutrunShell } from '../global/app-shell'
 import { getCopy } from '../global/copy'
 import { ActionZone } from './action-zone'
 import { AssetsZone, type AssetRowView } from './assets-zone'
-import { PositionsZone } from './positions-zone'
+import { SavingsZone, StakedPositionsZone, VaultZone } from './positions-zone'
 import { VouchersZone } from './vouchers-zone'
 
 /**
  * /portfolio（2026-10-02 四分区裁定）：①待办（只收逾期有后果项，同类聚合）②资产与跨链
- * （余额按链分布 + 跨链/1:1 转换/存入储蓄弹窗 + 在途状态——跨链功能并入本页，v1 无
- * /bridge 独立页）③仓位与储蓄（CDP 质押仓位 + USR 储蓄卡 + 收益库存单表）④参与凭证
- * （阶段分组表 + 只看可领 URL 筛选）。信号状态行=页级签名（摘要即导航，锚点直达分区）。
+ * （余额按链分布 + 跨链/1:1 转换/存入储蓄弹窗）③仓位与储蓄（CDP 质押仓位 + USR 储蓄卡 +
+ * 收益库存单表）④参与凭证（阶段分组表 + 只看可领 URL 筛选）。信号状态行=页级签名（摘要
+ * 即导航，锚点直达分区）；在途段已删（2026-10-04 裁定删在途卡），滞留段随待办卡锚①。
  */
 export function PortfolioPage({
   locale,
@@ -38,7 +39,6 @@ export function PortfolioPage({
   const signals = getFixturePortfolioSignals()
   const actions = getFixturePortfolioActions()
   const messages = getFixtureBridgeMessages()
-  const transit = messages.filter((message) => message.stage === 'sent' || message.stage === 'stranded')
   const stranded = messages.filter((message) => message.stage === 'stranded')
   const chains = getFixtureChains()
     .filter((chain) => chain.env === 'mainnet')
@@ -47,24 +47,18 @@ export function PortfolioPage({
   const assets: AssetRowView[] = getFixtureWalletAssets().map((asset) => ({
     ...asset,
     psm: asset.kind === 'uasset' ? getFixturePsmPair(asset.symbol) : null,
-    usr:
-      asset.kind === 'uasset'
-        ? (usrSavings.find((vault) => vault.uAssetSymbol === asset.symbol) ?? null)
-        : null,
   }))
   const uAssetBalances: Record<string, number> = {}
-  const reserveBalances: Record<string, number> = {}
   for (const asset of assets) {
     if (asset.kind === 'uasset') uAssetBalances[asset.symbol] = asset.total
-    if (asset.kind === 'reserve') reserveBalances[asset.symbol] = asset.total
   }
+  const reserveBalances = getFixtureReserveBalances()
   const claimableOnly = claimable === '1'
 
   const signalItems = [
     { href: '#pf-actions', tone: 'warning', label: copy.signals.todo, value: signals.actionCount },
     { href: '#pf-vouchers', tone: 'success', label: copy.signals.claimable, value: signals.claimableVerses },
-    { href: '#pf-assets', tone: 'info', label: copy.signals.inTransit, value: signals.inTransit },
-    { href: '#pf-assets', tone: 'danger', label: copy.signals.stranded, value: signals.stranded },
+    { href: '#pf-actions', tone: 'danger', label: copy.signals.stranded, value: signals.stranded },
   ]
 
   return (
@@ -109,20 +103,18 @@ export function PortfolioPage({
       </header>
 
       <ActionZone locale={locale} actions={actions} strandedMessages={stranded} />
-      <AssetsZone
-        locale={locale}
-        assets={assets}
-        transit={transit}
-        chains={chains}
-        reserveBalances={reserveBalances}
-      />
-      <PositionsZone
+      <AssetsZone locale={locale} assets={assets} chains={chains} reserveBalances={reserveBalances} />
+      <StakedPositionsZone
         locale={locale}
         cdpPositions={getFixtureCdpPositions()}
-        usrSavings={usrSavings}
-        vaultRows={getFixtureVaultRows()}
         uAssetBalances={uAssetBalances}
       />
+      <SavingsZone
+        locale={locale}
+        usrSavings={usrSavings}
+        uAssetBalances={uAssetBalances}
+      />
+      <VaultZone locale={locale} vaultRows={getFixtureVaultRows()} />
       <VouchersZone
         locale={locale}
         rows={getFixtureVoucherRows()}

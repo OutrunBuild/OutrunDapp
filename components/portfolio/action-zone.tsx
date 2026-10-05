@@ -4,7 +4,7 @@
  * ①待办区（2026-10-02 裁定）：只收「逾期有后果」项，按截止时间排序、最紧急置顶；
  * 同类跨 Verse 聚合（聚合卡显示最近截止）。截止色阶 normal→warning→danger 走数据
  * 语义层（左缘 3px 色条）；黄主 CTA 仅第一张卡（一屏一个主行动），其余 outline。
- * 倒计时锚定快照 remainingMs 走秒（RedeemCountdown 同款），fixedAnchor 披露示例时钟。
+ * 倒计时锚定快照 remainingMs 走秒（RedeemCountdown 同款）。
  */
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -140,14 +140,30 @@ export function ActionZone({
               >
                 {copy.ctaIncentive}
               </Button>
-            ) : action.kind === 'incentive' || action.kind === 'vault-ready' ? (
+            ) : action.kind === 'incentive' ? (
               <Button
                 className={primary ? 'ax-ghost-cta' : undefined}
                 variant={primary ? 'default' : 'outline'}
                 nativeButton={false}
-                render={<a href="#pf-positions" />}
+                render={
+                  <Link
+                    href={verseHref(
+                      locale,
+                      action.focusVerseId ?? action.verse?.id ?? '',
+                    )}
+                  />
+                }
               >
-                {action.kind === 'incentive' ? copy.ctaIncentive : copy.ctaVault}
+                {copy.ctaIncentive}
+              </Button>
+            ) : action.kind === 'vault-ready' ? (
+              <Button
+                className={primary ? 'ax-ghost-cta' : undefined}
+                variant={primary ? 'default' : 'outline'}
+                nativeButton={false}
+                render={<a href="#pf-vault" />}
+              >
+                {copy.ctaVault}
               </Button>
             ) : (
               <StrandedDialog
@@ -186,7 +202,6 @@ export function ActionZone({
           )
         })}
       </ul>
-      <p className="panel-note">{copy.fixedAnchor}</p>
     </section>
   )
 }

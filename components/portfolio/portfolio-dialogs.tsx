@@ -1,12 +1,13 @@
 'use client'
 
 /**
- * Portfolio 操作弹窗族（2026-10-02 四分区裁定）：跨链发送 / PSM 1:1 转换 / CDP 赎回 /
+ * Portfolio 操作弹窗族（2026-10-02 四分区裁定）：跨链发送 / PSM 转换 / CDP 赎回 /
  * USR 存取 / 收益库执行 / 滞留恢复。壳与字段原语全部复用 verse 页既有语言
  * （.pol-mint 卡壳 + .swap-panel__* 字段族）；CTA 走 VaultActions 同款原型口径：
  * 未连接=Connect Wallet 可点切换模拟连接，已连接=动作钮禁用、不伪造链上成功。
  */
-import { useState } from 'react'
+import { useId, useState } from 'react'
+import type { ReactNode } from 'react'
 import { X } from 'lucide-react'
 import type { Locale } from '@/lib/data/fixture-repository'
 
@@ -23,6 +24,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { FieldError } from '@/components/ui/field'
 
 /** 弹窗壳：标题 + ✕ + 内容（复用 .pol-mint 卡签名） */
 function ActionDialogShell({
@@ -56,7 +58,7 @@ function AmountField({
   locale,
   label,
   balance,
-  balanceSymbol,
+  balanceLabel,
   maxLabel,
   value,
   onValue,
@@ -66,19 +68,24 @@ function AmountField({
   locale: Locale
   label: string
   balance: number | null
-  balanceSymbol: string
+  balanceLabel: string
   maxLabel: string
   value: string
   onValue: (next: string) => void
   tokenSymbol: string
   ariaLabel: string
 }) {
+  const errorId = useId()
+  // 余额不足：balance 已知且输入>余额（2026-10-04 用户裁定文案一行短句、不带数值）
+  const parsed = Number(value)
+  const overBalance = balance != null && Number.isFinite(parsed) && parsed > balance
   return (
     <div className="swap-panel__field">
       <div className="swap-panel__field-head">
         <span>{label}</span>
         <span className="swap-panel__balance">
-          {`${balanceSymbol} ${balance == null ? '--' : formatAmount(balance, locale)}`}
+          {/* 代币符号已在输入框右侧展示，余额行不重复（2026-10-04 用户裁定） */}
+          {`${balanceLabel}: ${balance == null ? '--' : formatAmount(balance, locale)}`}
           {balance != null && balance > 0 ? (
             <button
               type="button"
@@ -98,12 +105,17 @@ function AmountField({
           value={value}
           maxLength={AMOUNT_MAX_CHARS}
           aria-label={ariaLabel}
+          aria-invalid={overBalance || undefined}
+          aria-describedby={overBalance ? errorId : undefined}
           onChange={(event) => onValue(sanitizeAmount(event.target.value))}
         />
         <div className="swap-panel__token">
           <strong>{tokenSymbol}</strong>
         </div>
       </div>
+      {overBalance ? (
+        <FieldError id={errorId}>{getCopy(locale).common.insufficientBalance}</FieldError>
+      ) : null}
     </div>
   )
 }
@@ -219,7 +231,7 @@ export function BridgeDialog({
           locale={locale}
           label={copy.amount}
           balance={fromBalance}
-          balanceSymbol={copy.balance}
+          balanceLabel={copy.balance}
           maxLabel={copy.max}
           value={amount}
           onValue={setAmount}
@@ -241,7 +253,6 @@ export function BridgeDialog({
             [copy.bridgeFee, '--'],
           ]}
         />
-        <p className="panel-note">{copy.bridgeDust}</p>
         <DialogCta locale={locale} connected={connected} onConnect={toggle} label={copy.bridgeSend} />
       </ActionDialogShell>
     </Dialog>
@@ -249,7 +260,7 @@ export function BridgeDialog({
 }
 
 // ---------------------------------------------------------------------------
-// PSM 1:1 转换（2026-10-02 用户裁定命名；无市场价参与、费后到账、额度余量）
+// PSM 转换（机制仍 1:1 兑换；标题去 1:1——2026-10-04 用户裁定。费后到账、额度余量仅 Mint 卡）
 // ---------------------------------------------------------------------------
 
 export function ConvertDialog({
@@ -284,6 +295,7 @@ export function ConvertDialog({
   const balance = mode === 'mint' ? reserveBalance : uAssetBalance
   const balanceSymbol = mode === 'mint' ? reserveSymbol : uAssetSymbol
   const mintBlocked = mode === 'mint' && headroom != null && headroom <= 0
+  const overBalance = balance != null && Number.isFinite(parsed) && parsed > balance
 
   return (
     <Dialog>
@@ -303,7 +315,7 @@ export function ConvertDialog({
           locale={locale}
           label={copy.amount}
           balance={balance}
-          balanceSymbol={`${copy.balance} ${balanceSymbol}`}
+          balanceLabel={copy.balance}
           maxLabel={copy.max}
           value={amount}
           onValue={setAmount}
@@ -324,25 +336,29 @@ export function ConvertDialog({
                 '--'
               ) : (
                 <span key="fee" data-numeric>
-                  {formatPercent(fee * 100, locale)}
+                  {formatPercent(fee * 100, locale)}%
                 </span>
               ),
             ],
-            [
-              copy.convertHeadroom,
-              headroom == null ? (
-                '--'
-              ) : (
-                <span key="headroom" data-numeric>
-                  {formatAmount(headroom, locale)} {uAssetSymbol}
-                </span>
-              ),
-            ],
+            // 铸造上限余量只约束 Mint 方向（PSM 铸造 cap），Redeem 卡不显示（2026-10-04 用户裁定）
+            ...(mode === 'mint'
+              ? ([
+                  [
+                    copy.convertHeadroom,
+                    headroom == null ? (
+                      '--'
+                    ) : (
+                      <span key="headroom" data-numeric>
+                        {formatAmount(headroom, locale)} {uAssetSymbol}
+                      </span>
+                    ),
+                  ],
+                ] as [string, ReactNode][])
+              : []),
           ]}
         />
-        <p className="panel-note">{copy.convertNote.replace('{u}', uAssetSymbol).replace('{r}', reserveSymbol)}</p>
         {connected ? (
-          <Button className="swap-panel__cta" disabled={!valid || mintBlocked}>
+          <Button className="swap-panel__cta" disabled={!valid || mintBlocked || overBalance}>
             {copy.convertSubmit}
           </Button>
         ) : (
@@ -367,6 +383,7 @@ export function CdpRedeemDialog({
   collateralAmount,
   debt,
   uAssetBalance,
+  appearance = 'button',
 }: {
   locale: Locale
   triggerLabel: string
@@ -375,6 +392,8 @@ export function CdpRedeemDialog({
   collateralAmount: number
   debt: number
   uAssetBalance: number | null
+  /** 表格行内用 link（pf-table__link 语法），卡片布局用 button（默认） */
+  appearance?: 'button' | 'link'
 }) {
   const copy = getCopy(locale).portfolio.positions
   const { connected, toggle } = useMockWallet()
@@ -384,7 +403,16 @@ export function CdpRedeemDialog({
 
   return (
     <Dialog>
-      <DialogTrigger data-slot="button" render={<Button variant="outline" size="sm" />}>
+      <DialogTrigger
+        data-slot="button"
+        render={
+          appearance === 'link' ? (
+            <button type="button" className="pf-table__link" />
+          ) : (
+            <Button variant="outline" size="sm" />
+          )
+        }
+      >
         {triggerLabel}
       </DialogTrigger>
       <ActionDialogShell title={`${copy.cdpRedeem} · ${uAssetSymbol}`} closeLabel={getCopy(locale).common.close}>
@@ -392,7 +420,7 @@ export function CdpRedeemDialog({
           locale={locale}
           label={copy.amount}
           balance={uAssetBalance}
-          balanceSymbol={copy.balance}
+          balanceLabel={copy.balance}
           maxLabel={copy.max}
           value={amount}
           onValue={setAmount}
@@ -415,7 +443,6 @@ export function CdpRedeemDialog({
             ],
           ]}
         />
-        <p className="panel-note">{copy.cdpPlainFull.replace('{u}', uAssetSymbol)}</p>
         <DialogCta locale={locale} connected={connected} onConnect={toggle} label={copy.cdpRedeem} />
       </ActionDialogShell>
     </Dialog>
@@ -446,7 +473,7 @@ export function UsrSavingsDialog({
   }
   uAssetBalance: number | null
 }) {
-  const copy = getCopy(locale).portfolio.positions
+  const copy = getCopy(locale).portfolio.savings
   const { connected, toggle } = useMockWallet()
   const [amount, setAmount] = useState('')
   const parsed = Number(amount)
@@ -459,14 +486,14 @@ export function UsrSavingsDialog({
         {triggerLabel}
       </DialogTrigger>
       <ActionDialogShell
-        title={`${copy.usrBadge} · ${vault.uAssetSymbol}`}
+        title={`${copy.badge} · ${vault.uAssetSymbol}`}
         closeLabel={getCopy(locale).common.close}
       >
         <AmountField
           locale={locale}
           label={copy.amount}
           balance={mode === 'deposit' ? uAssetBalance : vault.myShares}
-          balanceSymbol={copy.balance}
+          balanceLabel={copy.balance}
           maxLabel={copy.max}
           value={amount}
           onValue={setAmount}
@@ -476,19 +503,13 @@ export function UsrSavingsDialog({
         <DetailRows
           rows={[
             [
-              copy.usrRate,
-              vault.rateActive ? (
-                <span key="rate" data-numeric data-state="active">
-                  {formatPercent(vault.rate * 100, locale)}
-                </span>
-              ) : (
-                <span key="rate" data-state="inactive">
-                  {copy.usrStateInactive}
-                </span>
-              ),
+              copy.apy,
+              <span key="rate" data-numeric data-state={vault.rateActive ? 'active' : 'inactive'}>
+                {formatPercent(vault.rate * 100, locale)}%
+              </span>,
             ],
             [
-              copy.usrMyDeposit,
+              copy.myDeposit,
               <span key="deposit" data-numeric>
                 {formatAmount(vault.myAssets, locale)} {vault.uAssetSymbol}
               </span>,
@@ -506,62 +527,8 @@ export function UsrSavingsDialog({
           locale={locale}
           connected={connected}
           onConnect={toggle}
-          label={mode === 'deposit' ? copy.usrDepositCta : copy.usrWithdrawCta}
+          label={mode === 'deposit' ? copy.depositCta : copy.withdrawCta}
         />
-      </ActionDialogShell>
-    </Dialog>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// 收益库待执行赎回（第二步：等待期已过的成熟条目，执行后资金回钱包）
-// ---------------------------------------------------------------------------
-
-export function VaultExecuteDialog({
-  locale,
-  triggerLabel,
-  verseSymbol,
-  shareSymbol,
-  readyTotal,
-  waitingCount,
-}: {
-  locale: Locale
-  triggerLabel: string
-  verseSymbol: string
-  shareSymbol: string
-  readyTotal: number
-  waitingCount: number
-}) {
-  const copy = getCopy(locale).portfolio.positions
-  const { connected, toggle } = useMockWallet()
-
-  return (
-    <Dialog>
-      <DialogTrigger data-slot="button" render={<Button variant="outline" size="sm" />}>
-        {triggerLabel}
-      </DialogTrigger>
-      <ActionDialogShell
-        title={`${copy.vaultExecute} · ${shareSymbol}`}
-        closeLabel={getCopy(locale).common.close}
-      >
-        <DetailRows
-          rows={[
-            [
-              copy.vaultPending,
-              <span key="ready" data-numeric data-state="ready">
-                {formatAmount(readyTotal, locale)} {verseSymbol}
-              </span>,
-            ],
-            [
-              copy.vaultShares,
-              <span key="waiting" data-numeric>
-                {copy.vaultWaiting.replace('{n}', String(waitingCount))}
-              </span>,
-            ],
-          ]}
-        />
-        <p className="panel-note">{getCopy(locale).portfolio.action.vaultReadyBody.replace('{n}', '1')}</p>
-        <DialogCta locale={locale} connected={connected} onConnect={toggle} label={copy.vaultExecute} />
       </ActionDialogShell>
     </Dialog>
   )

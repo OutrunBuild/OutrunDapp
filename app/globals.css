@@ -7900,7 +7900,7 @@ svg {
   background: var(--color-text-tertiary);
 }
 
-/* —— 面板原语：Data surface（默认）与 Signal panel（--signal，青 tinted 描边）—— */
+/* —— 面板原语：Data surface（余额/仓位/凭证等数据面板）—— */
 .pf-panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -7911,10 +7911,6 @@ svg {
     100% 100%,
     0 100%
   );
-}
-
-.pf-panel--signal {
-  border-color: var(--color-border-signal);
 }
 
 /* 面板 nameplate：模块铭牌行（mono 小写间距大写 + 计数），面板由此可辨起止 */
@@ -8094,7 +8090,8 @@ svg {
 
 .pf-asset-row {
   display: grid;
-  grid-template-columns: minmax(9rem, auto) auto minmax(0, 1fr) auto;
+  /* 数字列/动作列固定轨宽：各行数字右缘共线（行=独立 grid，auto 列会随按钮数漂移） */
+  grid-template-columns: auto minmax(0, 1fr) 16ch 200px;
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-3) var(--space-4);
@@ -8105,37 +8102,101 @@ svg {
   border-block-end: none;
 }
 
+/* 资产视觉锚：主链徽章瓷片（UI 档单角切，Signal 边） */
+.pf-asset-row__tile {
+  display: grid;
+  place-items: center;
+  inline-size: 40px;
+  block-size: 40px;
+  border: 1px solid var(--color-border-signal);
+  background: var(--color-surface-inset);
+  clip-path: polygon(
+    var(--chamfer) 0,
+    100% 0,
+    100% calc(100% - var(--chamfer)),
+    calc(100% - var(--chamfer)) 100%,
+    0 100%,
+    0 var(--chamfer)
+  );
+}
+
+/* 无链属资产的记号字形（UUSD 族=美元符号）：字号对齐 20px 徽标框；--color-text
+   提到与彩色链徽同存在感（2026-10-04 用户裁定优化） */
+.pf-asset-row__tile-glyph {
+  color: var(--color-text);
+  font-family: var(--font-data);
+  font-size: var(--text-lg);
+  line-height: 1;
+}
+
 .pf-asset-row__id {
   display: grid;
   gap: var(--space-1);
+  justify-items: start;
+  min-inline-size: 0;
 }
 
 .pf-asset-row__id strong {
   font-size: var(--text-md);
 }
 
-.pf-asset-row__kind {
-  color: var(--color-text-tertiary);
-  font-size: var(--text-xs);
-  max-inline-size: 32ch;
-}
-
-.pf-asset-row__total {
-  font-size: var(--text-md);
-}
-
+/* 链分布=安静的第二行（裸记号，非盒子） */
 .pf-asset-row__chains {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
+  gap: var(--space-1) var(--space-4);
   color: var(--color-text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
 }
 
 .pf-asset-row__chain {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
+}
+
+/* 链徽悬停触发钮（气泡=链名，2026-10-04 用户裁定）：按钮复位 + 负 margin 扩大
+   12px 图标的热区到 20px，静止渲染不变 */
+.pf-asset-row__icon-trigger {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1);
+  margin: calc(var(--space-1) * -1);
+  border: none;
+  background: none;
+}
+
+/* 族分隔铭牌：uAsset 族与 Credit 族分区（上下 hairline 成带，与面板铭牌同语法） */
+.pf-assets__group {
+  padding: var(--space-2) var(--space-4);
+  border-block-start: 1px solid var(--color-border);
+  border-block-end: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+}
+
+/* 右缘两行堆叠：总量（KPI 读数档 22px）为主、法币折算为辅 */
+.pf-asset-row__balance {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+}
+
+.pf-asset-row__total {
+  color: var(--color-text);
+  font-family: var(--font-data);
+  font-size: var(--text-num-lg);
+  line-height: 1.1;
+}
+
+.pf-asset-row__sub {
+  color: var(--color-text-tertiary);
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  max-inline-size: 28ch;
+  text-align: end;
 }
 
 .pf-asset-row__actions {
@@ -8145,62 +8206,21 @@ svg {
   justify-content: flex-end;
 }
 
-/* 在途状态：Signal panel（状态面板语法，青 tinted 描边） */
-.pf-transit {
-  margin-block-start: var(--space-4);
-}
-
-.pf-transit ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.pf-transit li {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2) var(--space-4);
-  padding: var(--space-2) var(--space-4);
-  border-block-end: 1px solid var(--color-border);
-  font-size: var(--text-sm);
-}
-
-.pf-transit li:last-child {
-  border-block-end: none;
-}
-
-.pf-transit li[data-stage='stranded'] {
-  box-shadow: inset 3px 0 0 var(--color-danger);
-}
-
-.pf-transit__route {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  color: var(--color-text-secondary);
-}
-
-.pf-transit__meta {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-3);
-  margin-inline-start: auto;
-  color: var(--color-text-tertiary);
-  font-size: var(--text-xs);
-}
-
-.pf-transit__stage {
-  color: var(--or-cyan);
-}
-
-.pf-transit__stage[data-stage='stranded'] {
-  color: var(--color-danger);
-}
-
-/* ③仓位与储蓄：异构少量=悬浮卡网格；库存单=Data surface 面板 + 紧凑表 */
-.pf-positions {
+/* ③仓位=面板+表格（2026-10-04 裁定）；储蓄=卡网格；金库=面板+紧凑表 */
+.pf-positions,
+.pf-savings,
+.pf-vault {
   margin-block-start: var(--space-8);
+}
+
+/* 链名芯片组宽于窄视口：标题行可换行（aside 掉到 h2 下），芯片组自身可换行；
+   aside 限宽让芯片组 max-inline-size 有确定基准（row 宽） */
+.pf-positions .section-heading__row {
+  flex-wrap: wrap;
+}
+
+.pf-positions .section-heading__aside {
+  max-inline-size: 100%;
 }
 
 .pf-holdings {
@@ -8211,6 +8231,117 @@ svg {
 
 .pf-positions .pf-panel {
   margin-block-start: var(--space-4);
+}
+
+/* 列宽（2026-10-04 多轮裁定）：fixed 比例分配，两组成构图（在哪居左/多少+操作居右）。
+   链列 7rem（图标+大幅组内间距，用户裁「幅度要大」）；抵押/借入 25% 各（数字右对齐）；
+   动作 18rem（数值块显著左移，数字→Redeem ≈180px）；来源吸剩余（文本居左） */
+.pf-positions .pf-table {
+  table-layout: fixed;
+}
+
+.pf-positions .pf-table col.pf-positions__col-chain {
+  width: 10rem;
+}
+
+.pf-positions .pf-table col.pf-positions__col-coll {
+  width: 15%;
+}
+
+.pf-positions .pf-table col.pf-positions__col-borr {
+  width: 22%;
+}
+
+/* Collateral 数字额外右内边距=列内左移（缩列宽会被 source auto 列吃掉，列尾不动）；
+   ≥90rem 宽屏再加一档（1280 视口列宽无余量，回退基础值） */
+.pf-positions .pf-table thead th:nth-child(3),
+.pf-positions .pf-table tbody td:nth-child(3) {
+  padding-inline-end: var(--space-6);
+}
+
+@media (min-width: 90rem) {
+  .pf-positions .pf-table thead th:nth-child(3),
+  .pf-positions .pf-table tbody td:nth-child(3) {
+    padding-inline-end: calc(var(--space-6) + var(--space-4));
+  }
+}
+
+.pf-positions .pf-table col.pf-positions__col-act {
+  width: 17rem;
+}
+
+/* Source 列文本右移（表头同步；chain 间距不动） */
+.pf-positions .pf-table thead th:nth-child(2),
+.pf-positions .pf-table tbody td:nth-child(2) {
+  padding-inline-start: var(--space-8);
+}
+
+/* <64rem 面板不足以容纳 fixed 列宽和（source 会塌成负宽叠印）：
+   回退 auto 布局由 min-content 保护，横向滚动内均摊 */
+@media (max-width: 64rem) {
+  .pf-positions .pf-table {
+    table-layout: auto;
+  }
+
+  .pf-positions .pf-table col.pf-positions__col-chain,
+  .pf-positions .pf-table col.pf-positions__col-coll,
+  .pf-positions .pf-table col.pf-positions__col-borr,
+  .pf-positions .pf-table col.pf-positions__col-act {
+    width: auto;
+  }
+}
+
+/* 仓位铭牌行右段：按锚族债务合计；族内金额+符号不断行，族间可换行 */
+.pf-positions__owed {
+  text-align: end;
+}
+
+.pf-positions__owed [data-numeric] {
+  white-space: nowrap;
+}
+
+/* 金库表 Shares 列整体左移 32px（2026-10-04 用户裁定「稍微往左移」）：auto 表格布局
+   会把 padding/列宽改动吸收掉（列变宽、文字原地），故对内容 span 做 relative 偏移——
+   零布局影响的纯视觉位移；表头随数据同移、右对齐关系不变 */
+.pf-vault .pf-table .pf-vault__col-shares .pf-vault__num {
+  position: relative;
+  inset-inline-end: var(--space-6);
+}
+
+/* 金库表 7d APY 与 Redemptions 列内容右移（2026-10-04 用户裁定「往右移一点」两轮：
+   APY 48 / Redemptions 32——APY 多移一档）：同 Shares 的 auto 布局陷阱
+  （padding/列宽被吸收），relative 偏移零布局影响；表头随数据同移、右对齐关系不变 */
+.pf-vault .pf-table .pf-vault__col-apy .pf-vault__num {
+  position: relative;
+  inset-inline-start: var(--space-7);
+}
+
+.pf-vault .pf-table .pf-vault__col-redeems .pf-vault__num {
+  position: relative;
+  inset-inline-start: var(--space-6);
+}
+
+/* 金库表动作列：Stake 常驻 + Withdraw 条件并存（2026-10-04 用户裁定加 Stake 入口），
+   行内排布、右缘留缝 */
+.pf-vault__act {
+  display: flex;
+  gap: var(--space-4);
+  justify-content: flex-end;
+}
+
+/* 动作列：Redeem 链接（行内余额不足提示已删——2026-10-04 用户裁定没意义） */
+.pf-positions__act {
+  display: grid;
+  justify-items: end;
+}
+
+/* 链列：官方 logo 图标钮（悬停气泡=链名，走 tooltip 全局皮肤；SR 名字在 aria-label） */
+.pf-positions__chain {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  border: none;
+  background: none;
 }
 
 .pf-card {
@@ -8240,9 +8371,34 @@ svg {
   text-transform: uppercase;
 }
 
+.pf-card__chain {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* 储蓄卡主数字块：存款价值=22px data 档（资产行右缘总量同款），副行=法币折算 */
+.pf-card__holding {
+  display: grid;
+  gap: 2px;
+}
+
+.pf-card__hero {
+  font-family: var(--font-data);
+  font-size: var(--text-num-lg);
+  line-height: 1.1;
+}
+
+.pf-card__sub {
+  color: var(--color-text-tertiary);
+  font-size: var(--text-xs);
+}
+
+/* 事实双列（2026-10-04 用户裁定：APY | Shares 并排，份额从副行移入事实格） */
 .pf-card__facts {
   display: grid;
-  gap: var(--space-2);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2) var(--space-4);
   margin: 0;
 }
 
@@ -8260,36 +8416,8 @@ svg {
   color: var(--color-success);
 }
 
-.pf-card__flag {
-  margin-inline-start: var(--space-2);
-  padding: 0 var(--space-1);
-  border: 1px solid var(--color-warning);
-  color: var(--color-warning);
-  font-size: var(--text-xs);
-}
-
-.pf-card__meta {
-  margin: 0;
+.pf-card__facts [data-state='inactive'] {
   color: var(--color-text-tertiary);
-  font-size: var(--text-xs);
-}
-
-.pf-card__source a {
-  margin: 0;
-  color: var(--or-cyan);
-  font-size: var(--text-xs);
-  text-decoration: none;
-}
-
-.pf-card__source a:hover,
-.pf-card__source a:focus-visible {
-  text-decoration: underline;
-}
-
-.pf-card__note {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: var(--text-xs);
 }
 
 .pf-card__actions {
@@ -8345,10 +8473,6 @@ svg {
   white-space: nowrap;
 }
 
-.pf-table .stage-badge {
-  margin-inline-start: var(--space-2);
-}
-
 .pf-table__link {
   color: var(--or-cyan);
   font-size: var(--text-sm);
@@ -8373,14 +8497,22 @@ svg {
   font-size: var(--text-xs);
 }
 
+/* waiting 变体=中性灰（绿=只留给已成熟可取出） */
+.pf-claimable[data-kind='waiting'] {
+  color: var(--color-text-secondary);
+}
+
 /* ④参与凭证：筛选=Signal 面板芯片（筛选语法）；阶段组=顶缘 2px 阶段主线面板
    （--stage-color 由全站阶段变量组提供，双线规律见 economy-card 段） */
 .pf-vouchers {
   margin-block-start: var(--space-8);
 }
 
+.pf-positions__filter,
 .pf-vouchers__filter {
   display: inline-flex;
+  flex-wrap: wrap;
+  max-inline-size: 100%;
   gap: var(--space-1);
   padding: var(--space-1);
   border: 1px solid var(--color-border-signal);
@@ -8395,6 +8527,8 @@ svg {
   );
 }
 
+.pf-positions__filter a,
+.pf-positions__filter button,
 .pf-vouchers__filter a {
   padding: var(--space-1) var(--space-3);
   color: var(--color-text-secondary);
@@ -8403,6 +8537,16 @@ svg {
   white-space: nowrap;
 }
 
+/* 仓位筛选=客户端态按钮（URL 导航整页刷新被否）：重置按钮默认皮 */
+.pf-positions__filter button {
+  border: none;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.pf-positions__filter a[data-selected],
+.pf-positions__filter button[data-selected],
 .pf-vouchers__filter a[data-selected] {
   background: color-mix(in srgb, var(--or-cyan) 10%, transparent);
   color: var(--or-cyan);
@@ -8445,7 +8589,9 @@ svg {
   border-block-end: 1px solid var(--color-border);
 }
 
-.pf-vouchers__group-head span {
+/* 铭牌语法=徽章居左、计数居右（pf-panel__bar 同款）——auto margin 只上计数
+   span[data-numeric]，曾用裸 span 选择器把 StageBadge 一并推到行中 */
+.pf-vouchers__group-head span[data-numeric] {
   margin-inline-start: auto;
   color: var(--color-text-secondary);
   font-size: var(--text-sm);
@@ -8464,6 +8610,127 @@ svg {
   color: var(--color-text-secondary);
   font-size: var(--text-xs);
   white-space: nowrap;
+}
+
+/* ④凭证行（2026-10-05 用户裁定重做：字母表头数字矩阵→资产行同款 ledger 版式——
+   tile 视觉锚 | 身份+构成行（单位行内嵌、零值省略）| 右缘主数字+日期副行 | 行尾动作；
+   无表头行——列语义由内容自承载，右缘对齐经 justify-items:end 共线） */
+.pf-vouchers__list {
+  display: grid;
+}
+
+.pf-voucher-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) max-content 7rem;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-block-end: 1px solid var(--color-border);
+}
+
+.pf-voucher-row:last-child {
+  border-block-end: none;
+}
+
+/* 行视觉锚：verse 字母瓷片（资产行 tile 同款配方） */
+.pf-voucher-row__tile {
+  display: grid;
+  place-items: center;
+  inline-size: 40px;
+  block-size: 40px;
+  border: 1px solid var(--color-border-signal);
+  background: var(--color-surface-inset);
+  clip-path: polygon(
+    var(--chamfer) 0,
+    100% 0,
+    100% calc(100% - var(--chamfer)),
+    calc(100% - var(--chamfer)) 100%,
+    0 100%,
+    0 var(--chamfer)
+  );
+}
+
+.pf-voucher-row__glyph {
+  color: var(--color-text);
+  font-family: var(--font-data);
+  font-size: var(--text-lg);
+  line-height: 1;
+}
+
+.pf-voucher-row__id {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: start;
+  min-inline-size: 0;
+}
+
+.pf-voucher-row__verse {
+  color: var(--color-text);
+  font-size: var(--text-md);
+  text-decoration: none;
+}
+
+.pf-voucher-row__verse:hover,
+.pf-voucher-row__verse:focus-visible {
+  text-decoration: underline;
+}
+
+/* 构成行=单位行内嵌的安静第二行（15.25K POL · 6.1K YT · …） */
+.pf-voucher-row__makeup {
+  color: var(--color-text-secondary);
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+}
+
+/* 创世行的截止日副行 */
+.pf-voucher-row__note {
+  color: var(--color-text-tertiary);
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+}
+
+/* 右缘主数字（创世参与额/可领 YT）+日期副行 */
+.pf-voucher-row__state {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+}
+
+.pf-voucher-row__amount {
+  color: var(--color-text);
+  font-family: var(--font-data);
+  font-size: var(--text-num-lg);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.pf-voucher-row__unit {
+  margin-inline-start: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.pf-claimable .pf-voucher-row__amount,
+.pf-claimable .pf-voucher-row__unit {
+  color: var(--color-success);
+}
+
+.pf-voucher-row__none {
+  color: var(--color-text-tertiary);
+  font-family: var(--font-data);
+}
+
+.pf-voucher-row__date {
+  color: var(--color-text-tertiary);
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  max-inline-size: 24ch;
+  text-align: end;
+}
+
+.pf-voucher-row__action {
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* Portfolio 弹窗链选择/方向 chips（复用 .pol-mint 壳内的选项行） */
@@ -8489,28 +8756,49 @@ svg {
 }
 
 @media (max-width: 54rem) {
+  /* chains 嵌在 id 内（符号下的第二行）——不设独立 area，避免幽灵命名区把它推进隐式列 */
   .pf-asset-row {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-areas:
-      'id total'
-      'chains chains'
-      'actions actions';
+      'tile identity total'
+      'tile actions actions';
     row-gap: var(--space-2);
   }
 
+  .pf-asset-row__tile {
+    grid-area: tile;
+  }
   .pf-asset-row__id {
-    grid-area: id;
+    grid-area: identity;
   }
-  .pf-asset-row__total {
+  .pf-asset-row__balance {
     grid-area: total;
-    justify-self: end;
-  }
-  .pf-asset-row__chains {
-    grid-area: chains;
   }
   .pf-asset-row__actions {
     grid-area: actions;
-    justify-content: flex-start;
+    justify-content: flex-end;
+  }
+
+  /* 凭证行同款堆叠：身份/主数字一行，动作换行右对齐（构成行嵌在身份块内随之换行） */
+  .pf-voucher-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'tile identity state'
+      'tile action action';
+    row-gap: var(--space-2);
+  }
+
+  .pf-voucher-row__tile {
+    grid-area: tile;
+  }
+  .pf-voucher-row__id {
+    grid-area: identity;
+  }
+  .pf-voucher-row__state {
+    grid-area: state;
+  }
+  .pf-voucher-row__action {
+    grid-area: action;
   }
 }
 
@@ -8523,14 +8811,11 @@ svg {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .pf-transit__meta {
-    margin-inline-start: 0;
-  }
-
   .pf-panel__bar,
   .pf-panel__footer,
+  .pf-assets__group,
   .pf-asset-row,
-  .pf-transit li,
+  .pf-voucher-row,
   .pf-vouchers__group-head {
     padding-inline: var(--space-3);
   }

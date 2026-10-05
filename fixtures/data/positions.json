@@ -20,6 +20,42 @@
       "chainId": 56, "owner": { "value": "0x1111111000000000000000000000000000000001", "fixtureOnly": true },
       "collateral": { "assetId": "asset-021", "amount": { "raw": "3", "decimals": 18 } },
       "debt": { "raw": "3", "decimals": 18 }, "yieldSource": "Lido", "noMaturity": true
+    },
+    {
+      "id": "pos-004", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#S2",
+      "chainId": 1, "owner": { "value": "0x1111111000000000000000000000000000000001", "fixtureOnly": true },
+      "collateral": { "assetId": "asset-023", "amount": { "raw": "40", "decimals": 18 } },
+      "debt": { "raw": "40", "decimals": 18 }, "yieldSource": "Lido", "noMaturity": true
+    },
+    {
+      "id": "pos-005", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#S6",
+      "chainId": 8453, "owner": { "value": "0x1111111000000000000000000000000000000001", "fixtureOnly": true },
+      "collateral": { "assetId": "asset-024", "amount": { "raw": "250", "decimals": 18 } },
+      "debt": { "raw": "250", "decimals": 18 }, "yieldSource": "Aave", "noMaturity": true
+    },
+    {
+      "id": "pos-006", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#S2",
+      "chainId": 8453, "owner": { "value": "0x1111111000000000000000000000000000000001", "fixtureOnly": true },
+      "collateral": { "assetId": "asset-022", "amount": { "raw": "9000", "decimals": 18 } },
+      "debt": { "raw": "9000", "decimals": 18 }, "yieldSource": "Ethena", "noMaturity": true
+    },
+    {
+      "id": "pos-007", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#S2",
+      "chainId": 56, "owner": { "value": "0x1111111000000000000000000000000000000001", "fixtureOnly": true },
+      "collateral": { "assetId": "asset-021", "amount": { "raw": "120", "decimals": 18 } },
+      "debt": { "raw": "120", "decimals": 18 }, "yieldSource": "Lido", "noMaturity": true
+    },
+    {
+      "id": "pos-008", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#S2",
+      "chainId": 1, "owner": { "value": "0x1111111000000000000000000000000000000001", "fixtureOnly": true },
+      "collateral": { "assetId": "asset-022", "amount": { "raw": "200000", "decimals": 18 } },
+      "debt": { "raw": "200000", "decimals": 18 }, "yieldSource": "Ethena", "noMaturity": true
+    },
+    {
+      "id": "pos-009", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#S3",
+      "chainId": 56, "owner": { "value": "0x1111111000000000000000000000000000000001", "fixtureOnly": true },
+      "collateral": { "assetId": "asset-022", "amount": { "raw": "4500", "decimals": 18 } },
+      "debt": { "raw": "4500", "decimals": 18 }, "yieldSource": "Ethena", "noMaturity": true
     }
   ]
 }

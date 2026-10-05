@@ -28,6 +28,18 @@
         "asset-024"
       ],
       "anchor": "ETH"
+    },
+    {
+      "id": "ysrc-003",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#S6",
+      "name": "Ethena",
+      "assetIds": [
+        "asset-022"
+      ],
+      "anchor": "USD"
     }
   ]
 }

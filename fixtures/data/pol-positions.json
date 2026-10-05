@@ -32,7 +32,7 @@
         "decimals": 18
       },
       "myPt": {
-        "raw": "4231.77",
+        "raw": "0",
         "decimals": 18
       },
       "myYt": {
@@ -48,7 +48,7 @@
         "decimals": 18
       },
       "claimableYt": {
-        "raw": "0",
+        "raw": "1830",
         "decimals": 18
       },
       "myLp": {
@@ -211,7 +211,7 @@
         "decimals": 18
       },
       "myPt": {
-        "raw": "3120.45",
+        "raw": "0",
         "decimals": 18
       },
       "myYt": {
@@ -314,7 +314,7 @@
         "decimals": 18
       },
       "claimableYt": {
-        "raw": "0",
+        "raw": "1420",
         "decimals": 18
       },
       "myLp": {
@@ -385,7 +385,7 @@
         "decimals": 18
       },
       "myPt": {
-        "raw": "1876.92",
+        "raw": "0",
         "decimals": 18
       },
       "myYt": {
@@ -472,7 +472,7 @@
         "decimals": 18
       },
       "myPt": {
-        "raw": "6234.09",
+        "raw": "0",
         "decimals": 18
       },
       "myYt": {
@@ -488,7 +488,7 @@
         "decimals": 18
       },
       "claimableYt": {
-        "raw": "1352.47",
+        "raw": "0",
         "decimals": 18
       },
       "ytRedeemUAssetPerUnit": {
@@ -564,7 +564,7 @@
         "decimals": 18
       },
       "myPt": {
-        "raw": "7418.66",
+        "raw": "0",
         "decimals": 18
       },
       "myYt": {
@@ -656,7 +656,7 @@
         "decimals": 18
       },
       "myPt": {
-        "raw": "8360.12",
+        "raw": "0",
         "decimals": 18
       },
       "myYt": {
@@ -672,7 +672,7 @@
         "decimals": 18
       },
       "claimableYt": {
-        "raw": "1987.55",
+        "raw": "0",
         "decimals": 18
       },
       "ytRedeemUAssetPerUnit": {
@@ -748,7 +748,7 @@
         "decimals": 18
       },
       "myPt": {
-        "raw": "2945.37",
+        "raw": "0",
         "decimals": 18
       },
       "myYt": {
@@ -835,7 +835,7 @@
         "decimals": 18
       },
       "myPt": {
-        "raw": "4102.28",
+        "raw": "0",
         "decimals": 18
       },
       "myYt": {
@@ -922,7 +922,7 @@
         "decimals": 18
       },
       "myPt": {
-        "raw": "3567.83",
+        "raw": "0",
         "decimals": 18
       },
       "myYt": {
@@ -938,7 +938,7 @@
         "decimals": 18
       },
       "claimableYt": {
-        "raw": "0",
+        "raw": "1050",
         "decimals": 18
       },
       "myLp": {
@@ -1009,7 +1009,7 @@
         "decimals": 18
       },
       "myPt": {
-        "raw": "4780.55",
+        "raw": "0",
         "decimals": 18
       },
       "myYt": {
@@ -1096,7 +1096,7 @@
         "decimals": 18
       },
       "myPt": {
-        "raw": "2143.79",
+        "raw": "0",
         "decimals": 18
       },
       "myYt": {
@@ -1183,7 +1183,7 @@
         "decimals": 18
       },
       "myPt": {
-        "raw": "3987.64",
+        "raw": "0",
         "decimals": 18
       },
       "myYt": {
@@ -1270,7 +1270,7 @@
         "decimals": 18
       },
       "myPt": {
-        "raw": "1876.51",
+        "raw": "0",
         "decimals": 18
       },
       "myYt": {
@@ -1286,7 +1286,7 @@
         "decimals": 18
       },
       "claimableYt": {
-        "raw": "2861.74",
+        "raw": "0",
         "decimals": 18
       },
       "ytRedeemUAssetPerUnit": {
@@ -1362,7 +1362,7 @@
         "decimals": 18
       },
       "myPt": {
-        "raw": "1298.46",
+        "raw": "0",
         "decimals": 18
       },
       "myYt": {
@@ -1454,7 +1454,7 @@
         "decimals": 18
       },
       "myPt": {
-        "raw": "842.17",
+        "raw": "0",
         "decimals": 18
       },
       "myYt": {
@@ -1470,7 +1470,7 @@
         "decimals": 18
       },
       "claimableYt": {
-        "raw": "2213.65",
+        "raw": "0",
         "decimals": 18
       },
       "ytRedeemUAssetPerUnit": {
@@ -1546,7 +1546,7 @@
         "decimals": 18
       },
       "myPt": {
-        "raw": "1053.28",
+        "raw": "0",
         "decimals": 18
       },
       "myYt": {
@@ -1638,7 +1638,7 @@
         "decimals": 18
       },
       "myPt": {
-        "raw": "2634.75",
+        "raw": "0",
         "decimals": 18
       },
       "myYt": {
@@ -1730,7 +1730,7 @@
         "decimals": 18
       },
       "myPt": {
-        "raw": "612.38",
+        "raw": "0",
         "decimals": 18
       },
       "myYt": {

@@ -428,6 +428,117 @@ C1 结算储备金按 spec 窄口径且 UI 不露出 · C2 建池剩余资金不
 - **验证**：tsc --noEmit / vitest 86 passed / check:design 0 命中 / check-fixture-boundary --source / check-architecture 全绿；agent-browser 计算样式断言（截止色阶边条 #FF5468、单黄 CTA、信号四色点、表格右对齐、移动无横向溢出——grid blowout 已修：`.pf-vouchers__group min-inline-size:0`）；en/zh × desktop/mobile 截图过 presentations:visual-judge 3/3 pass；e2e 视觉基线 portfolio 三档重录后全套 21 passed（a11y 零新增违规）。
 - 签名：approved by Jasonrale（2026-10-02 会话逐项裁决：「确认」收口 Q2–Q7）
 
+### 决议 016 补充 · 面板化重排（同日二轮，用户反馈「不要流水帐、面板要有清晰分隔」）
+
+- **背景**：首版四分区实现把全部内容压成同一种形态（描边盒 + 裸行直接铺在页面背景上），分区之间只有间距无边界——资产区读成流水账、两张 20 行表与页面融为一体，用户反馈要求「高度可读性、设计感、面板间清晰分隔、不要像整体难以区分」。
+- **决议（全部回归 DESIGN §3.1 既有面板语法，零新 token）**：分区 = SectionHeading + **具名面板**——②余额=Data surface 面板（nameplate 铭牌行 + 行式清单 + 不可跨链资产压缩进面板页脚）；在途/滞留=**Signal panel**（青 tinted 描边，状态面板语法）；③收益库存单=Data surface 面板 + 紧凑表；④阶段组=顶缘 2px 阶段主线面板（复用 2026-09-26 阶段变量组，selector 组扩入 `.pf-vouchers__group`）；筛选=Signal 面板芯片（筛选语法）；页级信号行升格为 **KPI 状态带**（12px 对角双切 + 表面 inset + 青描边，§4 KPI 带版型，page-intro flex 收缩经 `:has()` 放开首块）；表格行 hover 落 Data surface 规定行为（抬升一档 + 首列 2px 青选择线）。①待办保持悬浮警报卡（紧急内容不上容器——面板密度会稀释紧急信号，形态对比本身承担分区识别）。
+- **登记**：components.md Portfolio 六行同步改写；copy 键 signals 改裸标签 + groupLabel、assets 增 balancesLabel/readonlyLabel。
+- **验证**：tsc（唯一错误来自外部并行会话在飞的 app-shell 重构，非本改动面）/ check:design 0 命中 / en-zh-desktop-mobile 四截图过 presentations:visual-judge 3/3 pass（专项断言：面板可辨起止、KPI 单行全宽、表格行数与铭牌计数一致、移动无溢出）。
+- 签名：approved by Jasonrale（2026-10-02 会话反馈驱动，Agent 执行后留痕）
+
+### 决议 016 补充 2 · 仓位/储蓄/收益金库拆分 + 金库列纠错（用户裁定「头寸，储蓄，收益金库不要放在一起显示，单独拆开」）
+
+- **背景**：用户质询「收益库存单里的待执行/可领取激励是什么？根本没有这个功能」。经下合约层核实（本轮补课）：**MemecoinYieldVault.sol 上没有任何激励函数**——周期激励属治理侧 GovernanceCycleIncentivizerUpgradeable.sol:433 `claimReward()`，把它渲染进金库表=把 DAO 功能伪装成金库功能；「待执行/Execute」是自造词，合约动作=requestRedeem（MemecoinYieldVault.sol:334，锁仓停息）→ REDEEM_DELAY → redeem/withdraw 领回（:358/:425），产品语言（vault-actions）=Redeem/Withdraw。旧表两列作废。
+- **决议**：① ③位拆为三个独立分区（按用户点名顺序）——**质押仓位**（OutrunStakingPositionUpgradeable.sol:152 `stakeForGenesis` 原子开仓+:217 `redeem`）/ **储蓄**（OutrunUSRVaultUpgradeable.sol:152-170 存取+:177 `usrRate`）/ **收益金库**（份额/价值/7日年化 + 赎回状态：等待中 N 笔 / 可取出绿字=claimableRedeemRequest 口径:500；行操作深链 verse 金库页签——金库属 Memeverse 域，完整 Redeem/Withdraw 流程住在 verse 页，与 CDP/USR 的就地展开形成域二分）；② 周期激励只出现在①待办聚合卡（PD-02 明文项），聚合卡 CTA 深链最近截止 verse（新增 focusVerseId）；③ 待办金库卡文案改产品词（Vault withdrawals ready/收益库可取出 + Withdraw/去取出，CTA 锚 #pf-vault）；④ 储蓄卡利率三态补齐渲染（Earning/生息中标签此前有键无渲染）。
+- **fixture 影响**：FixtureVaultRow 删 incentive 字段（激励数据只服务待办聚合，从 getFixtureGovernanceState 直接取）。
+- **验证**：tsc/check:design/vitest 112 绿；zh 断言 无「待执行/可领激励」、三分区标题在位；en 断言 旧标题清零 + Earning 在位；visual-judge 复验（首轮 3 FAIL 抓出 en 标题静默替换失败 + stateActive 未渲染，均已修）；e2e 基线重录全套 passed。
+- 签名：approved by Jasonrale（2026-10-02 会话裁定，Agent 执行后留痕）
+
+### 决议 016 补充 3 · 仓位卡四项收敛（用户裁定）
+
+1. **删「Opened for {name} genesis」来源行**——无实际意义；repository 的 `openedFor` 暴露随之移除（fixture 字段与 schema 保留为机制出处登记，无消费方）。
+2. **sUSDe→UUSD 锚族修正**：pos-002 的 yieldSource「Ethena」在 yield-sources registry 无条目（悬空引用），锚族推导曾回落到字面 'UAsset'；补 `ysrc-003 Ethena（anchor=USD，assetIds=[asset-022 sUSDe]）`，Borrowed 单位现正确显示 UUSD。fixture manifest/hashes 已重出。
+3. **删卡片五件套短标签**（无到期·无利息·无清算·随时可赎）——用户认可判断：事实行+Redeem 按钮已承载语义，五连否定是噪音；PD-09 大白话全口径保留在赎回弹窗（cdpPlainFull）。cdpSource/cdpPlain 两文案键删除。
+4. **en 分区标题 Title Case**：Staked Positions / Yield Vault / Assets & Cross-Chain（zh 不受影响）。
+- 验证：tsc/vitest 112 绿；en/zh 浏览器断言（卡片三行内容=铭牌/事实/生息来源、UUSD 正确、标题大小写到位）；e2e 基线重录全套 passed。
+- 签名：approved by Jasonrale（2026-10-02 会话逐条裁定）
+
+### 决议 016 补充 4 · ②资产区五项收敛（用户裁定）
+
+1. **按钮文案**：「1:1 convert」→「Convert」（弹窗标题与 convertNote 保留 1:1 披露——动作词归按钮，机制归弹窗）；zh 同步「转换」。
+2. **删 Save 按钮**：存入储蓄入口与③储蓄区冗余；AssetRowView.usr 字段与页内接线随之移除。
+3. **uAsset 全链属性核验（保留 Bridge）**：OutrunOFTUpgradeable.sol:5 继承 LayerZero OFTCoreUpgradeable；OB outstake/uasset.md:33「follows the LayerZero OFT standard and moves 1:1 across chains」——uAsset 与 GenesisCredit 均为 OFT，Bridge 保留有据。
+4. **删 Non-bridgeable 页脚**：储备/原生（USDC/ETH/BNB）余额与本产品无关，repository 出表口径收窄为 uasset+credit；PSM Convert 弹窗 Redeem 侧 Max 数据改由新 getter `getFixtureReserveBalances()` 供给（储备不再是资产、仍是兑换对手盘）。
+5. **资产行重设计（去草稿化）**：链分布改为入嵌底芯片（surface-inset+边框+xs 记号），总量移到行右缘作等宽大数锚点（text-lg data 字体），行结构=资产标识 | 链芯片 | 总量 | 动作——「在哪」居左、「多少+操作」居右，消除总量与链数值同排裸奔的流水感。
+- credit 文案简化：「Claim on the home chain, then transfer freely.」/「主链领取后可自由转链。」
+- 验证：tsc/check:design/vitest 112 绿；en 断言（Save/Non-bridgeable/USDC 清零、Convert/新 credit 文案在位、total=IBM Plex Mono 20px）；移动 390 无横向溢出；e2e 基线重录全套 25 passed。
+- 签名：approved by Jasonrale（2026-10-02 会话逐条裁定）
+
+### 决议 016 补充 4 · 质押仓位卡网格→面板+表格（2026-10-04 用户裁定）
+
+- **背景**：用户质询「如果存在大量的头寸该如何显示？需要设计完备的组件，而不是显示三张卡片就完事」。仓位事实集合同构（链/抵押/债务/生息来源/唯一动作），行数随参与创世线性增长；卡片网格在 10+ 行时既扫不动也比不了，且三卡片布局本就是设计系统负面清单 §3.10 禁项。
+- **决议**（Q1–Q4 四项逐项拍板，会话问答）：① 形态=`.pf-panel` + `.pf-table`（复用金库表语法，行 hover=Data surface 行为，动作列 Redeem 链接触发既有弹窗，`CdpRedeemDialog` 增 `appearance='link'`）——合约 `redeem(positionId)` 逐仓操作、无批量（OutrunStakingPositionUpgradeable.sol:217），逐行动作是机制正确的；② 默认排序=债务降序（最大敞口优先；合约 Position 无时间戳，「按新近」真源无数据不可做）；③ 链筛选=`.pf-positions__filter` 芯片组，`?chain=<chainId>` URL 状态（凭证区 `?claimable=1` 同款零客户端态），数据跨 ≥2 链才渲染；④ 铭牌行=计数+按锚族债务合计（`__owed`，族序=合计降序）；⑤ 行内 `__short` 余额不足警示小字（钱包 uAsset < 该仓债务时，开弹窗前分诊）。分页/虚拟滚动明确不做（不藏数据，50 行≈2200px 纵向滚动可接受）；「来自 {verse} 创世参与」不复活、五连否定短语不回行内（补充 3 裁定维持）。窄视口芯片组宽于标题行：`.pf-positions` 标题行可换行 + aside 限宽（visual-judge 首轮抓出 390px 页级横向溢出后修复）。
+- **fixture**：positions.json 3→9 行（同链多仓/同锚族聚合/Lido+Aave+Ethena 全覆盖；新增行遵守 schema 面值平价不变量与六链白名单；原三行及 scenario 标签不动）；manifest 重出。
+- **效力**：修订决议 016 裁定 5 中「仓位=异构卡网格」的形态归属（储蓄仍为卡网格）；`.pf-card[data-type='cdp']` 分支退役，`.pf-card` 仅储蓄在用。
+- **验证**：tsc / vitest 112 / check:design 0 / check-fixture-boundary --source / prettier 全绿；浏览器断言（9 行债务降序、合计 425.5 UETH · 219,500 UUSD、?chain=8453 → 3 行 Base、Short 15,000 UUSD 在位、zh 全键对应）；e2e portfolio 三档基线重录。
+- 签名：approved by Jasonrale（2026-10-04 会话四项问答逐项拍板）
+
+### 决议 016 补充 4 二轮修订 · 对齐/文案/筛选交互（2026-10-04 用户反馈三点）
+
+- **反馈原话要点**：「这些都没有对齐啊」「Short 15,000 UUSD 又是啥东西啊？」「标签筛选切换的时候怎么整个页面都要重新刷新？应该只刷新 Staked Position 卡片」。
+- **修订**：① 数字列表头右对齐随数据——`.pf-table th[data-numeric]` 规则本在，仓位表（抵押/借入）与金库表（份额/价值/7日年化）表头补 `data-numeric`，表头锚数据列尾；② `__short` 文案去交易黑话：en `Short {n} {u}` → `Needs {n} more {u} to redeem`，zh → `还差 {n} {u} 才能赎回`（语义=钱包该 uAsset 余额不足赎回此仓，开弹窗前分诊）；③ 链筛选从 `?chain=` URL 导航改为组件内客户端态（`useState` + `button[aria-pressed]`，瞬时切换只换表格内容与铭牌合计——URL 态整页刷新被否；芯片外观与凭证区 selector 组共享，交互模式分叉：button 客户端态 vs a URL 态）。`chainFilter` prop 与路由 `?chain` 参数链路撤除。
+- **验证**：tsc / vitest / check:design / prettier 全绿；浏览器断言（表头右对齐、按钮切换零导航、en/zh 新文案）；e2e portfolio 三档基线重录。
+- 签名：approved by Jasonrale（2026-10-04 会话反馈驱动，Agent 执行后留痕）
+
+### 决议 016 补充 4 三轮修订 · 链列图标化（2026-10-04 用户裁定「Chain 直接显示一个图标，悬停气泡显示链名称」）
+
+- **决议**：链列文本 → `ChainLogoMark` 官方链 logo 图标钮（`components/global/chain-icons` Trustwallet 资产，chainId 1/8453/56 均有映射），链名退为悬停 tooltip（复用 `components/ui/tooltip` base-ui 原语 + `[data-slot='tooltip-content']` 全局切角气泡皮肤，零新 token）；SR 可访问名走 Trigger `aria-label={chainName}`（img alt="" 无声）。触达面：桌面 hover、键盘 focus 亦弹 tooltip（base-ui 行为）、读屏读 aria-label；触屏无 hover 时链名不可见=已知取舍（图标官方可辨，筛选芯片带链名全文）。
+- **验证**：tsc / vitest 112 / check:design 0 / prettier 全绿；浏览器断言（9 图标 16px 渲染、真实鼠标 hover 弹出「Ethereum」气泡、aria-label 在位）；e2e portfolio 三档基线重录。
+- 签名：approved by Jasonrale（2026-10-04 会话裁定，Agent 执行后留痕）
+
+### 决议 016 补充 4 四轮修订 · 两处解释性文案删除（2026-10-04 用户裁定）
+
+- **删除 1（赎回弹窗大白话句）**：弹窗 `panel-note`「No maturity, no interest, no liquidation. Redeem anytime — …」（zh：无到期、无利息、无清算…）整句删除，`cdpPlainFull` 文案键（en/zh）与渲染行移除。修订决议 016 补充 3 裁定 3「PD-09 大白话全口径保留在赎回弹窗」的承载——用户裁定该句无存在价值；机制口径（无到期/无利息/无清算）真源不变，仅不再上 UI。
+- **删除 2（行内余额不足提示）**：`__short`「Needs {n} more {u} to redeem / 还差 {n} {u} 才能赎回」整组删除（渲染、计算、copy 键、CSS 规则）——二轮才改过文案，用户仍裁定没意义；赎回余额校验只住在弹窗内（AmountField balance 上限）。
+- **验证**：tsc / vitest / check:design / prettier 全绿；浏览器断言（弹窗无该句、行内无提示、弹窗开启正常）；e2e portfolio 三档基线重录（首行高度随提示删除回落）。
+- 签名：approved by Jasonrale（2026-10-04 会话裁定，Agent 执行后留痕）
+
+### 决议 016 补充 4 五轮修订 · 列宽分配（2026-10-04 用户裁定「Chain 列宽度太大，优化各列宽确保最佳视觉效果」）
+
+- **根因**：`.pf-table` 为 `inline-size:100%` 的 auto 布局表，剩余宽度被引擎均摊到所有列——16px 图标的链列被撑到数百像素，数值列右缘彼此远离，行内阅读动线散架。
+- **决议（一版被否）**：colgroup 数据列收内容宽（链列 3rem、其余 1%）、来源列吸走全部松弛——数据块居左、Redeem 钉右缘。用户否决：「中间这么大空白」——松弛全塞一列=单条空隙带，构图不成立。
+- **决议（二版）**：`.pf-positions .pf-table` 改 `table-layout: fixed` 比例分配——链列 `__col-chain` 3.5rem 定宽、抵押/借入各 28%、动作 8rem、来源列吸剩余。空白拆散进列内，但暴露新问题：Source 文本与 Borrowed 数字仅隔 24px，文本列与数值列贴死=分组错误（用户三INPUT轮反馈）。
+- **决议（三版，现行）**：列序重排 Chain|Source|Collateral|Borrowed|Redeem——「在哪居左（链+来源），多少+操作居右（数值+动作）」，决议 016 补充 6 资产行同款分组语义。两组成构图：左组（图标+文本 36px 同组间距）· 组间呼吸带（source 右松弛）· 右组（数字右对齐成块 24px 贴动作）。2000px 实测内容间距 36/369/24；visual-judge 判定 ledger composition 成立、harmony acceptable 四档全过。
+- **决议（三版微调，同日用户两点指令）**：① Chain→Source 间距 36px 偏紧→`__col-chain` 3.5rem→4.5rem（实测 54px）；② 数值块左移→`__col-act` 8rem→12rem（数字右缘→Redeem 链接 24px→96px）。两档视口几何一致（2000/1280 实测相同 gutters），visual-judge 复验 harmony acceptable「no mis-proportion remaining」（右块占表宽 ~50-53%，classic ledger rhythm）。注意：页面壳层有 max-width（2000 视口下表格实际 1230px 居中），列宽比例以表宽为基准。
+- **决议（三版加幅，同日用户裁定「看着没变化，幅度要大一些」）**：链列 4.5rem→**7rem**（图标→Source 54→92px）、动作列 12rem→**18rem**（数字→Redeem 96→191px）、抵押/借入 28%→25% 腾移。暴露 fixed 布局边界：<64rem 视口面板容不下列宽和（720px>640px 滚动表宽），source 列被硬裁成负宽、文字叠印（visual-judge 抓出）→ 增加窄视口回退：`@max-width 64rem` 恢复 auto 布局由 min-content 保护，面板内横向滚动均摊。桌面三段间距 92/345/191（2000px），1280px 下 92/184/191 近均衡；visual-judge 五档复验全过（2000/1280/860/390/zh390）。
+- **决议（三版二轮加幅，用户再裁「看着没变化」）**：链列 7rem→**10rem**（图标→Source 92→**144px**）、动作列 18rem→**21rem**（数字→Redeem 191→**240px**）、抵押/借入 25%→20%。1280 视口 source 列 113px 仍容「Ethena」单行（预算边界：chain+act 定宽和 ≤ 表宽 54%-92px）。visual-judge 实测 144/240px 判「4-10x 旧版，并排一眼可见；luxury spacing, not detached」两档全过。
+- **排查记录（用户连续两轮「没变化」的疑似根因）**：`.next` 生产构建停在 10-02 06:47（两天前）；4175 生产预览未起。Agent 侧所有测量均来自 dev:3000（turbopack 热更新）确认改动在位。本轮已 `pnpm build` 重建生产并重启 4175 预览（页面含新列宽类）——若用户看的是 4175 或旧 tab，需刷新后才反映最新布局。
+- **决议（三版微调，同日用户指令「Borrowed 和 Source 列稍微往右移动一点点」）**：① Source 列内边距 12→24px（文本右移 12px，chain 间距不动，表头同步）；② 动作列 21rem→19rem（数值块右移 33px，数字→Redeem 240→207px）。visual-judge 两档复验 pass（两组成构图完好、Borrowed→Redeem 207px「clearly separated」）；e2e portfolio 三档基线重录；生产 .next 同步重建、4175 预览重启。
+- **决议（三版三轮：用户指令「Borrowed 回调一点、Collateral 往左移动一点」+ 前置指令「Source/Borrowed 右移幅度大一些」）**：① Source 列 padding 落定 `var(--space-8)`=64px（累计右移 ~50px；曾试 calc 双倍 128px——gap1 飙到 256px 破坏前轮比例，回退）；② 动作列 14rem→**17rem**（Borrowed 回调，数字→Redeem 127→175px）；③ **Collateral 列独立收窄 20%→17%**——两数值列右缘错开（2000 视口 246px/1280 视口 203px 阶梯），数字→Redeem 与 Collateral→Borrowed 通道均衡。visual-judge 判「intentional dual-axis ledger alignment, not a mis-alignment bug」（两列各自 9 行共线 + 表头 1px 对齐 + 单位不同本属独立台账）；静态闸全绿；e2e 三档基线重录；生产重建、4175 重启。
+- **决议（三版四轮：用户指令「Collateral 列继续左移」）**：Collateral 列 17%→15% **并加列内右内边距 `var(--space-6)`**（纯缩列宽会被 source auto 列吃掉——列尾不动、数字纹丝不动；padding 直推数字左移 44px），错开 246→**291px**（2000）/243px（1280，列宽随表收窄通道压缩但结构完好）；Borrowed 22%/Redeem 175px 不动。1280 视口 coll 列 152px ≥ 数字 109+边距 36=145（4px 余量，无溢出）。visual-judge 两档 pass（「no crowding on either side」「ledger reading holds」）；静态闸全绿；e2e 重录；生产重建、4175 重启。
+- **决议（三版五轮：用户指令「再左移一点点，稍微一点点就行」）**：≥90rem 宽屏 Collateral 右内边距 32→48px（`calc(space-6+space-4)`，数字再左移 16px→右缘 1132）；**1280 视口刻意不动**（列宽 152px 已无余量，任何全局加大都会溢出——宽屏加档用媒体查询，不抬基础值）。visual-judge 两档 pass（2000 落点 1130 与目标 1132 一致、表头对齐；1280 与已批准版逐像素一致无回归）；e2e 25 passed；生产重建、4175 重启。
+- **验证**：tsc / vitest / check:design / prettier 全绿；DOM 实测列宽（2000px：56/344/344/357/128；1280px：56/284/284/263/128）；visual-judge 四档复验（2000/1280/390/zh390）；e2e portfolio 三档基线重录。
+- 签名：approved by Jasonrale（2026-10-04 会话裁定，Agent 执行后留痕）
+
+### 决议 016 补充 6 · ②资产行精雕（2026-10-02 用户反馈「无聊、草率、字号间距没精雕」）
+
+- **对标**：Phantom/Rainbow/Zerion 组合页资产行公共形态——左侧资产视觉锚 + 符号，右缘两行堆叠（数量为主、法币值为辅），元数据退为安静第二行。
+- **落法（全部系统内素材）**：40px 单角切链徽瓷片（主链=最大余额链，Signal 边+inset 面）作行锚；符号 text-md 下链分布降为 xs 裸记号第二行；右缘堆叠=总量（--text-num-lg 22px KPI 读数档等宽）+法币折算（usdSample 首次上行，「≈ $381.30M」）或 credit 领取说明；固定轨宽 `16ch 200px` 保证各行数字右缘共线（行=独立 grid，auto 列随按钮数漂移——Genesis Credit 行曾右移 100px）。
+- **移动端坑**：chains 嵌在 id 内（符号下第二行），旧模板给它设独立 grid-area——幽灵命名区把它推进 id 的隐式第二列（实测 x=195 vs 81，与隐式列宽 110+gap 严丝合缝）；模板简化为两行、删幽灵 area 规则后四行芯片左缘全部对齐 81px。
+- **验证**：tsc/check:design 绿；DOM 实测（四行 chainsX=81、totalRight==actionsRight==365——judge 报的 14px 按钮缘差为切角画皮的视觉收窄，盒边相等）；visual-judge 桌面 pass/移动两轮收敛；e2e 基线重录 25 passed。
+- 签名：approved by Jasonrale（2026-10-02 会话反馈驱动，Agent 执行后留痕）
+
+### 决议 016 补充 7 · ③储蓄卡重做（2026-10-04 用户反馈「视觉效果无聊、文案意义不明、可读性差」）
+
+- **背景**：储蓄卡与 CDP 卡同构的 label/value 堆叠——利率渲染成裸数字（`formatPercent` 调用点漏补 `%`，显示「5 Earning」）；`42,000 suETH` 份额行是全卡唯一无标签裸行；四行信息挤在 xs/base 两档无层级。两路市场调研（Sky/Spark/Aave/Ethena/Morpho + Lido/银行利率卡，报告存会话记录）共识：仓位卡主数字=存款价值、利率=带限定词的事实行、状态用文案本身表达（Ethena "Not earning"）、份额兑换率配解释句（Aave 界面原文句式）；usrRate 按秒复利与 Sky DSR/SSR 同公式，APY 术语有先例。
+- **决议（Q1–Q4 用户逐项否决：都是没什么意义的数据——零新增 fixture 数据，纯呈现层）**：① 主数字块 `__holding`：存款价值升 `__hero`（22px data 档，资产行右缘总量同款），副行 `__sub`=法币折算（usdSample 经 repository 视图层透出，缺失隐藏——资产行同款槽位）+ 份额凭证记号（带「份额/shares」词）；② 利率行=`%`+`__unit` 年化单位+三态标签（Earning/Not earning/`__flag` Rate capped 带 title 机制提示）；③ `__note` 三态语义句各一句（生息=按秒计息来自协议注资预算/未激活=份额暂不增值存取照常/封顶=增长暂停本金已计不受影响——全部 OutrunBook usr.md 口径）；④ 铭牌行链名加 ChainLogoMark（资产行同源）；⑤ 分区副标题改用户话；⑥ 存取弹窗加 shareNote 凭证解释句（「{share} 是存款凭证——取出返还本金+已计利息」）；⑦ `formatPercent` 三处调用点补 `%`（储蓄卡/收益表 7日年化/转换弹窗费率）；`.pf-card__meta`/`__source` 随卡网格退役删除（最后消费方消失）。
+- **效力**：修订补充 2 中储蓄卡「事实 dl+meta」结构登记；「储蓄仍为卡网格」维持（补充 5）。
+- **验证**：tsc / vitest 112 / check:design 0 / check-fixture-boundary --source 全绿；e2e portfolio 三档基线重录 + visual-judge。
+- 签名：approved by Jasonrale（2026-10-04 会话裁定「1-4 都不加，都是没什么意义的数据」后授权实现）
+- **同日二轮裁定（交付后用户复审）**：① dt 标签 Rate→**APY**（zh「年化」）；② 未激活态显 **0%**（灰），不再显示 Not earning；③ 状态词全删——Earning/生息中、Rate capped/利率受限 chip、`cappedHint`「都没什么意义」；④ 三句 `__note` 语义句全删。利率行收敛为「APY 标签 + % 数值二态」（rateActive→绿 %，否则灰 0%）；capped 不再上 UI（fixture/repo 字段保留，显示层不消费）。撤销补充 2「三态标签补齐渲染」中状态词部分与本补充一轮的 ②③ 两项；copy 键 `rate`/`rateUnit`/`stateActive`/`stateInactive`/`stateCapped`/`cappedHint`/`note*` 删除，`apy`/`sharesWord`/`shareNote` 保留；CSS `.pf-card__state`/`__unit`/`__flag`/`__note` 退役，`.pf-card__facts [data-state='inactive']` 灰新增。存取弹窗利率行同步（APY/0%），shareNote 凭证句不在删除清单、保留。
+- 二轮验证：tsc / vitest 112 / check:design 0 全绿；e2e portfolio 三档基线重录。
+- **同日三轮裁定（复审截图圈注「18,500 suUSD shares 位置不舒服」+ 弹窗文案删除）**：① 份额从副行移入事实格——`__facts` 改双列（APY | Shares/份额 并排，label 上 value 下），副行只留 `≈ $` 法币折算（价值表述归主数字旁，份额=独立持仓事实归事实区，消除份额数字与主数字同行撞车）；② 存取弹窗 `shareNote` 凭证解释句删除（en/zh 键删，二轮「保留」口径作废）；`sharesWord` 键改名 `sharesLabel`（en 'Shares' 作 dt 标签）。CSS：`__facts` 双列 grid、`__sub` 收窄为单行文本。
+
+### 决议 016 补充 8 · 删②在途 Signal panel（2026-10-04 用户裁定）
+
+- **背景**：用户出示在途卡截图（sent/stranded 未终结消息列表）裁定「跨链卡删掉」。
+- **决议**：②资产与跨链区只留余额面板；在途 Signal panel 整体退役。语义分工：sent=无需行动，不占版面；stranded=有后果项，仍由①待办区 stranded 卡承接（Recover 弹窗不变）。KPI 状态带四段→三段：在途段删除；滞留段锚点 `#pf-assets`→`#pf-actions`（滞留卡唯一所在地）。跨链弹窗（Bridge/Convert/Stranded）与 `?claimable`/`?chain` 筛选不受影响。
+- **效力**：`.pf-panel--signal` 变体与 `.pf-transit*` 全组规则退役（最后消费方消失）；copy 键 `inTransitTitle`/`stageSent`/`stageStranded`/`signals.inTransit` 删除，`inTransitSafe`/`recoverCta` 保留（滞留弹窗在用）；`getFixturePortfolioSignals` 删 `inTransit` 字段。修订决议 016 中「在途=Signal panel」归属；PD-02/M4「delivered/settled 历史不展示」口径不变。
+- **fixture 影响**：无（bridge messages 数据保留，仅视图层不再出在途计数；manifest 不动）。
+- **token 影响**：无增删（`--color-border-signal` 仍有 pf-kpi 等消费方）。
+- **验证**：tsc / vitest 112 / check:design 0 / check-fixture-boundary --source / prettier 全绿；e2e portfolio 三档基线重录。
+- 签名：approved by Jasonrale（2026-10-04 会话裁定）
+
 ## 2026-10-02 · 三列卡 zoom:0.8 登记为已知密度妥协（P1-2 登记类收口，用户裁定「做」）
 
 - **背景**：P1-2 评审指出 ≥80rem 三列 `.economy-card` 整卡 `zoom: 0.8`（globals.css 三列断点）比例失调——内部版式按宽卡设计后整体缩到列宽，缩放后字号/间距不对应任何 token 档位，报告将其归为登记类（需人工决议，非顺手小修）。
@@ -435,6 +546,7 @@ C1 结算储备金按 spec 窄口径且 UI 不露出 · C2 建池剩余资金不
 - **效力**：globals.css ≥80rem 断点的 `zoom: 0.8` 保留；后续评审不再将其作为待修复项重复报告；未来若要移除，须走新决议并同步落地三列窄卡 token 版式，禁止单独删除（会加重卡头挤压）。
 - **验证**：纯登记，无代码变更；对照演示为 /tmp 独立页（不入库），依据链 = P1-2 台账 + f0563ea（卡头 wrap+截断）+ 本日志 2026-10-01 三条卡头条目。
 - **token 影响**：无增删。
+
 ## 2026-10-04 · Launch 页 Fees 卡并入表单卡（用户裁定「右半边卡片合并到左半边卡片的 Communities 下方」）
 
 - **背景**：`/memeverse/launch` 沿用 demo 双栏（左表单卡 + 右 Fees 报价侧栏，`.verse-workbench` 共规则 1.22fr/0.78fr）；≤68rem 侧栏另收敛为 sticky 迷你费用条（2026-10-01 裁定）。用户裁定右卡并入左卡 Communities 下方。
@@ -444,3 +556,43 @@ C1 结算储备金按 spec 窄口径且 UI 不露出 · C2 建池剩余资金不
 - **验证**：tsc / lint / check:design / check:contrast / vitest 全绿；e2e launch 三档基线重录。
 - 签名：approved by Jasonrale（2026-10-04 会话裁定）
 
+### 决议 016 补充 9 · ④凭证区余额语义/对齐/样本参差化（2026-10-05 用户逐项裁定）
+
+- **背景**：用户连续质询 ④区「POL/PT/YT/LP 是什么、是不是这个账户的」——持仓行五列裸数字无单位无归属；数字列表头左对齐与右对齐数据错位（补充 4 二轮同修漏网凭证表）；20 行 × 4 币种全部非零、锁定行 claimable 全 0 而解锁行全正的「一眼假」分布；另裁定「1 YT ≈ 0.0231 UETH」小字删除。
+- **决议（小字删除明示裁定；其余四项用户「其他的按推荐先来」授权）**：
+  1. **「1 YT ≈」hint 删除**：渲染块 + `ytRedeemHint` 文案键（en/zh）+ `FixtureVoucherRow.holdings.ytRedeemUAssetPerUnit` 字段及映射移除；`FixturePolPosition` 同名字段保留（verse 页兑回弹窗/井读数在用）。可领格只剩绿色 +数字。
+  2. **对齐补齐**：④区数字列表头（Participating/Genesis Endtime/POL/PT/YT/LP/Claimable）补 `data-numeric`，Claimable 单元格同步——`.pf-table th[data-numeric]` 规则本在（补充 4 二轮），凭证表漏网。
+  3. **余额语义**：分区副标题改写（en: Balances of the vouchers you hold in each verse…/zh: 您在各个 verse 持有的凭证余额…）；列头保机制词不带余额前缀。
+  4. **样本参差化（pol-positions.json，manifest 重出）**：`myPt` 仅 verse-003/verse-010 非零（标准参与不被动发放 PT——pol-splitter.md「Who actually receives PT / YT」，账户仅此两 verse 拆分过 POL）；`claimableYt` 按已登记口径（Stage≥Locked 一次性——MemeverseSettlementImpl.sol:88，schema 注释本已正确、偏差在数据侧）修数据：锁定行 verse-002/010/025 未领（1830/1420/1050 样本），解锁行 verse-012/014/029/031 归零（早已领完）——可领 = 3 锁定 + 6 解锁 = 9 verse，「只看可领」筛选恢复跨阶段语义。
+- **效力**：`FixtureVoucherRow.holdings` 塌缩为五字段（pol/pt/yt/claimableYt/lp）；components.md ④区行同步；schema 注释未动（口径本已正确）。
+- **验证**：tsc / vitest 115 / check:design 0 / prettier / check-fixture-boundary --source 全绿；portfolio 三档基线重录 + 全套 e2e + visual-judge（本条登记后执行）。
+- 签名：approved by Jasonrale（2026-10-05 会话逐项裁定）
+
+### 决议 016 补充 10 · ④凭证区行版式重做（2026-10-05 用户裁定「这他妈是产品 UI 吗？几个字母加个表格就是 UI 了？有一点可读性吗？」）
+
+- **背景**：补充 9 对齐修复后的字母表头数字矩阵被整体否决——POL/PT/YT/LP 裸表头 + 五列代币计数是把合约存储直接倒给用户：读不出是余额、读不出单位归属、读不出下一步动作。
+- **决议**：废除表内表格，行版式按本页资产行成熟 ledger 节奏重做（`.pf-voucher-row`）：40px 切角字母 tile 视觉锚｜身份（symbol+name，创世行随路径/类型徽章）+ 构成行（mono 安静第二行、单位行内嵌「15.25K POL」、零值省略——「0」噪音与表头随表格一并消亡；创世行构成槽=截止日）｜右缘主数字（创世=参与额 22px data 档；持仓=可领 YT success 绿同档——可领由一列升格为行主数字；无可领=灰 `--`）｜行尾动作链接。锁定行加预计解锁日副行（凭证头新暴露 `unlockAt`=创世截止+365d，MemeverseRegistrationLib.sol:14 合约常量）。无表头行，列语义由内容自承载。copy 键 `genesisParticipating`/`claimableCell` 删除，`endsOn`/`unlocksOn` 新增；本区时间格式 `formatStamp`→`formatDay`。
+- **效力**：`.pf-vouchers__group` 内不再使用 `.pf-table`（pf-table 组规则归③仓位/金库表专用）；`FixtureVoucherRow.verse` 增 `unlockAt` 字段。
+- **验证**：tsc / vitest 115 / check:design 0 / check:contrast / prettier / check-fixture-boundary --source / design:detect 全绿零命中；dev 断言（21 行、9 绿 pill、凭证区无 table 元素、构成行与解锁副行在位）；portfolio 三档基线重录 + 全套 e2e 25 passed + visual-judge 三视口 3/3 pass（右缘共线、层级、与资产行语言一致、390 无溢出）。
+- 签名：approved by Jasonrale（2026-10-05 用户裁定驱动重做，Agent 执行后留痕）
+
+### 决议 016 补充 11 · ④区三项收尾裁定（2026-10-05 用户裁定）
+
+1. **构成行不显示 LP**：四池 LP 合计不进构成行（`MakeupLine` 只出 POL/PT/YT）；`FixtureVoucherRow.holdings.lp` 字段随之移除（无消费方；fixture `myLp` 与 verse 页弹窗 `FixturePolPosition.myLp` 不动）。
+2. **创世行 CTA「Open genesis/去参与」删除**（用户裁定语义不准确）：对一条已有参与记录的行，「去参与」读作再参与邀请——CTA 收敛为二值：可领=Claim，否则=Manage（`participateCta` 键删除，en/zh）。
+3. **「Sample data — the clock does not advance / 示例数据 · 时间不会推进」页脚删除**：①待办区与④区两处 `panel-note` 一并删除（用户引文案本身；`portfolio.action.fixedAnchor` 键删除。verse 页 `verse.fixedAnchor` 是独立键，禁用按钮 title 在用，不动）。
+- **验证**：tsc / vitest 115 / check:design 0 / prettier 全绿；dev 断言（MOON 行 CTA=Manage、构成行无 LP、两处 panel-note 清零）；portfolio 三档基线重录 + 全套 e2e 25 passed + visual-judge 三视口 3/3 pass。
+- 签名：approved by Jasonrale（2026-10-05 会话逐项裁定）
+
+### 决议 016 补充 12 · ④组头铭牌对齐纠错（2026-10-05 用户截图圈注「阶段显示在这不舒服」）
+
+- **根因**：`.pf-vouchers__group-head span` 裸 span 选择器把计数右推的 `margin-inline-start:auto` 同时命中 StageBadge（同为 span）——两个 auto margin 均分自由空间，徽章被顶到行中悬置。
+- **决议**：选择器收窄为 `span[data-numeric]`——组头回归页面既有铭牌 grammar（`.pf-panel__bar` 同款：徽章锚左=扫描起点，计数退右缘 meta）。
+- **验证**：dev 断言三组头 badge-first+计数（1/10/10）；check:design/prettier 绿；portfolio 三档基线重录 + 全套 e2e 25 passed + visual-judge 三视口 3/3 pass（与 Assets/Vault 铭牌语法一致）。
+- 签名：approved by Jasonrale（2026-10-05 用户截图圈注驱动，Agent 执行后留痕）
+
+### 决议 016 补充 13 · ④行身份只显 symbol（2026-10-05 用户裁定「只显示 Symbol，不显示名字，不然看着有点杂乱」）
+
+- **决议**：凭证行身份链接去掉 verse 全名（Moon Verse 等），只留粗体 symbol——与③金库行既定裁定「行身份=verse 符号即可」（补充 4）同口径。tile 字母章、构成行、右缘主数字、动作链接不变。
+- **验证**：tsc/prettier 绿；dev 断言全名清零；portfolio 三档基线重录 + 全套 e2e 25 passed + visual-judge 三视口 3/3 pass（21 行仅 symbol、Staked 徽章随行、其余无回归）。
+- 签名：approved by Jasonrale（2026-10-05 会话裁定）

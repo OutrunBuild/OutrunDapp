@@ -38,43 +38,27 @@
       "pendingRedeems": [
         {
           "lockedAssets": {
-            "raw": "1000",
+            "raw": "5000",
             "decimals": 18
           },
-          "requestedAt": "2026-09-15T10:00:00Z",
-          "maturesAt": "2026-09-16T10:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "2500",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-16T06:00:00Z",
-          "maturesAt": "2026-09-17T06:00:00Z"
+          "requestedAt": "2026-09-14T21:00:00Z",
+          "maturesAt": "2026-09-15T21:00:00Z"
         },
         {
           "lockedAssets": {
             "raw": "2600",
             "decimals": 18
           },
-          "requestedAt": "2026-09-16T08:00:00Z",
-          "maturesAt": "2026-09-17T08:00:00Z"
+          "requestedAt": "2026-09-15T08:00:00Z",
+          "maturesAt": "2026-09-16T08:00:00Z"
         },
         {
           "lockedAssets": {
-            "raw": "6240",
+            "raw": "1200",
             "decimals": 18
           },
-          "requestedAt": "2026-09-15T21:00:00Z",
-          "maturesAt": "2026-09-16T21:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "4160",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T06:00:00Z",
-          "maturesAt": "2026-09-16T06:00:00Z"
+          "requestedAt": "2026-09-16T06:00:00Z",
+          "maturesAt": "2026-09-17T06:00:00Z"
         }
       ]
     },
@@ -117,40 +101,16 @@
             "raw": "3800",
             "decimals": 18
           },
-          "requestedAt": "2026-09-15T09:00:00Z",
-          "maturesAt": "2026-09-16T09:30:00Z"
+          "requestedAt": "2026-09-15T20:00:00Z",
+          "maturesAt": "2026-09-16T20:00:00Z"
         },
         {
           "lockedAssets": {
             "raw": "4050",
             "decimals": 18
           },
-          "requestedAt": "2026-09-16T08:00:00Z",
-          "maturesAt": "2026-09-17T08:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "9720",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T21:00:00Z",
-          "maturesAt": "2026-09-16T21:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "2430",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T13:00:00Z",
-          "maturesAt": "2026-09-16T13:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "6480",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T06:00:00Z",
-          "maturesAt": "2026-09-16T06:00:00Z"
+          "requestedAt": "2026-09-16T06:00:00Z",
+          "maturesAt": "2026-09-17T06:00:00Z"
         }
       ]
     },
@@ -190,43 +150,11 @@
       "pendingRedeems": [
         {
           "lockedAssets": {
-            "raw": "3019",
+            "raw": "6000",
             "decimals": 18
           },
-          "requestedAt": "2026-09-15T10:00:00Z",
-          "maturesAt": "2026-09-16T10:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "7547",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-16T06:00:00Z",
-          "maturesAt": "2026-09-17T06:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "3773",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-16T08:00:00Z",
-          "maturesAt": "2026-09-17T08:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "9056",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T21:00:00Z",
-          "maturesAt": "2026-09-16T21:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "6038",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T06:00:00Z",
-          "maturesAt": "2026-09-16T06:00:00Z"
+          "requestedAt": "2026-09-15T02:00:00Z",
+          "maturesAt": "2026-09-16T02:00:00Z"
         }
       ]
     },
@@ -263,48 +191,7 @@
         "value": "0x1111111000000000000000000000000000000001",
         "fixtureOnly": true
       },
-      "pendingRedeems": [
-        {
-          "lockedAssets": {
-            "raw": "5558",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T06:00:00Z",
-          "maturesAt": "2026-09-16T06:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "3474",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-16T08:00:00Z",
-          "maturesAt": "2026-09-17T08:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "8337",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T21:00:00Z",
-          "maturesAt": "2026-09-16T21:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "2084",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T13:00:00Z",
-          "maturesAt": "2026-09-16T13:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "2779",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-14T06:00:00Z",
-          "maturesAt": "2026-09-15T06:00:00Z"
-        }
-      ]
+      "pendingRedeems": []
     },
     {
       "id": "stk-102",
@@ -342,43 +229,11 @@
       "pendingRedeems": [
         {
           "lockedAssets": {
-            "raw": "4030",
+            "raw": "5000",
             "decimals": 18
           },
           "requestedAt": "2026-09-16T08:00:00Z",
           "maturesAt": "2026-09-17T08:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "6448",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T06:00:00Z",
-          "maturesAt": "2026-09-16T06:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "9673",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T21:00:00Z",
-          "maturesAt": "2026-09-16T21:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "2418",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T13:00:00Z",
-          "maturesAt": "2026-09-16T13:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "3224",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-14T06:00:00Z",
-          "maturesAt": "2026-09-15T06:00:00Z"
         }
       ]
     },
@@ -415,48 +270,7 @@
         "value": "0x1111111000000000000000000000000000000001",
         "fixtureOnly": true
       },
-      "pendingRedeems": [
-        {
-          "lockedAssets": {
-            "raw": "2372",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-16T08:00:00Z",
-          "maturesAt": "2026-09-17T08:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "3795",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T06:00:00Z",
-          "maturesAt": "2026-09-16T06:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "5693",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T21:00:00Z",
-          "maturesAt": "2026-09-16T21:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "1423",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T13:00:00Z",
-          "maturesAt": "2026-09-16T13:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "1898",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-14T06:00:00Z",
-          "maturesAt": "2026-09-15T06:00:00Z"
-        }
-      ]
+      "pendingRedeems": []
     },
     {
       "id": "stk-104",
@@ -494,43 +308,19 @@
       "pendingRedeems": [
         {
           "lockedAssets": {
-            "raw": "4531",
+            "raw": "8000",
+            "decimals": 18
+          },
+          "requestedAt": "2026-09-14T21:00:00Z",
+          "maturesAt": "2026-09-15T21:00:00Z"
+        },
+        {
+          "lockedAssets": {
+            "raw": "4000",
             "decimals": 18
           },
           "requestedAt": "2026-09-15T10:00:00Z",
           "maturesAt": "2026-09-16T10:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "11328",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-16T06:00:00Z",
-          "maturesAt": "2026-09-17T06:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "5664",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-16T08:00:00Z",
-          "maturesAt": "2026-09-17T08:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "13594",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T21:00:00Z",
-          "maturesAt": "2026-09-16T21:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "9062",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T06:00:00Z",
-          "maturesAt": "2026-09-16T06:00:00Z"
         }
       ]
     },
@@ -570,43 +360,19 @@
       "pendingRedeems": [
         {
           "lockedAssets": {
-            "raw": "3937",
+            "raw": "3000",
             "decimals": 18
           },
-          "requestedAt": "2026-09-16T08:00:00Z",
-          "maturesAt": "2026-09-17T08:00:00Z"
+          "requestedAt": "2026-09-15T18:00:00Z",
+          "maturesAt": "2026-09-16T18:00:00Z"
         },
         {
           "lockedAssets": {
-            "raw": "6299",
+            "raw": "2500",
             "decimals": 18
           },
-          "requestedAt": "2026-09-15T06:00:00Z",
-          "maturesAt": "2026-09-16T06:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "9448",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T21:00:00Z",
-          "maturesAt": "2026-09-16T21:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "2362",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T13:00:00Z",
-          "maturesAt": "2026-09-16T13:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "3149",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-14T06:00:00Z",
-          "maturesAt": "2026-09-15T06:00:00Z"
+          "requestedAt": "2026-09-16T02:00:00Z",
+          "maturesAt": "2026-09-17T02:00:00Z"
         }
       ]
     },
@@ -646,267 +412,7 @@
       "pendingRedeems": [
         {
           "lockedAssets": {
-            "raw": "4334",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-16T08:00:00Z",
-          "maturesAt": "2026-09-17T08:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "6934",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T06:00:00Z",
-          "maturesAt": "2026-09-16T06:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "10401",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T21:00:00Z",
-          "maturesAt": "2026-09-16T21:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "2600",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T13:00:00Z",
-          "maturesAt": "2026-09-16T13:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "3467",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-14T06:00:00Z",
-          "maturesAt": "2026-09-15T06:00:00Z"
-        }
-      ]
-    },
-    {
-      "id": "stk-107",
-      "scenario": [
-        "normal"
-      ],
-      "sourceRef": "docs/page-briefs/source-map.md#M10",
-      "verseId": "verse-024",
-      "vaultAddress": {
-        "value": "0x8f1a000000000000000000000000000000000000",
-        "fixtureOnly": true
-      },
-      "totalStaked": {
-        "raw": "6668961",
-        "decimals": 18
-      },
-      "assetsPerShare": {
-        "raw": "1.3218",
-        "unit": "ratio",
-        "scale": 18
-      },
-      "apy7d": {
-        "raw": "0.0704",
-        "unit": "ratio",
-        "scale": 18
-      },
-      "myShares": {
-        "raw": "69966",
-        "decimals": 18
-      },
-      "delegatee": {
-        "value": "0x1111111000000000000000000000000000000001",
-        "fixtureOnly": true
-      },
-      "pendingRedeems": [
-        {
-          "lockedAssets": {
-            "raw": "2668",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T10:00:00Z",
-          "maturesAt": "2026-09-16T10:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "6669",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-16T06:00:00Z",
-          "maturesAt": "2026-09-17T06:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "3334",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-16T08:00:00Z",
-          "maturesAt": "2026-09-17T08:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "8003",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T21:00:00Z",
-          "maturesAt": "2026-09-16T21:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "5335",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T06:00:00Z",
-          "maturesAt": "2026-09-16T06:00:00Z"
-        }
-      ]
-    },
-    {
-      "id": "stk-108",
-      "scenario": [
-        "normal"
-      ],
-      "sourceRef": "docs/page-briefs/source-map.md#M10",
-      "verseId": "verse-025",
-      "vaultAddress": {
-        "value": "0x8f1a000000000000000000000000000000000000",
-        "fixtureOnly": true
-      },
-      "totalStaked": {
-        "raw": "8043864",
-        "decimals": 18
-      },
-      "assetsPerShare": {
-        "raw": "1.0706",
-        "unit": "ratio",
-        "scale": 18
-      },
-      "apy7d": {
-        "raw": "0.2904",
-        "unit": "ratio",
-        "scale": 18
-      },
-      "myShares": {
-        "raw": "118481",
-        "decimals": 18
-      },
-      "delegatee": {
-        "value": "0x1111111000000000000000000000000000000001",
-        "fixtureOnly": true
-      },
-      "pendingRedeems": [
-        {
-          "lockedAssets": {
-            "raw": "3218",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T10:00:00Z",
-          "maturesAt": "2026-09-16T10:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "8044",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-16T06:00:00Z",
-          "maturesAt": "2026-09-17T06:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "4022",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-16T08:00:00Z",
-          "maturesAt": "2026-09-17T08:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "9653",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T21:00:00Z",
-          "maturesAt": "2026-09-16T21:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "6435",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T06:00:00Z",
-          "maturesAt": "2026-09-16T06:00:00Z"
-        }
-      ]
-    },
-    {
-      "id": "stk-109",
-      "scenario": [
-        "normal"
-      ],
-      "sourceRef": "docs/page-briefs/source-map.md#M10",
-      "verseId": "verse-026",
-      "vaultAddress": {
-        "value": "0x8f1a000000000000000000000000000000000000",
-        "fixtureOnly": true
-      },
-      "totalStaked": {
-        "raw": "9320909",
-        "decimals": 18
-      },
-      "assetsPerShare": {
-        "raw": "1.0384",
-        "unit": "ratio",
-        "scale": 18
-      },
-      "apy7d": {
-        "raw": "0.1137",
-        "unit": "ratio",
-        "scale": 18
-      },
-      "myShares": {
-        "raw": "81382",
-        "decimals": 18
-      },
-      "delegatee": {
-        "value": "0x1111111000000000000000000000000000000001",
-        "fixtureOnly": true
-      },
-      "pendingRedeems": [
-        {
-          "lockedAssets": {
-            "raw": "3728",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T10:00:00Z",
-          "maturesAt": "2026-09-16T10:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "9321",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-16T06:00:00Z",
-          "maturesAt": "2026-09-17T06:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "4660",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-16T08:00:00Z",
-          "maturesAt": "2026-09-17T08:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "11185",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T21:00:00Z",
-          "maturesAt": "2026-09-16T21:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "7457",
+            "raw": "4500",
             "decimals": 18
           },
           "requestedAt": "2026-09-15T06:00:00Z",
@@ -947,48 +453,112 @@
         "value": "0x1111111000000000000000000000000000000001",
         "fixtureOnly": true
       },
-      "pendingRedeems": [
-        {
-          "lockedAssets": {
-            "raw": "5271",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-16T08:00:00Z",
-          "maturesAt": "2026-09-17T08:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "8433",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T06:00:00Z",
-          "maturesAt": "2026-09-16T06:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "12650",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T21:00:00Z",
-          "maturesAt": "2026-09-16T21:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "3162",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T13:00:00Z",
-          "maturesAt": "2026-09-16T13:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "4217",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-14T06:00:00Z",
-          "maturesAt": "2026-09-15T06:00:00Z"
-        }
-      ]
+      "pendingRedeems": []
+    },
+    {
+      "id": "stk-107",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-024",
+      "vaultAddress": {
+        "value": "0x8f1a000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "totalStaked": {
+        "raw": "6668961",
+        "decimals": 18
+      },
+      "assetsPerShare": {
+        "raw": "1.3218",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "apy7d": {
+        "raw": "0.0704",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myShares": {
+        "raw": "0",
+        "decimals": 18
+      },
+      "delegatee": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "pendingRedeems": []
+    },
+    {
+      "id": "stk-108",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-025",
+      "vaultAddress": {
+        "value": "0x8f1a000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "totalStaked": {
+        "raw": "8043864",
+        "decimals": 18
+      },
+      "assetsPerShare": {
+        "raw": "1.0706",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "apy7d": {
+        "raw": "0.2904",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myShares": {
+        "raw": "0",
+        "decimals": 18
+      },
+      "delegatee": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "pendingRedeems": []
+    },
+    {
+      "id": "stk-109",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M10",
+      "verseId": "verse-026",
+      "vaultAddress": {
+        "value": "0x8f1a000000000000000000000000000000000000",
+        "fixtureOnly": true
+      },
+      "totalStaked": {
+        "raw": "9320909",
+        "decimals": 18
+      },
+      "assetsPerShare": {
+        "raw": "1.0384",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "apy7d": {
+        "raw": "0.1137",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "myShares": {
+        "raw": "0",
+        "decimals": 18
+      },
+      "delegatee": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "pendingRedeems": []
     },
     {
       "id": "stk-111",
@@ -1016,55 +586,14 @@
         "scale": 18
       },
       "myShares": {
-        "raw": "57655",
+        "raw": "0",
         "decimals": 18
       },
       "delegatee": {
         "value": "0x1111111000000000000000000000000000000001",
         "fixtureOnly": true
       },
-      "pendingRedeems": [
-        {
-          "lockedAssets": {
-            "raw": "3572",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-16T08:00:00Z",
-          "maturesAt": "2026-09-17T08:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "5715",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T06:00:00Z",
-          "maturesAt": "2026-09-16T06:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "8573",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T21:00:00Z",
-          "maturesAt": "2026-09-16T21:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "2143",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T13:00:00Z",
-          "maturesAt": "2026-09-16T13:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "2858",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-14T06:00:00Z",
-          "maturesAt": "2026-09-15T06:00:00Z"
-        }
-      ]
+      "pendingRedeems": []
     },
     {
       "id": "stk-112",
@@ -1092,55 +621,14 @@
         "scale": 18
       },
       "myShares": {
-        "raw": "64700",
+        "raw": "0",
         "decimals": 18
       },
       "delegatee": {
         "value": "0x1111111000000000000000000000000000000001",
         "fixtureOnly": true
       },
-      "pendingRedeems": [
-        {
-          "lockedAssets": {
-            "raw": "4748",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T06:00:00Z",
-          "maturesAt": "2026-09-16T06:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "2968",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-16T08:00:00Z",
-          "maturesAt": "2026-09-17T08:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "7122",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T21:00:00Z",
-          "maturesAt": "2026-09-16T21:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "1781",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T13:00:00Z",
-          "maturesAt": "2026-09-16T13:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "2374",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-14T06:00:00Z",
-          "maturesAt": "2026-09-15T06:00:00Z"
-        }
-      ]
+      "pendingRedeems": []
     },
     {
       "id": "stk-113",
@@ -1168,55 +656,14 @@
         "scale": 18
       },
       "myShares": {
-        "raw": "152831",
+        "raw": "0",
         "decimals": 18
       },
       "delegatee": {
         "value": "0x1111111000000000000000000000000000000001",
         "fixtureOnly": true
       },
-      "pendingRedeems": [
-        {
-          "lockedAssets": {
-            "raw": "4320",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T06:00:00Z",
-          "maturesAt": "2026-09-16T06:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "2700",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-16T08:00:00Z",
-          "maturesAt": "2026-09-17T08:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "6480",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T21:00:00Z",
-          "maturesAt": "2026-09-16T21:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "1620",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T13:00:00Z",
-          "maturesAt": "2026-09-16T13:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "2160",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-14T06:00:00Z",
-          "maturesAt": "2026-09-15T06:00:00Z"
-        }
-      ]
+      "pendingRedeems": []
     },
     {
       "id": "stk-114",
@@ -1244,55 +691,14 @@
         "scale": 18
       },
       "myShares": {
-        "raw": "181899",
+        "raw": "0",
         "decimals": 18
       },
       "delegatee": {
         "value": "0x1111111000000000000000000000000000000001",
         "fixtureOnly": true
       },
-      "pendingRedeems": [
-        {
-          "lockedAssets": {
-            "raw": "4097",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T10:00:00Z",
-          "maturesAt": "2026-09-16T10:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "10241",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-16T06:00:00Z",
-          "maturesAt": "2026-09-17T06:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "5121",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-16T08:00:00Z",
-          "maturesAt": "2026-09-17T08:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "12290",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T21:00:00Z",
-          "maturesAt": "2026-09-16T21:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "8193",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T06:00:00Z",
-          "maturesAt": "2026-09-16T06:00:00Z"
-        }
-      ]
+      "pendingRedeems": []
     },
     {
       "id": "stk-115",
@@ -1320,55 +726,14 @@
         "scale": 18
       },
       "myShares": {
-        "raw": "46606",
+        "raw": "0",
         "decimals": 18
       },
       "delegatee": {
         "value": "0x1111111000000000000000000000000000000001",
         "fixtureOnly": true
       },
-      "pendingRedeems": [
-        {
-          "lockedAssets": {
-            "raw": "3707",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T06:00:00Z",
-          "maturesAt": "2026-09-16T06:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "2317",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-16T08:00:00Z",
-          "maturesAt": "2026-09-17T08:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "5560",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T21:00:00Z",
-          "maturesAt": "2026-09-16T21:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "1390",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T13:00:00Z",
-          "maturesAt": "2026-09-16T13:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "1853",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-14T06:00:00Z",
-          "maturesAt": "2026-09-15T06:00:00Z"
-        }
-      ]
+      "pendingRedeems": []
     },
     {
       "id": "stk-116",
@@ -1396,55 +761,14 @@
         "scale": 18
       },
       "myShares": {
-        "raw": "275564",
+        "raw": "0",
         "decimals": 18
       },
       "delegatee": {
         "value": "0x1111111000000000000000000000000000000001",
         "fixtureOnly": true
       },
-      "pendingRedeems": [
-        {
-          "lockedAssets": {
-            "raw": "7694",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T06:00:00Z",
-          "maturesAt": "2026-09-16T06:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "4809",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-16T08:00:00Z",
-          "maturesAt": "2026-09-17T08:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "11540",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T21:00:00Z",
-          "maturesAt": "2026-09-16T21:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "2885",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T13:00:00Z",
-          "maturesAt": "2026-09-16T13:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "3847",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-14T06:00:00Z",
-          "maturesAt": "2026-09-15T06:00:00Z"
-        }
-      ]
+      "pendingRedeems": []
     },
     {
       "id": "stk-117",
@@ -1472,55 +796,14 @@
         "scale": 18
       },
       "myShares": {
-        "raw": "192484",
+        "raw": "0",
         "decimals": 18
       },
       "delegatee": {
         "value": "0x1111111000000000000000000000000000000001",
         "fixtureOnly": true
       },
-      "pendingRedeems": [
-        {
-          "lockedAssets": {
-            "raw": "4306",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-16T08:00:00Z",
-          "maturesAt": "2026-09-17T08:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "6890",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T06:00:00Z",
-          "maturesAt": "2026-09-16T06:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "10335",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T21:00:00Z",
-          "maturesAt": "2026-09-16T21:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "2584",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-15T13:00:00Z",
-          "maturesAt": "2026-09-16T13:00:00Z"
-        },
-        {
-          "lockedAssets": {
-            "raw": "3445",
-            "decimals": 18
-          },
-          "requestedAt": "2026-09-14T06:00:00Z",
-          "maturesAt": "2026-09-15T06:00:00Z"
-        }
-      ]
+      "pendingRedeems": []
     }
   ]
 }
