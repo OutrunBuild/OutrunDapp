@@ -18,13 +18,16 @@ vi.mock('@/components/global/locale-menu', () => ({
 
 // 导航归属语义回归防线（fix-review F-1）：e2e 视觉基线对 aria/data 属性维度不敏感
 // （属性翻转实测 0 像素差），此处直接在 SSR HTML 层断言。
-function renderShell(props: { current?: string } = {}) {
+function renderShell(
+  props: { current?: 'home' | 'discover' | 'create' | 'portfolio' | 'account' } = {},
+) {
   return renderToString(
-    createElement(
-      OutrunShell,
-      { locale: 'en', accountAddress: '0xabc', ...props },
-      createElement('div', null, 'main content'),
-    ),
+    createElement(OutrunShell, {
+      locale: 'en',
+      accountAddress: '0xabc',
+      children: createElement('div', null, 'main content'),
+      ...props,
+    }),
   );
 }
 
