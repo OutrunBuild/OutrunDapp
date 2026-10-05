@@ -95,6 +95,7 @@ export function PoolRemoveLiquidityDialog({
 
   const lpVal = Number(lpAmount)
   const valid = Number.isFinite(lpVal) && lpVal > 0
+  const lpOver = lpBalance != null && lpVal > lpBalance
   // 取回推导=铸得反向：quote = LP ÷ lpPerQuote；base 再按配比折算（缺样本侧走槽位）
   const quoteOut =
     valid && pool.lpPerQuote != null && pool.lpPerQuote > 0 ? lpVal / pool.lpPerQuote : null
@@ -261,11 +262,16 @@ export function PoolRemoveLiquidityDialog({
                 maxLength={AMOUNT_MAX_CHARS}
                 onChange={(event) => setLpAmount(sanitizeAmount(event.target.value))}
                 aria-label={`${copy.removeLiquidityDialogTitle} ${lpSymbol}`}
+                aria-invalid={lpOver || undefined}
+                aria-describedby={lpOver ? 'pool-lp-balance-error' : undefined}
               />
               <div className="swap-panel__token">
                 <strong>{lpSymbol}</strong>
               </div>
             </div>
+            {lpOver ? (
+              <FieldError id="pool-lp-balance-error">{common.insufficientBalance}</FieldError>
+            ) : null}
           </div>
 
           <span className="pol-mint__arrow" aria-hidden="true">

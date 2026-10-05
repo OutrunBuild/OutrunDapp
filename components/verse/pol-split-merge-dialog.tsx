@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { X } from 'lucide-react'
 
 import type { Locale, FixturePolPosition, FixtureVerse } from '@/lib/data/fixture-repository'
@@ -18,6 +18,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { FieldError } from '@/components/ui/field'
 
 /**
  * Split/Merge POL 操作弹窗（2026-09-26 用户裁定：换向器两钮从恒禁用改可点弹窗；
@@ -45,12 +46,16 @@ export function PolSplitMergeDialog({
   const { connected, toggle } = useMockWallet()
   // merge 两侧恒等额（合约同一 amount 两侧 burn）→ 单状态驱动双输入框
   const [amount, setAmount] = useState('')
+  const balanceErrorId = useId()
 
   const polSymbol = `POL-${verse.symbol}`
   const ptSymbol = `PT-${verse.symbol}`
   const ytSymbol = `YT-${verse.symbol}`
   const maxMerge = Math.min(pol.myPt, pol.myYt)
   const clean = (raw: string) => setAmount(sanitizeAmount(raw))
+  // merge 双输入共享同一 amount → 错误行只挂 YT 框后一处，两输入同标 aria
+  const parsed = Number(amount)
+  const overBalance = mode === 'split' ? parsed > pol.myPol : parsed > maxMerge
 
   return (
     <Dialog>
@@ -95,11 +100,16 @@ export function PolSplitMergeDialog({
                   maxLength={AMOUNT_MAX_CHARS}
                   onChange={(event) => clean(event.target.value)}
                   aria-label={`${copy.splitDialogTitle} ${polSymbol}`}
+                  aria-invalid={overBalance || undefined}
+                  aria-describedby={overBalance ? balanceErrorId : undefined}
                 />
                 <div className="swap-panel__token">
                   <strong>{polSymbol}</strong>
                 </div>
               </div>
+              {overBalance ? (
+                <FieldError id={balanceErrorId}>{common.insufficientBalance}</FieldError>
+              ) : null}
             </div>
           ) : (
             <>
@@ -122,6 +132,8 @@ export function PolSplitMergeDialog({
                     maxLength={AMOUNT_MAX_CHARS}
                     onChange={(event) => clean(event.target.value)}
                     aria-label={`${copy.mergeDialogTitle} ${ptSymbol}`}
+                    aria-invalid={overBalance || undefined}
+                    aria-describedby={overBalance ? balanceErrorId : undefined}
                   />
                   <div className="swap-panel__token">
                     <strong>{ptSymbol}</strong>
@@ -147,11 +159,16 @@ export function PolSplitMergeDialog({
                     maxLength={AMOUNT_MAX_CHARS}
                     onChange={(event) => clean(event.target.value)}
                     aria-label={`${copy.mergeDialogTitle} ${ytSymbol}`}
+                    aria-invalid={overBalance || undefined}
+                    aria-describedby={overBalance ? balanceErrorId : undefined}
                   />
                   <div className="swap-panel__token">
                     <strong>{ytSymbol}</strong>
                   </div>
                 </div>
+                {overBalance ? (
+                  <FieldError id={balanceErrorId}>{common.insufficientBalance}</FieldError>
+                ) : null}
               </div>
             </>
           )}

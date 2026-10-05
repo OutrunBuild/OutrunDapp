@@ -18,6 +18,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { FieldError } from '@/components/ui/field'
 
 /**
  * Redeem PT/YT 操作弹窗（2026-09-27：unlocked 态换向器改赎回行，两钮触发本窗）。
@@ -76,6 +77,7 @@ export function PolRedeemPtYtDialog({
 
   const balance = mode === 'pt' ? pol.myPt : pol.myYt
   const tokenSymbol = mode === 'pt' ? ptSymbol : ytSymbol
+  const overBalance = parsed > balance
 
   return (
     <Dialog>
@@ -119,11 +121,16 @@ export function PolRedeemPtYtDialog({
                 maxLength={AMOUNT_MAX_CHARS}
                 onChange={(event) => clean(event.target.value)}
                 aria-label={`${mode === 'pt' ? copy.redeemPt : copy.redeemYt} ${tokenSymbol}`}
+                aria-invalid={overBalance || undefined}
+                aria-describedby={overBalance ? 'redeem-py-balance-error' : undefined}
               />
               <div className="swap-panel__token">
                 <strong>{tokenSymbol}</strong>
               </div>
             </div>
+            {overBalance ? (
+              <FieldError id="redeem-py-balance-error">{common.insufficientBalance}</FieldError>
+            ) : null}
           </div>
 
           {/* Receive 收账框（2026-09-27 参照图裁定：同输入框款式、只读 output+代币章）：

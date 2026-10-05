@@ -95,6 +95,7 @@ export function SwapPanel({
   pol: FixturePolPosition | null
 }) {
   const copy = getCopy(locale).verseDesk
+  const common = getCopy(locale).common
   const { connected, toggle } = useMockWallet()
   const [direction, setDirection] = useState<'stable-to-meme' | 'meme-to-stable'>('stable-to-meme')
   const buyLabelId = useId()
@@ -164,6 +165,7 @@ export function SwapPanel({
   // 原型报价：按所选对两侧参考价线性换算（储备腿=PSM 面值 1:1；滑点/动态费以执行读链为准）
   const parsed = Number(amount)
   const valid = Number.isFinite(parsed) && parsed > 0
+  const overBalance = sellBalance != null && Number.isFinite(parsed) && parsed > sellBalance
   const sellPrice = priceInUAsset.get(sellToken.id) ?? null
   const buyPrice = priceInUAsset.get(buyToken.id) ?? null
   const pairRate =
@@ -321,6 +323,8 @@ export function SwapPanel({
             maxLength={AMOUNT_MAX_CHARS}
             onChange={(event) => setAmount(sanitizeAmount(event.target.value))}
             aria-label={`${copy.swapSell} ${sellToken.symbol}`}
+            aria-invalid={overBalance || undefined}
+            aria-describedby={overBalance ? 'swap-balance-error' : undefined}
           />
           <SwapTokenSelectDialog
             locale={locale}
@@ -332,6 +336,9 @@ export function SwapPanel({
             }}
           />
         </div>
+        {overBalance ? (
+          <FieldError id="swap-balance-error">{common.insufficientBalance}</FieldError>
+        ) : null}
         {sellUsd != null ? <span className="swap-panel__field-usd">≈ ${sellUsd}</span> : null}
       </div>
       <button

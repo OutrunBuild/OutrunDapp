@@ -112,6 +112,8 @@ export function VaultActions({
   const redeemParsed = Number(redeemAmount)
   const redeemValid = Number.isFinite(redeemParsed) && redeemParsed > 0
   const redeemOut = redeemValid ? redeemParsed * assetsPerShare : null
+  const stakeOver = myMemecoin != null && stakeParsed > myMemecoin
+  const redeemOver = redeemParsed > myShares
   const delegateInvalid =
     !delegateSelf && delegateAddress !== '' && !EVM_ADDRESS_RE.test(delegateAddress)
   const waitingRedeems = pendingRedeems.filter((entry) => !entry.ready)
@@ -181,11 +183,18 @@ export function VaultActions({
               maxLength={AMOUNT_MAX_CHARS}
               onChange={(event) => setStakeAmount(sanitizeAmount(event.target.value))}
               aria-label={`${copy.amount} (${symbol})`}
+              aria-invalid={stakeOver || undefined}
+              aria-describedby={stakeOver ? 'vault-stake-balance-error' : undefined}
             />
             <div className="swap-panel__token">
               <strong>{symbol}</strong>
             </div>
           </div>
+          {stakeOver ? (
+            <FieldError id="vault-stake-balance-error">
+              {getCopy(locale).common.insufficientBalance}
+            </FieldError>
+          ) : null}
         </div>
         <dl className="swap-panel__details">
           <div>
@@ -324,11 +333,18 @@ export function VaultActions({
                   maxLength={AMOUNT_MAX_CHARS}
                   onChange={(event) => setRedeemAmount(sanitizeAmount(event.target.value))}
                   aria-label={`${copy.amount} (${shareSymbol})`}
+                  aria-invalid={redeemOver || undefined}
+                  aria-describedby={redeemOver ? 'vault-redeem-balance-error' : undefined}
                 />
                 <div className="swap-panel__token">
                   <strong>{shareSymbol}</strong>
                 </div>
               </div>
+              {redeemOver ? (
+                <FieldError id="vault-redeem-balance-error">
+                  {getCopy(locale).common.insufficientBalance}
+                </FieldError>
+              ) : null}
             </div>
             <dl className="swap-panel__details">
               <div>

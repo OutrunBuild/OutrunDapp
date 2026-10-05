@@ -29,7 +29,7 @@ import type { Locale, FixtureAsset, FixtureYieldSource } from '@/lib/data/fixtur
 import { getCopy } from '../global/copy'
 import { localePath } from '../global/routes'
 import { formatAmount, ProgressMeter, SourceRef } from '../global/signal-ui'
-import { AMOUNT_MAX_CHARS, sanitizeAmount } from '../global/amount-input'
+import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
 import { TxStatus, type TxState } from '../global/tx-status'
 
 // 预购与普通/杠杆创世同级的独立路径（用户裁定 2026-09-21）；普通/杠杆模式内提供一键预购
@@ -58,6 +58,7 @@ export function ParticipationPanel({
   leverageInterestRate,
   leverageDebtCap,
   leverageInterestRaised,
+  walletBalances,
   sourceRef,
 }: {
   locale: Locale
@@ -71,6 +72,8 @@ export function ParticipationPanel({
   leverageInterestRate: number | null
   leverageDebtCap: number | null
   leverageInterestRaised: number
+  /** 样本钱包余额（符号→跨链合计，balances.json；快照缺失符号不在表内→槽位态） */
+  walletBalances: Record<string, number>
   sourceRef: string
 }) {
   const copy = getCopy(locale)
@@ -192,20 +195,63 @@ export function ParticipationPanel({
     setInvalid(false)
   }
 
+  // 支付资产钱包余额（Balance/Max 来源；快照缺失符号=undefined→null 槽位态）
+  const walletBalance = walletBalances[payAsset] ?? null
+  const preorderWalletBalance = walletBalances[effectivePreorderAsset] ?? null
+  // 余额不足（2026-10-04 全站口径）：余额已知且输入>余额；上限类既有错误优先显示，单错误行
+  const balanceShort =
+    walletBalance != null && Number.isFinite(numericAmount) && numericAmount > walletBalance
+  const showBalanceShort =
+    balanceShort && !preorderTabExceeded && !(mode === 'leverage' && leverageExceeded)
+  const preorderBalanceShort =
+    preorderWalletBalance != null &&
+    Number.isFinite(numericPreorder) &&
+    numericPreorder > preorderWalletBalance
+
+  /** 余额/Max 行（swap-panel 同款结构；代币符号由相邻 Pay with 展示不重复——2026-10-04 裁定先例；
+   *  快照缺失=-- + Max 禁用） */
+  function balanceRow(balance: number | null, onMax: () => void) {
+    return (
+      <span className="swap-panel__balance">
+        {copy.verseDesk.balance}:{' '}
+        {balance != null ? <span data-numeric>{formatAmount(balance, locale)}</span> : '--'}
+        <button
+          type="button"
+          className="swap-panel__max"
+          disabled={balance == null || balance <= 0}
+          onClick={onMax}
+        >
+          {copy.verseDesk.max}
+        </button>
+      </span>
+    )
+  }
+
   // 金额输入 Field：stake 分支独立成行；direct/credit/预购与 Pay with 并排（用户裁定 2026-09-25 排版收紧）
   const amountField = (
     <Field
       data-invalid={
-        amountInvalid || (mode === 'leverage' && leverageExceeded) || preorderTabExceeded ? true : undefined
+        amountInvalid ||
+        (mode === 'leverage' && leverageExceeded) ||
+        preorderTabExceeded ||
+        balanceShort
+          ? true
+          : undefined
       }
     >
-      <FieldLabel htmlFor="participation-amount">
-        {preorderOnly
-          ? copy.verse.preorderAmountLabel
-          : mode === 'leverage'
-            ? copy.verse.leverageInterestLabel
-            : copy.verse.amount}
-      </FieldLabel>
+      <div className="participation-field-head">
+        <FieldLabel htmlFor="participation-amount">
+          {preorderOnly
+            ? copy.verse.preorderAmountLabel
+            : mode === 'leverage'
+              ? copy.verse.leverageInterestLabel
+              : copy.verse.amount}
+        </FieldLabel>
+        {balanceRow(walletBalance, () => {
+          setAmount(amountToInputString(walletBalance ?? 0))
+          resetReview()
+        })}
+      </div>
       <Input
         id="participation-amount"
         name="participation-amount"
@@ -215,8 +261,14 @@ export function ParticipationPanel({
         value={amount}
         maxLength={AMOUNT_MAX_CHARS}
         aria-invalid={
-          amountInvalid || (mode === 'leverage' && leverageExceeded) || preorderTabExceeded ? true : undefined
+          amountInvalid ||
+          (mode === 'leverage' && leverageExceeded) ||
+          preorderTabExceeded ||
+          balanceShort
+            ? true
+            : undefined
         }
+        aria-describedby={showBalanceShort ? 'participation-balance-error' : undefined}
         onChange={(event) => {
           setAmount(sanitizeAmount(event.target.value))
           resetReview()
@@ -250,6 +302,9 @@ export function ParticipationPanel({
             `${formatAmount(leverageHeadroom, locale)} ${raiseAssetSymbol}`,
           )}
         </FieldError>
+      ) : null}
+      {showBalanceShort ? (
+        <FieldError id="participation-balance-error">{copy.common.insufficientBalance}</FieldError>
       ) : null}
       {mode === 'leverage' && leverageQuota != null && leverageRate != null ? (
         <FieldDescription>
@@ -382,9 +437,12 @@ export function ParticipationPanel({
         event.preventDefault()
         if (
           numericAmount <= 0 ||
+          balanceShort ||
           (mode === 'leverage' && (!leverageReady || leverageExceeded)) ||
           (preorderOnly && (versePreorderRemaining == null || preorderTabExceeded)) ||
-          (!preorderOnly && preorderEnabled && (numericPreorder <= 0 || preorderExceeded))
+          (!preorderOnly &&
+            preorderEnabled &&
+            (numericPreorder <= 0 || preorderExceeded || preorderBalanceShort))
         ) {
           setInvalid(true)
           return
@@ -644,8 +702,14 @@ export function ParticipationPanel({
                       </p>
                     ) : null}
                   </Field>
-                  <Field data-invalid={preorderInvalid || preorderExceeded ? true : undefined}>
-                    <FieldLabel htmlFor="preorder-amount">{copy.verse.preorderAmountLabel}</FieldLabel>
+                  <Field data-invalid={preorderInvalid || preorderExceeded || preorderBalanceShort ? true : undefined}>
+                    <div className="participation-field-head">
+                      <FieldLabel htmlFor="preorder-amount">{copy.verse.preorderAmountLabel}</FieldLabel>
+                      {balanceRow(preorderWalletBalance, () => {
+                        setPreorderAmount(amountToInputString(preorderWalletBalance ?? 0))
+                        resetReview()
+                      })}
+                    </div>
                   <Input
                     id="preorder-amount"
                     name="preorder-amount"
@@ -654,7 +718,10 @@ export function ParticipationPanel({
                     autoComplete="off"
                     value={preorderAmount}
                     maxLength={AMOUNT_MAX_CHARS}
-                    aria-invalid={preorderInvalid || preorderExceeded ? true : undefined}
+                    aria-invalid={preorderInvalid || preorderExceeded || preorderBalanceShort ? true : undefined}
+                    aria-describedby={
+                      preorderBalanceShort && !preorderExceeded ? 'preorder-balance-error' : undefined
+                    }
                     onChange={(event) => {
                       setPreorderAmount(sanitizeAmount(event.target.value))
                       resetReview()
@@ -672,6 +739,11 @@ export function ParticipationPanel({
                         '{cap}',
                         `${formatAmount(preorderCap, locale)} ${raiseAssetSymbol}`,
                       )}
+                    </FieldError>
+                  ) : null}
+                  {preorderBalanceShort && !preorderExceeded ? (
+                    <FieldError id="preorder-balance-error">
+                      {copy.common.insufficientBalance}
                     </FieldError>
                   ) : null}
                   {preorderCap != null ? (

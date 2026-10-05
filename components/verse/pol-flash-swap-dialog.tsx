@@ -85,6 +85,9 @@ export function PolFlashSwapDialog({
   const valid = Number.isFinite(parsed) && parsed > 0 && ytPerUAsset > 0
   // 买卖同为线性参考价：支付/收到 uAsset = YT 数量 × 隐含价（执行价由池状态决定，见杠杆警示）
   const uAssetLeg = valid ? parsed * ytPerUAsset : null
+  // 余额不足：卖=超 YT 持仓；买=派生支付腿超 uAsset 余额（下块只读，错误归驱动输入框）
+  const overBalance =
+    mode === 'sell' ? parsed > pol.myYt : uAssetLeg != null && uAssetLeg > pol.myUAsset
   // 滑点校验=§25 口径（slippage-input.ts）：越界期间保护值推导退 '--' 槽位
   const slippageIssue = getSlippageIssue(slippage)
   const protectedLeg =
@@ -216,11 +219,16 @@ export function PolFlashSwapDialog({
                 maxLength={AMOUNT_MAX_CHARS}
                 onChange={(event) => clean(event.target.value)}
                 aria-label={`${copy.flashSwap} ${ytSymbol}`}
+                aria-invalid={overBalance || undefined}
+                aria-describedby={overBalance ? 'flash-balance-error' : undefined}
               />
               <div className="swap-panel__token">
                 <strong>{ytSymbol}</strong>
               </div>
             </div>
+            {overBalance ? (
+              <FieldError id="flash-balance-error">{common.insufficientBalance}</FieldError>
+            ) : null}
             {ytUsd != null ? <span className="swap-panel__field-usd">≈ ${ytUsd}</span> : null}
           </div>
 

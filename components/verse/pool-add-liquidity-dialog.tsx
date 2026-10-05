@@ -108,6 +108,8 @@ export function PoolAddLiquidityDialog({
   const baseVal = Number(baseAmount)
   const quoteVal = Number(quoteAmount)
   const valid = Number.isFinite(baseVal) && baseVal > 0 && Number.isFinite(quoteVal) && quoteVal > 0
+  const baseOver = baseBalance != null && baseVal > baseBalance
+  const quoteOver = quoteBalance != null && quoteVal > quoteBalance
   // LP 铸得 = quote 侧 × lpPerQuote（铸得率 fixture 样本，线性推导、以链上读值为准）
   const lpOut = valid && pool.lpPerQuote != null && pool.lpPerQuote > 0 ? quoteVal * pool.lpPerQuote : null
   // 滑点校验=§25 口径（slippage-input.ts）：越界期间保护值推导退 '--' 槽位
@@ -285,11 +287,16 @@ export function PoolAddLiquidityDialog({
                 maxLength={AMOUNT_MAX_CHARS}
                 onChange={(event) => onBaseInput(sanitizeAmount(event.target.value))}
                 aria-label={`${copy.addLiquidityDialogTitle} ${pool.baseSymbol}`}
+                aria-invalid={baseOver || undefined}
+                aria-describedby={baseOver ? 'pool-base-balance-error' : undefined}
               />
               <div className="swap-panel__token">
                 <strong>{pool.baseSymbol}</strong>
               </div>
             </div>
+            {baseOver ? (
+              <FieldError id="pool-base-balance-error">{common.insufficientBalance}</FieldError>
+            ) : null}
             {baseUsd != null ? <span className="swap-panel__field-usd">≈ ${baseUsd}</span> : null}
           </div>
           <div className="swap-panel__field">
@@ -321,11 +328,16 @@ export function PoolAddLiquidityDialog({
                 maxLength={AMOUNT_MAX_CHARS}
                 onChange={(event) => onQuoteInput(sanitizeAmount(event.target.value))}
                 aria-label={`${copy.addLiquidityDialogTitle} ${pool.quoteSymbol}`}
+                aria-invalid={quoteOver || undefined}
+                aria-describedby={quoteOver ? 'pool-quote-balance-error' : undefined}
               />
               <div className="swap-panel__token">
                 <strong>{pool.quoteSymbol}</strong>
               </div>
             </div>
+            {quoteOver ? (
+              <FieldError id="pool-quote-balance-error">{common.insufficientBalance}</FieldError>
+            ) : null}
             {quoteUsd != null ? <span className="swap-panel__field-usd">≈ ${quoteUsd}</span> : null}
           </div>
 

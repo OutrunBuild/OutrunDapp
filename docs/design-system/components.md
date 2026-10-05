@@ -89,6 +89,7 @@ import { OutrunShell } from '@/components/global/app-shell'
 | Refund 结算面板 | `.refund-settle` | `h2` + `__participations`（普通/杠杆/预购金额 + `__total` 合计，黄字）+ 一键领取主 CTA（原型 disabled）；无参与记录仅 `__empty` | 仅 `stage=refund` 渲染，替代工作台/资金池/时间线 | Verse 详情页退款态（大幅精简后的唯一行动面） |
 | Verse 链署名行 | `.verse-identity__chains`（+ `__chain` 触发器） | hero meta 内：「治理链」文字 + 图标、`Spoke 链` 文字 + 图标组（口径与 Explore 卡一致 = 治理链外的主网链）；两类链统一为仅图标，悬停/键盘焦点气泡显链名（触发器=可聚焦 button、aria-label=链名——2026-10-01 修键盘不可达；Explore 卡 `.economy-card__chain` 同口径） | 链图标 16px；悬停 `[data-slot='tooltip-content']` 气泡 | Verse 详情页 hero |
 | Verse hero 主标题 | `.verse-identity h1` | 页面主标题品红错位回声（`text-shadow: 0.06em`，与 `.empty-state h1` 同一「背板错位」文字级语言） | 品红仅限 ≥20px 大字（h1 为 `--display-title` 档）；不加 glow | Verse 详情页 hero |
+| 创世参与余额行 | `.participation-field-head` | 金额字段标签行 flex（标签居左、余额/Max 居右）；行内结构复用 `.swap-panel__balance/__max`；Max=填入所选支付资产全部余额（跨链合计） | 快照缺失符号=「--」+ Max 禁用（swap-panel 同款槽位态） | Verse 详情页参与面板主金额+一键预购金额 |
 | 发现工具条 | `.discovery-tools` | `.discovery-search`（`InputGroup` 语义：输入 + Button）+ `.mobile-filter-toggle[aria-expanded][aria-controls]` + `.discovery-filters[data-open]`（链/排序 Select + `.discovery-order-toggle` 升降序方钮） | `data-open` | 搜索 + 链筛选 + 排序方向切换 + 清除 |
 | 结果区 | `.discovery-results` | `.economy-grid` 直接跟随工具条；≥80rem 三列（卡内 `zoom: 0.8` 整卡等比缩放），54–80rem 两列，≤54rem 单列 | `aria-busy` 于根 | 列表页结果 |
 | 无限滚动 | `.economy-grid-sentinel` 哨兵 + `.back-to-top` 回顶悬浮钮 | IntersectionObserver 每批 6 张（3 列 × 2 行）；回顶钮青色功能信号（40px 方形切角，hover 抬升 + 青底加深），滚动 >480px 出现，reduced-motion 时跳转不带平滑 | 哨兵触底前 320px 预加载 | 结果 ≥ 一批时挂哨兵 |

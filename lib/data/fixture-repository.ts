@@ -915,6 +915,20 @@ export function getFixtureWalletAssets(): FixtureWalletAsset[] {
   );
 }
 
+/** 全币种钱包余额表（按符号跨链合计；创世参与表单 Balance/Max 来源）。
+ *  快照无行的符号不出现在表内（→槽位态 -- + Max 禁用，swap-panel 同款） */
+export function getFixtureWalletBalances(): Record<string, number> {
+  const assetMeta = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
+  const balances: Record<string, number> = {};
+  for (const row of fixtureData.balances.items) {
+    const asset = assetMeta.get(row.assetId);
+    if (asset) {
+      balances[asset.symbol] = (balances[asset.symbol] ?? 0) + amount(row.amount.raw);
+    }
+  }
+  return balances;
+}
+
 /** PSM 1:1 转换对（②区转换弹窗）：按 uAsset 符号取配对 */
 export type FixturePsmPair = {
   chainId: number;

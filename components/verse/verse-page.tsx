@@ -14,6 +14,7 @@ import {
   getFixtureStaking,
   getFixtureVerse,
   getFixtureVerseTrade,
+  getFixtureWalletBalances,
   type Locale,
   type FixtureParticipation,
   type FixtureVerse,
@@ -294,6 +295,7 @@ export function VersePage({ locale, verseId }: { locale: Locale; verseId: string
             leverageInterestRate={verse.leverageInterestRate}
             leverageDebtCap={verse.leverageDebtCap}
             leverageInterestRaised={verse.leverageInterest}
+            walletBalances={getFixtureWalletBalances()}
             sourceRef={verse.sourceRef}
           />
         </section>

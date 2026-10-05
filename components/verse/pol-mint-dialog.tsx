@@ -75,6 +75,8 @@ export function PolMintDialog({
   const memeVal = Number(memeAmount)
   const uVal = Number(uAmount)
   const valid = Number.isFinite(memeVal) && memeVal > 0 && Number.isFinite(uVal) && uVal > 0
+  const memeOver = memeVal > pol.myMemecoin
+  const uOver = uVal > pol.myUAsset
   // POL 输出 = uAsset 侧 ÷ 每 POL 的 uAsset 侧（线性推导样本，以链上读值为准）
   const polOut = valid && pol.uAssetPerPol > 0 ? uVal / pol.uAssetPerPol : null
   // 滑点校验=§25 口径（slippage-input.ts）：越界期间保护值推导退 '--' 槽位
@@ -231,11 +233,16 @@ export function PolMintDialog({
                 maxLength={AMOUNT_MAX_CHARS}
                 onChange={(event) => onMemeInput(sanitizeAmount(event.target.value))}
                 aria-label={`${copy.mintSupply} ${verse.symbol}`}
+                aria-invalid={memeOver || undefined}
+                aria-describedby={memeOver ? 'mint-meme-balance-error' : undefined}
               />
               <div className="swap-panel__token">
                 <strong>{verse.symbol}</strong>
               </div>
             </div>
+            {memeOver ? (
+              <FieldError id="mint-meme-balance-error">{common.insufficientBalance}</FieldError>
+            ) : null}
             {memeUsd != null ? <span className="swap-panel__field-usd">≈ ${memeUsd}</span> : null}
           </div>
           <div className="swap-panel__field">
@@ -257,11 +264,16 @@ export function PolMintDialog({
                 maxLength={AMOUNT_MAX_CHARS}
                 onChange={(event) => onUInput(sanitizeAmount(event.target.value))}
                 aria-label={`${copy.mintSupply} ${verse.raiseAsset}`}
+                aria-invalid={uOver || undefined}
+                aria-describedby={uOver ? 'mint-u-balance-error' : undefined}
               />
               <div className="swap-panel__token">
                 <strong>{verse.raiseAsset}</strong>
               </div>
             </div>
+            {uOver ? (
+              <FieldError id="mint-u-balance-error">{common.insufficientBalance}</FieldError>
+            ) : null}
             {uUsd != null ? <span className="swap-panel__field-usd">≈ ${uUsd}</span> : null}
           </div>
 

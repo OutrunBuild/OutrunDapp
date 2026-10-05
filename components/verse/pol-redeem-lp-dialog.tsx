@@ -18,6 +18,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { FieldError } from '@/components/ui/field'
 
 /**
  * Redeem POL 操作弹窗（2026-09-27：POL 资产卡 Redeem 钮由恒禁用改弹窗）。
@@ -57,6 +58,7 @@ export function PolRedeemLpDialog({
 
   const parsed = Number(amount)
   const valid = Number.isFinite(parsed) && parsed > 0
+  const overBalance = parsed > pol.myPol
   // 1:1 主池构造恒等（MemeverseLiquidityImpl.sol:861），无样本/槽位分支
   const lpOut = valid ? parsed : null
 
@@ -100,11 +102,16 @@ export function PolRedeemLpDialog({
                 maxLength={AMOUNT_MAX_CHARS}
                 onChange={(event) => clean(event.target.value)}
                 aria-label={`${copy.redeemPol} ${polSymbol}`}
+                aria-invalid={overBalance || undefined}
+                aria-describedby={overBalance ? 'redeem-lp-balance-error' : undefined}
               />
               <div className="swap-panel__token">
                 <strong>{polSymbol}</strong>
               </div>
             </div>
+            {overBalance ? (
+              <FieldError id="redeem-lp-balance-error">{common.insufficientBalance}</FieldError>
+            ) : null}
           </div>
 
           <dl className="swap-panel__details">
