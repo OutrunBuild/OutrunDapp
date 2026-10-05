@@ -338,7 +338,7 @@ export type FixtureParticipationOptions = {
   reserves: FixtureAsset[];
   /** 质押路径来源 registry（来源→资产组，读 fixture，不预设项目关联） */
   yieldSourceRegistry: FixtureYieldSource[];
-  /** 杠杆利息创世积分直付资产（kind=credit，跨 Verse 通用；null=fixture 白名单缺失） */
+  /** 杠杆利息 Credit 直付资产（kind=credit 且 pairedUAssetId=本 Verse 募集 uAsset；null=无配对 Credit） */
   creditAsset: FixtureAsset | null;
 };
 
@@ -389,7 +389,11 @@ export function getFixtureParticipationOptions(
         }),
       })),
     creditAsset: (() => {
-      const credit = fixtureData.assets.items.find((asset) => asset.kind === 'credit');
+      // Credit 与 uAsset 一对一（OB:genesis-credit.md:17；合约 creditOf(uAsset)）：
+      // 只取配对本 Verse 募集 uAsset 的 Credit，其余 Credit 不能代付本 Verse 利息
+      const credit = fixtureData.assets.items.find(
+        (asset) => asset.kind === 'credit' && raiseAsset && asset.pairedUAssetId === raiseAsset.id,
+      );
       return credit ? { id: credit.id, sourceRef: credit.sourceRef, symbol: credit.symbol } : null;
     })(),
   };

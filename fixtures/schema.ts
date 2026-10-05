@@ -89,6 +89,7 @@ export const assetSchema = recordSchema.extend({
   kind: z.enum(['uasset', 'reserve', 'sy', 'memecoin', 'share', 'credit']),
   decimals: z.number().int().min(0).max(18),
   anchorNote: z.string().optional(), // uAsset 锚定限定语（glossary A）
+  pairedUAssetId: z.string().optional(), // credit 专用：配对 uAsset id（一对一，不得跨用——OB:memeverse/genesis-credit.md:17；合约 creditOf(uAsset)）
   usdSample: z.number().positive().optional(), // uAsset 美元样本价（fixture 假数据，生产以预言机/链上为准）
   anchorValue: z.number().positive().optional(), // sy 资产按实时价值折算锚资产样本率（1 枚 sy ≈ N 锚资产→N uAsset，OB:outstake/uasset.md:21；wstETH≈1.05 样本 :48；样本缺失=组件兜底面值 1，不显槽位——用户裁定 2026-09-25）
   address: fixtureAddressSchema.optional(),

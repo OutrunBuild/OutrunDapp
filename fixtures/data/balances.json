@@ -80,7 +80,27 @@
       "sourceRef": "docs/page-briefs/source-map.md#OB",
       "chainId": 1,
       "assetId": "asset-051",
-      "amount": { "raw": "2400", "decimals": 18 }
+      "amount": { "raw": "1200", "decimals": 18 }
+    },
+    {
+      "id": "bal-012",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#OB",
+      "chainId": 1,
+      "assetId": "asset-052",
+      "amount": { "raw": "800", "decimals": 18 }
+    },
+    {
+      "id": "bal-013",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#OB",
+      "chainId": 56,
+      "assetId": "asset-053",
+      "amount": { "raw": "400", "decimals": 18 }
     },
     {
       "id": "bal-009",

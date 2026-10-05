@@ -262,11 +262,42 @@
         "normal"
       ],
       "sourceRef": "docs/page-briefs/source-map.md#OB",
-      "symbol": "Genesis Credit",
+      "symbol": "UETH(Credit)",
       "kind": "credit",
       "decimals": 18,
+      "pairedUAssetId": "asset-001",
       "address": {
         "value": "0xffffffff00000000000000000000000000000051",
+        "fixtureOnly": true
+      }
+    },
+    {
+      "id": "asset-052",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#OB",
+      "symbol": "UUSD(Credit)",
+      "kind": "credit",
+      "decimals": 18,
+      "pairedUAssetId": "asset-002",
+      "address": {
+        "value": "0xffffffff00000000000000000000000000000052",
+        "fixtureOnly": true
+      }
+    },
+    {
+      "id": "asset-053",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#OB",
+      "symbol": "UBNB(Credit)",
+      "kind": "credit",
+      "decimals": 18,
+      "pairedUAssetId": "asset-003",
+      "address": {
+        "value": "0xffffffff00000000000000000000000000000053",
         "fixtureOnly": true
       }
     }
