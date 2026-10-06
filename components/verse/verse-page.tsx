@@ -34,9 +34,9 @@ import {
   ProgressMeter,
   SectionHeading,
   SourceRef,
-  StageBadge,
 } from '../global/signal-ui'
 import { VerseTabs } from './verse-tabs'
+import { VerseShare } from './verse-share'
 import { VerseTradeDesk } from './verse-trade-desk'
 import { VaultPanel } from './verse-vault-panel'
 
@@ -153,15 +153,18 @@ export function VersePage({
           <span className="verse-identity__symbol" aria-hidden="true">
             {verse.symbol.slice(0, 2)}
           </span>
-          {/* symbol 在前（用户更关心），name 随后；徽章同行右推 */}
+          {/* symbol 在前（用户更关心），name 随后；右缘=分享组（2026-10-06 用户裁定：
+              hero 阶段徽章删除——数据面已有阶段信号，右上角让位分享组） */}
           <div className="verse-identity__titlerow">
             <strong className="ax-glitch-text verse-identity__ticker" data-numeric>
               {verse.symbol}
             </strong>
             <h1>{verse.name}</h1>
             <div className="verse-identity__badges">
-              <StageBadge stage={verse.stage} locale={locale} />
-              {verse.fastGenesis ? <FastBadge label={copy.verse.fastGenesis} /> : null}
+              {verse.fastGenesis ? (
+                <FastBadge label={copy.verse.fastGenesis} note={copy.verse.fastGenesisNote} />
+              ) : null}
+              <VerseShare locale={locale} verse={verse} />
             </div>
           </div>
           {verse.description ? <p className="verse-identity__desc">{verse.description}</p> : null}

@@ -60,6 +60,10 @@ export default function RootLayout({
           </defs>
         </svg>
         {children}
+        {/* 全站 CRT 扫描线（023 补充 10 提升至 body 级）：单一横纹组件——原挂壳层末尾
+            时 dialog portal（body 直挂、z-50）绘制于其上吃不到膜；body 级 z-overlay
+            盖住包括弹窗在内的全部内容，页面与弹窗同一张膜 */}
+        <div className="ax-scanlines" aria-hidden="true" />
       </body>
     </html>
   );
