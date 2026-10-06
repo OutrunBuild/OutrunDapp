@@ -596,3 +596,392 @@ C1 结算储备金按 spec 窄口径且 UI 不露出 · C2 建池剩余资金不
 - **决议**：凭证行身份链接去掉 verse 全名（Moon Verse 等），只留粗体 symbol——与③金库行既定裁定「行身份=verse 符号即可」（补充 4）同口径。tile 字母章、构成行、右缘主数字、动作链接不变。
 - **验证**：tsc/prettier 绿；dev 断言全名清零；portfolio 三档基线重录 + 全套 e2e 25 passed + visual-judge 三视口 3/3 pass（21 行仅 symbol、Staked 徽章随行、其余无回归）。
 - 签名：approved by Jasonrale（2026-10-05 会话裁定）
+
+## 决议 017 · 收益组合页设计质量轮（2026-10-05 用户拍板单 Q1–Q7 按推荐执行）
+
+用户立场：登记状态≠质量状态——「已有的设计系统不代表就是对的，因为不够高级，不够有质感，不够精彩，不够优雅，不够清晰易读」。逐项诊断（信息层级/材质/排版坡度/节奏/数字纪律）后拍板：
+
+- **Q1 净值 hero**：组合页头新增总价值主读数（`--text-num-xl` 28px mono 新档，唯一消费位）+ 三段分配微条（钱包 `--color-text` / 储蓄 `--color-text-tertiary` / 待领 `--color-success`，3px、零动画零新库，构成明细 sr-only）；口径=钱包+储蓄+金库待领（fixture usdSample/currentPrice 样本折算，`readyUsd` 视图字段）；24h 涨跌数据缺，不做。
+- **Q2 面板材质归一**：`.pf-panel`/`.pf-card`/凭证组面板接入「雨夜材质」签名组静态两伪元素（湿边描边+卡面光渗/角洗/噪点+外投影悬浮）；**hover 通电不随入**——数据层零 glow 纪律，行级 hover 已承担交互反馈；待办警报卡保持素面（紧急信号不与材质争）。自身 clip-path 移除（会剪投影与伪元素），切角由伪元素承担（.pol-mint 同解剖）。
+- **Q3 表格**：`pf-table` 行高钉 `--row-height-compact` 36px（token 在案未接线，原为 padding 涌现值）；字号经 013 已是 text-sm 14px，无需再动。
+- **Q4 KPI 计数档**：全站钉 `--text-md` 18px（pf-kpi 原样，verse 芯片 dd 15px→18px，终结并存）。
+- **Q5 标签降噪**：`pf-table` 列头从「大写+间距+semibold」降为 text-xs 次级正常大小写——大写+间距语法只保留面板铭牌行一层，同面板双层大写互抢。
+- **Q6 三组节奏**：行动→钱（资产+储蓄，储蓄前移）→仓位（仓位+金库+凭证）；组间距 `--space-9` 96px 新档、组内 `--space-7` 48px、行动组贴页头 `--space-7`；区块标题→首内容统一 16px（撤两处叠层 margin）。
+- **Q7 数字纪律**：`formatAmount` compact 分支恒两位小数（min=max=2）——终结 45K/122.83K/2.1K 同列混排；全站生效（explore 卡读数同步重录）。
+- **随行卫生**：组头计数档对齐铭牌 text-xs；弹窗触发钮惰性 `size="sm"` 清除（全局桥托平 40px，sm 为死代码）；④凭证组面板化（材质随 .pf-panel，阶段主线改面板首 child `<i>`——伪元素位被材质占用）。
+- 登记同步：token-contract §1/§3、foundations §2/§3（含 013 字阶勘误——文档曾滞留 11/12/14 旧值）、components.md Portfolio 各行。
+- 签名：approved by Jasonrale（2026-10-05 会话拍板「先按推荐开工」）
+
+### 决议 017 补充 1 · hero 分配条图例化（2026-10-05 用户反馈「怎么下面还有一个类似进度条的东西」→ 三方案中选 B）
+
+- **问题**：三段连续无标注的条体落进「加载进度」affordance，用户无法自明——构成条的设计意图（钱在哪/多少待行动）没有传达。
+- **决议（方案 B）**：段间 2px 断缝 + 条下可见图例（色点映射段色 + 类别 + 占比，`__legend/__legend-item/__dot--*`）；图例即构成的可访问文本，sr-only 方案与 copy `totalSr` 废弃，新增 `legendWallet/legendSavings/legendReady`。
+- 签名：approved by Jasonrale（2026-10-05 会话裁定「B」）
+
+### 决议 017 补充 2 · hero 口径如实化与样本量级回归（2026-10-05 用户质询「你确定算的准确吗」→ 按推荐修）
+
+- **审计结论**：算术无误（DOM=公式输出，$530,589,600.61=钱包 390,296,324.00+储蓄 140,292,537.20+待领 739.41），但三处失真：①量级荒谬——balances/usr-vaults 样本按行级视觉密度撰写（125,000 UETH 等），从未按可加总设计，hero 加总后聚焦暴露；②样本折算值给分位精度=伪准确；③"Total Value" 名不符实（不含 CDP 抵押、POL/PT/YT/LP 凭证、页脚 reserve）。
+- **决议（按推荐）**：Q1-A=fixture 减值到真人量级：钱包 ≈$59.6K（UETH 9.5/UUSD 13,000/UBNB 15+Credit 族）+ 储蓄 ≈$23.4K（suETH 3.5 份/suUSD 7,200/suBNB 8 份）+ 待领 $739（staking 未动，占比随分母回升 ≈1%）≈ **$83.7K**；reserve 页脚同步减值（USDC 2,500/ETH 0.9/BNB 1.6）保同屏协调。Q2-A=label 改 **Liquid Assets/流动资产**（只承诺钱包+储蓄+待领；扩口径待价源齐再议）。Q3=0 值段不画、舍入 0% 图例项不渲染。
+- 随行：manifest 重哈希；staking/positions/pol-positions 不动（verse-21 基线无连锁）。
+- 签名：approved by Jasonrale（2026-10-05 会话裁定「按推荐修」）
+
+## 2026-10-05 · 决议 018 · Portfolio 移动端重设计（用户需求「移动端 UI 目前非常差劲，完全重新设计」）
+
+- **背景**：390px 现状=全页纵向单流（旧基线高 8122px），无页内导航；仓位/金库表 `min-inline-size 640px` 靠面板内横向滚动（旧移动基线宽 652px=页面实际横向溢出 262px）；领取表 20 行密集数字矩阵。方案 Q1/Q2 两问用户未答，按计划内推荐执行（计划批准即拍板）。
+- **裁定（四项）**：
+  1. **导航模型=吸顶分区切换页签**：≤54rem 顶栏下吸顶四分段「待办(n)/资产/仓位/凭证(n)」，一次只显示一个分区（业界组合页移动端通行做法）；KPI 信号带窄视口让位页签角标——「摘要即导航」语义保留、计数常驻可视（016 裁定 5 的移动端承接形态）；激活语法=verse-tabs__bar 同款（黄字+3px 底缘指示条）+ surface-header/blur + stage-tabs 全出血负边距先例；断点范围=≤54rem（与底部导航档一致，tablet-860 随之）。
+  2. **仓位/金库表格移动端换堆叠台账行**（`.pf-mrow`：身份行 `--row-height` 44px 触达 + 事实格 dt/dd 储蓄卡同语法、复用列头文案零新键）——修订 016 补充 4「仓位=面板+表格」口径效力=仅桌面（verse 页「≤54rem 表格↔行卡互换」仓库先例）。
+  3. **hero 窄视口左锚升页头主读数**（右对齐是桌面双栏平衡语）；领取表/资产行/凭证行两行堆叠节奏维持（既有 ≤54rem/≤30rem 规则）。
+  4. **桌面零变化**：deck=透明布局层（页签条 display:none、`.pf-zone-sub` gap=组内 gap 同档保 017 三组节奏）；翻转实验证明新旧结构 1280 渲染逐像素一致（唯一差异=待办卡走秒时钟）。
+- **实现要点**：`PortfolioZoneTabs` 客户端组件——分区全常驻 DOM（RSC 直出）、显隐仅 `[data-js]` 挂载后由 CSS 生效（SSR/无 JS 全可见优雅降级）；`#pf-*` 页内锚点（金库 signpost 卡 CTA）由 deck 事件委托接管换区+滚动（隐藏分区无盒模型，原生锚点失效）；`?claimable=1` 深链 SSR 初值落凭证页签；待办空则待办页签不渲染；copy 新增 `portfolio.tabs.*` 五键（en/zh）；零新 token、零新依赖。
+- **桌面基线漂移说明（非本改动）**：portfolio-desktop-1280 旧基线 5639px 与实际 5711px 差 72px，翻转实验证明新旧结构渲染一致——漂移源自上一会话 017 补充 2（fixture 减值）后未重录基线；本轮三档基线一并重录。旧移动基线宽 652px 反证旧版横向溢出，新版 390px 归零、页高 8122→2475（默认待办页签）。
+- **登记同步**：components.md 新增 deck 行 + hero/KPI/③区行补记；component-contract.md §29（PortfolioZoneTabs 行为契约）。
+- **验证**：tsc / vitest 115 / check:design 0 / check:contrast / check-fixture-boundary --source / prettier 全绿；Playwright 断言 33/33（390 无横向溢出、页签切换/默认待办、吸顶 y=65=顶栏 64+1px、`?claimable=1` 落凭证、待办卡 `#pf-vault` 锚点换区、en/zh 页签文案、桌面四分区全显+表格在位+移动行隐藏+无溢出）；移动台账行跨行对齐实测（9 行 dd 盒 left/right 全等共线）；视觉模型评审页签条/角标/下划线/hero 对齐 pass（其报的「±1-2px 锯齿」经盒量测证伪）；e2e portfolio 三档基线重录（changed 模式）后全套 25 passed。
+- **token 影响**：无增删。
+- 签名：approved by Jasonrale（2026-10-05 计划批准；Q1/Q2 未答按推荐执行）
+
+### 决议 018 补充 1 · ②资产行移动端去按钮化（2026-10-05 用户反馈「Asset 的表感觉布局不优雅，不好看」）
+
+- **背景**：018 落地后移动端资产行仍带行内 Convert/Bridge 按钮换行右对齐 + 链分布数值芯片——按钮壳把行节奏拉乱（行高随链数/按钮数不齐）、链徽+小数字读成数据倾倒（用户截图圈定）。
+- **决议（钱包类 App 通行范式：行=纯台账、动作入底部面板）**：移动端行=单线纯台账（链徽 tile ｜ 符号+链徽标行 ｜ 总量 22px+≈$ 副行）；链分布数值与动作全部收进**底部操作面板**——整行 hit 层触发（DaoFundDialog 整卡 hit + 嵌套弹窗同款先例），面板=`.pol-mint` 卡壳 + 链分布 44px 台账行（链标+链名 ｜ mono 金额）+ Convert/Bridge CTA 等宽行。任务弹窗叠在面板之上（iOS 栈式）——**不可点击时收起面板**（嵌套弹窗树随面板内容卸载，收面板会连坐熄灭刚打开的弹窗）；Esc 先关顶层、面板保留承载上下文。桌面 ≥54rem hit 层 display:none、行内按钮照旧——触发器不可双栖，桌面按钮与面板 CTA 为两套独立实例各自开合。
+- **新增**：`components/ui/sheet.tsx`（shadcn 清单允许加装的 sheet 手工内联——base-ui Dialog 管线复用：Esc/外点/焦点圈闭/焦点还原，仅锚定改底部+底缘安全区，遮罩槽复用 dialog-backdrop 皮肤，进出场枚举 transform/opacity）；copy 键 `assets.sheetLabel`（en 'Asset actions'/zh '资产操作'，hit 层可访问名「{symbol} · 资产操作」）。
+- **验证**：tsc / vitest 115 / check:design 0 / check:contrast / boundary / architecture / prettier 全绿；Playwright 断言 16/16（390 无溢出、行内按钮与链数值清零、行高归一 71±1px、点行开面板、链分布在位、Bridge 叠层打开、Esc 先关顶层面板保留、面板 Esc 可关、zh 标题、桌面按钮可见+hit 隐藏+链数值在位）；视觉模型评审（新版式行距均匀/左右缘对齐/面板贴底/边距对称/无重叠截断均无缺陷项）；e2e 三档基线**零变化**（默认待办页签不含资产区、桌面资产行像素未动）——全套 25 passed。
+- **token 影响**：无增删。
+- 签名：approved by Jasonrale（2026-10-05 用户反馈驱动，Agent 执行后留痕）
+
+### 决议 018 补充 2 · ③仓位/金库移动行版式修正（2026-10-05 用户反馈「Staked Positions 的表头布局不优雅；Yield Vault 卡片里的内容不优雅，不和谐」）
+
+- **根因**：①仓位铭牌行「Staked position · 9」与 owed 聚合（`425.50 UETH · 219,500.00 UUSD`）同 flex 行硬挤，390 下 owed 中途折断、中点悬空；②金库移动行事实格 `auto-fit minmax(9rem)`——390 落成「份额|年化」+赎回孤格（值+小标签堆叠比兄弟格高，构图失衡），860 平板摊成 4 列留空；③链标 16px 与行文字基线差 2-3px。
+- **决议**：①铭牌行 ≤54rem 两行制——「铭牌+计数」一行、owed 聚合独立成行右锚（数字=右缘锚点，族内 nowrap 不变）；②事实格钉死 `repeat(2, minmax(0,1fr))` 两列（auto-fit 弃用——列数随视口漂移是失衡根源），金库赎回状态通栏独占一行（`grid-column: 1/-1`）且值+小标签改内联基线（`1.83K MOON  Ready to withdraw` 一行，消除孤格高度差）；③链标 16→20px、来源名 text-sm→text-md（与金库行 verse 同档）。
+- **验证**：tsc / check:design 0 / vitest 115 / contrast / boundary / prettier 全绿；Playwright 断言 14/14（390+860 双档：无溢出、owed 独立行且右缘贴 padding 锚、事实格恒 2 列、赎回通栏左缘=事实格左缘、内联基线 bottoms 差 ≤1px、桌面表格在位/移动行隐藏）；视觉模型评审铭牌两行/两列对齐/通栏层级/整体节奏各项无缺陷；e2e 三档基线零变化（仓位/金库移动行不在默认待办页签截图内、桌面 CSS 零接触）——全套 25 passed。
+- **token 影响**：无增删。
+- 签名：approved by Jasonrale（2026-10-05 用户反馈驱动，Agent 执行后留痕）
+
+### 决议 018 补充 3 · 凭证页签英词修正 Vouchers→Joined（2026-10-05 用户裁定「voucher 这个词感觉很少见」）
+
+- **依据**：OutrunBook 全库零次使用 "voucher"（日常语义=代金券，DeFi 语境罕见）；真源词族=participation/join（"Standard, leveraged, and Preorder participation"、vault 区副标题原文 "in the communities you joined"）。018 落地时页签短词系 Agent 自选，非真源词——本条修正。
+- **选词**：`Joined`（en 页签）——日常词、6 字符四等分页签订宽单行、全阶段准确（创世中=已参与、锁定后=仍是你参与的社区）；`Participations` 与桌面标题一致但 14 字符放不下；`Genesis` 与区内 Genesis/Locked/Unlocked 阶段组名递归打架。zh 页签「凭证」为常用词维持不动（en/zh 为同区短标签非逐字互译，区全称 Participations/参与凭证 不变）。
+- **验证**：390 页签条渲染「To-do 14 / Assets / Positions / Joined 9」四项单行 44px；e2e 基线重录走 `--update-snapshots=all`（换词仅 ~0.09% 像素差低于 1% 容差，changed 模式会静默跳过——吸顶页签条在 fullPage 基线里被钉在 top 位、确实在图内，经裁图核实后重录）；mobile-390/tablet-860 基线重录（新基线裁图验证 Joined 9 在位）、desktop-1280 零变化；全套 e2e 25 passed + vitest 115。
+- **token 影响**：无增删。
+- 签名：approved by Jasonrale（2026-10-05 用户裁定）
+
+### 决议 018 补充 4 · ④凭证筛选芯片窄屏溢出修复（2026-10-05 用户反馈「右上角的 Claimable only 有点溢出移动端屏幕了」）
+
+- **根因**：`.section-heading__row` 默认 nowrap，④凭证区筛选芯片组（All / Claimable only）与标题同行——390 恰好满格（行宽 366==366 零余量），375 类窄屏直接把 "Claimable only" 推出右缘。③仓位区 2026-10-04 已为同类问题加过「标题行可换行 + aside 限宽」补丁（决议 016 补充 4），④凭证区漏配。
+- **决议**：补丁选择器扩入 `.pf-vouchers`（两条规则与仓位区合并书写）；全宽度生效（wrap 仅在内容超行时参与，桌面零影响——仓位区同款先例）。
+- **验证**：Playwright 360/375/390 三档——窄屏芯片组换行到标题下方（filter 独立行、右缘 ≤ 内容锚），390 维持同行；zh 375 无溢出；tsc / check:design 0 / prettier 全绿；e2e 三档基线零变化（凭证页签不在默认待办页签截图内）——全套 25 passed。
+- **token 影响**：无增删。
+- 签名：approved by Jasonrale（2026-10-05 用户反馈驱动，Agent 执行后留痕）
+
+### 决议 018 补充 5 · ④凭证区两处文案收敛（2026-10-05 用户裁定「Claimable only 的 only 是不是可以删掉」+「这段文案简化一下」）
+
+- **筛选芯片去 only**：`Claimable only`→`Claimable`、`只看可领`→`可领`——筛选项用形容词即可（only 冗余），且与 KPI 信号带既有标签（signals.claimable=Claimable/可领）完全对齐，少一套词；深链 `?claimable=1` 激活态与计数 `(9)` 不变。
+- **分区副标题简化**：en `Balances of the vouchers you hold in each verse — participations while genesis runs, then the POL/PT/YT/LP they turned into, grouped by stage.` → `Your genesis participations — POL/PT/YT balances after unlock.`；zh `您在各个 verse 持有的凭证余额——创世中是参与记录，锁定后就是参与变成的 POL/PT/YT/LP，按阶段分组。` → `你的创世参与——解锁后就是 POL/PT/YT 余额。`。随行修正两处失真：① LP 出列——构成行自补充 11 起只显 POL/PT/YT，旧句的 LP 是滞留登记；②「grouped by stage/按阶段分组」删除——阶段分组由组头徽章自明，文字复述是噪音；「vouchers/voucher」词退场与补充 3 同向。所有权语义（Your/你的）保留（016 补充 9 的裁定目的不变）。
+- **验证**：375 双语深链渲染 `All | Claimable (9)`/`全部 | 可领 (9)` 且激活态正确、无溢出；en/zh 副标题上屏核实；prettier 绿；desktop-1280 基线两轮 `=all` 重录（两处均为 sub-threshold 文字差，changed 模式会静默跳过；mobile/tablet 基线不含凭证区零变化）；全套 e2e 25 passed + vitest 115。
+- **token 影响**：无增删。
+- 签名：approved by Jasonrale（2026-10-05 用户裁定，Agent 执行后留痕）
+
+### 决议 018 补充 6 · ①金库 signpost 卡 CTA 折行居中（2026-10-05 用户裁定「移动端这里的 withdraw 按钮需要居中」）
+
+- **根因**：金库可取出卡底栏（hint 句 + Withdraw 钮）≤30rem 折行后按钮独占一行、落在行首——`flex-wrap: wrap` 只管折行不管独行对齐。
+- **决议**：`.pf-action[data-kind='vault'] .pf-action__foot > :last-child` 在 ≤30rem 加 `margin-inline: auto`——auto margin 在同行（space-between 无自由空间）零影响、独行时吸收全部自由空间=居中；保护窗卡底栏（KV+按钮同行）不受波及（实测按钮 left 264 同行钉右）。
+- **验证**：390 实测按钮中心 195==底栏中心 195、无溢出、保护窗卡零变化；check:design 0 / prettier 绿；mobile-390 基线 `=all` 重录（按钮位移 ~0.37% 低于 1% 容差）、tablet/desktop 零变化；全套 e2e 25 passed。
+- **token 影响**：无增删。
+- 签名：approved by Jasonrale（2026-10-05 用户裁定）
+
+### 决议 018 补充 7 · ①待办区 zh 副标题重写（2026-10-05 用户裁定「可读性不够，AI 味严重，并且还有分号」）
+
+- **原文**：`限时窗口排在前，错过有代价；下面的领取清单会跳到对应社区操作。`——两处违规：分号踩 2026-09-26 禁令；「限时窗口排在前/错过有代价」电报体对仗压缩（zh-copy-no-telegraphese 口径）。
+- **新文**：`排在前面的要尽快处理，错过会有实际损失。下面的激励和退款点开就能去对应社区领取。`——两个自然短句、动词落人（要尽快处理/点开就能去…领取）、语义不变（紧急在前有代价 + 清单行跳 verse）。en 不动（无违规、语义兼容）。
+- **验证**：zh 上屏核实；prettier 绿；zh 组合页不在 e2e 基线集（ZH_PAGES=zh-home/zh-explore）——三档基线零变化、全套 25 passed。
+- **token 影响**：无增删。
+- 签名：approved by Jasonrale（2026-10-05 用户裁定）
+
+### 决议 018 补充 8 · ①待办区 zh 副标题二轮重写（2026-10-05 用户裁定「太口语化；不是口语化就没 AI 味，要设身处地思考用户应该看到什么」）
+
+- **AI 味病灶复盘**（一轮「排在前面的要尽快处理，错过会有实际损失。下面的激励和退款点开就能去对应社区领取。」被否）：① 空泛动词（处理）；② 布局旁白（排在前面的/下面的——页面顺序自明，念出来是废话）；③ 翻译腔（对应社区=the corresponding community）；④ 假亲切口语（点开就能去…领取=LLM 保姆腔，比电报体更重的 AI 味）。口语化与 AI 味是两个独立轴。
+- **重写原则**：只陈述用户需要被告知的两件事实——分区收录判据（有期限、逾期损失）与清单形态（一行一个社区、动作在社区页），不催促、不旁白。
+- **定稿**：`过了期限就会损失的项都收在这里。激励与退款一行一个社区，点击前往领取。`
+- **验证**：zh 上屏核实；prettier 绿；zh 组合页不在 e2e 基线集——三档基线零变化。
+- 签名：approved by Jasonrale（2026-10-05 用户裁定）
+
+## 2026-10-05 · verse-21 视觉基线漂移收口（非代码变更，登记留痕）
+
+- **现象**：本日 20:1x 起 verse-21 mobile/tablet 对基线失败（390 高 1873→1927，+54px），此前本会话多轮 e2e 全绿。
+- **排查**：dev:3000 现渲 == e2e actual（均 1927）——真实漂移非环境 flake；根因=上一会话未提交收尾改动（017 Q7 `formatAmount` compact 恒两位小数 + 017 补充 2 fixture 减值，触点 `signal-ui.tsx`/`fixtures/data/*.json` 为 verse 页共享依赖）使 verse-21 变高，但彼时只重录了 portfolio 基线。此前被掩盖的机制：e2e 增量构建一直复用未重建的 verse 路由 chunk（匹配旧基线），本日 `copy.ts`（verse 页共享）编辑触发该 chunk 重建后漂移暴露——与 portfolio-desktop 72px 漂移（决议 018 已登记）同类，均为上一会话收尾未重录的遗留。
+- **处置**：现渲视检无硬性缺陷（数字口径变化正常换行）；verse-21 mobile/tablet 基线 `=all` 重录（desktop 实测未漂移零变化）；全套 e2e 25 passed。
+- 签名：approved by Jasonrale（2026-10-05 Agent 排查收口留痕）
+
+### 决议 018 补充 8 二轮修订 · 待办区 zh 副标题三轮定稿（2026-10-05 用户裁定「还是有点口语化，要简洁优雅专业」）
+
+- **二轮稿**（`过了期限就会损失的项都收在这里。激励与退款一行一个社区，点击前往领取。`）仍被判口语——「都收在这里」「点击前往领取」是叙述/指令腔。
+- **定稿**：`限时窗口逾期将造成损失。激励与退款按社区列示，进入各社区页领取。`——陈述句、名词前置、无指令动词、无布局旁白；「按社区列示」/「进入各社区页领取」为金融产品正式语域。
+- **验证**：zh 上屏核实；prettier 绿；zh 组合页不在 e2e 基线集——基线零变化、全套 25 passed。
+- 签名：approved by Jasonrale（2026-10-05 用户裁定）
+
+## 2026-10-05 · 决议 019 · 代币单价格式化改市场口径（用户裁定「确认，按推荐方案来」）
+
+- **背景**：token-strip 价格沿 2026-09-23「toFixed(6) 固定 6 位小数+尾随零缩小灰显」裁定。用户质询移动端灰色尾零可读性（「用户不一定看得懂，市场最佳实践是什么」）。核对市场实践：主流=有效位格式化+裁尾随零（Uniswap/Coinbase/CMC 显 `$0.0042` 不显 `$0.004200`）；极小值下标记零（币安/Capital.com/TradingView/`@haqq/format-number-with-subscript-zeros`：`0.0000042`→`0.0₅42`，下标=小数点后前导零总数）；尾零仅右对齐表格（订单簿）保留，单点价格无产品保留。固定 6 位小数另有精度缺陷：`0.0000421.toFixed(6)` 吃掉有效位只剩 `$0.000004`（当前 fixture ~0.004 未触发，机制上是雷）。
+- **方案**：`fmtPrice` 唯一实现（`components/global/amount-format.ts`，无 locale 参中英同形）——≥1 两位小数法币惯例（`$1.20`）；<1 六位有效数字裁尾零（`0.004200`→`$0.0042`）；前导零 ≥4（价格 <0.0001）下标记零（`0.000042`→`$0.0₄42`）。token-strip 落点 `SplitPrice` 只留货币符缩小降级（`__price-sign` 保留），`__price-tail` 类与 CSS 撤销。
+- **验证**：`tests/unit/amount-format.test.ts` 新增 fmtPrice 组钉死三档+边界（3 前导零不切下标/进位回落/0 兜底）；tsc、vitest 全套 119 绿、`check:design`、prettier 绿；全套 e2e 25 passed——verse-21=genesis 期无交易台，价格条不在其基线内，零漂移（`=all` 复核无可写）；上屏核验 dev `/memeverse/14`：`$0.00759`，灰尾零 span 消失（受影响 verse 共 7 个：10/14/24/26/29/30/34，均无 e2e 基线页）。
+- **token 影响**：无新增；`token-strip__price-tail` 为撤销非新增。
+- 签名：approved by Jasonrale（2026-10-05 用户裁定）
+
+### 决议 020 · 移动端顶栏三控件降档 40→36px（用户裁定「移动端这三个按钮的大小可以稍微缩小一点点」）
+
+- **背景**：README §3 #9 控件高 40px `--control-height` 为全局硬约束；≤54rem 移动档顶栏的链选择（`.chain-dialog__trigger`）/语言（`.locale-menu__trigger`）/钱包（`.wallet-control`）三钮沿 40px 在手机档视觉占比偏大（用户截图反馈）。
+- **方案**：≤54rem 媒体块内三钮 `min-block-size` 降为 `calc(var(--control-height) - var(--space-1))` = 36px；钱包钮加 `!important` 对冲 `[data-slot='button']` 的 40px `!important` 基线（同 verse 移动档 CTA 先例）；钱包定宽 160px 不动（「图标+截断地址」宽度预算）；桌面档（>54rem）仍 40px。双壳（product-topbar / marketing-header）同享。
+- **token 影响**：无增删；`--control-height` 本体 40px 不动，36px 仅移动档局部档位。
+- **验证**：Playwright 实测 390px 档三钮 boundingRect 全 36px（钱包 160px 定宽不变）、1280px 档全 40px；`check:design`、prettier 绿；受影响 mobile/tablet 基线 14 张 `--update-snapshots=all` 重录（desktop 三张零变化未触碰）；全套 e2e 25 passed（首轮 2 个 desktop a11y 失败=负载 flake，隔离重跑全绿）；重录后复跑零重写（基线稳定）。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 020 补充 1 · 移动档三控件再降 36→32px + 钱包钮删绿点（用户裁定「再稍微缩小一点点，同时连接钱包按钮里的绿色圆点也删掉」）
+
+- **降档**：≤54rem 三钮 `min-block-size` 再降一档 36→32px（`calc(var(--control-height) - var(--space-2))`，卡内中档同档位）；其余口径（钱包定宽 160px、桌面 40px、双壳同享）不变。
+- **删绿点**：`.wallet-control` 已连接态的 `.status-dot[data-tone=success]` 实例删除（wallet-control.tsx）；连接信号由顶栏签名线（`:has([aria-pressed='true'])`）承接。`.status-dot` 基类保留（design-system showcase 样张在用）；≤18.75rem 档 `:not(.status-dot)` 选择器随之简化为 `> span`。
+- **token 影响**：无增删。
+- **验证**：Playwright 实测 390px 档三钮全 32px、连接态无绿点、1280px 档全 40px；mobile/tablet 基线 14 张 `--update-snapshots=all` 重录（绿点不在基线内——基线为未连接态，仅降档像素生效）；全套 e2e 25 passed；`check:design`、prettier、tsc、vitest 绿。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 020 补充 2 · 语言钮移动档转纯图标（用户裁定「移动端这个按钮的文案只显示 文/A 的图标就行了」）
+
+- **方案**：≤54rem 档 `.locale-menu__trigger` 仅隐藏文本 span，只留 Languages 图标+chevron（首版误删 chevron，用户裁定「没让你删箭头」后纠正保留）——display:none 不进 acc name，组件 `aria-label=languageLabel` 承接可访问名；原 `white-space: nowrap` 随文本隐藏退役。文本隐藏从 ≤18.75rem 上移为全移动档，极窄档内冗余规则删除、注释改口径。
+- **token 影响**：无增删。
+- **验证**：Playwright 实测 dev 390px 档语言钮仅剩图标（40×32、可访问名 Language 在位——水合后 span/chevron 均被 CSS 隐藏）、1280px 档文案照旧；e2e 生产构建下 useSearchParams 挂起期本就渲染图标 fallback，像素与基线一致、`=all` 复核零重写（基线无需变更）；全套 e2e 25 passed；`check:design`、prettier、tsc 绿。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 020 补充 3 · 顶栏三钮移动档等距（用户裁定「三个按钮之间的间距要相等」）
+
+- **病灶**：≤54rem 右推力（`margin-inline-start: auto`）挂在动作区上，弹性空隙全部落在 链钮|语言 之间（390px 实测 58px vs 语言|钱包 4px）。
+- **方案**：右推挪到链钮（恢复基类 `margin-inline-start: auto` 语义），动作区撤 margin-auto；链|语言|钱包间隙统一吃顶栏 `gap: space-2`（动作区 gap 同步 space-1→space-2）；钱包仍是末个 flex 项贴 padding 缘，签名线锚点对齐不受影响。≤30rem 块内重复的 actions margin-auto 一并删除（会把空隙插回 语言|钱包 之间）。
+- **token 影响**：无增删。
+- **验证**：Playwright 实测 390/320/860px 档链|语言、语言|钱包间距均 8px 相等、零横向溢出（320px 顶栏正好满宽）；`pf-action__clock` 320px 溢出为上一会话页面侧未提交改动遗留，与顶栏无关、不在本决议范围。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 020 补充 4 · 钱包钮移动档定宽 160→152px（用户裁定「连接钱包按钮的宽度稍微缩小一点点」）
+
+- **缩量依据**：删绿点（补充 1）富余的预算正好回收——地址「0x1111…0001」实测 110px（IBM Plex Mono 16px），160 档余量仅 4px；直接缩宽会吃掉地址。方案=定宽 `calc(var(--control-height) * 4 - var(--space-2))` = 152px + 内距 space-3→space-2 联动，152 档余量与 160 档持平（4px），地址完整。
+- **范围**：≤54rem 双壳统一（高度降档同款 unscoped 手段）；桌面档定宽 160px 不动；≤18.75rem 图标态退 auto 不变。
+- **token 影响**：无增删。
+- **验证**：Playwright 实测 390px 双壳连接/未连接态均 152px、地址零裁切、三钮间距 8px 等距不变、1280px 档 160px 不动；`check:design`、prettier、tsc 绿。
+- 签名：approved by Jasonrale（用户裁定）
+
+
+### 决议 020 补充 5 · 营销壳顶栏高度 64→56px + 字标等比缩小（用户裁定「Header 的高度可以稍微缩小一点」）
+
+- **背景**：同日首页顶栏改造（三段布局 + 文字导航 + 网络切换器入列）后用户提出高度收窄；64px 对三控件（40px）档距偏松。
+- **方案**：`.marketing-header` `min-block-size` `--space-8`(64) → `--row-height-relaxed`(56)——即 40px 控件 + 上下各 8px 基线网格，恰为 T3 营销档行高（patterns.md 营销壳放行 T3）；`.marketing-main` 视口补偿 calc 同步换 token；`.marketing-brand .brand-wordmark` 等比缩至 124×32px（2048×527 原比例，仅营销壳作用域，产品壳侧栏字标不受影响）；`.marketing-nav` 项距 32→24px（`--space-5`，与 56px 档密度匹配）。产品壳顶栏（`--space-8`）不动。
+- **token 影响**：无增删。
+- **验证**：Playwright 实测 1280/860/390px 档 header 56px、字标 124×32、零横向溢出（≤1023 导航照常收纳、390 芯片纯图标）；home 三档 + zh-home mobile 基线 `--update-snapshots=all` 重录并像素抽验；全套 e2e、vitest、check:design、prettier 绿。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 020 补充 6 · 营销壳顶栏高度再收 56→48px + 控件随栏降档（用户裁定「Header 高度可以再缩小一点；Header 里的按钮也需要跟随适配和谐的视觉比例」）
+
+- **背景**：补充 5 落地 56px 后用户再次收窄，并明确按钮需随栏位等比适配（40px 控件在 48px 栏内占比失衡）。
+- **方案**：`.marketing-header` `min-block-size` → `--space-7`(48) = 32px 控件 + 上下各 8px 网格；营销壳作用域内三控件统一降 32px（`calc(var(--control-height) - var(--space-2))`，与 020 补充 1 移动档同档位——`.marketing-header` 前缀作用域，产品壳桌面档 40px 不动）；钱包钮宽 160→152（020 补充 4 档位，152×32 比例与移动档一致）、`!important` 对冲 `[data-slot='button']` 40px 基线；`.marketing-nav__link` 命中区同步 40→32；字标 124→96px 宽（≈24.7px 高，压在决议 004 的 96px 字标下限——再低即须换 symbol，本档保留字标维持营销壳品牌完整）；`.marketing-main` 视口补偿 calc 同步 `--space-7`。
+- **token 影响**：无增删。
+- **验证**：Playwright 实测 1280/1024/860/390px 档 header 49px（48+1px 底边框）、三控件全 32px、钱包 152px 宽、字标 96×25、零横向溢出（≥1024 导航在位、≤1023 照常收纳）；home 三档 + zh-home mobile 基线 `--update-snapshots=all` 重录；全套 e2e、vitest、check:design、prettier 绿。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 020 补充 7 · 顶栏高度回调 48→52px + 双壳（营销/产品）完全统一（用户裁定「高度有点小了，可以稍微回调一下；另外所有其他页面的 Header 高度、按钮这些得一致啊」）
+
+- **背景**：补充 6 的 48px 用户反馈偏小；且营销壳与产品壳顶栏此前高度/控件档各自为政（营销 48、产品桌面 56/移动 64；控件营销 32、产品桌面 40/移动 32），跨页不一致。
+- **方案**：新 token `--topbar-height: 52px`（tokens.css 密度组）双壳唯一顶栏高——52 = 36px 控件 + 上下各 8px 网格；顶栏三控件（链/语言/钱包）桌面档统一 36px（`calc(var(--control-height) - var(--space-1))`，020 原始档位；供给走基类+≤54rem 移动档 32px 既有级联，删除补充 6 的营销壳私有档规则，杜绝再漂移）；钱包钮宽桌面 160px（基类定宽回归）/移动 152px（020 补充 4 档不变）；`.marketing-header` 纵向零内距改与产品壳同写法（此前 padding-block 8px 致 36+16+1=53px 与产品壳 52px 差 1px）；`.marketing-nav__link` 命中区 36px；字标 96→108.8px 宽（≈28px 高，仍距决议 004 的 96px 下限留量）；`.marketing-main` 视口补偿 calc 换 `--topbar-height`。页面内（表单/CTA 等）控件仍 40px `--control-height` 不变。
+- **token 影响**：+`--topbar-height: 52px`（token-contract.md 密度行与家族清单已登记）。
+- **验证**：Playwright 实测 1280/860/390px × 营销壳/产品壳（explore、portfolio）九组：header 全部恰 52px、桌面控件 36/钱包 160、移动控件 32/钱包 152、零横向溢出；全套 e2e `--update-snapshots=all` 重录后复跑零重写；vitest、check:design、prettier 绿。
+- 签名：approved by Jasonrale（用户裁定）
+### 决议 021 · Portfolio 六分区头签名线（青线+品红回声）移除（用户裁定「收益组合页，每张卡上的这条青色与红色相间的线删掉」）
+
+- **对象**：决议 014 的 `.ax-echo-bar` 标题条签名线（`::after` 青渐变线右端锚定 + `::before` 品红回声下移 1px 左移滞后）——Portfolio 页每个分区头（`SectionHeading`）底缘各一条，即用户所指「卡上青红相间的线」。
+- **方案**：CSS 作用域退役——`:is(.pf-actions,.pf-assets,.pf-positions,.pf-savings,.pf-vault,.pf-vouchers) > .ax-echo-bar::before/::after { content: none }`；只影响组合页六分区，Verse 详情页/showcase 等其余 `SectionHeading` 签名线不动（已实测 verse 页伪元素仍渲染）。卡片本体「雨夜材质」湿边描边**不受影响**（首轮误删该层，已完整回滚：选择器组、两处注释、components.md 面板原语行均复原）。
+- **token 影响**：无增删。
+- **登记**：components.md `SectionHeading` 行加组合页豁免注。
+- **验证**：组合页分区头区域像素扫描青/品红零命中；湿边描边回位（面板顶缘 B-R≈132）；verse 页 `::before/::after` content 仍为 ""；portfolio 三档基线 `--update-snapshots=all` 重录 3 passed，基线扫描 echo 尺寸（250–500px）青段零命中、湿边行回位；`check:design`、prettier 绿。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 022 · 待办警报卡窄卡头行堆叠——本仓首个 @container（用户裁定「移动端，随着屏幕缩小，Liquidity Protection Window 里的内容会被截断，优化这个卡片的布局设计」）
+
+- **病灶**：`.pf-action__head`=铭牌+倒计时 side-by-side，`__clock` nowrap num-lg mono（en「Ends in 15:05:59」≈208px）；卡宽随 auto-fit 列数漂移（1280 三列=329px 反窄于 390 单列=364px、320 档=294px）——≤~414px 卡内铭牌挤成多行、≤~360px 时钟溢出卡缘截断且页面横向滚动。
+- **方案**：`.pf-action` 加 `container-type: inline-size`（视口断点管不住卡内布局，按卡片自身宽度裁定；本仓首个容器查询，Tailwind v4 同代浏览器基线内）+ `@container (width < 23.75rem)`（content-box 计，外宽 ≳414px 维持原布局）head 转上下堆叠：铭牌整行不换行、倒计时整行独占——数字仍是主角且更醒目，280px 档卡（内容 246px）也容得下 208px 时钟。桌面宽卡（480 单列 454px 等）side-by-side 语法不变。
+- **token 影响**：无增删。
+- **验证**：320/390/480/860/1280 五档实测 `overflows:false`、docOverflow:false（修复前 320 档双 true）；320/390/1280 卡头堆叠、480/860 维持并排（content-box 阈值所致，860 两列卡 410px 外宽=376px 内容恰入堆叠档）；portfolio 三档基线 `--update-snapshots=all` 重录 3 passed；`check:design`、prettier 绿。
+- **登记**：components.md ①待办区行同步卡头堆叠语法。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 023 · Verse 详情页分享功能 + 分享组循环抖动例外（用户裁定「verse 详情页新增分享功能……分享按钮与提示符号是在可快速抖动的吸引注意力」）
+
+- **对象**：verse 详情页传播出口——参照 `jasonrale/Outrun-Frontend`（`memeverse-social-share.tsx` + 详情页分享组）与用户四张截图（双圆钮、带尾提示 tooltip、模态分享卡）。
+- **方案**：hero 页头右缘 `.verse-identity__footaside`（社交+分享动作簇）挂「提示符+分享钮」双图标钮——视觉与社交链接钮同族（描边幽灵图标钮、hover 转青）；分享钮开 `.verse-share-pop` 弹窗（`.pol-mint` 壳）：monogram 项目卡 + Copy link（黄主 CTA，✓Copied 1600ms）+ Share on X（outline，twitter intent 随机 1/5 双语推文模板）；返佣说明文案口径=OutrunBook `ecosystem/flywheel.md`（推荐返佣出自协议交易费份额）。
+- **抖动例外**：两图标钮 1.5s 循环 ±2.5px 水平抖动（70% 回正、~30% 静默）——motion 契约「infinite 仅骨架/spinner/标题失真」的用户裁定第四例外；`prefers-reduced-motion: no-preference` 包裹（`ax-fault-title` 同款先例）自动停抖，零 glow 纯位移。
+- **不接线项**：成交后自动弹分享（参考仓 genesis/stake/claim 触发源）不做——本仓原型 CTA 恒 disabled 不伪造成交；紫粉蓝渐变/圆角胶囊不进站，视觉换皮 token 体系（礼物图形与 JOIN US 胶囊=品红回声 chrome 层；黄主 CTA 唯一留给 Copy link）。
+- **token 影响**：无增删（复用 space/text/color 既有 token；`ui/tooltip.tsx` 增 `side` 转发到 Positioner）。
+- **登记**：components.md §6 Verse 分享组行；component-contract.md §31；motion-and-a11y.md 装饰动效第四枚 + infinite 白名单。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 023 补充 1 · hero 阶段徽章删除、分享组上移右上角并去边框（用户裁定「右上角的阶段标志删掉，没什么实际意义，把分享按钮放在右上角，同时去除按钮的边框」）
+
+- **阶段徽章删除**：verse hero `verse-identity__badges` 内 `StageBadge` 移除——阶段信号已由数据面（生命周期/统计条）承担，右上角让位分享组；`FastBadge` 保留同容器（Fast Genesis 是行为差异标志非阶段镜像）；`StageBadge` 原语不动（Explore 卡/Portfolio 凭证组头/lifecycle 等处仍在用）。
+- **分享组上移**：`.verse-share` 从 hero footrow 右缘（原 `__footaside` 动作簇，该 wrapper 随本次退役）移入 titlerow `__badges` 容器（margin-auto 右推=hero 右上角原徽章位）；移动端徽章行折行左锚后分享组单独右锚（`__badges .verse-share { margin-inline-start: auto }`）。
+- **去边框**：`__hint/__button` 双图标钮 `border` 退役（hover 转青保留）——视觉重量让给抖动本身，与描边社交钮族的混排不再。
+- **token 影响**：无增删。
+- **登记**：components.md Verse 分享组行、component-contract.md §31 结构/响应式同步。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 023 补充 2 · 移动端徽章行左锚覆盖随阶段徽章删除退役（023 补充 1 落地修正）
+
+- **病灶**：≤640px 旧覆盖 `.verse-identity__badges { margin-inline-start: 0 }`（服务阶段徽章折行左锚、防孤悬右缘真空）在徽章删除后误伤分享组——titlerow 未折行时分享组跟在标题后（390px 实测右缘离卡边 56px），右上角语义失真。
+- **方案**：覆盖规则与补充 1 首版的 `.verse-share` 单独右锚补丁一并删除，基础 `margin-auto` 右推全档生效；折行时分享组随行右悬（孤行真空顾虑随徽章删除作废）。
+- **验证**：390px 实测分享组 boundingBox 右缘贴内容右缘；`check:design`、tsc 绿；verse 三档基线 `=all` 重录 3 passed。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 023 补充 3 · 分享弹窗精装：品牌 Logo 进卡 + 项目卡升档（用户裁定「分享窗口需要带上品牌 Logo……而不是 Outrun 字母。设计还需要美化一些，精美高级一些，适配品牌形象」）
+
+- **品牌 Logo**：项目卡 kicker 位「OUTRUN」字母退役，换 `public/brand/BRAND-04-symbol-transparent.png` 成品 symbol（next/image，24px 高，禁改色/拉伸/裁切纪律沿用；alt=Outrun 同 app-shell Brand 口径）。
+- **项目卡升档**：容器套按钮同款 chamfer-border worklet 画皮（TL/BR 对角裸切+发丝边）——底=`color-mix(surface-raised 88%, 品红 12%)` 暗 tint（营销叙事层低饱和回声）、边=border-strong，`@supports not` 退 border+clip-path（按钮 fallback 同款）；monogram 缩略位升 raised 底+strong 边；symbol 28px display 加 `0.06em` 品红错位回声（`.empty-state h1` 同款文字级语言，≈1.7px 落 1–2px 契约内）；JOIN US 胶囊加 12% 品红 tinted 底。
+- **不进站项**：参考仓紫粉蓝渐变字/渐变钮/圆角胶囊维持禁入（负面清单）；黄主 CTA 唯一性不变。
+- **token 影响**：无增删（color-mix 组合现有 token）。
+- **登记**：component-contract.md §31 结构行、components.md 分享组行同步。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 023 补充 4 · 分享弹窗二轮精装：字标 Logo + 项目卡接雨夜材质（用户裁定「还是不好看啊，而且 logo 换成字母 logo」）
+
+- **Logo 换字标**：`BRAND-04-symbol` → `BRAND-01-wordmark-transparent.png`（字母 logo，kicker 位 96px 宽=顶栏 157px 的约 6 折；成品纪律沿用）。
+- **项目卡重做**：补充 3 的 worklet tint 画皮退役（实测盒中盒+平 tint 显浑浊），接入「雨夜材质」签名卡静态两伪元素（材质组选择器扩编 `.verse-share-card::before/::after`，同 017 数据面口径不随 hover 通电）；monogram 缩略位 40%→32%、raised 无边软板；meta 列组距 4→8px；弹窗 420→460px 档——420 档 meta 列被挤到 183px 是上一轮「不好看」的主因（实测放宽后 237px）。
+- **token 影响**：无增删。
+- **验证**：双档构图量化探针（meta 237px/无横向溢出）+ 截图目检；`check:design`、tsc 绿；verse 三档基线 `=all` 重录。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 023 补充 5 · 分享项目卡底纹换 K 线图横纹（用户裁定「内部卡片的背景换成和 K 线图一样的横纹背景」）
+
+- **方案**：项目卡材质 `::after` 上叠横向网格线层——1px 青 `rgba(0, 240, 255, 0.1)`、行距 `--grid-size-outer` 44px（与 K 线网格节奏同档）；顶光渗/品红角洗/噪点镀膜保留。覆盖规则置于材质组之后按源序生效（同特异度）。
+- **两处工程事实**：① K 线 grid 用的 `--grid-cyan-inner`（2.4% alpha）在 200px 小卡上低于可感知阈值（外层 3.5% 同样不可见；实测 K 线图观感行亮 +3 ≈ 10% 青）——线强取 0.1 literal（材质伪元素 rgba literal 为既有手法，顶光渗 0.07/湿边 0.5 同源）；② 覆盖规则初版误置于材质组之前，同特异度被组规则压掉——顶光渗渐变吃到新 `background-size` 后每 44px 平铺产生「假横纹」（渐变带非 1px 线），迁移到组规则之后修正。
+- **token 影响**：无增删。
+- **验证**：计算样式首层=横纹 gradient ✓；2x 截图像素扫描线心 44px（@1x）等距、行亮 +3 可见；`check:design`、tsc 绿；verse 三档基线 `=all` 重录。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 023 补充 6 · 提示符统一换礼物图形（用户裁定「这里的提示符号换成礼物图标……窗口里的提示符号也换成礼物图标，以后鼠标悬停在礼物图标上就弹出提示气泡」）
+
+- **hero 分享组**：`__hint` 触发器 glyph Info→Gift（14px），抖动/促销语 tooltip/触屏护栏/无边框幽灵钮样式不变。
+- **弹窗标题行**：原双图标（info tooltip 触发器 + 静态品红礼物）合并为单一礼物图标——`verse-share-card__gift` 兼任返佣说明 tooltip 触发器（品红 chrome 底色、hover 转青=pol-mint__close 弹窗幽灵图标语言）；`__info` 类与 Info glyph 退役。
+- **token 影响**：无增删。
+- **验证**：悬停双礼物位 tooltip 内容断言（促销语/返佣说明）+ 弹窗全流程冒烟；`check:design`、tsc 绿；verse 三档基线 `=all` 重录。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 023 补充 7 · Share2 分享图标退役，单礼物钮兼任分享按钮（用户裁定「干脆把分享图标删了，礼物图标作为分享按钮」）
+
+- **方案**：hero 分享组收敛为单颗礼物钮——`TooltipTrigger` 经 `render` 直接披在 `DialogTrigger` 上（base-ui 组合范式，悬停/触点出随机促销语气泡、点击开分享弹窗，一颗钮两触发器）；Share2 glyph 与 `__hint` 类退役，`__button` 独享幽灵钮样式+抖动+16px glyph（Gift）；aria-label=shareLabel。
+- **孤儿清理**：copy `shareHintLabel`（en/zh）随提示符独立身份消失退役。
+- **弹窗标题行**：礼物=返佣说明 tooltip 触发器不变（补充 6 口径）。
+- **token 影响**：无增删。
+- **验证**：探针断言悬停气泡（促销语）+点击开弹窗+Esc 关闭链路；`check:design`、tsc 绿；verse 三档基线 `=all` 重录。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 023 补充 8 · 分享项目卡背景回归材质组本体，补充 5 自定义横纹层废弃（用户裁定「分享弹窗里内部卡片的背景你搞的什么乱七八糟的……一样的代码啊，K线图卡片的背景」）
+
+- **纠正**：补充 5 把「和 K 线图一样的横纹」实现为卡面自定义 44px 青横纹层——误读。K 线图截图里的横纹是**图表 canvas 内部 grid**（lightweight-charts horzLines），K 线卡片本体背景=「雨夜材质」组同款（verse 详情页各卡共用）。自定义横纹叠在材质+弹窗壳双材质上显浑浊（用户驳回「乱七八糟」）。
+- **终态**：`.verse-share-card::after` 覆盖规则整段删除，卡片只吃材质组选择器（补充 4 已扩编）——与 `.trade-chart`/`.swap-panel`/`.pol-mint` 同一份规则、零自定义；计算样式 `::before`/`::after` 与 `.trade-chart` 逐字节一致（已断言）。
+- **token 影响**：无增删。
+- **验证**：getComputedStyle 双伪元素全等断言 ✓；`check:design`、tsc 绿；verse 三档基线 `=all` 重录。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 023 补充 9 · 卡面横纹真身=全站 .ax-scanlines 层，弹窗内卡以同配方重建（用户裁定「这些卡片里不都有这种横纹吗？是怎么实现的，你用一样的代码啊」）
+
+- **机制查明**：页面各卡的「横纹」不是卡片 CSS——是全站 `.ax-scanlines` CRT 扫描线层（tokens.css:159，`fixed inset-0` + `mix-blend-mode:screen` + 3px 透明/1px `--scanline-white` repeating 渐变），作为外壳末子元素盖在全部页面内容（含各卡）之上；**Dialog portal 到 body，渲染于该层之外，弹窗内容吃不到扫描线**——这就是弹窗内卡与页面各卡的观感差异来源。补充 8「横纹=图表 canvas grid」的结论作废（canvas grid 是另一回事，密度与色都不同）。
+- **方案**：分享内卡加 `__scanlines` 子元素（`aria-hidden`、`pointer-events:none`），absolute inset:0 + 与 tokens.css 全站层**同一配方**（同 token 同色阶同 stops 同 screen 叠层）；卡片背景维持材质组规则零自定义。差分实测：全站层（侧栏 bg 采样）4px@1x 周期、线行 +5 亮度；内卡本地层同周期同幅（叠于顶光渗梯度之上）。
+- **token 影响**：无增删（--scanline-white 既有）。
+- **验证**：双点位行亮度序列对比（周期/幅值一致）；`check:design`、tsc 绿；verse 三档基线 `=all` 重录。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 023 补充 10 · 全站扫描线层提升 body 级，弹窗与页面同一张膜（用户裁定「这些卡片不能用同一个组件吗？你自己单独写的很乱」）
+
+- **纠正**：补充 9 的机制诊断对了一半（横纹真身=全站 .ax-scanlines，非 canvas grid）但药方错了——卡内塞局部副本=双重曝光（弹窗整体平的、唯独内卡一层条纹，贴感强烈），用户驳回「比草稿都难看」。
+- **方案（单一组件）**：`.ax-scanlines` 从壳层末尾（app-shell 两分支各一）提升为 `app/layout.tsx` body 末尾唯一实例——body 级 z-overlay(1000) 盖住包括 dialog portal（z-50）在内的全部内容，页面与弹窗吃同一张膜；卡内局部副本 `__scanlines` 整体删除；内卡皮肤回归材质组同款规则零自定义（「用同一个组件」的字面落地：横纹一个组件、材质一组规则）。
+- **影响面**：原先不吃膜的无壳路由（design-review 等内部工具）现在也吃膜——「全站层」名副其实；页面像素应零漂移（同一绘制结果，仅挂载点移动）。
+- **token 影响**：无增删。
+- **验证**：探针双点位（弹窗标题带出现 4px 周期膜、内卡单层膜与标题带同幅）+ e2e 全量（基线预期零重写）；`check:design`、tsc 绿。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 023 补充 11 · 分享弹窗底部暖色洗 + Share on X 升实面板（用户裁定「下半部分颜色有点太黑了……让人有分享的欲望」）
+
+- **病灶**：按钮行直接坐在弹窗壳深色面上，壳面光洗全在上半（顶缘青渗+品红角洗）——下半死黑；Share on X 为 outline 透明底，在深面上读作黑洞。
+- **方案**：① `.verse-share-pop .pol-mint::after` 增底缘上升暖洗（`--logo-magenta-dark` 30% → 透明 38%）——参照稿紫色弹底的本站色板等价物（品红营销叙事层，promo 弹窗逐例豁免、scope 限分享弹窗不涉其它 pol-mint 消费方）；② `.verse-share-card__x` 经 worklet 皮肤变量升 raised 实面板（`--cb-bg: surface-raised` + border-strong）——黄主 CTA 唯一性不变。
+- **token 影响**：无增删（color-mix 组合既有品牌锚）。
+- **验证**：底缘行亮度 28→43（暖洗生效）；弹窗不在视觉基线内，e2e 全量 25 passed 零重写；`check:design`、tsc 绿。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 023 补充 12 · 分享内卡下半暖洗 + monogram 去黑（用户裁定「我说的是内部的这张卡片」（下半太黑））
+
+- **纠正**：补充 11 把「下半太黑」理解成弹窗壳按钮区——用户实指内卡（.verse-share-card）下半：材质光洗全在卡面上半（顶缘青渗 26% 渐隐），下半近半无光死黑；monogram 缩略位 raised 底在卡面上读作近黑方块。补充 11 的壳底暖洗保留（整体构图不变）。
+- **方案**：① `.verse-share-pop .verse-share-card::after`（0,2,0 特异度防材质组源序压制——补充 5 的坑）增底缘上升深品红洗（26% → 透明 42%，壳底同配方族）；② monogram 缩略位底色 raised 混 18% `--logo-magenta-dark`（近黑方块→暖紫灰板）。
+- **token 影响**：无增删（color-mix 组合既有品牌锚）。
+- **验证**：内卡截图目检（下半暖调、JOIN US 在暖底上跳出）；`check:design`、tsc 绿；e2e 首轮 7 passed 为环境 flake（源码未变），重跑 25 passed 定案零基线重写。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 023 补充 13 · 分享弹窗推倒重做：单一环境光 + 安静凹板（用户裁定「之前的改动要撤销……深度思考完全推到重做，专业设计师角度，设计感/和谐/优雅」）
+
+- **诊断**：弹窗杂乱根源=表面过多且各自为政——壳与内卡双层材质面板（盒中盒双切角）+ 补充 11/12 两层补丁洗 + 暖紫 thumb + 青边 X 钮：460px 内 6 种表面、4 种色相，无主次。
+- **撤销**：补充 11/12 全部补丁（壳底 30% 洗、卡底 26% 洗、thumb 18% tint、X 钮 raised 面板）删除。
+- **重做（one stage, one spotlight）**：
+  1. **舞台唯一**：弹窗壳仍是全站签名「雨夜材质」面板，其上叠一盏平滑环境灯——低位深品红极淡升起（`--logo-magenta-dark` 12% → 50% 长尾消隐）：全弹窗均匀打亮、无死黑下半、无可见洗带（对照被撤的 30%/38% 短带）。
+  2. **内卡退位**：退出材质组（wet-edge/切角/实底面板全去），改安静 inset 凹板（`--color-surface-inset` + hairline）——杂志引文块式内容容器，与壳零竞争；thumb 回中性 raised + hairline。
+  3. **色相收敛**：全场只剩品红（gift/symbol 回声/JOIN US 三处小面积签名）+黄（Copy link 唯一主 CTA）+中性灰阶；X 钮显式锁灰（`--cb-bg: transparent` + `--cb-border: border`）。
+- **token 影响**：无增删。
+- **验证**：双档截图目检（单层舞台+凹板+色相收敛成立）；`check:design`、tsc 绿；e2e 全量 25 passed 零基线重写。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 023 补充 14 · 卡内布局二轮：symbol+name 同行、thumb 边长随右列高（用户裁定「name 和 symbol 放在同一行。左边的图片保持正方形，边长得和右边的文本区域高度对齐」）
+
+- **方案**：① symbol+name 合入 `.verse-share-card__idrow` 基线行（`align-items: baseline`、gap-3）；② 卡容器 `align-items: stretch` + thumb `flex: 0 0 auto; align-self: stretch; aspect-ratio: 1`——正方形边长由 stretch 高度（=右列内容高）经 aspect-ratio 反推宽度，thumb 下方空白消失。
+- **token 影响**：无增删。
+- **验证**：双档 boundingBox 实测 thumb 156×156 与 meta 列 y 区间逐像素重合（390/1280 同值）；`check:design`、tsc 绿；e2e 清掉中断遗留的残留 4188 server（pid 1524776，档案 e2e-stale-server-poisons-baseline 的污染源）后全量 25 passed。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 023 补充 15 · 内卡 Premium dark 三件套（用户裁定「卡片背景纯黑灰色，太无聊……更优雅更高级，但不光污染」；研究 Linear/Vercel 配方后 token 化）
+
+- **研究**：业界 premium dark 卡配方（[csstools.io neumorphism 亮度守则](https://csstools.io)、[snippets.heymitul.com Linear/Vercel 式渐变描边+inset 阴影](https://snippets.heymitul.com)、[codefronts.com 双 background-clip 渐变描边](https://codefronts.com)）收敛为三件套：低强度面内渐变、渐变描边（上亮下暗 1px）、顶缘受光（白 3–6%）。
+- **方案（全 token，零新增）**：① 卡面 `linear-gradient(180deg, raised → 混 12% --logo-magenta-dark 的 surface)`——底部呼应壳层环境灯色相（同一 token 同一档），无带；② 渐变描边=双 background-clip（padding-box 面渐变 + border-box `border-strong→border` 描边渐变，border: transparent）；③ 顶缘受光 `inset 0 1px 0 var(--scanline-white)`（2% 白 token 守 3–6% 区间下沿）；④ thumb 对角渐变（raised→inset 160deg）+ 顶缘受光 + monogram 转 text-secondary（灰调更收敛）。
+- **对照**：上一版纯 inset 平板（补充 13）→ 有受光维度的暖调面板；品红只以 12% 混入面底+描边沿用既有边 token——无光污染。
+- **token 影响**：无增删。
+- **验证**：2x 截图目检（渐变/受光/描边层次成立、无带）；`check:design`、tsc 绿；e2e 全量 25 passed 零基线重写。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 023 补充 16 · 礼物图标按阶段主色（用户裁定「不同阶段的礼物图标颜色改成对应阶段的主色调，黄色，红色，青色」）
+
+- **方案**：hero 分享钮与弹窗标题 gift 统一吃全站阶段变量 `--stage-color`——genesis=黄（`--accent-primary`）/ locked=品红（`--accent-echo`，即用户所指红）/ unlocked=青（`--or-cyan`）/ refund=橙（`--color-warning`）。hero 源=祖先 `.verse-hero[data-stage]`（economy 卡同源映射，零新增）；弹窗 portal 自持源——`DialogContent` 挂 `data-stage={verse.stage}`，`.verse-share-pop` 扩入共享阶段组 `:is()` 四档选择器。hover=stage 色提亮（`color-mix 72% + --color-text`，替代原 cyan——青语义留给链接/focus）。
+- **token 影响**：无增删。
+- **补充修正（同日用户反馈「弹窗 gift 成白色」）**：HMR 旧组件树无 `data-stage` 时 `var(--stage-color)` 失效回落继承=标题白——两处加兜底（hero 回落 text-secondary、gift 回落品红=16 前品牌色），缺源场景恒不为白（探针实测移除 data-stage → rgb(255,6,181)）。
+- **验证**：三阶段探针取色（verse-21=rgb(252,238,10) 黄 / verse-2=rgb(255,6,181) 品红 / verse-3=rgb(0,240,255) 青 + verse-4 橙，hero 与弹窗一致、含 hover 态）；verse 三档基线 `=all` 重录。
+- **并行编辑注记**：本轮 `copy.ts` 于 21:02 被并行会话修改（杠杆创世文案重写等 121+/67-，含一次瞬态 `preorder.term` 类型错误），zh-home/en-home 等基线随之过时——全部基线 `--update-snapshots` 重录后全量 25 passed 两连绿（非本决议内容，登记备查）。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 023 补充 17 · Copy link 转非实心 outline（用户裁定「Copy link 按钮的样式改成非实心的样式」）
+
+- **方案**：Copy link `variant="outline"`（撤黄色实心）——worklet 皮肤变量显式锁 `--cb-bg: transparent` + `--cb-border: border-strong`（比 Share on X 的 border 高一档，非实心前提下保留主次层级）；双 CTA 均为 outline 幽灵面板。
+- **连带语义**：「黄=弹窗内唯一主 CTA」纪律随之失效——弹窗内不再有实心钮，黄退场，色相=品红（签名）+中性灰阶；contract/components 同步。
+- **token 影响**：无增删。
+- **验证**：截图目检（双 outline、描边档差可辨）；✓Copied 回落实测正常（授 clipboard-write 权限）；`check:design`、tsc 绿。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 023 补充 18 · Share on X 转黄描边非实心钮（用户裁定「把 Share on X 按钮的样式改成黄色非实心按钮」）
+
+- **方案**：Share on X=黄描边+黄字（`--cb-border/--cb-border: var(--accent-primary)`、`color: var(--accent-primary)`，hover=8% 黄 tinted raised 底）——黄回场为分享主层级；Copy link 保持中性（描边 border-strong、字 text-secondary）作次层级。
+- **工程事实**：outline variant 在 globals.css 609 起有 `color: text-secondary !important` + 青描边 important 通道——普通声明被压制（首改实测 computed 仍 text-secondary）。按 `swap-panel__cta` 先例走同通道 `!important` + `.verse-share-card__actions` 前缀 (0,3,0) 同特异度后位压制（含 hover 态）；Copy link 同法修正描边（此前 cyan-mix 默认描边漏网）。
+- **token 影响**：无增删。
+- **验证**：computed 探针（x color/border=rgb(252,238,10)、copy hover border=rgb(58,63,82)）+ 2x 截图目检；`check:design`、tsc 绿；e2e 全量 25 passed（zh-explore 环境 flake 单跑即绿）。
+- 签名：approved by Jasonrale（用户裁定）
+
+### 决议 023 补充 19 · 撤 18 手搓块，复用全站标准黄色非实心钮 `.ax-ghost-cta`（用户裁定「仓库里不是有很多黄色按钮吗？用的不是同一个组件吗？怎么你还能改错」）
+
+- **纠正**：补充 18 在 outline variant 上手搓 `!important` 黄描边块——重复造轮子。仓库早有标准范式：`variant="default"` + `className="ax-ghost-cta"`（变体镜像 584-601：透明底+黄描边+黄字，hover 填黄黑字；discovery/home/create/verse 参与面板等处处在用，连 link 形态都有 button-plate 镜像）。
+- **终态**：Share on X=`.verse-share-card__x ax-ghost-cta`（零自定义 CSS，补充 18 的 important 块整段删除）；Copy link=纯 `variant="outline"` 原味（cyan-mix 描边即全站 outline 语言，补充 17 的 border-strong 覆盖一并删除——两次覆盖都在对抗组件系统，错在没先找现成范式）。
+- **token 影响**：无增删。
+- **验证**：computed 探针（非 hover 黄描边黄字、hover 填黄 rgb(252,238,10)+黑字，与全站 ghost-cta 行为一致）；2x 截图目检；`check:design`、tsc 绿；e2e 全量 25 passed。
+- 签名：approved by Jasonrale（用户裁定）
+
+## 决议 024 · 首页导航终端索引 + 文案提亮（2026-10-07 用户拍板：方案「终端索引」+ 配色「提亮一档」）
+
+- **方案**：`.marketing-nav` 三入口每枚前置终端索引序号 `01/02/03`（`.marketing-nav__index`：mono `--font-data`、`--text-xs`、`--label-tracking` 字距、静止三级灰、悬停转黄 `--accent-primary`；`aria-hidden` 装饰编号不进可访问名，TSX 由 map+padStart 生成）；文案色提亮一档 `--color-text-secondary`→`--color-text`（悬停文字提亮随之退役——悬停信号=斜切芯片浮现+序号转黄双通道）；字号维持 16px（2026-10-06 裁定）。
+- **口径放宽**：001-A「等宽仅数据字段」对**装饰性编号**放行（序号非数据读数、非正文；用户在方案选项中拍板放行）。等宽用于正文/标签的禁令不变。
+- **token 影响**：无增删（`--label-tracking` 为既有 token 启用消费）。
+- **验证**：Playwright 实测 label #E6E9F0/16px、序号 IBM Plex Mono/三级灰、悬停序号 #FCEE0A；header 52px、nav 368px、1280/1024 零溢出；home 三档 + zh-home 基线 `=all` 重录；vitest（含新序号断言）、check:design、prettier 绿。
+- 签名：approved by Jasonrale（用户裁定）

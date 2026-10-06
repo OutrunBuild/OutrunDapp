@@ -8,10 +8,11 @@
 |---|---|---|
 | 品牌锚 6 色 + 站点黑 | 001/004（brand/logo-spec.md） | `--logo-yellow #FCEE0A` 等，页面不得覆盖、不得改色 |
 | 表面/文本/反馈 | 002 P2 冷石墨 | `--color-surface #12141B`；正文 `#E6E9F0` 15.14:1；成功 `#35E08E`；危险 `#FF5468` |
-| 密度 | 003 T2 均衡 | 行高 44px / 正文 14px；T1(36)/T3(56) 仅限注明的局部区域 |
+| 密度 | 003 T2 均衡 | 行高 44px / 正文 14px；T1(36)/T3(56) 仅限注明的局部区域；`--topbar-height` 52px 顶栏双壳统一高（020 补充 7） |
 | 字标 | 004 | brand/ 包唯一基准；字标 ≥96px 宽，<150px 用 symbol；浅底 mono；禁改色/拉伸/裁切 |
 | 方向与去极客 | 001 + 001-A | 等宽仅数据字段；无 KERNEL/DELEGATED 等符号；文案消费化 |
 | 复古未来主义签名层 | 010（r10 提取） | HUD 网格（44/22px 青线）/品红回声轨（-72px 位移回声）/CRT 扫描线/信号脉冲 1.4s/斜切三档（≤8/10/12px）/glow 分层开关 `[data-glow=on]`/卡片青 tinted chrome/字体身份（Saira Condensed+IBM Plex Sans/Mono） |
+| 字阶与间距新档 | 017（2026-10-05） | `--text-num-xl` 28px（hero 净值读数唯一消费位：组合页头）；`--space-9` 96px（页面级分区组间距，组间 > 组内承担分组识别）；KPI 计数档全站钉 `--text-md`（终结 pf-kpi 18 / verse 芯片 15 并存；**例外 2026-10-06 用户裁定**：Yield Vault 概览、DAO 概览+周期卡 dd 18→16 稍缩小，与各自移动档 hairline 行 dd 16 归一——globals.css 共享 KPI dd 规则后的 scoped 覆盖段） |
 
 ## 2. 使用边界（硬规则）
 
@@ -33,7 +34,8 @@
 - `--shadow-{raised,header}` 抬升层接触阴影（数据层文本零 glow 边界见 §2.1）
 - `--swatch-well` 样张井（design-system showcase 色样恒定背衬，P1-2 修复；亮度窗口实算取值，深色系样张对井 ≥3:1 显形）
 - `--logo-*`/`--or-cyan`/`--site-black` 品牌锚（只读）
-- `--font-{display,body,data}`、`--text-{xs..xl}`、`--space-{1..8}`、`--row-height*`、`--z-*`
+- `--font-{display,body,data}`、`--text-{xs..xl}`、`--space-{1..9}`、`--row-height*`、`--topbar-height`、`--z-*`
+- `--text-num-lg 22` / `--text-num-xl 28`：数字读数语义档（mono 消费；xl 仅组合页 hero，017）
 - `--display-title` 展示档字号（h1/营销大标题唯一字号源，`clamp(30px, 1em+22px, 44px)`，1em 随使用点继承解析、16px 上下文≈38px；DESIGN.md §3 + foundations.md §2 钉死口径）。角色专用尺寸 token，**不在 `--text-*` 字阶梯内**——展示档不得以 `--text-xl` 等档位 token 替代（2026-10-04 showcase 样张失真裁决后补登）
 - 组件只引用上述 token；新需求先扩 token 再用（阶段 2 起 PR 审查项）
 

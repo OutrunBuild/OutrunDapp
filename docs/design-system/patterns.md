@@ -6,7 +6,7 @@
 
 | 壳 | 触发 | 结构 | 密度 | 模式（impeccable） |
 |---|---|---|---|---|
-| 营销壳 | `current="home"` | `.marketing-header` → `main.marketing-main.ax-hud-inner` | 可放宽到 T3（56px） | Persuade |
+| 营销壳 | `current="home"` | `.marketing-header`（字标 + `.marketing-nav` 三入口 ≥1024 + 状态簇/语言/钱包）→ `main.marketing-main.ax-hud-inner` | 可放宽到 T3（56px） | Persuade |
 | 产品壳 | 其它 | `.product-sidebar` + `.product-canvas`（`.product-topbar` + `main.product-main`）+ `.mobile-navigation` | T2 默认 44px；/pol、/portfolio 可收 T1 | Operate |
 
 ## 2. 产品页标准骨架

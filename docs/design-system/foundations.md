@@ -54,14 +54,14 @@
 
 加载链路：`next/font` 在 `components/design-system/fonts.ts` 声明（`--font-d1-display` Saira Condensed、`--font-d1-body` IBM Plex Sans、`--font-plex-mono`、`--font-noto-sc`），`app/layout.tsx` 挂到 `<html>`；`tokens.css` 第 137–139 行把它们组合成 `--font-display/--font-body/--font-data`。**不要在别处再次声明这些字体**。Stage-01 审阅工具（`components/direction-choice/fonts.ts`）只负责 D2/D3 候选字体，并从设计系统文件 re-export D1，保证生产字体单一来源。
 
-字阶：`--text-xs 11` / `--text-sm 12` / `--text-base 14`（基准） / `--text-md 16` / `--text-lg 20` / `--text-xl 28` / `--text-num-lg 22`（KPI 读数）。
+字阶（013 上调后真值）：`--text-xs 12` / `--text-sm 14` / `--text-base 16`（基准） / `--text-md 18` / `--text-lg 20` / `--text-xl 28` / `--text-num-lg 22`（KPI 读数）/ `--text-num-xl 28`（hero 净值读数，017，唯一消费位=组合页头）。
 标签字距：`--label-tracking 0.045em`（大写小标签用）。
 
 规则：等宽字**不得**用于导航、按钮、标题、正文（决议 001-A）。中文正文 ≥14px。
 
 ## 3. 间距与密度
 
-- 8px 基线：`--space-1 4` / `-2 8` / `-3 12` / `-4 16` / `-5 24` / `-6 32` / `-7 48` / `-8 64`。
+- 8px 基线：`--space-1 4` / `-2 8` / `-3 12` / `-4 16` / `-5 24` / `-6 32` / `-7 48` / `-8 64` / `-9 96`（页面级分区组间距，017）。
 - 密度：`--row-height 44`（默认 T2）/ `--row-height-compact 36`（仅 /pol、/portfolio 高密度区）/ `--row-height-relaxed 56`（营销、tab 轨道、新手区）。控件高 `--control-height 40`。
 - 布局优先级：Flex + `gap` 为主，二维用 Grid；禁 `space-x/y-*`；绝对定位仅装饰伪元素。
 
@@ -91,7 +91,7 @@ clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100%
 |---|---|---|
 | `.ax-hud` | 44px 青网格底 | 站点根 `.outrun-site` |
 | `.ax-hud-inner` | 22px 加密网格 + 品红 135° 角部洗色 | `main` / `.product-canvas` |
-| `.ax-scanlines` | CRT 静态扫描线，`pointer-events:none` | 站点根末尾，`aria-hidden` |
+| `.ax-scanlines` | CRT 静态扫描线，`pointer-events:none`；body 级 z-overlay（023 补充 10：自壳层末尾提升，弹窗 portal 同膜） | `app/layout.tsx` body 末尾（唯一实例），`aria-hidden` |
 | `.ax-echo-rail` | 侧栏右缘品红回声轨 | `.product-sidebar` |
 | `.ax-echo-bar` | 标题条几何化回声：青信号贴底边框渐变消隐（`::after`）+ 品红回声下移 1px/左移滞后/长度减半（`::before`，决议 014 统一） | `.section-heading` |
 | `.ax-signal-dot` | live 青点 steps(2) 1.4s 脉冲 | 状态簇、结果计数 |
@@ -99,11 +99,11 @@ clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100%
 
 规则：环境层低对比、结构层一处一强调、数据层零 glow（011 精修纪律）。新页面直接复用，不新建纹理。
 
-## 6. 动��
+## 6. 动效
 
 - 时长：`--motion-fast 120ms`（hover/颜色）、`--motion-base 200ms`（展开/位移）；缓动 `--ease-out`。
 - 签名动效仅两枚：**回声确认**（确认态 120ms 品红错位闪烁）与**信号脉冲**（`.ax-signal-dot`）。其余动效只做状态反馈，不做装饰。
-- `prefers-reduced-motion: reduce` 已全局处理：动画��零、过渡只保留 opacity/color/background/border/box-shadow/outline。组件不需要再写降级，但**不得**依赖位移动画传达状态。
+- `prefers-reduced-motion: reduce` 已全局处理：动画归零、过渡只保留 opacity/color/background/border/box-shadow/outline。组件不需要再写降级，但**不得**依赖位移动画传达状态。
 - 过渡属性要列举（`transition: color …, background-color …`），禁 `transition: all`。
 
 ## 7. 断点与响应式
@@ -112,11 +112,11 @@ clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100%
 
 | 断点 | 像素 | 发生什么 |
 |---|---|---|
-| `68rem` | ≤1088px | 产品壳收窄；`.discovery-layout` 退单列；筛选栏 `.filter-rail` ���横向；`.lifecycle-tabs`/`.discovery-tools` 压缩 |
+| `68rem` | ≤1088px | 产品壳收窄；`.discovery-layout` 退单列；筛选栏 `.filter-rail` 转横向；`.lifecycle-tabs`/`.discovery-tools` 压缩 |
 | `54rem` | ≤864px | 侧栏隐藏 → `.mobile-navigation` 底部 tab；`.mobile-filter-toggle` 出现，`.discovery-filters[data-open]` 抽屉；营销 header 收拢；`.economy-grid` 减列 |
 | `30rem` | ≤480px | 品牌切 symbol；KPI 2×2；表格横滚冻结首列；`.economy-card__facts` 堆叠；中文 h1 缩放 |
 
-新页面必须在这三档���各截一张图验证（见 agent-workflow.md）。不新增断点值；需要新档位时先讨论。
+新页面必须在这三档里各截一张图验证（见 agent-workflow.md）。不新增断点值；需要新档位时先讨论。
 
 ## 8. 层级
 
