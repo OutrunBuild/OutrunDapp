@@ -40,6 +40,9 @@ node_modules/
 # Pi agent runtime artifacts
 .pi-glla/
 
+# ZCode 会话产物（截图/scratch/plans，不入库；skills 符号链接见下方）
+.zcode/
+
 skills/
 # skill symlinks (git treats symlinks as files, so skills/ above doesn't match them)
 /.agents/skills
@@ -62,6 +65,7 @@ next-env.d.ts
 # 临时独立构建（NEXT_DIST_DIR 指向的比较/验证构建，产物按需重建）
 .next-compare/
 .next-verify/
+.next-4175/
 
 docs/review
 docs/runbooks
