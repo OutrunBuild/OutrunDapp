@@ -80,6 +80,7 @@
   --row-height-compact: 36px;  /* T1 档：仅 /pol、/portfolio 高密度区局部允许 */
   --row-height-relaxed: 56px;  /* T3 档：仅营销/新手引导区局部允许 */
   --control-height: 40px; /* 按钮/输入 */
+  --topbar-height: 52px;  /* 顶栏高（020 补充 7，双壳统一）= 36px 控件 + 上下各 8px 网格 */
 
   /* ---------- 间距（8px 基线网格） ---------- */
   --space-1: 4px;

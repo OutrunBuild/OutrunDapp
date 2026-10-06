@@ -158,23 +158,14 @@ a {
   user-select: text;
 }
 
+/* 滚动条全站隐藏（2026-10-06 用户裁定：无用视觉噪音）；
+   滚动能力不受影响（滚轮/触摸/键盘仍可滚） */
 * {
-  scrollbar-color: var(--color-border-strong) var(--color-surface-inset);
-  scrollbar-width: thin;
+  scrollbar-width: none;
 }
 
 *::-webkit-scrollbar {
-  inline-size: var(--space-2);
-  block-size: var(--space-2);
-}
-
-*::-webkit-scrollbar-track {
-  background: var(--color-surface-inset);
-}
-
-*::-webkit-scrollbar-thumb {
-  background: var(--color-border-strong);
-  border: var(--space-1) solid var(--color-surface-inset);
+  display: none;
 }
 
 h1,
@@ -224,6 +215,15 @@ h3 {
 /* 创建页主容器顶部内边距同步收窄（24→8px），标题贴近顶栏 */
 .product-main:has(> .create-intro) {
   padding-block-start: var(--space-2);
+}
+
+/* 创建页整卡微收（2026-10-06 用户裁定「卡片稍微缩小、黄红线与卡片同宽」，同日两轮追加收窄）：
+   上限 1280→1152，≥54rem 视口再按 82% 收窄；页头黄红线（.page-intro 边框+回声）
+   与表单卡同在本容器内，宽度自然联动。54rem 以下（平板/手机）保持满宽 */
+@media (min-width: 54rem) {
+  .product-main:has(> .create-intro) {
+    inline-size: min(82%, calc(var(--space-8) * 18));
+  }
 }
 
 svg {
@@ -321,7 +321,8 @@ svg {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  min-block-size: var(--control-height);
+  /* 顶栏桌面档 36px（020 补充 7 双壳统一；≤54rem 移动档 32px 见移动块） */
+  min-block-size: calc(var(--control-height) - var(--space-1));
   padding-inline: var(--space-3);
   border: 1px solid var(--color-border);
   background: var(--color-surface-inset);
@@ -441,7 +442,8 @@ svg {
 .locale-menu__trigger {
   display: inline-flex;
   min-inline-size: var(--control-height);
-  min-block-size: var(--control-height);
+  /* 顶栏桌面档 36px（020 补充 7 双壳统一；≤54rem 移动档 32px 见移动块） */
+  min-block-size: calc(var(--control-height) - var(--space-1));
   align-items: center;
   justify-content: center;
   gap: var(--space-1);
@@ -712,6 +714,9 @@ svg {
   inline-size: calc(var(--control-height) * 4);
   min-inline-size: 0;
   justify-content: center;
+  /* 顶栏桌面档 36px（020 补充 7 双壳统一；!important 对冲 [data-slot='button']
+     40px !important 基线——本块在其后同级联胜出；≤54rem 移动档 32px 见移动块） */
+  min-block-size: calc(var(--control-height) - var(--space-1)) !important;
 }
 
 .wallet-control__connected {
@@ -731,7 +736,9 @@ svg {
 
 .brand-wordmark {
   display: block;
-  inline-size: calc(var(--space-8) * 2.45);
+  /* 2026-10-06 用户裁定「缩小一些」后当日回调：2.45→2.0→2.2（156.8→128→140.8px 宽，
+     仍 >foundations.md 字标 96px 下限）；此基类仅产品壳侧栏消费 */
+  inline-size: calc(var(--space-8) * 2.2);
   block-size: auto;
 }
 
@@ -750,11 +757,14 @@ svg {
   inset-block-start: 0;
   z-index: var(--z-sticky);
   display: grid;
-  grid-template-columns: auto 1fr;
-  min-block-size: var(--space-8);
+  grid-template-columns: auto auto 1fr;
+  /* 52px（--topbar-height，决议 020 补充 7 双壳统一）= 36px 控件 + 上下各 8px 网格；
+     顶栏控件桌面档 36px 同决议（页面内控件仍 40px --control-height） */
+  /* 纵向零内距（同产品壳写法）：36px 内容行在 52px 内居中，1px 底边框盒内含 */
+  min-block-size: var(--topbar-height);
   align-items: center;
   gap: var(--space-5);
-  padding: var(--space-2) var(--space-5);
+  padding-inline: var(--space-5);
   border-block-end: 1px solid var(--color-border);
   background: var(--color-surface-header);
   box-shadow: var(--shadow-header);
@@ -768,6 +778,84 @@ svg {
   gap: var(--space-2);
 }
 
+/* 首页顶栏文字导航（2026-10-06 用户拍板：A 布局左邻字标、文案沿用 copy.common）。
+   激活态不设——营销壳只在首页渲染，三个入口均非当前页。
+   顶栏控件档位（36px 桌面 / 32px ≤54rem）由 .chain-dialog__trigger /
+   .locale-menu__trigger / .wallet-control 基类+移动档统一供给，双壳同级联，
+   勿加壳私有档（020 补充 7） */
+.marketing-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+/* 52px 档字标 108.8px 宽 ≈28px 高（2048×527 原比例），仅营销壳；侧栏字标不受影响 */
+.marketing-brand .brand-wordmark {
+  inline-size: calc(var(--space-8) * 1.7);
+}
+
+.marketing-nav__link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-block-size: calc(var(--control-height) - var(--space-1));
+  padding-inline: var(--space-3);
+  /* 决议 024（2026-10-07）：文案提亮一档 secondary→text；悬停提亮随之退役，
+     悬停信号=芯片浮现+序号转黄 */
+  color: var(--color-text);
+  /* 2026-10-06 用户裁定「稍微增大一点点」：14→16px（--text-sm→--text-base，字阶最小一档步进） */
+  font-size: var(--text-base);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+/* 终端索引序号（决议 024）：mono 数字=001-A「等宽仅数据字段」对装饰性编号的
+   放宽口径（用户拍板），中文导航零损耗；静止三级灰，悬停转黄 */
+.marketing-nav__index {
+  margin-inline-end: var(--space-2);
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: var(--label-tracking);
+  color: var(--color-text-tertiary);
+  transition: color var(--motion-fast) var(--ease-out);
+}
+
+/* 悬停=斜切抬升面浮现（product-nav__item 同语法：surface 抬一档，012）+ 序号转黄。
+   斜切画在 ::before 底层而非链接本体——clip-path 不落在焦点元素上，
+   全局青色 focus 外环（硬约束 7）完整渲染不被裁切 */
+.marketing-nav__link::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  clip-path: polygon(
+    var(--chamfer) 0,
+    100% 0,
+    100% calc(100% - var(--chamfer)),
+    calc(100% - var(--chamfer)) 100%,
+    0 100%,
+    0 var(--chamfer)
+  );
+  background: var(--color-surface-raised);
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--ease-out);
+}
+
+.marketing-nav__link:hover::before {
+  opacity: 1;
+}
+
+.marketing-nav__link:hover .marketing-nav__index {
+  color: var(--accent-primary);
+}
+
+@media (max-width: 1023px) {
+  .marketing-nav {
+    display: none;
+  }
+}
+
 .nav-disabled,
 [data-disabled='true'] {
   cursor: not-allowed;
@@ -775,7 +863,7 @@ svg {
 }
 
 .marketing-main {
-  min-block-size: calc(100dvh - var(--space-8));
+  min-block-size: calc(100dvh - var(--topbar-height));
   padding: var(--space-7) var(--space-5) var(--space-6);
 }
 
@@ -1175,19 +1263,12 @@ svg {
 
 .home-mechanism__capital {
   margin-block-start: var(--space-2);
+  padding-block-end: var(--space-3);
+  border-block-end: 1px solid var(--color-border);
   color: var(--color-text-tertiary);
   font-family: var(--font-data);
   font-size: var(--text-sm);
   letter-spacing: var(--label-tracking);
-}
-
-/* assetsSub（uAsset 首现定义）贴 capitalLabel 同带；首现定义走正文（components.md 术语悬停释义条目契约） */
-.home-mechanism__assets-note {
-  padding-block-end: var(--space-3);
-  border-block-end: 1px solid var(--color-border);
-  color: var(--color-text-tertiary);
-  font-size: var(--text-sm);
-  line-height: 1.58;
 }
 
 .home-mechanism__desc,
@@ -1222,7 +1303,8 @@ svg {
   margin-block-start: var(--space-2);
 }
 
-/* 行语法：chip → 品红箭头 → 目标（fee routes 现款沿用） */
+/* 行语法：第一行 chip → 品红箭头 → 目标标题，第二行说明整行居中（fee routes 现款沿用；
+   <54rem 转纵向走线，见媒体块） */
 .home-mechanism__row {
   display: flex;
   flex-wrap: wrap;
@@ -1254,26 +1336,20 @@ svg {
   color: var(--logo-magenta-bright);
 }
 
-.home-mechanism__row-target {
-  display: flex;
-  min-inline-size: 0;
-  flex-direction: column;
-  align-items: center;
-  row-gap: var(--space-1);
-}
-
-.home-mechanism__row-target strong {
+/* 目标标题（fee routes 行另有 __branch strong 同值兜底） */
+.home-mechanism__row-title {
   color: var(--color-text);
   font-size: var(--text-base);
 }
 
-.home-mechanism__row-target > span {
-  width: fit-content;
-  max-width: 100%;
+/* 说明=第二行整行（width 100% 迫使换行到独立行）；0-2-0 须压过
+   __branch > span:last-child 的块内左对齐（那是 rights 枝卡语义） */
+.home-mechanism__row > .home-mechanism__row-desc {
+  width: 100%;
   color: var(--color-text-secondary);
   font-size: var(--text-sm);
   line-height: 1.58;
-  text-align: left;
+  text-align: center;
 }
 
 /* 时序连接注记（03→04）：品红短线引出，如实声明非因果 */
@@ -1318,6 +1394,12 @@ svg {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+/* 三列行卡等高（grid stretch），内容顶对齐才能让三张卡的第一行落在同一水平线
+   （2026-10-06 用户裁定；分支卡的 align-content: center 会按内容高度差错位） */
+.home-mechanism__fork[data-fork='routes'] > .home-mechanism__branch {
+  align-content: flex-start;
+}
+
 .home-mechanism__fork > li + li {
   border-inline-start: 1px solid var(--color-border);
 }
@@ -1346,7 +1428,9 @@ svg {
   font-size: var(--text-base);
 }
 
-.home-mechanism__branch > span:last-child {
+/* :not 排除行语法的说明行（fee routes）——块内左对齐/fit-content 只是 rights 枝卡语义，
+   否则 0-2-1 会压过 __row-desc 的整行居中（短说明滞留第一行的根因） */
+.home-mechanism__branch > span:last-child:not(.home-mechanism__row-desc) {
   /* 块整体居中、块内左对齐（沿用原凭证块语言） */
   width: fit-content;
   max-width: 100%;
@@ -1747,14 +1831,18 @@ svg {
     border-block-start: 1px solid var(--color-border);
   }
 
-  /* 行语法移动端：左对齐 */
+  /* 行语法移动端：纵向走线 chip → 下向箭头 → 目标标题 → 说明，内容居中 */
   .home-mechanism__row {
-    justify-content: flex-start;
-    text-align: left;
+    flex-direction: column;
   }
 
-  .home-mechanism__row-target {
-    align-items: flex-start;
+  /* 0-2-0 压过上方枝卡内衬条规则的 text-align: left（行卡内容居中） */
+  .home-mechanism__fork > .home-mechanism__row {
+    text-align: center;
+  }
+
+  .home-mechanism__route-arrow {
+    rotate: 90deg;
   }
 
   .verse-lifecycle__rail::before {
@@ -2039,13 +2127,16 @@ svg {
   display: flex;
   min-block-size: var(--space-8);
   align-items: center;
+  /* 2026-10-06 用户裁定：字标在侧栏水平居中 */
+  justify-content: center;
   padding-inline: var(--space-2);
 }
 
 .product-nav {
   display: grid;
   gap: var(--space-2);
-  margin-block-start: var(--space-4);
+  /* 2026-10-06 用户裁定「五个按钮稍微上移」：与品牌行间距 16→8px */
+  margin-block-start: var(--space-2);
 }
 
 .product-nav__item {
@@ -2085,7 +2176,8 @@ svg {
   inset-block-start: 0;
   z-index: var(--z-sticky);
   display: flex;
-  min-block-size: var(--row-height-relaxed);
+  /* --topbar-height 52px 双壳统一（020 补充 7） */
+  min-block-size: var(--topbar-height);
   align-items: center;
   gap: var(--space-2);
   padding-inline: var(--space-5);
@@ -2645,6 +2737,11 @@ svg {
   block-size: var(--space-2);
   border-radius: 50%;
   background: var(--or-cyan);
+}
+
+/* 触发器形态（TooltipTrigger 渲染 button）才有的指针语义；UA 按钮样式由 preflight 中和 */
+.fast-badge[data-slot='tooltip-trigger'] {
+  cursor: help;
 }
 
 .verse-card-list {
@@ -3364,6 +3461,76 @@ svg {
   inline-size: var(--space-4);
 }
 
+/* ── Verse 分享组（参照 jasonrale/Outrun-Frontend，决议 023）──────────────────
+   单礼物钮=分享按钮本体（2026-10-06 用户裁定：Share2 分享图标退役，礼物兼任）：
+   hero 右上角（titlerow 徽章位，阶段徽章删除让位）；无边框幽灵图标钮——悬停出
+   随机促销语气泡、点击开分享弹窗；循环抖动吸引注意——motion 契约 infinite
+   装饰动画禁令的用户裁定例外（reduced-motion 经 no-preference 包裹自动停抖；
+   无 glow，纯 2.5px 位移） */
+.verse-share {
+  display: flex;
+  align-items: center;
+}
+
+.verse-share__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-1);
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.verse-share__button svg {
+  inline-size: var(--space-4);
+}
+
+.verse-share__button {
+  /* 阶段主色（023 补充 16 用户裁定：黄/品红/青随 data-stage）——
+     源=祖先 .verse-hero[data-stage] 的 --stage-color（economy 卡同源映射） */
+  color: var(--stage-color, var(--color-text-secondary));
+}
+
+.verse-share__button:hover {
+  color: color-mix(in srgb, var(--stage-color, var(--color-text-secondary)) 72%, var(--color-text));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .verse-share__button {
+    animation: 1.5s infinite ease-in-out verse-share-shake;
+  }
+}
+
+/* 参考实现同款节奏：0–65% 快速水平抖动（±2.5px、13 帧），70% 后回正静默——
+   循环内自带 ~30% 休止期，持续吸引但不至于连抖疲劳 */
+@keyframes verse-share-shake {
+  0%,
+  70%,
+  100% {
+    transform: translateX(0);
+  }
+
+  5%,
+  15%,
+  25%,
+  35%,
+  45%,
+  55%,
+  65% {
+    transform: translateX(-2.5px);
+  }
+
+  10%,
+  20%,
+  30%,
+  40%,
+  50%,
+  60% {
+    transform: translateX(2.5px);
+  }
+}
+
 .verse-stats {
   display: flex;
   flex-wrap: wrap;
@@ -3700,6 +3867,8 @@ svg {
 .token-strip__chips dd {
   font-family: var(--font-data);
   font-variant-numeric: tabular-nums;
+  /* 数值 16→14 稍缩小（2026-10-06 用户裁定；同 CA 胶囊/涨跌幅先例口径，与移动档 dd 同值） */
+  font-size: var(--text-sm);
 }
 
 .token-strip__copy {
@@ -3731,9 +3900,8 @@ svg {
   font-weight: 600;
 }
 
-/* 价格有效位分层：货币符与尾随零缩小降级为次级色（2026-09-23 用户裁定） */
-.token-strip__price-sign,
-.token-strip__price-tail {
+/* 价格货币符缩小降级为次级色（2026-09-23 用户裁定）；尾随零灰显已废止——价格格式走 fmtPrice 市场口径（决议 019） */
+.token-strip__price-sign {
   font-size: 0.62em;
   font-weight: 400;
   color: var(--color-text-secondary);
@@ -3754,6 +3922,10 @@ svg {
 /* K 线（粒度式学币安——Q3 用户裁定；1m/5m/15m 标「同步中」；卡内无框） */
 .candle-chart {
   display: grid;
+  /* 列轨 minmax(0,1fr)：图表容器在流内后，canvas 固有宽会沿内容链顶开最小宽，
+     视口缩窄时容器缩不下、ResizeObserver 收不到事件（画布卡在上一次宽度→横向溢出），
+     可收缩轨道+plot 摘自动最小宽让收缩真实传导（2026-10-05 移动端图例移出画布配套） */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   gap: var(--space-2);
   min-block-size: 0;
@@ -3789,6 +3961,7 @@ svg {
    legend=OHLC/Vol/MA 悬浮读数（DexScreener 同构），holder=Lightweight Charts 容器 */
 .candle-chart__plot {
   position: relative;
+  min-inline-size: 0;
   min-block-size: 240px;
 }
 
@@ -3841,6 +4014,29 @@ svg {
 
 .candle-chart__legend .candle-chart__ma--2 i {
   color: var(--color-text-secondary);
+}
+
+/* 移动端读数层移出画布（2026-10-05 用户裁定）：悬浮图例在窄幅折成多行，
+   会压住蜡烛、量能柱与右侧价格刻度；<48rem 时图例改为画布上方独立行，
+   画布内零文字覆盖。240px 下限相应移到画布本体（+图例三行 ≈ 320px） */
+@media (max-width: 48rem) {
+  .candle-chart__plot {
+    display: flex;
+    flex-direction: column;
+    min-block-size: 320px;
+  }
+
+  .candle-chart__legend {
+    position: static;
+    margin-block-end: var(--space-1);
+  }
+
+  .candle-chart__holder {
+    position: relative;
+    inset: auto;
+    flex: 1;
+    min-block-size: 0;
+  }
 }
 
 .candle-chart__svg {
@@ -4108,10 +4304,11 @@ svg {
   color: var(--or-cyan);
 }
 
-/* Max 钮嵌 Balance 行尾（行业惯例）；输入/输出下方美元换算行 */
+/* Max 钮嵌 Balance 行尾（行业惯例）；输入/输出下方美元换算行；
+   内部文字/mono 数字/Max 按基线对齐——盒居中在混合字体下留字形高差（2026-10-06） */
 .swap-panel__balance {
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
   gap: var(--space-1);
 }
 
@@ -4226,6 +4423,181 @@ svg {
 .pol-mint-pop {
   max-inline-size: min(420px, 92vw);
 }
+
+/* ── Verse 分享弹窗（决议 023）─────────────────────────────────────────────
+   参照 jasonrale/Outrun-Frontend memeverse-social-share 的信息层级 1:1：
+   标题行（品红回声礼物图形 + info 返佣说明）/ 项目卡（monogram 缩略位 + symbol
+   大字 + name + 描述两行截断 + JOIN US 品红徽章）/ 底部双钮（Copy link=黄主
+   CTA、Share on X=中性 outline——每视口主 CTA 唯一）。视觉换皮到 token 体系：
+   参考的紫粉蓝渐变与圆角胶囊不进本站 */
+.verse-share-pop {
+  /* 460 档（023 补充 4）：420 档项目卡 meta 列被 40% thumb 挤到 183px，放宽给右栏呼吸 */
+  max-inline-size: min(460px, 94vw);
+}
+
+.verse-share-card__title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* 礼物图形=提示符本体（2026-10-06 用户裁定）：兼任返佣说明 tooltip 触发器
+   （info 符号退役）；颜色=阶段主色（023 补充 16：data-stage 挂 DialogContent，
+   弹窗 portal 经共享阶段组自持 --stage-color）；hover 提亮同 hero 钮 */
+.verse-share-card__gift {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-1);
+  border: 0;
+  background: transparent;
+  /* fallback=品红（补充 16 前的品牌色）：data-stage 缺源（如 HMR 旧 DOM）时
+     var() 失效回落继承白字——兜底保证任何上下文不为白 */
+  color: var(--stage-color, var(--accent-echo));
+}
+
+.verse-share-card__gift:hover {
+  color: color-mix(in srgb, var(--stage-color, var(--accent-echo)) 72%, var(--color-text));
+}
+
+/* 项目卡（023 补充 13 终态·推倒重做）＝安静凹板：杂志引文块式内容容器——
+   inset 实底 + hairline 边、无切角无伪元素，退出材质组（补充 4 的「盒中盒
+   双材质」是本弹窗杂乱根源，撤销）。弹窗的视觉表达收拢到壳层一盏环境灯
+   （见下方 scope 规则）：单一材质面板 + 平滑双色光，内卡零竞争 */
+.verse-share-card {
+  display: flex;
+  gap: var(--space-4);
+  /* stretch：thumb 高=右列高（023 补充 14 用户裁定——正方形边长随文本区高度，
+     消 thumb 下方空白）；宽度由 aspect-ratio 从高度推导 */
+  align-items: stretch;
+  padding: var(--space-4);
+  /* Premium dark 三件套（023 补充 15，研究 Linear/Vercel 配方后 token 化）：
+     ① 面内低强度纵向渐变（raised → 混 12% 品红深档的 surface——底部呼应壳层
+        环境灯的色相，无带无光污染）；② 渐变描边（上 border-strong 下 border，
+        双 background-clip 技法）；③ 顶缘受光 1px（--scanline-white token） */
+  border: 1px solid transparent;
+  background:
+    linear-gradient(
+        180deg,
+        var(--color-surface-raised),
+        color-mix(in srgb, var(--color-surface) 88%, var(--logo-magenta-dark) 12%)
+      )
+      padding-box,
+    linear-gradient(180deg, var(--color-border-strong), var(--color-border)) border-box;
+  box-shadow: inset 0 1px 0 var(--scanline-white);
+}
+
+.verse-share-card__thumb {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  align-self: stretch;
+  aspect-ratio: 1;
+  background: linear-gradient(160deg, var(--color-surface-raised), var(--color-surface-inset) 80%);
+  border: 1px solid var(--color-border);
+  box-shadow: inset 0 1px 0 var(--scanline-white);
+  color: var(--color-text-secondary);
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.verse-share-card__meta {
+  display: grid;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+/* 品牌字标成品（禁改色/拉伸/裁切）：kicker 位 96px 宽（顶栏 157px 的约 6 折），
+   2026-10-06 用户裁定 symbol 换字母 logo */
+.verse-share-card__logo {
+  display: block;
+  inline-size: var(--space-9);
+  block-size: auto;
+}
+
+/* symbol+name 同行（023 补充 14）：基线对齐，name 随 symbol 下缘齐平 */
+.verse-share-card__idrow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  min-inline-size: 0;
+}
+
+.verse-share-card__symbol {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: 0.015em;
+  /* 品红 0.06em 错位回声：Logo「背板错位」语言的文字级应用（与 .empty-state h1 同款，
+     28px 档 ≈1.7px 落 1–2px 契约内；硬偏移副本非 glow） */
+  text-shadow: 0.06em 0.06em 0 var(--accent-echo);
+}
+
+.verse-share-card__name {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.verse-share-card__desc {
+  margin: 0;
+  color: var(--color-text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* JOIN US 胶囊：品红回声徽章层（chrome 徽章获豁免——决议 015 分层管辖）；
+   tinted 底升档（2026-10-06 精装） */
+.verse-share-card__cta {
+  justify-self: start;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--accent-echo) 45%, transparent);
+  background: color-mix(in srgb, var(--accent-echo) 12%, transparent);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-echo);
+}
+
+/* 壳层环境灯（023 补充 13 终态·推倒重做，撤 11/12 补丁洗）：整弹窗只此一处
+   光表达——组内材质（顶青渗+品红角洗）之上叠低位深品红极淡升起（12%→50%
+   平滑长尾）：全弹窗被均匀打亮、无死黑下半、无可见洗带；scope 限分享弹窗 */
+.verse-share-pop .pol-mint::after {
+  background-image:
+    linear-gradient(180deg, rgba(0, 240, 255, 0.07), transparent 26%),
+    linear-gradient(135deg, rgba(255, 6, 181, 0.1), transparent 34%),
+    linear-gradient(
+      0deg,
+      color-mix(in srgb, var(--logo-magenta-dark) 12%, transparent),
+      transparent 52%
+    ),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+}
+
+.verse-share-card__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.verse-share-card__actions [data-slot='button'] {
+  justify-content: center;
+}
+
+.verse-share-card__x svg {
+  /* 品牌图标与 lucide 同规格，避免基线错位 */
+  inline-size: var(--space-4);
+}
+
+/* 双 CTA（023 补充 19 终态）：Share on X=全站标准黄色非实心钮 `.ax-ghost-cta`
+   （variant=default + 该 class，见 584 起的变体镜像——撤 18 的手搓 important 块）；
+   Copy link=outline 原味（cyan-mix 描边即全站 outline 语言，不再覆盖） */
 
 .pol-mint {
   position: relative;
@@ -4427,11 +4799,18 @@ svg {
    ::before 湿边缘方向描边（青上亮→下暗渐隐，含切角斜边，z-2）
    ::after  卡面层 = surface + 顶缘光渗 + 品红角部洗 + 噪点镀膜（feTurbulence 5% 烤进 SVG，z-1）
    卡体：isolation 建层叠上下文（负 z 伪元素压在内容之下），外投影悬浮；
-   hover 通电（描边/光渗/角洗增亮）。雨线、均匀顶光、底缘品红线、HUD 角标废弃 */
+   hover 通电（描边/光渗/角洗增亮）。雨线、均匀顶光、底缘品红线、HUD 角标废弃
+   017 扩编：portfolio 数据面（.pf-panel/.pf-card）接入静态材质两伪元素——
+   hover 通电不随入（数据层零 glow 纪律：面板内行级 hover 已承担交互反馈，
+   整卡通电会把大面积青光 wash 进数据区）
+   023 补充 13 修订：分享弹窗项目卡退出材质组（盒中盒双材质是弹窗杂乱根源，
+   改安静 inset 凹板——见 .verse-share-card 本体规则） */
 .trade-chart::before,
 .swap-panel::before,
 .pol-mint::before,
-.verse-tabs::before {
+.verse-tabs::before,
+.pf-panel::before,
+.pf-card::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -4456,7 +4835,9 @@ svg {
 .trade-chart::after,
 .swap-panel::after,
 .pol-mint::after,
-.verse-tabs::after {
+.verse-tabs::after,
+.pf-panel::after,
+.pf-card::after {
   content: '';
   position: absolute;
   inset: 1px;
@@ -4611,9 +4992,19 @@ svg {
 .vault-panel__stats dd,
 .dao-panel__stats dd,
 .cycle-card__stats dd {
-  font-size: 15px;
+  /* 017：KPI 计数全站钉一档 --text-md（与 .pf-kpi strong 同源，终结 15/18 并存） */
+  font-size: var(--text-md);
   font-family: var(--font-data);
   font-variant-numeric: tabular-nums;
+}
+
+/* Yield Vault 概览 / DAO 概览+周期卡数值 18→16 稍缩小（2026-10-06 用户裁定两轮：
+   vault 先裁、DAO 卡所有格子同款跟进；017「全站钉一档」此三处例外，
+   与各自移动档 hairline 行 dd 16 归一） */
+.vault-panel__stats dd,
+.dao-panel__stats dd,
+.cycle-card__stats dd {
+  font-size: var(--text-base);
 }
 
 /* 面板通用 */
@@ -4716,10 +5107,12 @@ svg {
   white-space: nowrap;
 }
 
-/* 二行数据：两格自然宽（不撑满——右半要给双钮留位），格间 hairline 分隔 */
+/* 二行数据：两格自然宽（不撑满——右半要给双钮留位），格间 hairline 分隔
+   （2026-10-06：线两侧对称各 12px——原「左 0 右 12」贴左值末笔，被用户否） */
 .pool-card__stats {
   grid-area: stats;
   display: flex;
+  gap: var(--space-3);
   align-self: center;
   margin: 0;
 }
@@ -5356,7 +5749,8 @@ svg {
 }
 
 /* 标题行（2026-09-24 用户裁定两轮）：标题左、合约地址居中（无 VAULT 前缀）、
-   LIVE ON 右对齐——恒一行（标题 nowrap），仅手机（<30rem）回落堆叠 */
+   LIVE ON 右对齐——恒一行（标题 nowrap）；手机（<30rem）地址改与标题同行右对齐、
+   LIVE ON 独占次行（2026-10-05 用户裁定） */
 /* 标题行三列范式 2026-09-26 起 vault/dao 共享（DAO overview 头行模仿 Yield Vault，
    用户裁定）：标题左 nowrap、合约地址居中 15px、LIVE ON 堆叠块右对齐；
    vault 地址无前缀、dao 地址带「Governor:」前缀（2026-09-26 用户裁定恢复） */
@@ -5402,18 +5796,24 @@ svg {
   font-size: 15px;
 }
 
+/* <30rem 手机：头行不再全堆叠——合约地址与标题同行右对齐（2026-10-05 用户裁定），
+   LIVE ON 独占次行左起；三列范式其余不变，vault/dao 同步 */
 @media (max-width: 30rem) {
   .vault-panel__head,
   .dao-panel__head {
-    grid-template-columns: 1fr;
-    justify-items: start;
-    gap: var(--space-2);
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2) var(--space-3);
   }
 
   .vault-panel__head-vault,
+  .dao-panel__head-governor {
+    justify-self: end;
+    text-align: end;
+  }
+
   .vault-panel__head-live,
-  .dao-panel__head-governor,
   .dao-panel__head-live {
+    grid-column: 1 / -1;
     justify-self: start;
     text-align: start;
   }
@@ -5963,7 +6363,7 @@ svg {
    32px（control-height−space-2）——芯片内（DAO/Claim）维持 28px */
 .stat-action [data-slot='button'],
 .dao-panel__tally [data-slot='button'],
-.cycle-card__head-finalize[data-slot='button'] {
+.cycle-card__settle [data-slot='button'] {
   min-block-size: calc(var(--control-height) - var(--space-3)) !important;
 }
 
@@ -5975,7 +6375,7 @@ svg {
   min-block-size: calc(var(--control-height) - var(--space-2)) !important;
 }
 
-.cycle-card__head-finalize[data-slot='button'] {
+.cycle-card__settle [data-slot='button'] {
   font-size: 12px !important;
 }
 
@@ -6066,43 +6466,51 @@ svg {
 }
 
 /* Incentivizer: 标签=panel-subtitle 同字体档（与 Current cycle incentive 一致——2026-09-26
-   用户裁定）；mono 从父层撤下（地址芯片 token-strip__copy 自带 --font-data，不受影响）；
-   Finalize 钮文字同档（600/0.08em/大写——同日用户裁定，字号 12px 与紧凑档一致） */
-.cycle-card__head-label,
-.cycle-card__head-finalize[data-slot='button'] {
+   用户裁定）；mono 从父层撤下（地址芯片 token-strip__copy 自带 --font-data，不受影响） */
+.cycle-card__head-label {
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-/* Finalize 钮文字后 ⊙ 气泡（finalizeNote=结束当前周期并开启下一周期——2026-09-26
-   用户裁定）；⊙ 缩至 12px 同钮文字档 */
-.cycle-card__head-finalize .create-info {
+/* 结算窗口横幅（2026-10-05 用户裁定：触发结算钮不常驻，只在周期结束时间已到且
+   未结算时渲染）：青 tinted 功能信号条（vault 跨链横幅同解剖——青=可行动的功能
+   信号）；finalizeNote 收在钮后 ⊙ 气泡不放横幅正文（同日再裁定），钮右置；
+   标题字坡随 vault 横幅档（14px） */
+.cycle-card__settle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--or-cyan) 35%, transparent);
+  background: color-mix(in srgb, var(--or-cyan) 7%, var(--color-surface-inset));
+}
+
+.cycle-card__settle-copy strong {
+  font-size: var(--text-sm);
+  letter-spacing: 0.02em;
+}
+
+/* 钮后 ⊙ 气泡缩至 12px 同钮文字档（原 head-finalize 同款，随钮迁横幅） */
+.cycle-card__settle .create-info {
   inline-size: var(--text-xs);
   block-size: var(--text-xs);
 }
 
-.cycle-card__head-finalize {
-  grid-column: 3;
-  justify-self: end;
+/* 触发结算钮文字=panel-subtitle 字体档（600/0.08em/大写，12px——2026-09-26
+   用户裁定，随钮迁入横幅保档） */
+.cycle-card__settle [data-slot='button'] {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-@media (max-width: 30rem) {
-  .cycle-card__head {
-    grid-template-columns: 1fr;
-    justify-items: start;
-    gap: var(--space-2);
-  }
-
-  .cycle-card__head-incentivizer,
-  .cycle-card__head-finalize {
-    grid-column: auto;
-    justify-self: start;
-  }
-}
-
-/* 周期芯片固定 3 列（参考页 2 行 × 3 列），窄屏 2/1 列退化 */
+/* 周期芯片固定 3 列（参考页 2 行 × 3 列），窄屏退化；
+   ≤640px 手机档并入 hairline 行语言（见文末「Verse 详情页移动端重构」DAO 块） */
 .cycle-card__stats {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -6152,12 +6560,6 @@ svg {
   }
 }
 
-@media (max-width: 560px) {
-  .cycle-card__stats {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
 @media (max-width: 1024px) {
   .verse-desk {
     grid-template-columns: minmax(0, 1fr);
@@ -6181,6 +6583,494 @@ svg {
   }
 
   .pool-card__actions {
+    margin-inline-start: 0;
+  }
+}
+
+/* ==========================================================================
+   Verse 详情页移动端重构（2026-10-05，≤640px 手机档；860/1280 档基线不动）
+   原则：一行一决策（label 左灰 / value 右 mono，hairline 分隔——.economy-card__facts
+   移动档同款语言）；触控目标 ≥40px（--control-height）；主 CTA 48px；卡内距 24→16
+   换内容宽；区块间距统一 16px 节奏
+   ========================================================================== */
+@media (max-width: 640px) {
+  /* —— Hero：纵向 gap 4→8 放呼吸；titlerow 允许折行（2026-10-06 用户裁定后
+        徽章位=分享组右悬，见下方退役注） —— */
+  .verse-identity {
+    gap: var(--space-2);
+  }
+
+  .verse-identity__titlerow {
+    flex-wrap: wrap;
+  }
+
+  /* 徽章行左锚覆盖退役（2026-10-06 用户裁定）：阶段徽章已删，容器现住
+     FastBadge+分享组——右上角语义全档生效，基础 margin-auto 右推不再清零；
+     折行时分享组随行右悬（孤行真空顾虑随徽章删除一并作废） */
+
+  /* —— 门槛卡：内距 24→16；「最低募集」改 hairline 行（label 左 / 黄值右），
+        与下方双门槛表以分隔线成组 —— */
+  .threshold-panel {
+    padding: var(--space-4);
+  }
+
+  .threshold-panel__intro dl {
+    margin-block: var(--space-2) 0 var(--space-3);
+  }
+
+  .threshold-panel__intro dl > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding-block: var(--space-2);
+    border-block-start: 1px solid var(--color-border);
+  }
+
+  .threshold-panel__intro dd {
+    margin: 0;
+  }
+
+  .threshold-panel__meters {
+    gap: var(--space-4);
+    padding-block-start: var(--space-4);
+    border-block-start: 1px solid var(--color-border);
+  }
+
+  /* —— 关键数据卡：2×2 微格（12/14px）→ hairline 统计行，标签 14 / 值 16 —— */
+  .stats-panel .verse-stats {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    margin-block-start: var(--space-2);
+  }
+
+  .stats-panel .verse-stats > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-2) 0;
+    border-block-end: 1px solid var(--color-border);
+  }
+
+  .stats-panel .verse-stats > div:last-child {
+    border-block-end: 0;
+  }
+
+  .stats-panel .verse-stats dt {
+    font-size: var(--text-sm);
+  }
+
+  .stats-panel .verse-stats dd {
+    font-size: var(--text-base);
+  }
+
+  /* —— 交易台/Swap 卡内距 24→16（390 档多出 16px 内容宽）；
+        统计组→图表组分隔 16→24（组间距大于组内距，统计与图成两段读法）—— */
+  .trade-chart,
+  .swap-panel {
+    padding: var(--space-4);
+  }
+
+  .trade-chart {
+    gap: var(--space-5);
+  }
+
+  /* —— 价格读数 28→22px（KPI 数值档；用户反馈 28px 偏大）—— */
+  .token-strip__price strong {
+    font-size: var(--text-num-lg);
+  }
+
+  /* —— 统计胶囊：行内 label:value 胶囊换行后碎成三行——改两列 KPI 芯片
+        （label 上 / value 下，KPI 芯片家族语言），末位奇数项通栏收口 —— */
+  .token-strip__symbol {
+    display: none;
+  }
+
+  .token-strip__chips {
+    /* .token-strip__row 是 flex-wrap 行：dl 作为 flex 项默认收缩到内容宽（188px），
+       通栏份额由本声明强制占据整行 */
+    flex: 1 1 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2);
+  }
+
+  .token-strip__chips div {
+    display: grid;
+    gap: 2px;
+    align-content: center;
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .token-strip__chips div:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .token-strip__chips dt {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .token-strip__chips dd {
+    font-size: var(--text-sm);
+  }
+
+  /* —— K 线头部：价格+CA 一行（CA 右锚，弃三段漂移）；粒度钮通栏等分、
+        28→40px 触控达标；粒度钮→图面 8→12（原贴线挤压）—— */
+  .candle-chart {
+    gap: var(--space-3);
+  }
+
+  .candle-chart__bar {
+    flex-wrap: wrap;
+    row-gap: var(--space-2);
+  }
+
+  .candle-chart__row {
+    flex-basis: 100%;
+    /* 价格+CA 同行（2026-10-05 用户裁定）随宽度自适应：≥~354px 视口（内容宽 ≥298px）
+       自然同行；更窄 wrap 回退 CA 独行——nowrap 会把 298px 定成整卡 min-content
+       硬地板，视口内容宽不足时撑破列宽引发全页横向滚动（同日窄屏回归修复） */
+  }
+
+  .candle-chart__row .token-strip__copy {
+    margin-inline: 0;
+    margin-inline-start: auto;
+    /* CA 胶囊 16→14（2026-10-05 用户裁定稍缩小，与同行价格成比例） */
+    font-size: var(--text-sm);
+  }
+
+  /* 涨跌幅读数 16→14（2026-10-05 用户裁定稍缩小；同价位主从关系） */
+  .token-strip__price [data-trend] {
+    font-size: var(--text-sm);
+  }
+
+  .candle-chart__granularity {
+    flex: 1 1 100%;
+    margin-inline-start: 0;
+  }
+
+  .candle-chart__granularity [data-slot='toggle-group-item'] {
+    flex: 1;
+    min-block-size: var(--control-height);
+  }
+
+  /* —— Swap：输入数值 16→18（钱数是主角）；明细区 hairline 分区 + 行距放宽；
+        CTA 40→48 —— */
+  .swap-panel__field-row input {
+    font-size: var(--text-md);
+  }
+
+  .swap-panel__details {
+    gap: var(--space-2);
+    padding-block-start: var(--space-3);
+    border-block-start: 1px solid var(--color-border);
+  }
+
+  /* 明细行/字段头换行回退（2026-10-05 窄屏回归）：dt+dd 不可断行会把费率/路径行
+     定成 min-content 硬地板，≤~300px 视口撑破卡宽引发横滚；放不下时值折到次行 */
+  .swap-panel__details div,
+  .swap-panel__field-head {
+    flex-wrap: wrap;
+  }
+
+  /* 买入侧报价 output（nowrap+ellipsis）的固有文本宽仍沿 grid auto 轨道链上传成
+     卡片地板（flex:1/min-width:0 只管布局期收缩、不管固有尺寸贡献）——contain
+     切断 intrinsic 贡献；flex:1 拉伸渲染不变（2026-10-05 窄屏回归） */
+  .swap-panel__output {
+    contain: inline-size;
+  }
+
+  /* hairline 行族窄屏兜底：标签+值放不下时值整体折到次行（不撑地板） */
+  .stats-panel .verse-stats > div,
+  .refund-settle__participations > div,
+  .threshold-panel__intro dl > div {
+    flex-wrap: wrap;
+  }
+
+  /* 输入框原生固有宽（size=20 ≈222px）沿 .swap-panel 与 __field 两级 grid auto
+     轨道链抬成字段自动最小尺寸——掐断后真实叶子最小值（代币芯片 ~78px）接管
+     （2026-10-05 窄屏回归；行内 input 已有 min-width:0，此为轨道链缺口） */
+  .swap-panel__field {
+    min-inline-size: 0;
+  }
+
+  .swap-panel__cta {
+    /* 全局 [data-slot='button'] 40px !important 压非 important 声明——同特异性
+       双 !important 时文件序后者胜（先例见 5961 行注释） */
+    min-block-size: calc(var(--control-height) + var(--space-2)) !important;
+  }
+
+  /* —— 四标签（2026-10-05 二轮，用户裁定横滚选签在手机上难操作）：弃自然宽+
+        横向滚动——2×2 等分格四签全可见、单击直达（Tokenization/Yield Vault 长标签
+        单行四等分在 390px 放不下）；中缝=边到边 hairline（同底缝接缝语言，border-strong），
+        激活语法不变（黄字+3px 指示条下探压缝——首行激活条压中缝、末行压底缝）；
+        面板内距 24→16；区块顶距 24→16 归入整页节奏 —— */
+  .verse-tabs {
+    margin-block-start: var(--space-4);
+  }
+
+  .verse-tabs__bar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    /* 根件 gap 工具类（--gap:2→8px）会把中缝断成虚线，归零改走条目边框画缝 */
+    gap: 0;
+    padding-inline: var(--space-4);
+  }
+
+  .verse-tabs__bar [data-slot='toggle-group-item'] {
+    flex: none;
+    min-inline-size: 0;
+    padding-inline: var(--space-2);
+    white-space: nowrap;
+  }
+
+  .verse-tabs__bar [data-slot='toggle-group-item']:nth-child(-n + 2) {
+    /* !important 对冲桌面档 border:0 !important（4519 块；特异性更高且文件序更后双保险） */
+    border-block-end: 1px solid var(--color-border-strong) !important;
+  }
+
+  .verse-tabs__panel {
+    padding: var(--space-4);
+  }
+
+  /* —— 池卡统计行：两格等分满行（2026-10-05 用户裁定——纵叠档行内自然宽左聚，
+        右半行留白被否）；线两侧对称 12px 由基础档 gap 统一供给，格内仍左起 —— */
+  .pool-card__stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    inline-size: 100%;
+  }
+
+  /* —— POL 卡头角标 Proof of Liquidity 移动档隐藏（2026-10-05 用户裁定：窄屏
+        字母章+symbol 已占满，长角标文案挤行无信息增量；桌面/平板不动）—— */
+  .pol-card__tag {
+    display: none;
+  }
+
+  /* —— Yield Vault 统计：KPI 芯片改 hairline 行（本页重构行语言；2026-10-05 用户裁定
+        芯片版难看——半宽芯片里兑换率长值「1 sCCRB ≈ 1.2692 CCRB」句中折成三行、
+        APY 第三枚孤占半行右留白）：label 左灰 / 值右 mono，行间 hairline；
+        dd nowrap + 行 flex-wrap=极窄时值整体折下一行、不再句中折断 —— */
+  .vault-panel__stats {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .vault-panel__stats > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-2) 0;
+    border: 0;
+    background: none;
+    clip-path: none;
+    text-align: start;
+  }
+
+  .vault-panel__stats > div + div {
+    border-block-start: 1px solid var(--color-border);
+  }
+
+  .vault-panel__stats dt {
+    font-size: var(--text-sm);
+    letter-spacing: normal;
+    text-transform: none;
+  }
+
+  .vault-panel__stats dd {
+    font-size: var(--text-base);
+    white-space: nowrap;
+  }
+
+  /* —— 池卡动作钮 32→40px 触控 —— */
+  .pool-card__actions [data-slot='button'] {
+    min-block-size: var(--control-height);
+  }
+
+  /* —— 参与表单/退款结算主 CTA 48px（同 .swap-panel__cta 移动档；!important
+        对冲全局 [data-slot='button'] 40px !important）—— */
+  .participation-form [type='submit'],
+  .refund-settle [data-slot='button'] {
+    min-block-size: calc(var(--control-height) + var(--space-2)) !important;
+  }
+
+  /* —— 退款结算：行内四散的 dl 改 hairline 行（label 左 / 值右），合计行收口 —— */
+  .refund-settle__participations {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .refund-settle__participations > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-2) 0;
+  }
+
+  .refund-settle__participations > div + div {
+    border-block-start: 1px solid var(--color-border);
+  }
+
+  .refund-settle__participations dt {
+    font-size: var(--text-sm);
+  }
+
+  .refund-settle__participations dd {
+    margin: 0;
+    font-size: var(--text-base);
+  }
+
+  .refund-settle__total {
+    margin-inline: 0;
+    padding-inline: 0;
+    border-inline-start: 0;
+  }
+
+  .refund-settle__total dd {
+    font-size: var(--text-lg);
+  }
+
+  /* —— DAO 卡（2026-10-05 移动端重构补齐：概览/周期统计 KPI 芯片→hairline 行，
+        同 vault/refund 行语言——label 左灰 / 值右 mono；周期卡头改两行（标题通栏、
+        Incentivizer 左 + FINALIZE 右）；卡内动作钮触控 28→40px；明细入口行
+        整行按压反馈（vault-card__list 同款 raised 底），»> 移到行尾值后—— */
+  .dao-panel__stats,
+  .cycle-card__stats {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .dao-panel__stats > div,
+  .cycle-card__stats > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-2) 0;
+    border: 0;
+    background: none;
+    clip-path: none;
+    text-align: start;
+  }
+
+  .dao-panel__stats > div + div,
+  .cycle-card__stats > div + div {
+    border-block-start: 1px solid var(--color-border);
+  }
+
+  .dao-panel__stats dt,
+  .cycle-card__stats dt {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    letter-spacing: normal;
+    text-transform: none;
+  }
+
+  .dao-panel__stats dd,
+  .cycle-card__stats dd {
+    margin-inline-start: auto;
+    font-size: var(--text-base);
+    white-space: nowrap;
+  }
+
+  /* 周期号随行语言升 14px 档（原 stat-meta 12px 芯片档；stat-sub 日期保持小字内嵌） */
+  .cycle-card__stats dd.stat-meta {
+    font-size: var(--text-base);
+  }
+
+  /* 明细入口行：整行热区 + 按压反馈（hover 兼窄桌面窗；raised 与 vault 列表行同语言） */
+  .cycle-card__hit {
+    transition: background-color var(--motion-fast) var(--ease-out);
+  }
+
+  .cycle-card__hit:hover,
+  .cycle-card__hit:active {
+    background: var(--color-surface-raised);
+  }
+
+  /* 明细行（国库/未领取）dt 提升内容：label 与值、»> 同一 flex 行——值 auto 右锚、
+     »> 殿后；»> 基础规则自带 margin-inline-start:auto，行内与 dd 的 auto 边距平分
+     剩余空间会把数值吊在行中央（label…值…»> 三段死区，2026-10-05 用户裁定难看）——
+     撤 auto 让值+»> 成组右锚。可领行已退出整行触发（钮即触发器，»> 入钮内），
+     走普通行 wrap：label+⊙ 行 / 值+钮行 */
+  .cycle-card__hit > dt {
+    display: contents;
+  }
+
+  .cycle-card__hit dd {
+    order: 2;
+  }
+
+  .cycle-card__hit .dao-dots {
+    order: 3;
+    align-self: center;
+    margin-inline-start: 0;
+  }
+
+  /* 可领行 ⊙ 气泡（2026-10-05 用户裁定：显高、往左挪）：行距 space-3 对 label+⊙
+     太开——负边距收紧到 4px 档；CJK 字形墨心偏低令 ⊙ 圆心视觉上浮，下移 1px 光学对中 */
+  .cycle-card__claim-label .create-info {
+    margin-inline-start: calc(var(--space-1) - var(--space-3));
+    translate: 0 calc(var(--space-1) / 4);
+  }
+
+  /* Claim 值+钮组右聚（值与钮同行，钮 32px 档见下） */
+  .stat-action {
+    justify-content: flex-end;
+  }
+
+  /* 周期卡头两行：标题通栏，次行 Incentivizer 左（结算钮已迁横幅，不常驻） */
+  .cycle-card__head {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2) var(--space-3);
+  }
+
+  .cycle-card__head-meta {
+    grid-column: 1 / -1;
+  }
+
+  .cycle-card__head-incentivizer {
+    grid-column: 1;
+    justify-self: start;
+  }
+
+  /* 卡内动作钮移动档（2026-10-05 用户裁定 40px 偏大）：28px 桌面档升到 32px
+     卡内中档（control-height−space-2，与 POL 终端卡/池卡同档；
+     !important 对冲桌面 28px 档，同特异性文件序后者胜）；
+     结算横幅钮同档（32px 触控） */
+  .dao-panel__tally [data-slot='button'],
+  .cycle-card__settle [data-slot='button'],
+  .stat-action [data-slot='button'] {
+    min-block-size: calc(var(--control-height) - var(--space-2)) !important;
+  }
+}
+
+@media (max-width: 30rem) {
+  /* —— 参与表单：并排双列/三列（半宽 ~160px）容不下说明文案自然行宽，退单列 —— */
+  .participation-duo,
+  .participation-trio {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 30rem) {
+  /* —— K 线头部价格/CA：窄档折行后 CA 悬挂右锚难看（2026-10-05 用户裁定），
+     ≤30rem 直接确定性两行居中，不再依赖自然 wrap；480–640 档保持同行右锚 —— */
+  .candle-chart__row {
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .candle-chart__row .token-strip__copy {
     margin-inline-start: 0;
   }
 }
@@ -6228,16 +7118,22 @@ svg {
 }
 
 /* 金额字段标签行：标签居左、余额/Max 居右（行内结构复用 .swap-panel__balance/__max）；
-   余额行字阶随 swap 面板 head（--text-xs + secondary）——数值是辅注不抢 14px 标签（.swap-panel__field-head 同款） */
+   余额行放大到 13px + secondary、Max 钮 11→--text-xs（2026-10-06 用户裁定 13px，token 阶梯无此档随裸 px 惯例；仅创世面板不外溢）；
+   标签与余额行按基线对齐（align-items: baseline）——两侧字号/字重/字体（数字=--font-data mono）不同，
+   盒居中对齐必留 ~0.35px 字形高差，基线对齐与字体 metrics 无关（2026-10-06 用户裁定，行高方案误诊作废） */
 .participation-field-head {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   gap: var(--space-2);
 }
 
 .participation-field-head .swap-panel__balance {
   color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.participation-field-head .swap-panel__max {
   font-size: var(--text-xs, 0.75rem);
 }
 
@@ -7193,7 +8089,7 @@ svg {
   }
 
   .product-topbar {
-    min-block-size: var(--space-8);
+    min-block-size: var(--topbar-height);
     padding-inline: var(--space-3);
   }
 
@@ -7215,21 +8111,23 @@ svg {
   }
 
   /* 图标化（font-size:0）已废除：#48 漏修的产品壳侧——文案与首页壳同一套
-     full/short 双标签机制（30rem 内换短文案，见下方断点） */
+     full/short 双标签机制（30rem 内换短文案，见下方断点）；内距挪到下方
+     .wallet-control 统一档（020 补充 4，与宽度联动） */
   .product-topbar .wallet-control {
     min-inline-size: var(--control-height);
-    padding-inline: var(--space-3) !important;
   }
 
+  /* 三钮等距（决议 020 补充 3：用户裁定「三个按钮之间的间距要相等」）——
+     右推力从动作区挪到链钮（margin-auto 弹性空隙挪到品牌与链钮之间），链|语言|钱包
+     之间的间隙统一吃顶栏 gap（space-2）；钱包仍是末个 flex 项贴 padding 缘，
+     签名线锚点对齐不受影响 */
   .product-topbar__actions {
     flex-wrap: nowrap;
-    gap: var(--space-1);
-    /* 与 30rem 一致：动作区贴右缘，签名线锚点（=padding 缘）才与钱包按钮对齐 */
-    margin-inline-start: auto;
+    gap: var(--space-2);
   }
 
   .chain-dialog__trigger {
-    margin-inline-start: 0;
+    margin-inline-start: auto;
     gap: 0;
     padding-inline: var(--space-2);
   }
@@ -7238,8 +8136,30 @@ svg {
     display: none;
   }
 
+  /* 语言钮移动档隐文本只留 文/A 图标+chevron（决议 020 补充 2：用户裁定「文案只显示
+     文/A 的图标」；首版误删 chevron 已纠正保留）。display:none 不进 acc name，
+     aria-label 承接可访问名，同极窄档手法；white-space 规则随文本隐藏退役 */
+  .locale-menu__trigger > span {
+    display: none;
+  }
+
+  /* 顶栏三控件（链/语言/钱包）移动档降两档 40→32px（决议 020 + 补充 1：用户裁定
+     两轮「再稍微缩小一点点」，README §3 #9 控件高 40px 的 ≤54rem 档例外；桌面档
+     仍 40px）。钱包钮 !important 对冲 [data-slot='button'] 的 40px !important 基线
+     （同 verse 移动档 CTA 先例） */
+  .chain-dialog__trigger,
   .locale-menu__trigger {
-    white-space: nowrap;
+    min-block-size: calc(var(--control-height) - var(--space-2));
+  }
+
+  .wallet-control {
+    min-block-size: calc(var(--control-height) - var(--space-2)) !important;
+    /* 定宽 160→152（决议 020 补充 4：用户裁定「宽度稍微缩小一点点」）——缩量=删绿点
+       后的富余预算；内距 space-3→space-2 联动，地址「0x1111…0001」实测 110px
+       （IBM Plex Mono 16px）在 152 档完整显示且余量与 160 档持平（4px）。
+       基类定宽=「图标+截断地址」预算见 .wallet-control 基类 */
+    inline-size: calc(var(--control-height) * 4 - var(--space-2));
+    padding-inline: var(--space-2) !important;
   }
 
   .product-main {
@@ -7436,6 +8356,8 @@ svg {
   .verse-identity__symbol {
     inline-size: var(--space-8);
     block-size: var(--space-8);
+    /* 64px 靶位配 56px 字形会溢出行盒且盖过 22px ticker 的身份层级——半档收敛 42px */
+    font-size: calc(var(--text-xl) * 1.5);
   }
 
   .threshold-panel__intro,
@@ -7456,10 +8378,6 @@ svg {
 
   .marketing-brand__compact {
     display: block;
-  }
-
-  .marketing-brand__compact .brand-symbol {
-    inline-size: var(--space-7);
   }
 
   .marketing-header .wallet-control {
@@ -7609,9 +8527,8 @@ svg {
     inset-inline-end: calc(var(--space-3) + var(--space-6));
   }
 
-  .product-topbar__actions {
-    margin-inline-start: auto;
-  }
+  /* 右推已由 ≤54rem 的链钮 margin-auto 承担（020 补充 3 三钮等距），
+     此处不再对动作区重复 margin-auto——会把弹性空隙插回 语言|钱包 之间 */
 
   .page-intro > .source-ref {
     inline-size: 100%;
@@ -7900,17 +8817,113 @@ svg {
   background: var(--color-text-tertiary);
 }
 
-/* —— 面板原语：Data surface（余额/仓位/凭证等数据面板）—— */
+/* —— 页头净值 hero（017）：组合页唯一主读数，页面信息层级顶点 ——
+   右槽：大写微标签 + --text-num-xl mono 大数 + 三段分配微条（钱包/储蓄/待领）。
+   条体 2px 断缝 + 下方可见图例（色点+类别+占比）——连续无标注会被读成进度条
+   （2026-10-05 用户反馈「怎么下面还有一个类似进度条的东西」，方案 B） */
+.pf-hero {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: end;
+  align-self: end;
+  min-inline-size: 0;
+  text-align: end;
+}
+
+.pf-hero__label {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+}
+
+.pf-hero__value {
+  color: var(--color-text);
+  font-family: var(--font-data);
+  font-size: var(--text-num-xl);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+}
+
+.pf-hero__bar {
+  display: flex;
+  gap: 2px;
+  inline-size: 100%;
+  block-size: 3px;
+  margin-block-start: var(--space-1);
+}
+
+.pf-hero__bar span {
+  block-size: 100%;
+}
+
+.pf-hero__seg--wallet {
+  background: var(--color-text);
+}
+
+.pf-hero__seg--savings {
+  background: var(--color-text-tertiary);
+}
+
+.pf-hero__seg--ready {
+  background: var(--color-success);
+}
+
+/* 图例：色点=段色映射，占比走 data-numeric；承担可访问文本（替 sr-only 方案） */
+.pf-hero__legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+}
+
+.pf-hero__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  white-space: nowrap;
+}
+
+.pf-hero__dot {
+  inline-size: 6px;
+  block-size: 6px;
+}
+
+.pf-hero__dot--wallet {
+  background: var(--color-text);
+}
+
+.pf-hero__dot--savings {
+  background: var(--color-text-tertiary);
+}
+
+.pf-hero__dot--ready {
+  background: var(--color-success);
+}
+
+/* 组合页分区头签名线移除（2026-10-06 用户裁定「收益组合页，每张卡上的这条青色线删掉」）：
+   青线+品红回声=决议 014 .ax-echo-bar，仅组合页整线退役（content:none 连回声一起删）；
+   其余页面 SectionHeading 签名线不动 */
+:is(.pf-actions, .pf-assets, .pf-positions, .pf-savings, .pf-vault, .pf-vouchers)
+  > .ax-echo-bar::before,
+:is(.pf-actions, .pf-assets, .pf-positions, .pf-savings, .pf-vault, .pf-vouchers)
+  > .ax-echo-bar::after {
+  content: none;
+}
+
+/* —— 面板原语：Data surface（余额/仓位/凭证等数据面板）——
+   017 接入雨夜材质签名组（切角/底面由 ::before 湿边与 ::after 卡面承担，
+   自身 clip-path 必须移除——会剪掉外投影与伪元素）；外投影悬浮同 .pol-mint */
 .pf-panel {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  clip-path: polygon(
-    0 0,
-    calc(100% - var(--chamfer-panel)) 0,
-    100% var(--chamfer-panel),
-    100% 100%,
-    0 100%
-  );
+  position: relative;
+  isolation: isolate;
+  box-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* 面板 nameplate：模块铭牌行（mono 小写间距大写 + 计数），面板由此可辨起止 */
@@ -7977,9 +8990,29 @@ svg {
   box-shadow: inset 2px 0 0 var(--or-cyan);
 }
 
-/* ①待办区：悬浮警报卡（不上容器——紧急内容直接在画布上），截止色阶走左缘色条 */
+/* ①待办区：悬浮警报卡（不上容器——紧急内容直接在画布上），截止色阶走左缘色条。
+   017 三组节奏：行动组紧贴页头（space-7），钱/仓位两组走 .pf-zone-group（space-9 组距） */
 .pf-actions {
-  margin-block-start: var(--space-5);
+  margin-block-start: var(--space-7);
+}
+
+/* 页面级分区组（017）：组间 96px 明显大于组内 48px——留白分配不均承担分组识别 */
+.pf-zone-group {
+  display: grid;
+  gap: var(--space-7);
+  margin-block-start: var(--space-9);
+}
+
+/* —— 移动端分区页签 deck（决议 018）：桌面态=透明布局层 ——
+   页签条隐藏、四分区按 017 三组节奏序贯全显；sub=第三组内的两个移动分区，
+   间隙与组内 gap 同档，桌面组距不变。 */
+.pf-zone-sub {
+  display: grid;
+  gap: var(--space-7);
+}
+
+.pf-zone-tabs {
+  display: none;
 }
 
 .pf-actions__list {
@@ -7993,9 +9026,9 @@ svg {
 
 .pf-action {
   position: relative;
-  display: grid;
-  gap: var(--space-2);
-  align-content: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
   padding: var(--space-4);
   border: 1px solid var(--color-border-strong);
   background: var(--color-surface);
@@ -8006,6 +9039,10 @@ svg {
     100% 100%,
     0 100%
   );
+  /* 卡宽容器化（2026-10-06 决议 022）：auto-fit 列数让卡宽随视口漂移
+     （1280 三列=329px 反而窄于 390 单列=364px），视口断点管不住卡内布局——
+     本仓首个 @container，宽窄由卡片自身宽度裁定 */
+  container-type: inline-size;
 }
 
 .pf-action::before {
@@ -8023,10 +9060,9 @@ svg {
 .pf-action[data-tone='danger']::before {
   background: var(--color-danger);
 }
-.pf-action[data-primary] {
-  border-color: var(--color-border-signal-strong);
-}
 
+/* 卡片语法 v3（2026-10-05 二轮）：head=kind 铭牌 + 倒计时 hero（数字是主角）；
+   底栏 hairline 分隔、等高钉底（flex + margin-block-start:auto） */
 .pf-action__head {
   display: flex;
   align-items: baseline;
@@ -8034,54 +9070,321 @@ svg {
   gap: var(--space-3);
 }
 
-.pf-action__head h3 {
-  font-size: var(--text-md);
-  line-height: 1.25;
+/* 窄卡铭牌与倒计时转上下堆叠（决议 022）：容器查询按 content-box 计（卡外宽 ≳414px
+   才维持 side-by-side）——铭牌独占行不再挤压换行，倒计时整行独占：
+   num-lg mono「Ends in 15:05:59」≈208px 在 280px 档卡内也放得下，
+   截断根源（nowrap 时钟挤 side-by-side 行）消除；数字仍是主角且更醒目 */
+@container (width < 23.75rem) {
+  .pf-action__head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+  }
 }
 
-.pf-action__head [data-numeric] {
-  color: var(--color-warning);
-  font-size: var(--text-sm);
+.pf-action__kind {
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+}
+
+.pf-action__clock {
+  font-family: var(--font-data);
+  font-size: var(--text-num-lg);
+  line-height: 1;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
   white-space: nowrap;
 }
 
-.pf-action[data-tone='danger'] .pf-action__head [data-numeric] {
+.pf-action[data-tone='warning'] .pf-action__clock {
+  color: var(--color-warning);
+}
+
+.pf-action[data-tone='danger'] .pf-action__clock {
   color: var(--color-danger);
 }
 
-.pf-action__body {
+.pf-action__who {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
   margin: 0;
-  color: var(--color-text-secondary);
   font-size: var(--text-sm);
 }
 
-.pf-action__meta {
-  margin: 0;
+.pf-action__who a {
+  color: var(--or-cyan);
+  text-decoration: none;
+  font-weight: var(--font-weight-semibold);
+}
+
+.pf-action__who a:hover,
+.pf-action__who a:focus-visible {
+  text-decoration: underline;
+}
+
+.pf-action__who span {
+  color: var(--color-text-tertiary);
+  font-size: var(--text-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 窗口余量条：剩余占比（满=时间充裕，随时间耗尽），tone 着色与倒计时一致 */
+.pf-action__meter {
+  block-size: 3px;
+  background: var(--color-border);
+}
+
+.pf-action__meter span {
+  display: block;
+  block-size: 100%;
+  background: var(--color-text-tertiary);
+}
+
+.pf-action[data-tone='warning'] .pf-action__meter span {
+  background: var(--color-warning);
+}
+
+.pf-action[data-tone='danger'] .pf-action__meter span {
+  background: var(--color-danger);
+}
+
+.pf-action__foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-block-start: auto;
+  padding-block-start: var(--space-3);
+  border-block-start: 1px solid var(--color-border);
+}
+
+.pf-action__kv {
+  display: grid;
+  gap: 2px;
+}
+
+.pf-action__kv-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+}
+
+.pf-action__kv-value {
+  font-family: var(--font-data);
+  font-size: var(--text-md);
+  line-height: 1.2;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.pf-action__kv-value em {
+  font-style: normal;
   font-size: var(--text-xs);
   color: var(--color-text-tertiary);
 }
 
-.pf-action__meta a {
-  color: var(--or-cyan);
-  text-decoration: none;
+/* 金库卡 hero：美元待取合计（KPI 读数档）+ 已成熟计数 */
+.pf-action__hero {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
 }
 
-.pf-action__meta a:hover,
-.pf-action__meta a:focus-visible {
+.pf-action__hero strong {
+  font-family: var(--font-data);
+  font-size: var(--text-num-lg);
+  line-height: 1;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.pf-action__hero span {
+  color: var(--color-text-tertiary);
+  font-size: var(--text-xs);
+}
+
+/* 金库卡整行（2026-10-05 用户裁定：CTA=页内锚点 → 页内 signpost 横幅形态，
+   紧急对卡在上、横幅卡全宽殿后） */
+.pf-action[data-kind='vault'] {
+  grid-column: 1 / -1;
+}
+
+.pf-action__hint {
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-xs);
+}
+
+/* 静态行动链接（青文本；黄主钮仅最紧急卡一张——一主多静层次） */
+.pf-action__link {
+  color: var(--or-cyan);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.pf-action__link:hover,
+.pf-action__link:focus-visible {
   text-decoration: underline;
 }
 
-.pf-action__cta {
+/* 朴素 button 承接的文本链触发器：去钮壳去钮距（滞留恢复弹窗；不经过
+   [data-slot='button'] 全局画皮） */
+button.pf-action__link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+/* 领取双表（2026-10-05 四轮裁定拆表）：单面板双组混排可读性不足——激励/退款各一张
+   Data surface 面板（铭牌=标题+计数，行语义同质）；≥54rem 并排、窄屏纵排；
+   行 hover=Data surface 通电（抬升一档 + 青内缘线）；行距与资产行同档（space-3） */
+.pf-claims {
+  display: grid;
+  gap: var(--space-3);
+  margin-block-start: var(--space-3);
+}
+
+.pf-claim__list {
+  margin: 0;
+  padding: var(--space-2) 0;
+  list-style: none;
+}
+
+.pf-claim-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+}
+
+.pf-claim-row:hover {
+  background: var(--color-surface-raised);
+  box-shadow: inset 2px 0 0 var(--or-cyan);
+}
+
+.pf-claim-row__id {
+  display: grid;
+  gap: 2px;
+  min-inline-size: 0;
+}
+
+.pf-claim-row__id strong {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.pf-claim-row__id span {
+  color: var(--color-text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.pf-claim-row__amount {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+}
+
+.pf-claim-row__amount strong {
+  font-family: var(--font-data);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.pf-claim-row__amount span {
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+.pf-claim-row__actions {
   display: flex;
-  justify-content: flex-start;
-  margin-block-start: var(--space-1);
+  justify-content: flex-end;
 }
 
-/* ②资产与跨链：Data surface 面板 + 行式清单；只读资产压缩进面板页脚 */
-.pf-assets {
-  margin-block-start: var(--space-8);
+/* ==========================================================================
+   极窄档（≤18.75rem = 300px，Galaxy Fold 内屏 280 等；2026-10-05 窄屏回归）
+   30rem 档之上零规则——390/375 等常规手机不受影响。本档目标：全页零横向溢出，
+   手段=顶栏转纯图标 + 各原子行/分段组允许收缩或折行（逐条注释含地板数值）
+   ========================================================================== */
+@media (max-width: 18.75rem) {
+  /* 顶栏钱包短文案 152px（020 补充 4 定宽）+ 链钮与内距合计 ~300px = 全页横滚地板；
+     钱包转纯图标（可访问名由组件 aria-label 承接；不复辟 #48 已废除的
+     font-size:0 图标化——display:none 才不进 acc name，aria-label 补位）。
+     语言钮文本隐藏已上移 ≤54rem 全移动档（决议 020 补充 2），此处不再重复 */
+  .product-topbar .wallet-control__label-full,
+  .product-topbar .wallet-control__label-short {
+    display: none;
+  }
+
+  /* 已连接态：地址文本同样收起（aria-label=地址承接可访问名；决议 020 补充 1 删绿点后
+     连接信号由签名线承接，此档转纯图标） */
+  .product-topbar .wallet-control__connected > span {
+    display: none;
+  }
+
+  /* 钮宽基准=「图标+截断地址」定宽（基类连接前后同宽裁定；≤54rem 档 152px，
+     决议 020 补充 4）——图标态无文本，退 auto（图标态两态仍等宽，原「不跳宽」意图保持） */
+  .product-topbar .wallet-control {
+    inline-size: auto;
+  }
+
+  /* Swap 余额行=原子 inline-flex 不可断（Balance+数值+Max 整体 ~249px 地板）——
+     本档允许内部折行，min-content 降到最长数值词 */
+  .swap-panel__balance {
+    flex-wrap: wrap;
+  }
+
+  /* K 线粒度钮七枚文字 min-content 合计 ~244px——降一档字号+收内距（仍 ≥40px 高触控）；
+     max 用 100vw 定值钳制（百分比在父级固有尺寸化时按 auto 忽略、钳不住），放不下时
+     组内横滚（分段控件标准回退，不撑卡宽） */
+  .candle-chart__granularity[data-slot='toggle-group'] {
+    gap: 0;
+    max-inline-size: calc(100vw - (var(--space-4) * 2 + var(--space-8)));
+    overflow-x: auto;
+  }
+
+  .candle-chart__granularity [data-slot='toggle-group-item'] {
+    flex: 0 0 auto;
+    padding-inline: 2px;
+    font-size: var(--text-sm);
+  }
+
+  /* 创世模式三段钮（Standard/Leverage/Preorder 16px 合计 ~251px）——降一档
+     字号保单行等分 */
+  .participation-toggle--mode [data-slot='toggle-group-item'] {
+    font-size: var(--text-sm);
+  }
+
+  /* 行动卡禁用钮文案（Trigger stage advancement ≈206px，全局 [data-slot='button']
+     nowrap 定成原子）——局部豁免允许折行 */
+  .action-panel [data-slot='button'] {
+    white-space: normal;
+  }
 }
 
+@media (min-width: 54rem) {
+  .pf-claims {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ②资产与跨链：Data surface 面板 + 行式清单；只读资产压缩进面板页脚（顶距走 .pf-zone-group） */
 .pf-assets__list {
   margin: 0;
   padding: 0;
@@ -8089,6 +9392,7 @@ svg {
 }
 
 .pf-asset-row {
+  position: relative;
   display: grid;
   /* 数字列/动作列固定轨宽：各行数字右缘共线（行=独立 grid，auto 列会随按钮数漂移） */
   grid-template-columns: auto minmax(0, 1fr) 16ch 200px;
@@ -8206,20 +9510,24 @@ svg {
   justify-content: flex-end;
 }
 
-/* ③仓位=面板+表格（2026-10-04 裁定）；储蓄=卡网格；金库=面板+紧凑表 */
-.pf-positions,
-.pf-savings,
-.pf-vault {
-  margin-block-start: var(--space-8);
+/* 移动端整行 hit 层（决议 018 补充）：≤54rem 显示、点按开底部操作面板；
+   桌面 display:none 行内按钮照旧。行本体 position:relative 作 hit 定位锚 */
+.pf-asset-row__hit {
+  display: none;
 }
 
-/* 链名芯片组宽于窄视口：标题行可换行（aside 掉到 h2 下），芯片组自身可换行；
-   aside 限宽让芯片组 max-inline-size 有确定基准（row 宽） */
-.pf-positions .section-heading__row {
+/* ③仓位=面板+表格（2026-10-04 裁定）；储蓄=卡网格；金库=面板+紧凑表（顶距走 .pf-zone-group） */
+
+/* 筛选芯片组宽于窄视口：标题行可换行（aside 掉到 h2 下），芯片组自身可换行；
+   aside 限宽让芯片组 max-inline-size 有确定基准（row 宽）——③仓位与④凭证同补
+   （凭证区曾漏：390 恰好满格、375 类窄屏 "Claimable only" 溢出右缘，018 补充 4） */
+.pf-positions .section-heading__row,
+.pf-vouchers .section-heading__row {
   flex-wrap: wrap;
 }
 
-.pf-positions .section-heading__aside {
+.pf-positions .section-heading__aside,
+.pf-vouchers .section-heading__aside {
   max-inline-size: 100%;
 }
 
@@ -8229,9 +9537,7 @@ svg {
   gap: var(--space-3);
 }
 
-.pf-positions .pf-panel {
-  margin-block-start: var(--space-4);
-}
+/* 017 节奏统一：SectionHeading 自带 16px 底距，所有区块标题→首内容不再叠额外顶距 */
 
 /* 列宽（2026-10-04 多轮裁定）：fixed 比例分配，两组成构图（在哪居左/多少+操作居右）。
    链列 7rem（图标+大幅组内间距，用户裁「幅度要大」）；抵押/借入 25% 各（数字右对齐）；
@@ -8344,20 +9650,17 @@ svg {
   background: none;
 }
 
+/* 储蓄卡（017 接入雨夜材质：同 .pf-panel 解剖，切角/底面/投影归伪元素与投影通道） */
 .pf-card {
+  position: relative;
+  isolation: isolate;
   display: grid;
   gap: var(--space-3);
   align-content: start;
   padding: var(--space-4);
-  border: 1px solid var(--color-border-strong);
-  background: var(--color-surface);
-  clip-path: polygon(
-    0 0,
-    calc(100% - var(--chamfer-panel)) 0,
-    100% var(--chamfer-panel),
-    100% 100%,
-    0 100%
-  );
+  box-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .pf-card__bar {
@@ -8442,6 +9745,8 @@ svg {
 
 .pf-table th,
 .pf-table td {
+  /* 017：行高钉 --row-height-compact（token 在案却未接线，原为 padding 涌现值） */
+  min-block-size: var(--row-height-compact);
   padding: var(--space-2) var(--space-3);
   border-block-end: 1px solid var(--color-border);
   text-align: start;
@@ -8453,12 +9758,11 @@ svg {
   border-block-end: none;
 }
 
+/* 017 标签降噪：列头=字段轴标签（正常大小写/次级色/不加字距与强调字重）；
+   大写+间距语法只保留给面板铭牌行一层——同面板双层大写互抢，全是大写即无大写 */
 .pf-table thead th {
   color: var(--color-text-secondary);
   font-size: var(--text-xs);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: var(--label-tracking);
-  text-transform: uppercase;
   white-space: nowrap;
 }
 
@@ -8502,10 +9806,126 @@ svg {
   color: var(--color-text-secondary);
 }
 
-/* ④参与凭证：筛选=Signal 面板芯片（筛选语法）；阶段组=顶缘 2px 阶段主线面板
-   （--stage-color 由全站阶段变量组提供，双线规律见 economy-card 段） */
-.pf-vouchers {
-  margin-block-start: var(--space-8);
+/* —— 仓位/金库移动端台账行（决议 018）：≤54rem 表格换堆叠行 ——
+   身份行（链标+来源 / verse 符号 + 行尾动作，--row-height 触达）+ 事实格
+   （dt 标签 / dd data 数字，储蓄卡事实格同语法）；桌面 display:none 表格不动 */
+.pf-mrows {
+  display: none;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pf-mrow {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-block-end: 1px solid var(--color-border);
+}
+
+.pf-mrow:last-child {
+  border-block-end: none;
+}
+
+.pf-mrow__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-block-size: var(--row-height);
+}
+
+.pf-mrow__id {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.pf-mrow__id strong {
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.pf-mrow__verse {
+  color: var(--color-text);
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.pf-mrow__verse:hover,
+.pf-mrow__verse:focus-visible {
+  text-decoration: underline;
+}
+
+.pf-mrow__act {
+  display: flex;
+  gap: var(--space-4);
+  justify-content: flex-end;
+}
+
+.pf-mrow__facts {
+  display: grid;
+  /* 钉死两列（auto-fit 在 860 平板会摊成 4 列留空、390 下 2+1 孤格） */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+}
+
+.pf-mrow__facts dt {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+}
+
+.pf-mrow__facts dd {
+  margin: 0;
+  font-size: var(--text-base);
+}
+
+.pf-mrow__facts dd[data-numeric] {
+  color: var(--color-text);
+}
+
+/* 行内可取/等待读数：表格的堆叠版式在行卡里改内联基线（值+小标签一行，
+   消除孤格高度差）；金库赎回状态通栏独占一行 */
+.pf-mrow .pf-claimable {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  text-align: start;
+}
+
+.pf-vault .pf-mrow__facts > div:last-child {
+  grid-column: 1 / -1;
+}
+
+/* ④参与凭证：筛选=Signal 面板芯片（筛选语法）；阶段组=内嵌 .pf-panel（017 面板化：
+   材质/投影随面板原语，阶段主线改为面板首 child 元素——伪元素位已被材质占用） */
+.pf-vouchers__groups {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.pf-vouchers__group {
+  min-inline-size: 0;
+}
+
+/* 阶段主线：顶缘 2px --stage-color（组 selector 供变量，线体在面板内随内容层绘制；
+   切角同步裁剪，不悬出面板右上斜边） */
+.pf-vouchers__stage-line {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  block-size: 2px;
+  background: var(--stage-color, var(--color-border-strong));
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--chamfer-panel)) 0,
+    100% var(--chamfer-panel),
+    100% 100%,
+    0 100%
+  );
 }
 
 .pf-positions__filter,
@@ -8552,35 +9972,6 @@ svg {
   color: var(--or-cyan);
 }
 
-.pf-vouchers__groups {
-  display: grid;
-  gap: var(--space-4);
-  margin-block-start: var(--space-4);
-}
-
-.pf-vouchers__group {
-  position: relative;
-  min-inline-size: 0;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  clip-path: polygon(
-    0 0,
-    calc(100% - var(--chamfer-panel)) 0,
-    100% var(--chamfer-panel),
-    100% 100%,
-    0 100%
-  );
-}
-
-.pf-vouchers__group::before {
-  content: '';
-  position: absolute;
-  inset-inline: 0;
-  inset-block-start: 0;
-  block-size: 2px;
-  background: var(--stage-color, var(--color-border-strong));
-}
-
 .pf-vouchers__group-head {
   display: flex;
   align-items: center;
@@ -8594,7 +9985,8 @@ svg {
 .pf-vouchers__group-head span[data-numeric] {
   margin-inline-start: auto;
   color: var(--color-text-secondary);
-  font-size: var(--text-sm);
+  /* 017：组头计数对齐铭牌语法档（text-xs），与 .pf-panel__bar 计数同档 */
+  font-size: var(--text-xs);
 }
 
 .pf-vouchers__flags {
@@ -8755,14 +10147,211 @@ svg {
   color: var(--or-cyan);
 }
 
+/* —— 资产底部操作面板（决议 018 补充：移动端资产行去按钮化）——
+   卡壳复用 .pol-mint（与六弹窗同材质同解剖）；底部锚定/安全区在 ui/sheet 层；
+   链分布=44px 台账行（链标+链名 | mono 金额）；CTA 行等宽拉伸 */
+.pf-asset-sheet {
+  max-inline-size: min(30rem, 100%);
+  margin-inline: auto;
+  transition:
+    transform var(--motion-base) var(--ease-out),
+    opacity var(--motion-base) var(--ease-out);
+}
+
+.pf-asset-sheet[data-starting-style],
+.pf-asset-sheet[data-ending-style] {
+  opacity: 0;
+  transform: translateY(100%);
+}
+
+.pf-asset-sheet__chains {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pf-asset-sheet__chains li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-block-size: var(--row-height);
+  padding: var(--space-1) var(--space-2);
+  border-block-end: 1px solid var(--color-border);
+}
+
+.pf-asset-sheet__chains li:last-child {
+  border-block-end: none;
+}
+
+.pf-asset-sheet__chain {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.pf-asset-sheet__chain span {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.pf-asset-sheet__chains [data-numeric] {
+  color: var(--color-text);
+  font-size: var(--text-sm);
+}
+
+.pf-asset-sheet__cta {
+  display: flex;
+  gap: var(--space-2);
+  margin-block-start: var(--space-3);
+}
+
+/* Convert/Bridge 触发钮等宽吃满（各自开嵌套弹窗，面板同拍收起） */
+.pf-asset-sheet__cta [data-slot='button'] {
+  flex: 1;
+}
+
 @media (max-width: 54rem) {
-  /* chains 嵌在 id 内（符号下的第二行）——不设独立 area，避免幽灵命名区把它推进隐式列 */
+  /* —— 分区页签条（决议 018）：吸顶于顶栏下（顶栏 ≤54rem 高=space-8+1px 边框），
+     全出血（stage-tabs 负边距先例）+ surface-header/blur；激活语法=verse-tabs__bar
+     同款（黄字 + 3px 底缘指示条焊在条体下缘） —— */
+  .pf-zone-tabs {
+    position: sticky;
+    inset-block-start: calc(var(--space-8) + 1px);
+    z-index: calc(var(--z-sticky) - 1);
+    display: block;
+    margin-inline: calc(var(--space-3) * -1);
+    padding-inline: var(--space-3);
+    border-block-end: 1px solid var(--color-border);
+    background: var(--color-surface-header);
+    backdrop-filter: blur(12px);
+  }
+
+  .pf-zone-tabs__bar {
+    inline-size: 100% !important;
+  }
+
+  .pf-zone-tabs__bar [data-slot='toggle-group-item'] {
+    position: relative;
+    flex: 1;
+    min-block-size: var(--row-height);
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: var(--color-text-secondary) !important;
+  }
+
+  .pf-zone-tabs__bar [data-slot='toggle-group-item'][data-pressed] {
+    color: var(--accent-primary) !important;
+  }
+
+  .pf-zone-tabs__bar [data-slot='toggle-group-item'][data-pressed]::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    bottom: -1px;
+    block-size: 3px;
+    background: var(--accent-primary);
+  }
+
+  /* 页签角标=信号计数（KPI 带让位：「摘要即导航」语义由页签承接，计数常驻可视） */
+  .pf-zone-tabs__badge {
+    font-family: var(--font-data);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .pf-zone-tabs__badge[data-tone='warning'] {
+    color: var(--color-warning);
+  }
+
+  .pf-zone-tabs__badge[data-tone='success'] {
+    color: var(--color-success);
+  }
+
+  .pf-kpi {
+    display: none;
+  }
+
+  /* 分区显隐：仅 JS 挂载后生效（SSR/无 JS 全可见，优雅降级） */
+  .pf-deck[data-js] [data-zone-wrap] {
+    display: none;
+  }
+
+  .pf-deck[data-js][data-zone='action'] [data-zone-wrap='action'] {
+    display: block;
+  }
+
+  .pf-deck[data-js][data-zone='money'] [data-zone-wrap='money'] {
+    display: grid;
+  }
+
+  .pf-deck[data-js][data-zone='positions'] [data-zone-wrap='positions'] {
+    display: grid;
+  }
+
+  .pf-deck[data-js][data-zone='vouchers'] [data-zone-wrap='vouchers'] {
+    display: grid;
+  }
+
+  /* 仓位/凭证页签都未激活时第三组整组让位（空 grid 容器仍会占 96px 组距） */
+  .pf-deck[data-js]:not([data-zone='positions']):not([data-zone='vouchers']) .pf-deck__tail {
+    display: none;
+  }
+
+  /* 换区/页内锚点滚动落点：避开吸顶的顶栏+页签条 */
+  .pf-deck [data-zone-wrap],
+  .pf-deck [id^='pf-'] {
+    scroll-margin-block-start: calc(var(--space-8) + var(--row-height) + var(--space-4));
+  }
+
+  /* hero 退整行（窄视口页头放不下双栏）——左锚升页头主读数（右对齐是桌面双栏平衡语） */
+  .pf-hero {
+    flex-basis: 100%;
+    justify-items: start;
+    text-align: start;
+    margin-block-start: var(--space-2);
+  }
+
+  .pf-hero__legend {
+    justify-content: flex-start;
+  }
+
+  /* 仓位/金库表格让位移动台账行（决议 018：横向滚动表格在窄视口不可读） */
+  .pf-positions .pf-table-wrap,
+  .pf-vault .pf-table-wrap {
+    display: none;
+  }
+
+  .pf-mrows {
+    display: grid;
+  }
+
+  /* 仓位铭牌行两行制（决议 018 补充 2）：「铭牌+计数」与 owed 聚合硬挤一行
+     会在 390 下中途折断——owed 独立成行右锚（数字=右缘锚点），族内不断行 */
+  .pf-positions .pf-panel__bar {
+    flex-wrap: wrap;
+    row-gap: var(--space-1);
+  }
+
+  .pf-positions .pf-panel__bar .pf-positions__owed {
+    flex-basis: 100%;
+    text-align: end;
+  }
+
+  .pf-zone-group {
+    gap: var(--space-6);
+    margin-block-start: var(--space-8);
+  }
+
+  /* 资产行移动端=纯台账单线（决议 018 补充）：链分布数值让位链徽标、按钮让位
+      整行 hit 层（开底部操作面板）——行高节奏归一，44px 触达由 hit 层兜底 */
   .pf-asset-row {
     grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas:
-      'tile identity total'
-      'tile actions actions';
-    row-gap: var(--space-2);
+    grid-template-areas: 'tile identity total';
+    min-block-size: var(--row-height);
   }
 
   .pf-asset-row__tile {
@@ -8775,8 +10364,23 @@ svg {
     grid-area: total;
   }
   .pf-asset-row__actions {
-    grid-area: actions;
-    justify-content: flex-end;
+    display: none;
+  }
+
+  .pf-asset-row__hit {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+
+  /* 链分布数值进底部面板，行内只留链徽标（降噪） */
+  .pf-asset-row__chain > span[data-numeric] {
+    display: none;
+  }
+
+  .pf-asset-row__chains {
+    gap: var(--space-1) var(--space-2);
   }
 
   /* 凭证行同款堆叠：身份/主数字一行，动作换行右对齐（构成行嵌在身份块内随之换行） */
@@ -8803,8 +10407,46 @@ svg {
 }
 
 @media (max-width: 30rem) {
+  .pf-zone-group {
+    gap: var(--space-5);
+    margin-block-start: var(--space-7);
+  }
+
   .pf-actions__list {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pf-action__foot {
+    flex-wrap: wrap;
+  }
+
+  /* 金库 signpost 卡 CTA 折行独占一行时居中（2026-10-05 用户裁定）：
+     auto margin 同行无自由空间可吸收=零影响，独行时吸收全部自由空间=居中——
+     保护窗卡底栏（KV+按钮同行）不受波及 */
+  .pf-action[data-kind='vault'] .pf-action__foot > :last-child {
+    margin-inline: auto;
+  }
+
+  /* 领取行折两行：身份+金额一行、动作换行回落左 */
+  .pf-claim-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'id amount'
+      'actions actions';
+    align-items: start;
+  }
+
+  .pf-claim-row__id {
+    grid-area: id;
+  }
+
+  .pf-claim-row__amount {
+    grid-area: amount;
+  }
+
+  .pf-claim-row__actions {
+    grid-area: actions;
+    justify-content: flex-start;
   }
 
   .pf-holdings {
@@ -8816,7 +10458,8 @@ svg {
   .pf-assets__group,
   .pf-asset-row,
   .pf-voucher-row,
-  .pf-vouchers__group-head {
+  .pf-vouchers__group-head,
+  .pf-mrow {
     padding-inline: var(--space-3);
   }
 
@@ -8893,22 +10536,46 @@ svg {
 
 /* 阶段双线规律（2026-09-26 用户裁定）：上边缘主线 = 当前阶段色，回声线 = 下一阶段色
    （genesis 黄→locked 品红→unlocked 青→回环 genesis 黄；refund 终态无下一阶段，回声保持品牌品红） */
-:is(.economy-card, .back-to-top, .verse-hero, .pf-vouchers__group)[data-stage='genesis'] {
+:is(
+  .economy-card,
+  .back-to-top,
+  .verse-hero,
+  .pf-vouchers__group,
+  .verse-share-pop
+)[data-stage='genesis'] {
   --stage-color: var(--accent-primary);
   --stage-next: var(--accent-echo);
 }
 
-:is(.economy-card, .back-to-top, .verse-hero, .pf-vouchers__group)[data-stage='locked'] {
+:is(
+  .economy-card,
+  .back-to-top,
+  .verse-hero,
+  .pf-vouchers__group,
+  .verse-share-pop
+)[data-stage='locked'] {
   --stage-color: var(--accent-echo);
   --stage-next: var(--or-cyan);
 }
 
-:is(.economy-card, .back-to-top, .verse-hero, .pf-vouchers__group)[data-stage='unlocked'] {
+:is(
+  .economy-card,
+  .back-to-top,
+  .verse-hero,
+  .pf-vouchers__group,
+  .verse-share-pop
+)[data-stage='unlocked'] {
   --stage-color: var(--or-cyan);
   --stage-next: var(--accent-primary);
 }
 
-:is(.economy-card, .back-to-top, .verse-hero, .pf-vouchers__group)[data-stage='refund'] {
+:is(
+  .economy-card,
+  .back-to-top,
+  .verse-hero,
+  .pf-vouchers__group,
+  .verse-share-pop
+)[data-stage='refund'] {
   --stage-color: var(--color-warning);
   --stage-next: var(--accent-echo);
 }
@@ -9116,6 +10783,12 @@ svg {
     0 100%
   );
   transition: opacity var(--motion-fast) var(--ease-out);
+}
+
+/* 结算窗口 ⊙ 气泡窄档（2026-10-05 用户裁定：这个气泡宽度缩小些）——
+   全局 256px 收到 192px；同特异性靠文件序压过上面的全局块 */
+.cycle-card__settle-tip {
+  max-inline-size: calc(var(--space-8) * 3);
 }
 
 .economy-card__signal {
@@ -9344,8 +11017,8 @@ svg {
 
 @media (max-width: 68rem) {
   .lifecycle-tabs {
-    overflow-x: auto;
-    grid-template-columns: repeat(3, minmax(calc(var(--space-8) * 2.35), 1fr));
+    /* 三个 tab 等分收缩适配视口，窄屏不再横向滚动裁切 */
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .discovery-tools {
@@ -9374,7 +11047,6 @@ svg {
 
   .lifecycle-tabs {
     margin-inline: calc(var(--space-3) * -1);
-    padding-inline: var(--space-3);
     border-inline: 0;
   }
 
@@ -9399,6 +11071,18 @@ svg {
 }
 
 @media (max-width: 30rem) {
+  .lifecycle-tabs a {
+    /* 等分段落内色点+阶段名作为一组居中，消掉右侧大片空档 */
+    display: flex;
+    justify-content: center;
+    gap: var(--space-2);
+    padding-inline: var(--space-2);
+  }
+
+  .lifecycle-tabs a strong {
+    white-space: nowrap;
+  }
+
   .discovery-intro p {
     font-size: var(--text-base);
   }
