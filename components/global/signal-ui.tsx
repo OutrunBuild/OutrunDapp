@@ -1,11 +1,14 @@
 import type { Locale, VerseStage } from '@/lib/data/fixture-repository'
 
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+
 import { getCopy } from './copy'
 
 export function formatAmount(value: number, locale: Locale, compact = false) {
   return new Intl.NumberFormat(locale === 'zh' ? 'zh-CN' : 'en-US', {
     maximumFractionDigits: value < 1 ? 6 : 2,
-    notation: compact ? 'compact' : 'standard',
+    // 017 数字纪律：compact 恒两位小数——终结 45K/122.83K/2.1K 同列混排（min=max=2）
+    ...(compact ? { notation: 'compact' as const, minimumFractionDigits: 2 } : {}),
   }).format(value)
 }
 
@@ -82,13 +85,25 @@ export function StageBadge({ stage, locale }: { stage: VerseStage; locale: Local
   )
 }
 
-/** Fast Genesis 徽章：青色功能信号，仅创世期且 fixture 标记 fastGenesis 时展示 */
-export function FastBadge({ label }: { label: string }) {
+/** Fast Genesis 徽章：青色功能信号，仅创世期且 fixture 标记 fastGenesis 时展示；
+    传 note 时整枚徽章=悬停气泡触发器（button 语义键盘可达，term-gloss 同范式） */
+export function FastBadge({ label, note }: { label: string; note?: string }) {
+  if (!note) {
+    return (
+      <span className="fast-badge">
+        <span className="fast-badge__mark" aria-hidden="true" />
+        {label}
+      </span>
+    )
+  }
   return (
-    <span className="fast-badge">
-      <span className="fast-badge__mark" aria-hidden="true" />
-      {label}
-    </span>
+    <Tooltip>
+      <TooltipTrigger className="fast-badge">
+        <span className="fast-badge__mark" aria-hidden="true" />
+        {label}
+      </TooltipTrigger>
+      <TooltipContent>{note}</TooltipContent>
+    </Tooltip>
   )
 }
 

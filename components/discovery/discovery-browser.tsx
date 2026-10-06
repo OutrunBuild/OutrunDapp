@@ -524,7 +524,10 @@ export function DiscoveryBrowser({
                     ) : null}
                     <div className="economy-card__badges">
                       {verse.stage === 'genesis' && verse.fastGenesis ? (
-                        <FastBadge label={copy.discovery.fastGenesis} />
+                        <FastBadge
+                          label={copy.discovery.fastGenesis}
+                          note={copy.verse.fastGenesisNote}
+                        />
                       ) : null}
                       <StageBadge stage={verse.stage} locale={locale} />
                     </div>
