@@ -1,27 +1,25 @@
 'use client'
 
 /**
- * ①待办区（2026-10-02 裁定）：只收「逾期有后果」项，按截止时间排序、最紧急置顶；
- * 同类跨 Verse 聚合（聚合卡显示最近截止）。截止色阶 normal→warning→danger 走数据
- * 语义层（左缘 3px 色条）；黄主 CTA 仅第一张卡（一屏一个主行动），其余 outline。
- * 倒计时锚定快照 remainingMs 走秒（RedeemCountdown 同款）。
+ * ①待办区 v5（2026-10-05 四轮裁定拆表）：形态跟随导航目标——
+ * 卡片层=页内锚点/限时警报（保护窗卡倒计时 hero + 金库取出卡页内 signpost）；
+ * 领取层=两张独立 Data surface 面板（周期激励逐 verse 行·窗口剩余升序 ／
+ * 创世退款行·金额降序），行行动全部跳 verse 页——单面板双组混排可读性不足，
+ * 拆表后各行语义同质。跨链滞留项已删（2026-10-05 用户裁定）。
+ * 卡片语法=kind 铭牌 / hero 数字 / KV+CTA 底栏（hairline、等高钉底）；一屏一黄主钮。
  */
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
-import type {
-  FixtureBridgeMessageView,
-  FixturePortfolioAction,
-  Locale,
-} from '@/lib/data/fixture-repository'
+import type { FixturePortfolioAction, Locale } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { verseHref } from '../global/routes'
-import { formatAmount, formatDay, SectionHeading } from '../global/signal-ui'
+import { formatAmount, SectionHeading } from '../global/signal-ui'
 import { Button } from '@/components/ui/button'
-import { StrandedDialog } from './portfolio-dialogs'
 
 const HOUR_MS = 3_600_000
+const WINDOW_MS = 24 * HOUR_MS
 
 /** 走秒倒计时（<24h 场景；锚定快照剩余毫秒，纯展示层 tick） */
 function DeadlineClock({ remainingMs, template }: { remainingMs: number; template: string }) {
@@ -37,10 +35,10 @@ function DeadlineClock({ remainingMs, template }: { remainingMs: number; templat
   return <span data-numeric>{template.replace('{t}', time)}</span>
 }
 
-function staticDeadline(remainingMs: number, template: string) {
+function staticDuration(remainingMs: number) {
   const days = Math.floor(remainingMs / (24 * HOUR_MS))
   const hours = Math.floor((remainingMs % (24 * HOUR_MS)) / HOUR_MS)
-  return template.replace('{t}', `${days}d ${hours}h`)
+  return `${days}d ${hours}h`
 }
 
 type Tone = 'danger' | 'warning' | 'normal'
@@ -55,153 +53,191 @@ function deadlineTone(remainingMs: number | null): Tone {
 export function ActionZone({
   locale,
   actions,
-  strandedMessages,
 }: {
   locale: Locale
   actions: FixturePortfolioAction[]
-  strandedMessages: FixtureBridgeMessageView[]
 }) {
   const copy = getCopy(locale).portfolio.action
   if (actions.length === 0) return null
 
+  const cards = actions.filter(
+    (action) => action.kind === 'protection' || action.kind === 'vault-ready',
+  )
+  // 领取双表（2026-10-05 四轮裁定拆表）：激励=窗口剩余升序；退款=金额降序
+  const incentiveRows = actions
+    .filter((action) => action.kind === 'incentive')
+    .sort((a, b) => (a.remainingMs ?? 0) - (b.remainingMs ?? 0))
+  const refundRows = actions
+    .filter((action) => action.kind === 'refund')
+    .sort((a, b) => (b.amount ?? 0) - (a.amount ?? 0))
+
   return (
     <section className="pf-actions" id="pf-actions">
       <SectionHeading title={copy.title} description={copy.sub} />
-      <ul className="pf-actions__list">
-        {actions.map((action, index) => {
-          const tone = deadlineTone(action.remainingMs)
-          const primary = index === 0
-          const title =
-            action.kind === 'protection'
-              ? copy.protectionTitle
-              : action.kind === 'incentive'
-                ? copy.incentiveTitle
-                : action.kind === 'vault-ready'
-                  ? copy.vaultReadyTitle
-                  : action.kind === 'refund'
-                    ? copy.refundTitle
-                    : copy.strandedTitle
-          let body: string
-          if (action.kind === 'protection') {
-            body = copy.protectionBody.replace('{symbol}', action.verse?.symbol ?? '')
-          } else if (action.kind === 'incentive') {
-            body =
-              action.verse != null
-                ? copy.incentiveOneBody
-                    .replace('{symbol}', action.verse.symbol)
-                    .replace('{date}', formatDay(action.deadline ?? '', locale))
-                : copy.incentiveCountBody.replace('{n}', String(action.count ?? 0))
-          } else if (action.kind === 'vault-ready') {
-            body = copy.vaultReadyBody.replace('{n}', String(action.count ?? 0))
-          } else if (action.kind === 'refund') {
-            body = copy.refundBody
-              .replace('{symbol}', action.verse?.symbol ?? '')
-              .replace(
-                '{amount}',
-                `${formatAmount(action.amount ?? 0, locale, true)} ${action.verse?.raiseAsset ?? ''}`,
+
+      {cards.length > 0 ? (
+        <ul className="pf-actions__list">
+          {cards.map((action) => {
+            if (action.kind === 'vault-ready') {
+              // 金库取出卡：页内 signpost（CTA 锚 #pf-vault），hero=美元待取合计
+              return (
+                <li key="vault-ready">
+                  <article className="pf-action" data-kind="vault">
+                    <div className="pf-action__head">
+                      <h3 className="pf-action__kind">{copy.vaultReadyTitle}</h3>
+                    </div>
+                    <div className="pf-action__hero">
+                      {action.amountUsd != null ? (
+                        <strong data-numeric>≈ ${formatAmount(action.amountUsd, locale)}</strong>
+                      ) : null}
+                      <span data-numeric>
+                        {copy.vaultReadySub.replace('{n}', String(action.count ?? 0))}
+                      </span>
+                    </div>
+                    <div className="pf-action__foot">
+                      <p className="pf-action__hint">{copy.vaultReadyHint}</p>
+                      <Button
+                        variant="outline"
+                        nativeButton={false}
+                        render={<a href="#pf-vault" />}
+                      >
+                        {copy.ctaVault}
+                      </Button>
+                    </div>
+                  </article>
+                </li>
               )
-          } else {
-            const message = strandedMessages.find(
-              (candidate) => candidate.id === action.bridgeMessageId,
-            )
-            body = message
-              ? copy.strandedBody
-                  .replace('{amount}', formatAmount(message.amount, locale, true))
-                  .replace('{asset}', message.assetSymbol)
-                  .replace('{from}', message.fromChainName)
-                  .replace('{to}', message.toChainName)
-              : copy.strandedBody
-          }
+            }
 
-          const deadlineNode =
-            action.remainingMs == null || action.deadline == null ? null : action.remainingMs <
-              24 * HOUR_MS ? (
-              <DeadlineClock remainingMs={action.remainingMs} template={copy.deadlineWithin} />
-            ) : (
-              <span data-numeric>{staticDeadline(action.remainingMs, copy.deadlineWithin)}</span>
-            )
-
-          const cta =
-            action.kind === 'protection' || action.kind === 'refund' ? (
-              <Button
-                className={primary ? 'ax-ghost-cta' : undefined}
-                variant={primary ? 'default' : 'outline'}
-                nativeButton={false}
-                render={<Link href={verseHref(locale, action.verse?.id ?? '')} />}
-              >
-                {action.kind === 'protection' ? copy.ctaProtection : copy.ctaRefund}
-              </Button>
-            ) : action.kind === 'incentive' && action.verse != null ? (
-              <Button
-                className={primary ? 'ax-ghost-cta' : undefined}
-                variant={primary ? 'default' : 'outline'}
-                nativeButton={false}
-                render={<Link href={verseHref(locale, action.verse.id)} />}
-              >
-                {copy.ctaIncentive}
-              </Button>
-            ) : action.kind === 'incentive' ? (
-              <Button
-                className={primary ? 'ax-ghost-cta' : undefined}
-                variant={primary ? 'default' : 'outline'}
-                nativeButton={false}
-                render={
-                  <Link
-                    href={verseHref(
-                      locale,
-                      action.focusVerseId ?? action.verse?.id ?? '',
-                    )}
-                  />
-                }
-              >
-                {copy.ctaIncentive}
-              </Button>
-            ) : action.kind === 'vault-ready' ? (
-              <Button
-                className={primary ? 'ax-ghost-cta' : undefined}
-                variant={primary ? 'default' : 'outline'}
-                nativeButton={false}
-                render={<a href="#pf-vault" />}
-              >
-                {copy.ctaVault}
-              </Button>
-            ) : (
-              <StrandedDialog
-                locale={locale}
-                triggerLabel={copy.ctaStranded}
-                message={strandedMessages.find(
-                  (candidate) => candidate.id === action.bridgeMessageId,
-                ) ?? {
-                  assetSymbol: '',
-                  amount: 0,
-                  fromChainName: '',
-                  toChainName: '',
-                  sentAt: '',
-                }}
-              />
-            )
-
-          return (
-            <li key={`${action.kind}-${action.verse?.id ?? action.bridgeMessageId ?? index}`}>
-              <article className="pf-action" data-tone={tone} data-primary={primary || undefined}>
-                <div className="pf-action__head">
-                  <h3>{title}</h3>
-                  {deadlineNode}
-                </div>
-                <p className="pf-action__body">{body}</p>
-                <p className="pf-action__meta">
-                  {action.verse != null ? (
-                    <Link href={verseHref(locale, action.verse.id)}>
-                      <strong>{action.verse.symbol}</strong> {action.verse.name}
+            // 保护窗卡：倒计时 hero + 窗口余量条 + 在场本金 KV
+            const tone = deadlineTone(action.remainingMs)
+            const remainingMs = action.remainingMs ?? 0
+            const windowLeft = Math.min(100, Math.round((remainingMs / WINDOW_MS) * 100))
+            const clock =
+              remainingMs < WINDOW_MS ? (
+                <DeadlineClock remainingMs={remainingMs} template={copy.deadlineWithin} />
+              ) : (
+                <span data-numeric>
+                  {copy.deadlineWithin.replace('{t}', staticDuration(remainingMs))}
+                </span>
+              )
+            return (
+              <li key={action.verse?.id}>
+                <article className="pf-action" data-tone={tone}>
+                  <div className="pf-action__head">
+                    <h3 className="pf-action__kind">{copy.protectionTitle}</h3>
+                    <span className="pf-action__clock">{clock}</span>
+                  </div>
+                  <p className="pf-action__who">
+                    <Link href={verseHref(locale, action.verse?.id ?? '')}>
+                      <strong>{action.verse?.symbol}</strong>
                     </Link>
-                  ) : null}
-                </p>
-                <div className="pf-action__cta">{cta}</div>
-              </article>
-            </li>
-          )
-        })}
-      </ul>
+                    <span>{action.verse?.name}</span>
+                  </p>
+                  <div className="pf-action__meter" aria-hidden="true">
+                    <span style={{ inlineSize: `${windowLeft}%` }} />
+                  </div>
+                  <div className="pf-action__foot">
+                    {action.amount != null ? (
+                      <div className="pf-action__kv">
+                        <span className="pf-action__kv-label">{copy.principalLabel}</span>
+                        <strong className="pf-action__kv-value" data-numeric>
+                          {formatAmount(action.amount, locale)}
+                          <em> {action.verse?.raiseAsset}</em>
+                        </strong>
+                      </div>
+                    ) : null}
+                    <Button
+                      variant="outline"
+                      nativeButton={false}
+                      render={<Link href={verseHref(locale, action.verse?.id ?? '')} />}
+                    >
+                      {copy.ctaProtection}
+                    </Button>
+                  </div>
+                </article>
+              </li>
+            )
+          })}
+        </ul>
+      ) : null}
+
+      {incentiveRows.length > 0 || refundRows.length > 0 ? (
+        <div className="pf-claims">
+          {incentiveRows.length > 0 ? (
+            <div className="pf-panel">
+              <header className="pf-panel__bar">
+                <span>{copy.incentiveTitle}</span>
+                <span data-numeric>{incentiveRows.length}</span>
+              </header>
+              <ul className="pf-claim__list">
+                {incentiveRows.map((action) => (
+                  <li key={action.verse?.id} className="pf-claim-row">
+                    <div className="pf-claim-row__id">
+                      <strong>{action.verse?.symbol}</strong>
+                      {action.remainingMs != null ? (
+                        <span>
+                          {copy.deadlineWithin.replace('{t}', staticDuration(action.remainingMs))}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="pf-claim-row__amount">
+                      {action.amountUsd != null ? (
+                        <strong data-numeric>≈ ${formatAmount(action.amountUsd, locale)}</strong>
+                      ) : action.amount != null ? (
+                        <strong data-numeric>{formatAmount(action.amount, locale)}</strong>
+                      ) : null}
+                      {action.amountUsd == null && action.verse != null ? (
+                        <span data-numeric>{action.verse.symbol}</span>
+                      ) : null}
+                    </div>
+                    <div className="pf-claim-row__actions">
+                      <Link
+                        className="pf-action__link"
+                        href={verseHref(locale, action.verse?.id ?? '')}
+                      >
+                        {copy.ctaIncentive}
+                      </Link>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {refundRows.length > 0 ? (
+            <div className="pf-panel">
+              <header className="pf-panel__bar">
+                <span>{copy.refundTitle}</span>
+                <span data-numeric>{refundRows.length}</span>
+              </header>
+              <ul className="pf-claim__list">
+                {refundRows.map((action) => (
+                  <li key={action.verse?.id} className="pf-claim-row">
+                    <div className="pf-claim-row__id">
+                      <strong>{action.verse?.symbol}</strong>
+                      <span>{copy.refundSub}</span>
+                    </div>
+                    <div className="pf-claim-row__amount">
+                      {action.amount != null ? (
+                        <strong data-numeric>{formatAmount(action.amount, locale)}</strong>
+                      ) : null}
+                      <span data-numeric>{action.verse?.raiseAsset}</span>
+                    </div>
+                    <div className="pf-claim-row__actions">
+                      <Link
+                        className="pf-action__link"
+                        href={verseHref(locale, action.verse?.id ?? '')}
+                      >
+                        {copy.ctaRefund}
+                      </Link>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   )
 }

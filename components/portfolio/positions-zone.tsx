@@ -178,6 +178,44 @@ export function StakedPositionsZone({
             </tbody>
           </table>
         </div>
+        {/* 移动端堆叠台账行（决议 018）：≤54rem 表格隐藏、此清单接管——身份行
+            （链标+来源+赎回）+ 事实双列（抵押/借入，复用列头文案）；桌面 display:none */}
+        <ul className="pf-mrows">
+          {rows.map((position) => (
+            <li key={position.id} className="pf-mrow">
+              <div className="pf-mrow__head">
+                <span className="pf-mrow__id">
+                  <ChainLogoMark chainId={position.chainId} size={20} />
+                  <strong>{position.yieldSource}</strong>
+                </span>
+                <CdpRedeemDialog
+                  locale={locale}
+                  appearance="link"
+                  triggerLabel={copy.cdpRedeem}
+                  uAssetSymbol={position.uAssetSymbol}
+                  collateralSymbol={position.collateralSymbol}
+                  collateralAmount={position.collateralAmount}
+                  debt={position.debt}
+                  uAssetBalance={uAssetBalances[position.uAssetSymbol] ?? null}
+                />
+              </div>
+              <dl className="pf-mrow__facts">
+                <div>
+                  <dt>{copy.cdpCollateral}</dt>
+                  <dd data-numeric>
+                    {formatAmount(position.collateralAmount, locale)} {position.collateralSymbol}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{copy.cdpBorrowed}</dt>
+                  <dd data-numeric>
+                    {formatAmount(position.debt, locale)} {position.uAssetSymbol}
+                  </dd>
+                </div>
+              </dl>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   )
@@ -352,6 +390,68 @@ export function VaultZone({ locale, vaultRows }: { locale: Locale; vaultRows: Fi
             </tbody>
           </table>
         </div>
+        {/* 移动端堆叠台账行（决议 018）：verse 身份 + Stake/Withdraw 深链 + 事实列
+            （份额/7日年化/赎回状态，绿=可取出）；桌面 display:none */}
+        <ul className="pf-mrows">
+          {vaultRows.map((row) => (
+            <li key={row.verse.id} className="pf-mrow">
+              <div className="pf-mrow__head">
+                <Link href={verseHref(locale, row.verse.id)} className="pf-mrow__verse">
+                  <strong>{row.verse.symbol}</strong>
+                </Link>
+                <span className="pf-mrow__act">
+                  {row.readyTotal > 0 ? (
+                    <Link
+                      href={verseHref(locale, row.verse.id, 'vault', 'withdraw')}
+                      className="pf-table__link"
+                    >
+                      {copy.withdrawCta}
+                    </Link>
+                  ) : null}
+                  <Link href={verseHref(locale, row.verse.id, 'vault')} className="pf-table__link">
+                    {copy.stakeCta}
+                  </Link>
+                </span>
+              </div>
+              <dl className="pf-mrow__facts">
+                <div>
+                  <dt>{copy.shares}</dt>
+                  <dd data-numeric>
+                    {formatAmount(row.myShares, locale, true)} {row.shareSymbol}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{copy.apy}</dt>
+                  <dd data-numeric>{formatPercent(row.apy7d, locale)}%</dd>
+                </div>
+                <div>
+                  <dt>{copy.redeems}</dt>
+                  <dd>
+                    {row.readyTotal > 0 ? (
+                      <span className="pf-claimable">
+                        <span data-numeric>
+                          {formatAmount(row.readyTotal, locale, true)} {row.verse.symbol}
+                        </span>
+                        <small>{copy.ready}</small>
+                      </span>
+                    ) : row.waitingTotal > 0 ? (
+                      <span className="pf-claimable" data-kind="waiting">
+                        <span data-numeric>
+                          {formatAmount(row.waitingTotal, locale, true)} {row.verse.symbol}
+                        </span>
+                        <small>{copy.waiting}</small>
+                      </span>
+                    ) : (
+                      <span className="pf-voucher-row__none" aria-hidden="true">
+                        --
+                      </span>
+                    )}
+                  </dd>
+                </div>
+              </dl>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   )

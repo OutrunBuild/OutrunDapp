@@ -13,6 +13,7 @@ import type { Locale } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { useMockWallet } from '../global/mock-wallet'
+import { ChainLogoMark } from '../global/chain-icons'
 import { formatAmount, formatPercent } from '../global/signal-ui'
 import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
 import { Button } from '@/components/ui/button'
@@ -23,6 +24,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { Sheet, SheetClose, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import { Input } from '@/components/ui/input'
 import { FieldError } from '@/components/ui/field'
 
@@ -191,7 +193,7 @@ export function BridgeDialog({
 
   return (
     <Dialog>
-      <DialogTrigger data-slot="button" render={<Button variant="outline" size="sm" />}>
+      <DialogTrigger data-slot="button" render={<Button variant="outline" />}>
         {triggerLabel}
       </DialogTrigger>
       <ActionDialogShell title={copy.bridgeTitle} closeLabel={getCopy(locale).common.close}>
@@ -299,7 +301,7 @@ export function ConvertDialog({
 
   return (
     <Dialog>
-      <DialogTrigger data-slot="button" render={<Button variant="outline" size="sm" />}>
+      <DialogTrigger data-slot="button" render={<Button variant="outline" />}>
         {triggerLabel}
       </DialogTrigger>
       <ActionDialogShell title={`${copy.convertTitle} · ${uAssetSymbol}`} closeLabel={getCopy(locale).common.close}>
@@ -409,7 +411,7 @@ export function CdpRedeemDialog({
           appearance === 'link' ? (
             <button type="button" className="pf-table__link" />
           ) : (
-            <Button variant="outline" size="sm" />
+            <Button variant="outline" />
           )
         }
       >
@@ -482,7 +484,7 @@ export function UsrSavingsDialog({
 
   return (
     <Dialog>
-      <DialogTrigger data-slot="button" render={<Button variant="outline" size="sm" />}>
+      <DialogTrigger data-slot="button" render={<Button variant="outline" />}>
         {triggerLabel}
       </DialogTrigger>
       <ActionDialogShell
@@ -542,6 +544,7 @@ export function StrandedDialog({
   locale,
   triggerLabel,
   message,
+  triggerClassName,
 }: {
   locale: Locale
   triggerLabel: string
@@ -552,13 +555,25 @@ export function StrandedDialog({
     toChainName: string
     sentAt: string
   };
+  /** 静态行动链接触发器（①待办随时可办行）：传类名即按朴素 button 文本链渲染
+   *  （绕开 [data-slot='button'] 全局画皮——!important 钮壳会压掉文本链形态） */
+  triggerClassName?: string
 }) {
   const copy = getCopy(locale).portfolio.assets
   const { connected, toggle } = useMockWallet()
 
   return (
     <Dialog>
-      <DialogTrigger data-slot="button" render={<Button variant="outline" size="sm" />}>
+      <DialogTrigger
+        data-slot={triggerClassName ? undefined : 'button'}
+        render={
+          triggerClassName ? (
+            <button type="button" className={triggerClassName} />
+          ) : (
+            <Button variant="outline" />
+          )
+        }
+      >
         {triggerLabel}
       </DialogTrigger>
       <ActionDialogShell title={copy.recoverTitle} closeLabel={getCopy(locale).common.close}>
@@ -581,5 +596,68 @@ export function StrandedDialog({
         <DialogCta locale={locale} connected={connected} onConnect={toggle} label={copy.recoverCta} />
       </ActionDialogShell>
     </Dialog>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// 资产底部操作面板（决议 018 补充：移动端资产行去按钮化）：整行 hit 层触发，
+// 链分布明细 + CTA 行（children=Convert/Bridge 弹窗触发器）。点 CTA 同时收起
+// 面板——嵌套弹窗随后接管（base-ui Portal 后挂在上层）。仅 ≤54rem hit 层可见，
+// 桌面行内按钮照旧（触发器不可双栖，两套实例各自独立开合）。
+// ---------------------------------------------------------------------------
+
+export function AssetActionsSheet({
+  locale,
+  title,
+  triggerLabel,
+  chains,
+  children,
+}: {
+  locale: Locale
+  title: string
+  /** hit 层可访问名（「{symbol} · 资产操作」） */
+  triggerLabel: string
+  chains: Array<{ chainId: number; name: string; amount: number }>
+  /** CTA 行（Convert/Bridge 弹窗触发器） */
+  children: ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger
+        nativeButton={false}
+        render={<div className="pf-asset-row__hit" />}
+        aria-label={triggerLabel}
+      />
+      <SheetContent className="pf-asset-sheet">
+        <div className="pol-mint ax-glow-card">
+          <header className="pol-mint__head">
+            <SheetTitle className="pol-mint__title">{title}</SheetTitle>
+            <div className="pol-mint__controls">
+              <SheetClose
+                render={<button type="button" className="pol-mint__close" aria-label={getCopy(locale).common.close} />}
+              >
+                <X aria-hidden="true" size={16} />
+              </SheetClose>
+            </div>
+          </header>
+          <ul className="pf-asset-sheet__chains">
+            {chains.map((chain) => (
+              <li key={chain.chainId}>
+                <span className="pf-asset-sheet__chain">
+                  <ChainLogoMark chainId={chain.chainId} size={16} aria-hidden="true" />
+                  <span>{chain.name}</span>
+                </span>
+                <span data-numeric>{formatAmount(chain.amount, locale, true)}</span>
+              </li>
+            ))}
+          </ul>
+          {/* CTA 行=嵌套弹窗触发器：任务弹窗 Portal 后挂叠在面板之上（iOS 栈式），
+              面板保持承载上下文——不可在点击时收起面板，弹窗树随面板内容卸载 */}
+          <div className="pf-asset-sheet__cta">{children}</div>
+        </div>
+      </SheetContent>
+    </Sheet>
   )
 }

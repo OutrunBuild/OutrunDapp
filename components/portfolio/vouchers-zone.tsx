@@ -180,15 +180,19 @@ export function VouchersZone({
           if (group.length === 0) return null
           return (
             <div key={stage} className="pf-vouchers__group" data-stage={stage}>
-              <header className="pf-vouchers__group-head">
-                <StageBadge stage={stage} locale={locale} />
-                <span data-numeric>{group.length}</span>
-              </header>
-              <ul className="pf-vouchers__list">
-                {group.map((row) => (
-                  <VoucherRow key={row.verse.id} locale={locale} row={row} />
-                ))}
-              </ul>
+              {/* 017 面板化：材质/投影随 .pf-panel 原语；阶段主线=面板首 child 元素 */}
+              <div className="pf-panel">
+                <i className="pf-vouchers__stage-line" aria-hidden="true" />
+                <header className="pf-vouchers__group-head">
+                  <StageBadge stage={stage} locale={locale} />
+                  <span data-numeric>{group.length}</span>
+                </header>
+                <ul className="pf-vouchers__list">
+                  {group.map((row) => (
+                    <VoucherRow key={row.verse.id} locale={locale} row={row} />
+                  ))}
+                </ul>
+              </div>
             </div>
           )
         })}
