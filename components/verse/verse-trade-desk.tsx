@@ -4,6 +4,7 @@ import type {
   FixtureVerseTrade,
 } from '@/lib/data/fixture-repository'
 import { getFixtureAssetUsdSample, getFixtureParticipationOptions, getFixturePolPosition } from '@/lib/data/fixture-repository'
+import { fmtPrice } from '@/components/global/amount-format'
 
 import { CandleChart } from './candle-chart'
 import { CopyAddress } from './copy-address'
@@ -53,17 +54,13 @@ function StatChip({
  * 统计口径（Q&A 2026-09-23）：Liq=四池 TVL 合计；Vol=四池 24h 量合计；
  * 市值=现价×总供应（推导）；CA=fixture 样本。缺失字段→「以链上读值为准」槽位。
  */
-/** 价格有效位分层（2026-09-23 用户裁定）：货币符+有效位大号白 semibold，尾随零缩小降级——读「价位」不读精度噪音 */
+/** 价格=fmtPrice 市场口径唯一实现（决议 019，取代 2026-09-23 固定 6 位小数+尾零灰显）：
+ *  ≥1 两位小数、<1 六位有效数字裁尾零、前导零 ≥4 下标记零——读「价位」不展示精度噪音 */
 function SplitPrice({ price }: { price: number }) {
-  const fixed = price.toFixed(6)
-  const match = /^(.*[^0])(0*)$/.exec(fixed)
-  const significant = match ? match[1] : fixed
-  const tail = match ? match[2] : ''
   return (
     <>
       <span className="token-strip__price-sign">$</span>
-      {significant}
-      {tail ? <span className="token-strip__price-tail">{tail}</span> : null}
+      {fmtPrice(price)}
     </>
   )
 }

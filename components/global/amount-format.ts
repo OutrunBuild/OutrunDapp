@@ -39,3 +39,37 @@ export function fmtUsd(value: number, locale: Locale) {
 export function fmtTokenAmount(value: number, locale: Locale) {
   return fmtTiered(value, locale, 4, (v) => v.toFixed(6))
 }
+
+/** 单价下标切换阈值：小数点后前导零达到该数（价格 <10^-(N-1)）即切下标记零 */
+export const PRICE_SUBSCRIPT_ZERO_THRESHOLD = 4
+
+/** 代币单价（token-strip 价格唯一口径，决议 019 市场.toFixed(2) 法币惯例（$1.20）；
+ * <1 六位有效数字并裁尾随零（0.004200→0.0042）；
+ * 前导零 ≥PRICE_SUBSCRIPT_ZERO_THRESHOLD 下标记零（0.0000042→0.0₅42，下标=前导零总数，学币安/Capital.com）。
+ * 固定小数位在极小价会吃有效位（0.0000421.toFixed(6)=$0.000004），故按有效位而非小数位取数。
+ * 中英数字同形，无 locale 参。取代 2026-09-23「固定 6 位小数+尾零灰显」。 */
+export function fmtPrice(value: number): string {
+  if (value >= 1 || value <= 0)
+    return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const prec = value.toPrecision(6)
+  const exp = prec.lastIndexOf('e')
+  let zeros: number
+  let digits: string
+  if (exp >= 0) {
+    zeros = -Number(prec.slice(exp + 1)) - 1
+    digits = prec.slice(0, exp).replace('.', '')
+  } else {
+    const m = /^0\.(0*)(\d+)$/.exec(prec)
+    if (!m)
+      // 六位有效数字四舍五入进位到 1（0.9999999→"1.00000"）：回落法币档
+      return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    zeros = m[1].length
+    digits = m[2]
+  }
+  digits = digits.replace(/0+$/, '')
+  if (zeros >= PRICE_SUBSCRIPT_ZERO_THRESHOLD) return `0.0${toSubscriptZeros(zeros)}${digits}`
+  return `0.${'0'.repeat(zeros)}${digits}`
+}
+
+const toSubscriptZeros = (n: number) =>
+  String(n).replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈₉'.charAt(Number(d)))

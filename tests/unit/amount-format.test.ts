@@ -3,7 +3,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   COMPACT_AMOUNT_THRESHOLD,
+  PRICE_SUBSCRIPT_ZERO_THRESHOLD,
   SCIENTIFIC_AMOUNT_THRESHOLD,
+  fmtPrice,
   fmtTiered,
   fmtTokenAmount,
   fmtUsd,
@@ -59,5 +61,35 @@ describe('fmtTiered', () => {
   it('阈值常量口径', () => {
     expect(COMPACT_AMOUNT_THRESHOLD).toBe(1e15);
     expect(SCIENTIFIC_AMOUNT_THRESHOLD).toBe(1e21);
+  });
+});
+
+describe('fmtPrice（决议 019 市场口径：有效位格式化+裁尾零，取代固定 6 位小数+尾零灰显）', () => {
+  it('≥1 两位小数法币惯例', () => {
+    expect(fmtPrice(1.2)).toBe('1.20');
+    expect(fmtPrice(42)).toBe('42.00');
+    expect(fmtPrice(1234.5)).toBe('1,234.50');
+  });
+
+  it('<1 六位有效数字、尾随零裁掉', () => {
+    expect(fmtPrice(0.0042)).toBe('0.0042');
+    expect(fmtPrice(0.00406)).toBe('0.00406');
+    expect(fmtPrice(0.5)).toBe('0.5');
+    expect(fmtPrice(0.123456789)).toBe('0.123457');
+  });
+
+  it('前导零 ≥4 下标记零（下标=前导零总数，0.0000042→0.0₅42）', () => {
+    expect(fmtPrice(0.0000999)).toBe('0.0₄999');
+    expect(fmtPrice(0.000042)).toBe('0.0₄42');
+    expect(fmtPrice(0.0000042)).toBe('0.0₅42');
+    expect(fmtPrice(0.0000000042)).toBe('0.0₈42');
+  });
+
+  it('边界：3 个前导零不切下标；进位/0 兜底', () => {
+    expect(fmtPrice(0.0001)).toBe('0.0001');
+    expect(fmtPrice(0.000999)).toBe('0.000999');
+    expect(fmtPrice(0.9999999)).toBe('1.00');
+    expect(fmtPrice(0)).toBe('0.00');
+    expect(PRICE_SUBSCRIPT_ZERO_THRESHOLD).toBe(4);
   });
 });
