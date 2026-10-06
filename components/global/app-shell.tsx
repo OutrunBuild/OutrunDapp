@@ -55,7 +55,15 @@ function StatusCluster({ locale, chains }: { locale: Locale; chains: FixtureChai
   return <ChainSelectorDialog locale={locale} chains={chains} />
 }
 
-function MarketingHeader({ locale, address }: { locale: Locale; address: string }) {
+function MarketingHeader({
+  locale,
+  address,
+  chains,
+}: {
+  locale: Locale
+  address: string
+  chains: FixtureChain[]
+}) {
   const copy = getCopy(locale)
   return (
     <header className="marketing-header">
@@ -63,7 +71,23 @@ function MarketingHeader({ locale, address }: { locale: Locale; address: string 
         <span className="marketing-brand__wide"><Brand /></span>
         <span className="marketing-brand__compact"><Brand compact /></span>
       </Link>
+      <nav className="marketing-nav" aria-label="Primary">
+        {[
+          { href: '/memeverse/explore', label: copy.common.discover },
+          { href: '/portfolio', label: copy.common.portfolio },
+          { href: '/memeverse/launch', label: copy.common.create },
+        ].map((item, index) => (
+          <Link className="marketing-nav__link" href={localePath(locale, item.href)} key={item.href}>
+            {/* 终端索引序号（决议 024）：装饰性编号，aria-hidden 不进可访问名 */}
+            <span className="marketing-nav__index" aria-hidden="true">
+              {String(index + 1).padStart(2, '0')}
+            </span>
+            {item.label}
+          </Link>
+        ))}
+      </nav>
       <div className="marketing-header__actions">
+        <StatusCluster locale={locale} chains={chains} />
         <LocaleMenu locale={locale} />
         <WalletControl locale={locale} address={address} />
       </div>
@@ -146,9 +170,8 @@ export function OutrunShell({
     return (
       <div className="outrun-site ax-hud" data-glow="on" lang={locale === 'zh' ? 'zh-CN' : 'en'}>
         <a className="skip-link" href="#main-content">{copy.common.skip}</a>
-        <MarketingHeader locale={locale} address={accountAddress} />
+        <MarketingHeader locale={locale} address={accountAddress} chains={chains} />
         <main className="marketing-main ax-hud-inner" id="main-content">{children}</main>
-        <div className="ax-scanlines" aria-hidden="true" />
       </div>
     )
   }
@@ -175,7 +198,6 @@ export function OutrunShell({
         <main className="product-main" id="main-content">{children}</main>
       </div>
       <MobileNavigation locale={locale} current={current} />
-      <div className="ax-scanlines" aria-hidden="true" />
     </div>
   )
 }

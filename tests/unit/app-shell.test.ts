@@ -58,6 +58,20 @@ describe('OutrunShell 导航归属语义', () => {
     expect(count(html, 'aria-current="page"')).toBe(0);
   });
 
+  it('current="home"：顶栏三入口导航 + 网络切换器 + 语言/钱包（2026-10-06 拍板）', () => {
+    const html = renderShell({ current: 'home' });
+    expect(count(html, 'marketing-nav__link')).toBe(3);
+    expect(html).toContain('>Explore<');
+    expect(html).toContain('>Portfolio<');
+    expect(html).toContain('>Launch<');
+    // 决议 024：终端索引序号——mono 装饰编号 aria-hidden，不进可访问名
+    expect(count(html, 'marketing-nav__index')).toBe(3);
+    expect(count(html, 'aria-hidden="true">0')).toBe(3);
+    expect(html).toContain('data-testid="chain-stub"');
+    expect(html).toContain('data-testid="locale-stub"');
+    expect(html).toContain('data-testid="wallet-stub"');
+  });
+
   it('current="account"：禁用项永不点亮（NavKey 合法但走禁用分支）', () => {
     const html = renderShell({ current: 'account' });
     expect(count(html, 'aria-current="page"')).toBe(0);

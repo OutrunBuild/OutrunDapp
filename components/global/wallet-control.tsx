@@ -23,12 +23,14 @@ export function WalletControl({ locale, address }: { locale: Locale; address: st
       size="default"
       className="wallet-control"
       aria-pressed={connected}
+      /* 极窄档（≤18.75rem）label span 被 CSS 隐藏转纯图标——aria-label 承接可访问名
+         （display:none 文本不进 acc name；与可见文本同串，常规档零行为差异） */
+      aria-label={connected ? truncateAddress(address) : copy.common.connect}
       onClick={toggle}
     >
       <WalletCards data-icon="inline-start" aria-hidden="true" />
       {connected ? (
         <span className="wallet-control__connected">
-          <span className="status-dot" data-tone="success" aria-hidden="true" />
           <span>{truncateAddress(address)}</span>
         </span>
       ) : (
