@@ -10,7 +10,10 @@
       "sourceRef": "docs/page-briefs/source-map.md#OB",
       "chainId": 1,
       "assetId": "asset-001",
-      "amount": { "raw": "80000", "decimals": 18 }
+      "amount": {
+        "raw": "6",
+        "decimals": 18
+      }
     },
     {
       "id": "bal-002",
@@ -20,7 +23,10 @@
       "sourceRef": "docs/page-briefs/source-map.md#OB",
       "chainId": 8453,
       "assetId": "asset-001",
-      "amount": { "raw": "40000", "decimals": 18 }
+      "amount": {
+        "raw": "2.5",
+        "decimals": 18
+      }
     },
     {
       "id": "bal-003",
@@ -30,7 +36,10 @@
       "sourceRef": "docs/page-briefs/source-map.md#OB",
       "chainId": 56,
       "assetId": "asset-001",
-      "amount": { "raw": "5000", "decimals": 18 }
+      "amount": {
+        "raw": "1",
+        "decimals": 18
+      }
     },
     {
       "id": "bal-004",
@@ -40,7 +49,10 @@
       "sourceRef": "docs/page-briefs/source-map.md#OB",
       "chainId": 1,
       "assetId": "asset-002",
-      "amount": { "raw": "150000", "decimals": 18 }
+      "amount": {
+        "raw": "8000",
+        "decimals": 18
+      }
     },
     {
       "id": "bal-005",
@@ -50,7 +62,10 @@
       "sourceRef": "docs/page-briefs/source-map.md#OB",
       "chainId": 8453,
       "assetId": "asset-002",
-      "amount": { "raw": "25000", "decimals": 18 }
+      "amount": {
+        "raw": "3500",
+        "decimals": 18
+      }
     },
     {
       "id": "bal-006",
@@ -60,7 +75,10 @@
       "sourceRef": "docs/page-briefs/source-map.md#OB",
       "chainId": 56,
       "assetId": "asset-002",
-      "amount": { "raw": "10000", "decimals": 18 }
+      "amount": {
+        "raw": "1500",
+        "decimals": 18
+      }
     },
     {
       "id": "bal-007",
@@ -70,7 +88,10 @@
       "sourceRef": "docs/page-briefs/source-map.md#OB",
       "chainId": 56,
       "assetId": "asset-003",
-      "amount": { "raw": "8000", "decimals": 18 }
+      "amount": {
+        "raw": "15",
+        "decimals": 18
+      }
     },
     {
       "id": "bal-008",
@@ -80,7 +101,10 @@
       "sourceRef": "docs/page-briefs/source-map.md#OB",
       "chainId": 1,
       "assetId": "asset-051",
-      "amount": { "raw": "1200", "decimals": 18 }
+      "amount": {
+        "raw": "1.4",
+        "decimals": 18
+      }
     },
     {
       "id": "bal-012",
@@ -90,7 +114,10 @@
       "sourceRef": "docs/page-briefs/source-map.md#OB",
       "chainId": 1,
       "assetId": "asset-052",
-      "amount": { "raw": "800", "decimals": 18 }
+      "amount": {
+        "raw": "2600",
+        "decimals": 18
+      }
     },
     {
       "id": "bal-013",
@@ -100,7 +127,10 @@
       "sourceRef": "docs/page-briefs/source-map.md#OB",
       "chainId": 56,
       "assetId": "asset-053",
-      "amount": { "raw": "400", "decimals": 18 }
+      "amount": {
+        "raw": "2.5",
+        "decimals": 18
+      }
     },
     {
       "id": "bal-009",
@@ -110,7 +140,10 @@
       "sourceRef": "docs/page-briefs/source-map.md#OB",
       "chainId": 1,
       "assetId": "asset-011",
-      "amount": { "raw": "30000", "decimals": 6 }
+      "amount": {
+        "raw": "2500",
+        "decimals": 6
+      }
     },
     {
       "id": "bal-010",
@@ -120,7 +153,10 @@
       "sourceRef": "docs/page-briefs/source-map.md#OB",
       "chainId": 1,
       "assetId": "asset-013",
-      "amount": { "raw": "12.5", "decimals": 18 }
+      "amount": {
+        "raw": "0.9",
+        "decimals": 18
+      }
     },
     {
       "id": "bal-011",
@@ -130,7 +166,10 @@
       "sourceRef": "docs/page-briefs/source-map.md#OB",
       "chainId": 56,
       "assetId": "asset-014",
-      "amount": { "raw": "40", "decimals": 18 }
+      "amount": {
+        "raw": "1.6",
+        "decimals": 18
+      }
     }
   ]
 }

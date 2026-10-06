@@ -72,6 +72,60 @@
         "raw": "8000",
         "decimals": 18
       }
+    },
+    {
+      "id": "part-005",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "verseId": "verse-015",
+      "owner": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "kind": "normal",
+      "route": "direct",
+      "amount": {
+        "raw": "95000",
+        "decimals": 18
+      }
+    },
+    {
+      "id": "part-006",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "verseId": "verse-035",
+      "owner": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "kind": "normal",
+      "route": "direct",
+      "amount": {
+        "raw": "60000",
+        "decimals": 18
+      }
+    },
+    {
+      "id": "part-007",
+      "scenario": [
+        "normal"
+      ],
+      "sourceRef": "docs/page-briefs/source-map.md#M9",
+      "verseId": "verse-035",
+      "owner": {
+        "value": "0x1111111000000000000000000000000000000001",
+        "fixtureOnly": true
+      },
+      "kind": "leverage",
+      "route": "direct",
+      "amount": {
+        "raw": "12000",
+        "decimals": 18
+      }
     }
   ]
 }

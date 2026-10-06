@@ -14,12 +14,12 @@
       "sha256": "137ecb82f37b687c3d67010d4e30e608a1dada8db7aebf5465f886120a47da4d"
     },
     "fixtures/data/balances.json": {
-      "bytes": 3195,
-      "sha256": "050d3f127c7851afe545ff0bcd79e7407064265502e1bcb01e4a4876fb69afef"
+      "bytes": 3465,
+      "sha256": "e1d78662f33f24d59422072af26a928685769979680ce7f3933d877235e2f80c"
     },
     "fixtures/data/bridge-messages.json": {
-      "bytes": 1548,
-      "sha256": "f8b8bbf9a81f49c8ee9fb14632e8d19f8e9205cb56a50c6b6afed2099fbb7448"
+      "bytes": 1823,
+      "sha256": "17cf0aa85de618210a9f58f59559eed46e8886350b2259ff8bb2d72de5169b4d"
     },
     "fixtures/data/chains.json": {
       "bytes": 1154,
@@ -30,8 +30,8 @@
       "sha256": "fc1bc749e17266cadc6591f8023c9547cad59b89166455150cf78b7cab527a4e"
     },
     "fixtures/data/governance.json": {
-      "bytes": 142597,
-      "sha256": "5692c3062682014444749dcde3c06252621f9a91d456312476b263620a57467f"
+      "bytes": 142509,
+      "sha256": "4716395ed67f5c2be7ed10eca3453b46e91e72b29d57eae557624d1a3c2c79d6"
     },
     "fixtures/data/markets.json": {
       "bytes": 1893671,
@@ -42,8 +42,8 @@
       "sha256": "7dd51c37fb181d00dfff427a69676d127bd17e1f98fa8444362d089322a85d7d"
     },
     "fixtures/data/participations.json": {
-      "bytes": 1696,
-      "sha256": "4c855c9767aac8820310aecd028c02b00940f1c545fd156e0a418ac3528c1b5f"
+      "bytes": 2922,
+      "sha256": "c1f3d20d2b563ae349d486309a6f4f3d6485ba0f18de1425647be085ec68663c"
     },
     "fixtures/data/pol-positions.json": {
       "bytes": 37207,
@@ -70,12 +70,12 @@
       "sha256": "f62d556711a7993ba9f48acc767eff364ea37681715556d8fb39c3dda30af6eb"
     },
     "fixtures/data/usr-vaults.json": {
-      "bytes": 1252,
-      "sha256": "94620cd6e4b7e017d4dc37e918b77ff49b5e270ffa1133a8d97eb7859a252c34"
+      "bytes": 1548,
+      "sha256": "4f695366c6070107b44266c8eb9395d82f3fe42035b98cbdd92b2ef4958120ed"
     },
     "fixtures/data/verses.json": {
       "bytes": 66393,
-      "sha256": "4f85a2e2aa1317ac09eec672cb975e241b78e2ce4564f50b79f180b788b85993"
+      "sha256": "3dcdb0b06c92eeedad1066d30be4544721f1ba49c6300acba3b2ef7b2a09f4fc"
     },
     "fixtures/data/yield-sources.json": {
       "bytes": 849,

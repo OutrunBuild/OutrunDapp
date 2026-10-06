@@ -303,21 +303,24 @@ for (const verse of targets) {
 }
 
 // —— 既有/新增条目补资金构成（幂等：缺字段才补；S 级样本登记 sourceRef 不变）——
+// 守卫必须比 raw 数值：amount 对象恒真值，总额为 0（如 myClaimable/remainingRewards
+// 在未结算或窗口关闭时）不得造样本——否则产出 0 锚 + 残值资产的自相矛盾样本
+// （弹窗 Total Value $0 而资产行非 0，2026-10-06 清理过一批）
 for (const g of governance.items) {
-  if (!g.treasuryAssets && g.treasuryUAsset)
+  if (!g.treasuryAssets && Number(g.treasuryUAsset?.raw) > 0)
     g.treasuryAssets = composeAssets(Number(g.treasuryUAsset.raw), TREASURY_SPLIT);
   if (g.lastCycle) {
-    if (!g.lastCycle.treasuryAssets && g.lastCycle.treasuryUAsset)
+    if (!g.lastCycle.treasuryAssets && Number(g.lastCycle.treasuryUAsset?.raw) > 0)
       g.lastCycle.treasuryAssets = composeAssets(
         Number(g.lastCycle.treasuryUAsset.raw),
         TREASURY_SPLIT,
       );
-    if (!g.lastCycle.unclaimedAssets && g.lastCycle.remainingRewards)
+    if (!g.lastCycle.unclaimedAssets && Number(g.lastCycle.remainingRewards?.raw) > 0)
       g.lastCycle.unclaimedAssets = composeAssets(
         Number(g.lastCycle.remainingRewards.raw),
         UNCLAIMED_SPLIT,
       );
-    if (!g.lastCycle.claimableAssets && g.lastCycle.myClaimable)
+    if (!g.lastCycle.claimableAssets && Number(g.lastCycle.myClaimable?.raw) > 0)
       g.lastCycle.claimableAssets = composeAssets(
         Number(g.lastCycle.myClaimable.raw),
         CLAIMABLE_SPLIT,

@@ -1112,6 +1112,8 @@ export type FixtureVaultRow = {
   waitingTotal: number;
   /** 已成熟可取出合计（claimableRedeemRequest 口径——MemecoinYieldVault.sol:500） */
   readyTotal: number;
+  /** 待领美元折算（017 组合页净值 hero：readyTotal × verse.currentPrice；无样本价=null） */
+  readyUsd: number | null;
 };
 
 export function getFixtureVaultRows(): FixtureVaultRow[] {
@@ -1136,6 +1138,8 @@ export function getFixtureVaultRows(): FixtureVaultRow[] {
             .reduce((sum, entry) => sum + entry.lockedAssets, 0)
         : 0,
       readyTotal: staking?.claimableTotal ?? 0,
+      readyUsd:
+        verse.currentPrice != null ? (staking?.claimableTotal ?? 0) * verse.currentPrice : null,
     });
   }
   // 库存单只列实际持仓：myShares=0 的 verse 不进组合（金库样本仍服务 verse 页签，
@@ -1146,9 +1150,9 @@ export function getFixtureVaultRows(): FixtureVaultRow[] {
 }
 
 /** ①待办区聚合（2026-10-02 裁定：只收「逾期有后果」项；同类跨 Verse 聚合、聚合卡显最近截止；
- *  窗口已过的激励不展示——逾期已并入国库、无动作可做（dao-governance.md:51）） */
-export type PortfolioActionKind =
-  'protection' | 'incentive' | 'vault-ready' | 'refund' | 'bridge-stranded';
+ *  窗口已过的激励不展示——逾期已并入国库、无动作可做（dao-governance.md:51）；
+ *  跨链滞留项已删（2026-10-05 用户裁定）——stranded 消息不再进待办与页级信号） */
+export type PortfolioActionKind = 'protection' | 'incentive' | 'vault-ready' | 'refund';
 
 export type FixturePortfolioAction = {
   kind: PortfolioActionKind;
@@ -1160,10 +1164,15 @@ export type FixturePortfolioAction = {
   count: number | null;
   /** 截止 ISO（null=无截止；聚合卡=最近截止） */
   deadline: string | null;
-  /** 快照锚点距截止剩余毫秒（null=无截止） */
+  /** 快照锚点距截止剩余毫秒（null=无截止；剩余 ms 有值=限时窗项，null=随时可办项） */
   remainingMs: number | null;
-  /** 金额锚：退款=合计参与额（verse 募集 uAsset 计）；其余=null（单位随 verse 不同不跨 verse 求和） */
+  /**
+   * 金额锚（样本口径）：refund=合计参与额（uAsset）；protection=在场本金
+   * （myPt + myPol×uAssetPerPol，genesis.md 本位权利构成）；incentive=native myClaimable
+   */
   amount: number | null;
+  /** 美元样本折算（激励=myClaimable×verse 样本价；金库=Σ readyUsd；null=无样本价） */
+  amountUsd: number | null;
   bridgeMessageId: string | null;
 };
 
@@ -1172,18 +1181,20 @@ const KIND_ORDER: Record<PortfolioActionKind, number> = {
   incentive: 1,
   'vault-ready': 2,
   refund: 3,
-  'bridge-stranded': 4,
 };
 
 export function getFixturePortfolioActions(): FixturePortfolioAction[] {
   const snapshot = getSnapshot();
   const actions: FixturePortfolioAction[] = [];
 
-  // 24h 保护窗（解锁后未满 24h——锚定 unlockedAtTx，genesis.md:43）
+  // 24h 保护窗（解锁后未满 24h——锚定 unlockedAtTx，genesis.md:43）；金额=在场本金
+  // （PT 1:1 本位 + POL 按 uAssetPerPol 折 uAsset 侧，genesis.md:58-65 全额退出权利构成）
   for (const verse of snapshot.verses) {
     if (verse.stage !== 'unlocked' || !verse.unlockedAt) continue;
     const remainingMs = Date.parse(verse.unlockedAt) + PROTECTION_WINDOW_MS - ANCHOR_MS;
     if (remainingMs <= 0) continue;
+    const pol = getFixturePolPosition(verse.id);
+    const principal = pol ? pol.myPt + pol.myPol * pol.uAssetPerPol : null;
     actions.push({
       kind: 'protection',
       verse: {
@@ -1195,52 +1206,41 @@ export function getFixturePortfolioActions(): FixturePortfolioAction[] {
       count: null,
       deadline: new Date(Date.parse(verse.unlockedAt) + PROTECTION_WINDOW_MS).toISOString(),
       remainingMs,
-      amount: null,
+      amount: principal,
+      amountUsd: null,
       focusVerseId: null,
       bridgeMessageId: null,
     });
   }
 
-  // 周期激励可领（窗口未过；聚合卡）
-  const incentives: Array<{
-    verse: { id: string; symbol: string; name: string; raiseAsset: string };
-    deadline: string;
-    remainingMs: number;
-  }> = [];
+  // 周期激励可领（窗口未过；2026-10-05 用户裁定弃聚合卡——逐 verse 行进领取面板，
+  // 行动跳 verse 页；金额=native myClaimable + 样本价美元折算，017 hero readyUsd 同口径）
   for (const gov of fixtureData.governance.items) {
     const verse = snapshot.verses.find((candidate) => candidate.id === gov.verseId);
     const claimable = gov.lastCycle ? amount(gov.lastCycle.myClaimable.raw) : 0;
     if (!verse || claimable <= 0 || !gov.claimWindowEndsAt) continue;
     const remainingMs = Date.parse(gov.claimWindowEndsAt) - ANCHOR_MS;
     if (remainingMs <= 0) continue;
-    incentives.push({
+    actions.push({
+      kind: 'incentive',
       verse: {
         id: verse.id,
         symbol: verse.symbol,
         name: verse.name,
         raiseAsset: verse.raiseAsset,
       },
+      count: null,
       deadline: gov.claimWindowEndsAt,
       remainingMs,
-    });
-  }
-  if (incentives.length > 0) {
-    const nearest = incentives.reduce((min, item) =>
-      item.remainingMs < min.remainingMs ? item : min,
-    );
-    actions.push({
-      kind: 'incentive',
-      verse: incentives.length === 1 ? nearest.verse : null,
-      count: incentives.length,
-      deadline: nearest.deadline,
-      remainingMs: nearest.remainingMs,
-      amount: null,
-      focusVerseId: nearest.verse.id,
+      amount: claimable,
+      amountUsd: verse.currentPrice != null ? claimable * verse.currentPrice : null,
+      focusVerseId: verse.id,
       bridgeMessageId: null,
     });
   }
 
-  // 收益库待执行赎回（已成熟第二步；聚合卡——跨 verse 币种不同不求和）
+  // 收益库待执行赎回（已成熟第二步；2026-10-05 用户裁定升独立卡——CTA 页内锚点 #pf-vault，
+  // 跨 verse 币种不同不求和，美元样本价折算合计）
   const readyVerses = getFixtureVaultRows().filter((row) => row.readyTotal > 0);
   if (readyVerses.length > 0) {
     actions.push({
@@ -1250,6 +1250,9 @@ export function getFixturePortfolioActions(): FixturePortfolioAction[] {
       deadline: null,
       remainingMs: null,
       amount: null,
+      amountUsd: readyVerses.some((row) => row.readyUsd == null)
+        ? null
+        : readyVerses.reduce((sum, row) => sum + (row.readyUsd ?? 0), 0),
       focusVerseId: null,
       bridgeMessageId: null,
     });
@@ -1288,23 +1291,9 @@ export function getFixturePortfolioActions(): FixturePortfolioAction[] {
       deadline: null,
       remainingMs: null,
       amount: row.total,
+      amountUsd: null,
       focusVerseId: null,
       bridgeMessageId: null,
-    });
-  }
-
-  // 跨链滞留（已发出未到账——资金不丢失，就地处理）
-  for (const message of fixtureData.bridgeMessages.items) {
-    if (message.stage !== 'stranded') continue;
-    actions.push({
-      kind: 'bridge-stranded',
-      verse: null,
-      count: null,
-      deadline: null,
-      remainingMs: null,
-      amount: null,
-      focusVerseId: null,
-      bridgeMessageId: message.id,
     });
   }
 
@@ -1413,10 +1402,8 @@ export function getFixturePortfolioSignals() {
   const claimableVerses = getFixtureVoucherRows().filter(
     (row) => (row.holdings?.claimableYt ?? 0) > 0,
   ).length;
-  const messages = getFixtureBridgeMessages();
   return {
     actionCount: actions.length,
     claimableVerses,
-    stranded: messages.filter((message) => message.stage === 'stranded').length,
   };
 }

@@ -27,6 +27,11 @@
       "fromChain": 1, "toChain": 56, "assetId": "asset-001",
       "amount": { "raw": "2.123456789", "decimals": 18 }, "sentAt": "2026-09-16T07:00:00Z", "stage": "settled",
       "remainderOnSource": { "raw": "0.000000789", "decimals": 18 }
+    },
+    {
+      "id": "bm-006", "scenario": ["normal"], "sourceRef": "docs/page-briefs/source-map.md#M11",
+      "fromChain": 56, "toChain": 1, "assetId": "asset-001",
+      "amount": { "raw": "2.4", "decimals": 18 }, "sentAt": "2026-09-16T07:10:00Z", "stage": "stranded"
     }
   ]
 }

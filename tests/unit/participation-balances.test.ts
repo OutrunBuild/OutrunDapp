@@ -7,14 +7,14 @@ import { getFixtureWalletBalances } from '../../lib/data/fixture-repository';
 describe('getFixtureWalletBalances：符号跨链合计', () => {
   const balances = getFixtureWalletBalances();
 
-  it('uAsset 多链行相加（UETH = 80000 + 40000 + 5000）', () => {
-    expect(balances.UETH).toBe(125000);
+  it('uAsset 多链行相加（UETH = 6 + 2.5 + 1；017 补充 2 真人量级样本）', () => {
+    expect(balances.UETH).toBe(9.5);
   });
 
   it('credit 与储备同样入表（跨链合计）', () => {
-    expect(balances['UETH(Credit)']).toBe(1200);
-    expect(balances.USDC).toBe(30000);
-    expect(balances.ETH).toBe(12.5);
+    expect(balances['UETH(Credit)']).toBe(1.4);
+    expect(balances.USDC).toBe(2500);
+    expect(balances.ETH).toBe(0.9);
   });
 
   it('快照无行的符号缺席（USDT / sy 资产 → 槽位态）', () => {
