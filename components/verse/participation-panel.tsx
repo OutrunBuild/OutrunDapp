@@ -471,9 +471,9 @@ export function ParticipationPanel({
               <ToggleGroupItem value="leverage">{copy.verse.leverageMode}</ToggleGroupItem>
               <ToggleGroupItem value="preorder">{copy.verse.preorderMode}</ToggleGroupItem>
             </ToggleGroup>
-            {mode === 'leverage' ? (
+            {mode === 'leverage' && !leverageReady ? (
               <FieldDescription className="form-warning">
-                {leverageReady ? copy.verse.leverageDisclosure : copy.verse.leverageRateSlot}
+                {copy.verse.leverageRateSlot}
               </FieldDescription>
             ) : null}
             {preorderOnly ? <FieldDescription>{copy.verse.preorderHelp}</FieldDescription> : null}

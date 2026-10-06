@@ -220,7 +220,8 @@ export function PolPanel({
               <strong className="pol-card__amount" data-numeric>
                 {formatAmount(pol.myPol, locale)}
                 <span className="pol-card__est">
-                  · ≈ {estUsd ?? <Slot>{copy.onChainSlot}</Slot>}
+                  {/* ≈ 即分隔（同 pol-twin 美元回声行），原「· ≈」双标点在移动档折行后 · 孤悬行首 */}
+                  ≈ {estUsd ?? <Slot>{copy.onChainSlot}</Slot>}
                 </span>
               </strong>
             </div>
@@ -572,26 +573,35 @@ export function DaoPanel({
                 <CopyAddress locale={locale} value={governance.incentivizerAddress} />
               </span>
             ) : null}
-            <Button
-              variant="outline"
-              size="sm"
-              className="cycle-card__head-finalize"
-              disabled={governance.finalized}
-              aria-describedby={finalizeNoteId}
-            >
-              {copy.finalize}
-              <Tooltip>
-                <TooltipTrigger render={<span className="create-info" aria-hidden="true" />}>
-                  <Info aria-hidden="true" />
-                </TooltipTrigger>
-                <TooltipContent>{copy.finalizeNote}</TooltipContent>
-              </Tooltip>
-            </Button>
-            {/* sr-only 置于按钮外：放内部会被并进按钮可访问名称，说明应由 describedby 单独播报 */}
-            <span id={finalizeNoteId} className="sr-only">
-              {copy.finalizeNote}
-            </span>
           </header>
+          {/* 结算窗口横幅（2026-10-05 用户裁定）：触发结算钮不常驻——只在周期结束
+              时间已到且未结算时渲染；finalizeNote 收在钮后 ⊙ 气泡（同日再裁定：
+              说明不放横幅正文），钮右置 */}
+          {!governance.finalized && new Date(governance.cycleEndsAt).getTime() <= Date.now() ? (
+            <div className="cycle-card__settle">
+              <div className="cycle-card__settle-copy">
+                <strong>{copy.settleOpen}</strong>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="cycle-card__settle-trigger"
+                aria-describedby={finalizeNoteId}
+              >
+                {copy.finalize}
+                <Tooltip>
+                  <TooltipTrigger render={<span className="create-info" aria-hidden="true" />}>
+                    <Info aria-hidden="true" />
+                  </TooltipTrigger>
+                  <TooltipContent className="cycle-card__settle-tip">{copy.finalizeNote}</TooltipContent>
+                </Tooltip>
+              </Button>
+              {/* sr-only 置于按钮外：放内部会被并进按钮可访问名称，说明应由 describedby 单独播报 */}
+              <span id={finalizeNoteId} className="sr-only">
+                {copy.finalizeNote}
+              </span>
+            </div>
+          ) : null}
           <dl className="cycle-card__stats" data-numeric>
             <div>
               <dt>{copy.cycleChip}</dt>
@@ -715,6 +725,7 @@ export function DaoPanel({
                   title={copy.unclaimedDetailsTitle}
                   totalUsd={governance.lastCycle.remainingRewards}
                   assets={governance.lastCycle.unclaimedAssets}
+                  showRegisteredNote={false}
                 >
                   <>
                     <dt>
@@ -744,59 +755,38 @@ export function DaoPanel({
                   <span className="stat-unit">{copy.votesUnit}</span>
                 </dd>
               </div>
-              {governance.lastCycle.claimableAssets ? (
-                <DaoFundDialog
-                  locale={locale}
-                  title={copy.claimableDetailsTitle}
-                  totalUsd={governance.lastCycle.myClaimable}
-                  assets={governance.lastCycle.claimableAssets}
-                  actionLabel={copy.claimRewards}
-                >
-                  <>
-                    <dt className="cycle-card__claim-label">
-                      {copy.yourClaimable}
-                      <DaoDots />
-                      <Tooltip>
-                        <TooltipTrigger className="create-info" aria-label={copy.claimWindowNote}>
-                          <Info aria-hidden="true" />
-                        </TooltipTrigger>
-                        <TooltipContent>{copy.claimWindowNote}</TooltipContent>
-                      </Tooltip>
-                    </dt>
-                    <dd className="stat-action">
-                      ${formatAmount(governance.lastCycle.myClaimable, locale)}
-                      {/* 领取钮保留原位原样式；pointer-events-none 让点击穿到芯片触发器开明细弹窗
-                          （原生 disabled 钮会吞点击——2026-09-30 踩坑，动作在弹窗 CTA） */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled
-                        className="pointer-events-none"
-                      >
-                        {copy.claimRewards}
-                      </Button>
-                    </dd>
-                  </>
-                </DaoFundDialog>
-              ) : (
-                <div>
-                  <dt className="cycle-card__claim-label">
-                    {copy.yourClaimable}
-                    <Tooltip>
-                      <TooltipTrigger className="create-info" aria-label={copy.claimWindowNote}>
-                        <Info aria-hidden="true" />
-                      </TooltipTrigger>
-                      <TooltipContent>{copy.claimWindowNote}</TooltipContent>
-                    </Tooltip>
-                  </dt>
-                  <dd className="stat-action">
-                    ${formatAmount(governance.lastCycle.myClaimable, locale)}
+              {/* 可领行（2026-10-05 用户裁定）：整行不再作触发器——明细弹窗只由
+                  领取钮本身触发（triggerButton 变体），>>> 移入按钮文案后；
+                  无样本构成时退 disabled 钮（原 2026-09-30 点击穿透范式随之退役） */}
+              <div>
+                <dt className="cycle-card__claim-label">
+                  {copy.yourClaimable}
+                  <Tooltip>
+                    <TooltipTrigger className="create-info" aria-label={copy.claimWindowNote}>
+                      <Info aria-hidden="true" />
+                    </TooltipTrigger>
+                    <TooltipContent>{copy.claimWindowNote}</TooltipContent>
+                  </Tooltip>
+                </dt>
+                <dd className="stat-action">
+                  ${formatAmount(governance.lastCycle.myClaimable, locale)}
+                  {governance.lastCycle.claimableAssets ? (
+                    <DaoFundDialog
+                      locale={locale}
+                      title={copy.claimableDetailsTitle}
+                      totalUsd={governance.lastCycle.myClaimable}
+                      assets={governance.lastCycle.claimableAssets}
+                      actionLabel={copy.claimRewards}
+                      triggerButton={copy.claimRewards}
+                      showRegisteredNote={false}
+                    />
+                  ) : (
                     <Button variant="outline" size="sm" disabled>
                       {copy.claimRewards}
                     </Button>
-                  </dd>
-                </div>
-              )}
+                  )}
+                </dd>
+              </div>
             </dl>
           </section>
         ) : null}

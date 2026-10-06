@@ -43,8 +43,12 @@ export function DaoDots() {
  * DAO 资金明细弹窗（参照 demo.outrun.build/memeverse/26：Total Value + 多资产行）。
  * 触发 = 带 >>> 动态符的可点数据卡（当期/上期国库、未领取奖励）；
  * 构成 = governance fixture 资产样本（S 级，总额锚 treasuryUAsset/remainingRewards）。
- * 触发器渲染为原芯片 div，保持 KPI 芯片网格布局不变（DialogTrigger render 范式）。
+ * 触发器渲染为原芯片 div（DialogTrigger render 范式）；布局随档位：>640px=KPI 芯片网格、
+ * ≤640px=hairline 行（globals.css 移动端重构块，2026-10-05）。
  * actionLabel=底部主 CTA（可领明细弹窗领取钮，参照图同款；点击关闭弹窗——原型模拟）。
+ * triggerButton=按钮触发变体（2026-10-05 用户裁定：可领行触发面积收回按钮本身，
+ * 整行不再触发；>>> 移入按钮文案后）——传此参时忽略 children，渲染
+ * outline 钮（label + DaoDots）作触发器，dialog 内容不变。
  */
 export function DaoFundDialog({
   locale,
@@ -52,6 +56,8 @@ export function DaoFundDialog({
   totalUsd,
   assets,
   actionLabel,
+  triggerButton,
+  showRegisteredNote = true,
   children,
 }: {
   locale: Locale
@@ -59,15 +65,27 @@ export function DaoFundDialog({
   totalUsd: number
   assets: FixtureGovernanceAsset[]
   actionLabel?: string
-  children: React.ReactNode
+  triggerButton?: string
+  showRegisteredNote?: boolean
+  children?: React.ReactNode
 }) {
   const copy = getCopy(locale).verseDesk
   const common = getCopy(locale).common
   return (
     <Dialog>
-      <DialogTrigger nativeButton={false} render={<div className="cycle-card__hit" />}>
-        {children}
-      </DialogTrigger>
+      {triggerButton ? (
+        <DialogTrigger data-slot="button" render={<Button variant="outline" size="sm" />}>
+          {triggerButton}
+          <DaoDots />
+        </DialogTrigger>
+      ) : (
+        /* className 必须走 prop 通道：包装件自带 className 时 base-ui 合并会丢弃 render
+           元素上的 className（cycle-card__hit 静默失效=桌面 hover 亮边/青描边与移动端
+           整行按压反馈全不生效，2026-10-05 修） */
+        <DialogTrigger nativeButton={false} render={<div />} className="cycle-card__hit">
+          {children}
+        </DialogTrigger>
+      )}
       <DialogContent className="dao-fund-pop">
         {/* 壳复用 .pol-mint（同 POL/Liquidity/Swap 弹窗）：底色/描边光/padding 都在这层，
             缺了它弹窗只剩虚化遮罩、内容透底（2026-09-30 修复） */}
@@ -131,8 +149,11 @@ export function DaoFundDialog({
           {/* 白名单口径注脚（2026-09-30 源码对账）：明细只覆盖治理注册的代币注册表——
               getTreasuryBalances→treasuryTokenList、getClaimableReward→rewardTokenList
               （GovernanceCycleIncentivizerUpgradeable.sol:266/:199）；Governor 持有的
-              未注册代币不入账本不显示。四弹窗统一一条（用户裁定） */}
-          <p className="dao-fund-pop__note">{copy.registeredAssetsNote}</p>
+              未注册代币不入账本不显示。原四弹窗统一一条（用户裁定）；
+              2026-10-06 裁定：未领取/可领两弹窗不再显示，仅国库两弹窗保留 */}
+          {showRegisteredNote ? (
+            <p className="dao-fund-pop__note">{copy.registeredAssetsNote}</p>
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>
