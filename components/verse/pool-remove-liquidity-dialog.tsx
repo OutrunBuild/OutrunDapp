@@ -1,40 +1,22 @@
 'use client'
 
 import { useId, useState } from 'react'
-import { ArrowDown, ArrowLeftRight, Info, Settings2, X } from 'lucide-react'
+import { ArrowDown, ArrowLeftRight } from 'lucide-react'
 
 import type { Locale, FixturePolPosition, FixtureVerseTrade } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { useMockWallet } from '../global/mock-wallet'
-import { DEADLINE_PRESETS, SLIPPAGE_PRESETS, isWholeMinutes } from './swap-panel'
+import { ActionDialogShell, DialogCta } from '../global/action-dialogs'
+import { SwapSettings } from '../global/swap-settings'
 import { formatAmount } from '../global/signal-ui'
 import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
 import { fmtTokenAmount, fmtUsd } from '../global/amount-format'
-import { getSlippageIssue, slippageErrorCopyKey } from '../global/slippage-input'
+import { getSlippageIssue, slippageToNumber } from '../global/slippage-input'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
+import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-
-function SettingsTip({ text }: { text: string }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger className="create-info" aria-label={text}>
-        <Info aria-hidden="true" />
-      </TooltipTrigger>
-      <TooltipContent>{text}</TooltipContent>
-    </Tooltip>
-  )
-}
 
 /**
  * Remove Liquidity 弹窗（2026-09-27 用户裁定：池卡新增 Remove 钮）。
@@ -69,10 +51,11 @@ export function PoolRemoveLiquidityDialog({
   const { connected, toggle } = useMockWallet()
   const [lpAmount, setLpAmount] = useState('')
   const receiveLabelId = useId()
-  const slippageErrorId = useId()
-  const deadlineErrorId = useId()
-  const [slippage, setSlippage] = useState<number>(0.5)
-  const [deadlineMin, setDeadlineMin] = useState<number>(10)
+  const lpBalanceErrorId = useId()
+  // 设置层受控值存 string 原样展示（§25 拍板 A：留点不吞、非整分钟就地报错），
+  // 数值推导经 slippageToNumber（2026-10-08 P1-1 修）
+  const [slippageText, setSlippageText] = useState('0.5')
+  const [deadlineText, setDeadlineText] = useState('10')
   const [rateInverted, setRateInverted] = useState(false)
 
   const lpBalance = pol == null ? null : pol.myLp[pool.pool]
@@ -101,8 +84,8 @@ export function PoolRemoveLiquidityDialog({
     valid && pool.lpPerQuote != null && pool.lpPerQuote > 0 ? lpVal / pool.lpPerQuote : null
   const baseOut = quoteOut != null && ratio != null && ratio > 0 ? quoteOut / ratio : null
   // 滑点校验=§25 口径（slippage-input.ts）：越界期间保护值推导退 '--' 槽位
+  const slippage = slippageToNumber(slippageText)
   const slippageIssue = getSlippageIssue(slippage)
-  const deadlineValid = isWholeMinutes(deadlineMin)
   const minQuote =
     quoteOut != null && slippageIssue == null ? quoteOut * (1 - slippage / 100) : null
   const minBase =
@@ -130,107 +113,24 @@ export function PoolRemoveLiquidityDialog({
       <DialogTrigger data-slot="button" render={<Button variant="outline" size="sm" />}>
         {copy.removeLiquidity}
       </DialogTrigger>
-      <DialogContent className="pol-mint-pop">
-        <div className="pol-mint ax-glow-card">
-          <header className="pol-mint__head">
-            <DialogTitle className="pol-mint__title">{copy.removeLiquidityDialogTitle}</DialogTitle>
-            <div className="pol-mint__controls">
-              <Popover>
-                <PopoverTrigger
-                  className="swap-panel__settings-toggle"
-                  aria-label={copy.removeLiquiditySettingsTitle}
-                  render={
-                    <button type="button">
-                      <Settings2 aria-hidden="true" />
-                    </button>
-                  }
-                />
-                <PopoverContent className="swap-settings" side="bottom" align="end">
-                  <div className="swap-settings__row">
-                    <span className="swap-settings__label">
-                      {copy.slippageTolerance}
-                      <SettingsTip text={copy.removeLiquiditySlippageTip} />
-                    </span>
-                    <div className="swap-settings__options">
-                      {SLIPPAGE_PRESETS.map((preset) => (
-                        <button
-                          key={preset}
-                          type="button"
-                          data-selected={slippage === preset}
-                          onClick={() => setSlippage(preset)}
-                        >
-                          {preset}%
-                        </button>
-                      ))}
-                      <span className="swap-settings__unit">
-                        <Input
-                          className="swap-settings__custom numeric-input"
-                          inputMode="decimal"
-                          aria-label={`${copy.slippageTolerance} %`}
-                          aria-invalid={slippageIssue != null || undefined}
-                          aria-describedby={slippageIssue != null ? slippageErrorId : undefined}
-                          value={slippage}
-                          onChange={(event) => {
-                            const next = Number(sanitizeAmount(event.target.value))
-                            setSlippage(Number.isFinite(next) && next >= 0 ? next : 0)
-                          }}
-                        />
-                        <b aria-hidden="true">%</b>
-                      </span>
-                    </div>
-                    {slippageIssue != null ? (
-                      <FieldError id={slippageErrorId}>
-                        {copy[slippageErrorCopyKey(slippageIssue)]}
-                      </FieldError>
-                    ) : null}
-                  </div>
-                  <div className="swap-settings__row">
-                    <span className="swap-settings__label">
-                      {copy.transactionDeadline}
-                      <SettingsTip text={copy.removeLiquidityDeadlineTip} />
-                    </span>
-                    <div className="swap-settings__options">
-                      {DEADLINE_PRESETS.map((preset) => (
-                        <button
-                          key={preset}
-                          type="button"
-                          data-selected={deadlineMin === preset}
-                          onClick={() => setDeadlineMin(preset)}
-                        >
-                          {preset}
-                        </button>
-                      ))}
-                      <span className="swap-settings__unit">
-                        <Input
-                          className="swap-settings__custom numeric-input"
-                          inputMode="numeric"
-                          aria-label={`${copy.transactionDeadline} min`}
-                          aria-invalid={!deadlineValid || undefined}
-                          aria-describedby={!deadlineValid ? deadlineErrorId : undefined}
-                          value={deadlineMin}
-                          onChange={(event) => {
-                            const next = Number(sanitizeAmount(event.target.value))
-                            setDeadlineMin(Number.isFinite(next) && next > 0 ? next : 1)
-                          }}
-                        />
-                        <b aria-hidden="true">min</b>
-                      </span>
-                    </div>
-                    {!deadlineValid ? (
-                      <FieldError id={deadlineErrorId}>{copy.deadlineWholeMinutes}</FieldError>
-                    ) : null}
-                  </div>
-                </PopoverContent>
-              </Popover>
-              <DialogClose
-                render={
-                  <button type="button" className="pol-mint__close" aria-label={common.close} />
-                }
-              >
-                <X aria-hidden="true" size={16} />
-              </DialogClose>
-            </div>
-          </header>
+      <ActionDialogShell
+        title={copy.removeLiquidityDialogTitle}
+        closeLabel={common.close}
+        toolbar={
+          <SwapSettings
+            locale={locale}
+            settingsLabel={copy.removeLiquiditySettingsTitle}
+            slippageTip={copy.removeLiquiditySlippageTip}
+            slippageValue={slippageText}
+            onSlippageValue={setSlippageText}
+            deadline={{
+              tip: copy.removeLiquidityDeadlineTip,
+              value: deadlineText,
+              onValue: setDeadlineText,
+            }}
+          />
+        }
+      >
 
           <span className="pol-mint__label">{copy.removeBurn}</span>
           <div className="swap-panel__field">
@@ -263,14 +163,14 @@ export function PoolRemoveLiquidityDialog({
                 onChange={(event) => setLpAmount(sanitizeAmount(event.target.value))}
                 aria-label={`${copy.removeLiquidityDialogTitle} ${lpSymbol}`}
                 aria-invalid={lpOver || undefined}
-                aria-describedby={lpOver ? 'pool-lp-balance-error' : undefined}
+                aria-describedby={lpOver ? lpBalanceErrorId : undefined}
               />
               <div className="swap-panel__token">
                 <strong>{lpSymbol}</strong>
               </div>
             </div>
             {lpOver ? (
-              <FieldError id="pool-lp-balance-error">{common.insufficientBalance}</FieldError>
+              <FieldError id={lpBalanceErrorId}>{common.insufficientBalance}</FieldError>
             ) : null}
           </div>
 
@@ -290,13 +190,7 @@ export function PoolRemoveLiquidityDialog({
                 data-numeric
                 aria-label={`${copy.mintYouReceive} ${pool.baseSymbol}`}
               >
-                {baseOut != null ? (
-                  fmtTokenAmount(baseOut, locale)
-                ) : valid ? (
-                  <span className="ax-slot">{copy.onChainSlot}</span>
-                ) : (
-                  '0.00'
-                )}
+                {baseOut != null ? fmtTokenAmount(baseOut, locale) : '0.00'}
               </output>
               <div className="swap-panel__token">
                 <strong>{pool.baseSymbol}</strong>
@@ -309,13 +203,7 @@ export function PoolRemoveLiquidityDialog({
                 data-numeric
                 aria-label={`${copy.mintYouReceive} ${pool.quoteSymbol}`}
               >
-                {quoteOut != null ? (
-                  fmtTokenAmount(quoteOut, locale)
-                ) : valid ? (
-                  <span className="ax-slot">{copy.onChainSlot}</span>
-                ) : (
-                  '0.00'
-                )}
+                {quoteOut != null ? fmtTokenAmount(quoteOut, locale) : '0.00'}
               </output>
               <div className="swap-panel__token">
                 <strong>{pool.quoteSymbol}</strong>
@@ -366,17 +254,14 @@ export function PoolRemoveLiquidityDialog({
               </div>
             </dl>
           ) : null}
-          {connected ? (
-            <Button className="swap-panel__cta" disabled>
-              {copy.removeLiquidity}
-            </Button>
-          ) : (
-            <Button className="swap-panel__cta" onClick={toggle}>
-              {copy.swapCta}
-            </Button>
-          )}
-        </div>
-      </DialogContent>
+          <DialogCta
+            locale={locale}
+            connected={connected}
+            onConnect={toggle}
+            label={copy.removeLiquidity}
+            connectLabel={copy.swapCta}
+          />
+      </ActionDialogShell>
     </Dialog>
   )
 }

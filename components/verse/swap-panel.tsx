@@ -1,7 +1,7 @@
 'use client'
 
 import { useId, useState } from 'react'
-import { ArrowLeftRight, ArrowUpDown, Info, Settings2 } from 'lucide-react'
+import { ArrowLeftRight, ArrowUpDown } from 'lucide-react'
 
 import type {
   Locale,
@@ -11,41 +11,14 @@ import type {
 import { getCopy } from '../global/copy'
 import { useMockWallet } from '../global/mock-wallet'
 import { formatAmount } from '../global/signal-ui'
-import { AMOUNT_MAX_CHARS, sanitizeAmount } from '../global/amount-input'
+import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
 import { fmtTokenAmount, fmtUsd } from '../global/amount-format'
-import { getSlippageIssue, slippageErrorCopyKey } from '../global/slippage-input'
+import { getSlippageIssue, slippageToNumber } from '../global/slippage-input'
+import { SwapSettings } from '../global/swap-settings'
+import { DialogCta } from '../global/action-dialogs'
 import { SwapTokenSelectDialog, type SwapTokenOption } from './swap-token-select-dialog'
-import { Button } from '@/components/ui/button'
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-
-/** 滑点/截止默认与预设档（R-06：常态默认 0.5%；demo 参照档位 0.1/0.5/1.0 与 10/20/30 分钟）；
- * pol-mint-dialog 复用同档（mintPOLToken 双侧 min + deadline 同族参数）。
- * 自定义滑点校验域 0.01–50%（slippage-input.ts）：0 零容忍必回退、>100 时 (1−s/100)
- * 转负，越界 FieldError 就地报错、推导行退 '--' 槽位（2026-10-03 评审修） */
-export const SLIPPAGE_PRESETS = [0.1, 0.5, 1] as const
-export const DEADLINE_PRESETS = [10, 20, 30] as const
-
-/** 交易截止时间整分钟校验（2026-10-03 拍板 A：全站整分钟数，自定义输入保留小数点
- * 以便就地报错——不再剥点把 1.5 静默变 15；空/0 仍回退 1 分钟）；
- * §17/§22/§24 弹窗同构设置层复用 */
-export function isWholeMinutes(value: number) {
-  return Number.isInteger(value) && value > 0
-}
-
-/** 设置项标签旁的解释气泡（复用 create 页 ⊙ 提示语言） */
-function SettingsTip({ text }: { text: string }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger className="create-info" aria-label={text}>
-        <Info aria-hidden="true" />
-      </TooltipTrigger>
-      <TooltipContent>{text}</TooltipContent>
-    </Tooltip>
-  )
-}
 
 /** Meme 侧候选代币 id（品类而非独立 symbol：POL-/PT- 前缀派生；YT 不入卡——Flash Swap 是
  * POL↔YT 单通道工具，2026-09-27 方案 B 移入 Tokenization 页 YT 井专属弹窗） */
@@ -101,11 +74,13 @@ export function SwapPanel({
   const buyLabelId = useId()
   const [stableId, setStableId] = useState(uAssetSymbol)
   const [memeId, setMemeId] = useState<MemeTokenId>('meme')
-  // 打开即预填默认卖出侧（uAsset）全部余额（§21/Flash Swap 同规——空输入 0.00/'--' 观感差，
-  // 2026-09-28 用户裁定造数看原型效果）；余额缺失不预填，翻转/换币保留输入
-  const [amount, setAmount] = useState(uAssetBalance != null ? String(uAssetBalance) : '')
-  const [slippage, setSlippage] = useState<number>(0.5)
-  const [deadlineMin, setDeadlineMin] = useState<number>(10)
+  // 打开为空输入（2026-10-08 用户裁定：金额输入默认空 0.00，废除 2026-09-28
+  // 打开预填余额口径）；翻转/换币保留输入
+  const [amount, setAmount] = useState('')
+  // 设置层受控值存 string 原样展示（§25 拍板 A：留点不吞、非整分钟就地报错），
+  // 数值推导经 slippageToNumber（2026-10-08 P1-1 修）
+  const [slippageText, setSlippageText] = useState('0.5')
+  const [deadlineText, setDeadlineText] = useState('10')
   const [rateInverted, setRateInverted] = useState(false)
 
   // 稳定侧候选：募集 uAsset + PSM 配对储备（OutStake PSM 面值 1:1；储备余额 fixture 缺→槽位）
@@ -172,9 +147,8 @@ export function SwapPanel({
     sellPrice != null && buyPrice != null && buyPrice > 0 ? sellPrice / buyPrice : null
   const quote = valid && pairRate != null ? parsed * pairRate : null
   // 滑点越界期间不做 (1−s/100) 推导（s>100 得负数代币），最少收到/最大滑点行退槽位
+  const slippage = slippageToNumber(slippageText)
   const slippageIssue = getSlippageIssue(slippage)
-  // deadline 非整分钟（如 1.5）就地报错，见 isWholeMinutes 头注
-  const deadlineValid = isWholeMinutes(deadlineMin)
   const minReceived = quote != null && slippageIssue == null ? quote * (1 - slippage / 100) : null
   // 美元换算：两侧各自按 uAsset 计价 × uAssetUsd（储备借 PSM 平价等值 uAsset 价）；
   // fmtUsd/fmtTokenAmount 及大数分层口径=global/amount-format
@@ -205,94 +179,16 @@ export function SwapPanel({
     <section className="swap-panel ax-glow-card" aria-labelledby="swap-title">
       <div className="swap-panel__head">
         <h2 id="swap-title">{copy.swapTitle}</h2>
-        {/* 行业惯例：幽灵图标齿轮 + 弹出式设置层（demo 参照；Esc/外点关闭、焦点回触发器由 Popover 内置） */}
-        <Popover>
-          <PopoverTrigger
-            className="swap-panel__settings-toggle"
-            aria-label={copy.settingsTitle}
-            render={
-              <button type="button">
-                <Settings2 aria-hidden="true" />
-              </button>
-            }
-          />
-          <PopoverContent className="swap-settings" side="bottom" align="end">
-            <div className="swap-settings__row">
-              <span className="swap-settings__label">
-                {copy.slippageTolerance}
-                <SettingsTip text={copy.slippageTip} />
-              </span>
-              <div className="swap-settings__options">
-                {SLIPPAGE_PRESETS.map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    data-selected={slippage === preset}
-                    onClick={() => setSlippage(preset)}
-                  >
-                    {preset}%
-                  </button>
-                ))}
-                <span className="swap-settings__unit">
-                  <Input
-                    className="swap-settings__custom numeric-input"
-                    inputMode="decimal"
-                    aria-label={`${copy.slippageTolerance} %`}
-                    aria-invalid={slippageIssue != null || undefined}
-                    aria-describedby={slippageIssue != null ? 'swap-slippage-error' : undefined}
-                    value={slippage}
-                    onChange={(event) => {
-                      const next = Number(sanitizeAmount(event.target.value))
-                      setSlippage(Number.isFinite(next) && next >= 0 ? next : 0)
-                    }}
-                  />
-                  <b aria-hidden="true">%</b>
-                </span>
-              </div>
-              {slippageIssue != null ? (
-                <FieldError id="swap-slippage-error">
-                  {copy[slippageErrorCopyKey(slippageIssue)]}
-                </FieldError>
-              ) : null}
-            </div>
-            <div className="swap-settings__row">
-              <span className="swap-settings__label">
-                {copy.transactionDeadline}
-                <SettingsTip text={copy.deadlineTip} />
-              </span>
-              <div className="swap-settings__options">
-                {DEADLINE_PRESETS.map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    data-selected={deadlineMin === preset}
-                    onClick={() => setDeadlineMin(preset)}
-                  >
-                    {preset}
-                  </button>
-                ))}
-                <span className="swap-settings__unit">
-                  <Input
-                    className="swap-settings__custom numeric-input"
-                    inputMode="numeric"
-                    aria-label={`${copy.transactionDeadline} min`}
-                    aria-invalid={!deadlineValid || undefined}
-                    aria-describedby={!deadlineValid ? 'swap-deadline-error' : undefined}
-                    value={deadlineMin}
-                    onChange={(event) => {
-                      const next = Number(sanitizeAmount(event.target.value))
-                      setDeadlineMin(Number.isFinite(next) && next > 0 ? next : 1)
-                    }}
-                  />
-                  <b aria-hidden="true">min</b>
-                </span>
-              </div>
-              {!deadlineValid ? (
-                <FieldError id="swap-deadline-error">{copy.deadlineWholeMinutes}</FieldError>
-              ) : null}
-            </div>
-          </PopoverContent>
-        </Popover>
+        {/* 行业惯例：幽灵图标齿轮 + 弹出式设置层（demo 参照；唯一实现=
+            components/global/swap-settings.tsx，Esc/外点关闭、焦点回触发器由 Popover 内置） */}
+        <SwapSettings
+          locale={locale}
+          settingsLabel={copy.settingsTitle}
+          slippageTip={copy.slippageTip}
+          slippageValue={slippageText}
+          onSlippageValue={setSlippageText}
+          deadline={{ tip: copy.deadlineTip, value: deadlineText, onValue: setDeadlineText }}
+        />
       </div>
       <div className="swap-panel__field">
         <div className="swap-panel__field-head">
@@ -308,7 +204,7 @@ export function SwapPanel({
               type="button"
               className="swap-panel__max"
               disabled={sellBalance == null}
-              onClick={() => setAmount(sellBalance != null ? String(sellBalance) : '')}
+              onClick={() => setAmount(sellBalance != null ? amountToInputString(sellBalance) : '')}
             >
               {copy.max}
             </button>
@@ -416,15 +312,14 @@ export function SwapPanel({
           <dd>{routeLegs.join(' → ')}</dd>
         </div>
       </dl>
-      {connected ? (
-        <Button className="swap-panel__cta" disabled title={copy.swapActionNote}>
-          {copy.swapAction}
-        </Button>
-      ) : (
-        <Button className="swap-panel__cta" onClick={toggle}>
-          {copy.swapCta}
-        </Button>
-      )}
+      <DialogCta
+        locale={locale}
+        connected={connected}
+        onConnect={toggle}
+        label={copy.swapAction}
+        title={copy.swapActionNote}
+        connectLabel={copy.swapCta}
+      />
     </section>
   )
 }

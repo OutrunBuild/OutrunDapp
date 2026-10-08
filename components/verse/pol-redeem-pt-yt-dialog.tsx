@@ -31,7 +31,8 @@ import { FieldError } from '@/components/ui/field'
  * 输出非 1:1 恒等（与 Split/Merge 弹窗删输出区的裁定不冲突）→ 2026-09-27 第三轮参照图
  * 裁定改双框：输入框（label=burnLabel）+ Receive 独立框（同 swap 双框语言：只读
  * `output`+代币章）——PT=单框（uAsset 章）、YT=双框（memecoin 主腿框+uAsset 框，
- * 与井读数同序），You receive 明细行随之删除（信息不重复）；rate 缺样本→框内 ax-slot。
+ * 与井读数同序），You receive 明细行随之删除（信息不重复）；rate 缺样本→随空值 0.00
+ * （「以链上读值为准」槽位 2026-10-05 用户裁定全站废止）。
  * CTA 纪律同 Split/Merge：未连接=Connect Wallet 可点、已连接=操作钮禁用（不伪造成交）。
  */
 export function PolRedeemPtYtDialog({
@@ -54,10 +55,11 @@ export function PolRedeemPtYtDialog({
   const copy = getCopy(locale).verseDesk
   const common = getCopy(locale).common
   const { connected, toggle } = useMockWallet()
-  // 打开即预填全部余额（2026-09-27 用户裁定：空输入 You receive 摆 0.00 观感差，
-  // 打开就用样本余额示全额兑付预估；用户清空/改数后照常重算）
-  const [amount, setAmount] = useState(mode === 'pt' ? amountToInputString(pol.myPt) : amountToInputString(pol.myYt))
+  // 打开为空输入（2026-10-08 用户裁定：金额输入默认空 0.00，废除 2026-09-27
+  // 打开预填余额口径）；清空/改数后照常重算
+  const [amount, setAmount] = useState('')
   const receiveLabelId = useId()
+  const balanceErrorId = useId()
 
   const ptSymbol = `PT-${verse.symbol}`
   const ytSymbol = `YT-${verse.symbol}`
@@ -122,14 +124,14 @@ export function PolRedeemPtYtDialog({
                 onChange={(event) => clean(event.target.value)}
                 aria-label={`${mode === 'pt' ? copy.redeemPt : copy.redeemYt} ${tokenSymbol}`}
                 aria-invalid={overBalance || undefined}
-                aria-describedby={overBalance ? 'redeem-py-balance-error' : undefined}
+                aria-describedby={overBalance ? balanceErrorId : undefined}
               />
               <div className="swap-panel__token">
                 <strong>{tokenSymbol}</strong>
               </div>
             </div>
             {overBalance ? (
-              <FieldError id="redeem-py-balance-error">{common.insufficientBalance}</FieldError>
+              <FieldError id={balanceErrorId}>{common.insufficientBalance}</FieldError>
             ) : null}
           </div>
 
@@ -168,20 +170,14 @@ export function PolRedeemPtYtDialog({
                   data-numeric
                   aria-label={`${copy.receiveLabel} ${verse.symbol}`}
                 >
-                  {pol.ytRedeemMemecoinPerUnit == null ? (
-                    <span className="ax-slot">{copy.onChainSlot}</span>
-                  ) : ytMemeOut != null ? (
-                    formatAmount(ytMemeOut, locale)
-                  ) : (
-                    '0.00'
-                  )}
+                  {ytMemeOut != null ? formatAmount(ytMemeOut, locale) : '0.00'}
                 </output>
                 <div className="swap-panel__token">
                   <strong>{verse.symbol}</strong>
                 </div>
               </div>
               {ytMemeUsd != null ? (
-                <span className="swap-panel__field-usd">≈ ${formatAmount(ytMemeUsd, locale)}</span>
+                <span className="swap-panel__field-usd">≈ ${ytMemeUsd}</span>
               ) : null}
               <div className="swap-panel__field-row">
                 <output
@@ -189,13 +185,7 @@ export function PolRedeemPtYtDialog({
                   data-numeric
                   aria-label={`${copy.receiveLabel} ${verse.raiseAsset}`}
                 >
-                  {pol.ytRedeemUAssetPerUnit == null ? (
-                    <span className="ax-slot">{copy.onChainSlot}</span>
-                  ) : ytUAssetOut != null ? (
-                    formatAmount(ytUAssetOut, locale)
-                  ) : (
-                    '0.00'
-                  )}
+                  {ytUAssetOut != null ? formatAmount(ytUAssetOut, locale) : '0.00'}
                 </output>
                 <div className="swap-panel__token">
                   <strong>{verse.raiseAsset}</strong>

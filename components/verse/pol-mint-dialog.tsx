@@ -1,40 +1,22 @@
 'use client'
 
 import { useId, useState } from 'react'
-import { ArrowDown, ArrowLeftRight, Info, Settings2, X } from 'lucide-react'
+import { ArrowDown, ArrowLeftRight } from 'lucide-react'
 
 import type { Locale, FixturePolPosition, FixtureVerse } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { useMockWallet } from '../global/mock-wallet'
-import { DEADLINE_PRESETS, SLIPPAGE_PRESETS, isWholeMinutes } from './swap-panel'
+import { ActionDialogShell, DialogCta } from '../global/action-dialogs'
+import { SwapSettings } from '../global/swap-settings'
 import { formatAmount } from '../global/signal-ui'
 import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
 import { fmtTokenAmount, fmtUsd } from '../global/amount-format'
-import { getSlippageIssue, slippageErrorCopyKey } from '../global/slippage-input'
+import { getSlippageIssue, slippageToNumber } from '../global/slippage-input'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
+import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-
-function SettingsTip({ text }: { text: string }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger className="create-info" aria-label={text}>
-        <Info aria-hidden="true" />
-      </TooltipTrigger>
-      <TooltipContent>{text}</TooltipContent>
-    </Tooltip>
-  )
-}
 
 /**
  * Mint POL 弹窗（2026-09-24：参照 demo 双币供给弹窗的功能结构，视觉按本站品牌适配）。
@@ -64,11 +46,13 @@ export function PolMintDialog({
   const { connected, toggle } = useMockWallet()
   const [memeAmount, setMemeAmount] = useState('')
   const receiveLabelId = useId()
-  const slippageErrorId = useId()
-  const deadlineErrorId = useId()
+  const memeBalanceErrorId = useId()
+  const uBalanceErrorId = useId()
   const [uAmount, setUAmount] = useState('')
-  const [slippage, setSlippage] = useState<number>(0.5)
-  const [deadlineMin, setDeadlineMin] = useState<number>(10)
+  // 设置层受控值存 string 原样展示（§25 拍板 A：留点不吞、非整分钟就地报错），
+  // 数值推导经 slippageToNumber（2026-10-08 P1-1 修）
+  const [slippageText, setSlippageText] = useState('0.5')
+  const [deadlineText, setDeadlineText] = useState('10')
   const [rateInverted, setRateInverted] = useState(false)
 
   const polSymbol = `POL-${verse.symbol}`
@@ -77,11 +61,11 @@ export function PolMintDialog({
   const valid = Number.isFinite(memeVal) && memeVal > 0 && Number.isFinite(uVal) && uVal > 0
   const memeOver = memeVal > pol.myMemecoin
   const uOver = uVal > pol.myUAsset
-  // POL 输出 = uAsset 侧 ÷ 每 POL 的 uAsset 侧（线性推导样本，以链上读值为准）
+  // POL 输出 = uAsset 侧 ÷ 每 POL 的 uAsset 侧（线性推导样本，生产读链上值）
   const polOut = valid && pol.uAssetPerPol > 0 ? uVal / pol.uAssetPerPol : null
   // 滑点校验=§25 口径（slippage-input.ts）：越界期间保护值推导退 '--' 槽位
+  const slippage = slippageToNumber(slippageText)
   const slippageIssue = getSlippageIssue(slippage)
-  const deadlineValid = isWholeMinutes(deadlineMin)
   const minPol = polOut != null && slippageIssue == null ? polOut * (1 - slippage / 100) : null
 
   // 双侧联动：主池全范围两侧等值（OutrunBook pol-splitter.md），另一侧按 price 配比补算
@@ -111,107 +95,20 @@ export function PolMintDialog({
       <DialogTrigger data-slot="button" render={<Button variant="outline" size="sm" />}>
         {copy.mintPol}
       </DialogTrigger>
-      <DialogContent className="pol-mint-pop">
-        <div className="pol-mint ax-glow-card">
-          <header className="pol-mint__head">
-            <DialogTitle className="pol-mint__title">{copy.mintDialogTitle}</DialogTitle>
-            <div className="pol-mint__controls">
-              <Popover>
-                <PopoverTrigger
-                  className="swap-panel__settings-toggle"
-                  aria-label={copy.mintSettingsTitle}
-                  render={
-                    <button type="button">
-                      <Settings2 aria-hidden="true" />
-                    </button>
-                  }
-                />
-                <PopoverContent className="swap-settings" side="bottom" align="end">
-                  <div className="swap-settings__row">
-                    <span className="swap-settings__label">
-                      {copy.slippageTolerance}
-                      <SettingsTip text={copy.mintSlippageTip} />
-                    </span>
-                    <div className="swap-settings__options">
-                      {SLIPPAGE_PRESETS.map((preset) => (
-                        <button
-                          key={preset}
-                          type="button"
-                          data-selected={slippage === preset}
-                          onClick={() => setSlippage(preset)}
-                        >
-                          {preset}%
-                        </button>
-                      ))}
-                      <span className="swap-settings__unit">
-                        <Input
-                          className="swap-settings__custom numeric-input"
-                          inputMode="decimal"
-                          aria-label={`${copy.slippageTolerance} %`}
-                          aria-invalid={slippageIssue != null || undefined}
-                          aria-describedby={slippageIssue != null ? slippageErrorId : undefined}
-                          value={slippage}
-                          onChange={(event) => {
-                            const next = Number(sanitizeAmount(event.target.value))
-                            setSlippage(Number.isFinite(next) && next >= 0 ? next : 0)
-                          }}
-                        />
-                        <b aria-hidden="true">%</b>
-                      </span>
-                    </div>
-                    {slippageIssue != null ? (
-                      <FieldError id={slippageErrorId}>
-                        {copy[slippageErrorCopyKey(slippageIssue)]}
-                      </FieldError>
-                    ) : null}
-                  </div>
-                  <div className="swap-settings__row">
-                    <span className="swap-settings__label">
-                      {copy.transactionDeadline}
-                      <SettingsTip text={copy.mintDeadlineTip} />
-                    </span>
-                    <div className="swap-settings__options">
-                      {DEADLINE_PRESETS.map((preset) => (
-                        <button
-                          key={preset}
-                          type="button"
-                          data-selected={deadlineMin === preset}
-                          onClick={() => setDeadlineMin(preset)}
-                        >
-                          {preset}
-                        </button>
-                      ))}
-                      <span className="swap-settings__unit">
-                        <Input
-                          className="swap-settings__custom numeric-input"
-                          inputMode="numeric"
-                          aria-label={`${copy.transactionDeadline} min`}
-                          aria-invalid={!deadlineValid || undefined}
-                          aria-describedby={!deadlineValid ? deadlineErrorId : undefined}
-                          value={deadlineMin}
-                          onChange={(event) => {
-                            const next = Number(sanitizeAmount(event.target.value))
-                            setDeadlineMin(Number.isFinite(next) && next > 0 ? next : 1)
-                          }}
-                        />
-                        <b aria-hidden="true">min</b>
-                      </span>
-                    </div>
-                    {!deadlineValid ? (
-                      <FieldError id={deadlineErrorId}>{copy.deadlineWholeMinutes}</FieldError>
-                    ) : null}
-                  </div>
-                </PopoverContent>
-              </Popover>
-              <DialogClose
-                render={
-                  <button type="button" className="pol-mint__close" aria-label={common.close} />
-                }
-              >
-                <X aria-hidden="true" size={16} />
-              </DialogClose>
-            </div>
-          </header>
+      <ActionDialogShell
+        title={copy.mintDialogTitle}
+        closeLabel={common.close}
+        toolbar={
+          <SwapSettings
+            locale={locale}
+            settingsLabel={copy.mintSettingsTitle}
+            slippageTip={copy.mintSlippageTip}
+            slippageValue={slippageText}
+            onSlippageValue={setSlippageText}
+            deadline={{ tip: copy.mintDeadlineTip, value: deadlineText, onValue: setDeadlineText }}
+          />
+        }
+      >
 
           <span className="pol-mint__label">{copy.mintSupply}</span>
           <div className="swap-panel__field">
@@ -234,14 +131,14 @@ export function PolMintDialog({
                 onChange={(event) => onMemeInput(sanitizeAmount(event.target.value))}
                 aria-label={`${copy.mintSupply} ${verse.symbol}`}
                 aria-invalid={memeOver || undefined}
-                aria-describedby={memeOver ? 'mint-meme-balance-error' : undefined}
+                aria-describedby={memeOver ? memeBalanceErrorId : undefined}
               />
               <div className="swap-panel__token">
                 <strong>{verse.symbol}</strong>
               </div>
             </div>
             {memeOver ? (
-              <FieldError id="mint-meme-balance-error">{common.insufficientBalance}</FieldError>
+              <FieldError id={memeBalanceErrorId}>{common.insufficientBalance}</FieldError>
             ) : null}
             {memeUsd != null ? <span className="swap-panel__field-usd">≈ ${memeUsd}</span> : null}
           </div>
@@ -265,14 +162,14 @@ export function PolMintDialog({
                 onChange={(event) => onUInput(sanitizeAmount(event.target.value))}
                 aria-label={`${copy.mintSupply} ${verse.raiseAsset}`}
                 aria-invalid={uOver || undefined}
-                aria-describedby={uOver ? 'mint-u-balance-error' : undefined}
+                aria-describedby={uOver ? uBalanceErrorId : undefined}
               />
               <div className="swap-panel__token">
                 <strong>{verse.raiseAsset}</strong>
               </div>
             </div>
             {uOver ? (
-              <FieldError id="mint-u-balance-error">{common.insufficientBalance}</FieldError>
+              <FieldError id={uBalanceErrorId}>{common.insufficientBalance}</FieldError>
             ) : null}
             {uUsd != null ? <span className="swap-panel__field-usd">≈ ${uUsd}</span> : null}
           </div>
@@ -337,17 +234,14 @@ export function PolMintDialog({
               </div>
             </dl>
           ) : null}
-          {connected ? (
-            <Button className="swap-panel__cta" disabled>
-              {copy.mintPol}
-            </Button>
-          ) : (
-            <Button className="swap-panel__cta" onClick={toggle}>
-              {copy.swapCta}
-            </Button>
-          )}
-        </div>
-      </DialogContent>
+          <DialogCta
+            locale={locale}
+            connected={connected}
+            onConnect={toggle}
+            label={copy.mintPol}
+            connectLabel={copy.swapCta}
+          />
+      </ActionDialogShell>
     </Dialog>
   )
 }

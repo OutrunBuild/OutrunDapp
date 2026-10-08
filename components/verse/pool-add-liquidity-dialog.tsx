@@ -1,48 +1,31 @@
 'use client'
 
 import { useId, useState } from 'react'
-import { ArrowDown, ArrowLeftRight, Info, Settings2, X } from 'lucide-react'
+import { ArrowDown, ArrowLeftRight } from 'lucide-react'
 
 import type { Locale, FixturePolPosition, FixtureVerseTrade } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { useMockWallet } from '../global/mock-wallet'
-import { DEADLINE_PRESETS, SLIPPAGE_PRESETS, isWholeMinutes } from './swap-panel'
+import { ActionDialogShell, DialogCta } from '../global/action-dialogs'
+import { SwapSettings } from '../global/swap-settings'
 import { formatAmount } from '../global/signal-ui'
 import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
 import { fmtTokenAmount, fmtUsd } from '../global/amount-format'
-import { getSlippageIssue, slippageErrorCopyKey } from '../global/slippage-input'
+import { getSlippageIssue, slippageToNumber } from '../global/slippage-input'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
+import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-
-function SettingsTip({ text }: { text: string }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger className="create-info" aria-label={text}>
-        <Info aria-hidden="true" />
-      </TooltipTrigger>
-      <TooltipContent>{text}</TooltipContent>
-    </Tooltip>
-  )
-}
 
 /**
  * Add Liquidity 弹窗（2026-09-27 用户裁定：Liquidity 池卡 Add 钮改弹窗；
  * 功能结构同 Mint POL 弹窗，视觉复用 .pol-mint-* 壳）。机制（真源）：
  * 四池统一=router addLiquidity：双侧按池配比供给、铸 LP 代币给 to
  * （IMemeverseSwapRouter.sol，双侧 desired/min + deadline）——LP 铸得量 = quote 侧 ×
- * lpPerQuote（markets fixture 铸得率样本，totalSupply/R_quote v2 式口径；缺样本池才显
- * 「以链上读值为准」槽位；2026-09-27 用户裁定：造样本出数，不留空槽）。
+ * lpPerQuote（markets fixture 铸得率样本，totalSupply/R_quote v2 式口径；缺样本池该输出
+ * 随空值 0.00——「以链上读值为准」槽位 2026-10-05 用户裁定全站废止；2026-09-27 用户
+ * 裁定：造样本出数，不留空槽）。
  * （2026-09-27 用户裁定：Add Liquidity 收 LP 而非 POL——主池按加池量 1:1 铸 POL 的
  * mintPOLToken 入口归 Tokenization 标签 Mint 弹窗（PolMintDialog），两入口机制分立。）
  * 配比联动：主池=主池价（tokenStats.price）、POL/uAsset=fixture marketPricePerPol 样本、
@@ -72,11 +55,13 @@ export function PoolAddLiquidityDialog({
   const { connected, toggle } = useMockWallet()
   const [baseAmount, setBaseAmount] = useState('')
   const receiveLabelId = useId()
-  const slippageErrorId = useId()
-  const deadlineErrorId = useId()
+  const baseBalanceErrorId = useId()
+  const quoteBalanceErrorId = useId()
   const [quoteAmount, setQuoteAmount] = useState('')
-  const [slippage, setSlippage] = useState<number>(0.5)
-  const [deadlineMin, setDeadlineMin] = useState<number>(10)
+  // 设置层受控值存 string 原样展示（§25 拍板 A：留点不吞、非整分钟就地报错），
+  // 数值推导经 slippageToNumber（2026-10-08 P1-1 修）
+  const [slippageText, setSlippageText] = useState('0.5')
+  const [deadlineText, setDeadlineText] = useState('10')
   const [rateInverted, setRateInverted] = useState(false)
 
   // 供给侧余额：主池=memecoin/uAsset，POL/uAsset=POL/uAsset，PT 池=PT/+（uAsset 或 POL）
@@ -110,11 +95,11 @@ export function PoolAddLiquidityDialog({
   const valid = Number.isFinite(baseVal) && baseVal > 0 && Number.isFinite(quoteVal) && quoteVal > 0
   const baseOver = baseBalance != null && baseVal > baseBalance
   const quoteOver = quoteBalance != null && quoteVal > quoteBalance
-  // LP 铸得 = quote 侧 × lpPerQuote（铸得率 fixture 样本，线性推导、以链上读值为准）
+  // LP 铸得 = quote 侧 × lpPerQuote（铸得率 fixture 样本，线性推导、生产读链上值）
   const lpOut = valid && pool.lpPerQuote != null && pool.lpPerQuote > 0 ? quoteVal * pool.lpPerQuote : null
   // 滑点校验=§25 口径（slippage-input.ts）：越界期间保护值推导退 '--' 槽位
+  const slippage = slippageToNumber(slippageText)
   const slippageIssue = getSlippageIssue(slippage)
-  const deadlineValid = isWholeMinutes(deadlineMin)
   const minLp = lpOut != null && slippageIssue == null ? lpOut * (1 - slippage / 100) : null
 
   // 双侧联动：有配比样本的池按 ratio 补算另一侧（同 PolMintDialog，清空同步清另一侧）；
@@ -155,107 +140,24 @@ export function PoolAddLiquidityDialog({
         {/* 2026-09-27 用户裁定：池卡钮短文案 Add（弹窗标题/CTA 仍全称） */}
         {copy.addLiquidityShort}
       </DialogTrigger>
-      <DialogContent className="pol-mint-pop">
-        <div className="pol-mint ax-glow-card">
-          <header className="pol-mint__head">
-            <DialogTitle className="pol-mint__title">{copy.addLiquidityDialogTitle}</DialogTitle>
-            <div className="pol-mint__controls">
-              <Popover>
-                <PopoverTrigger
-                  className="swap-panel__settings-toggle"
-                  aria-label={copy.addLiquiditySettingsTitle}
-                  render={
-                    <button type="button">
-                      <Settings2 aria-hidden="true" />
-                    </button>
-                  }
-                />
-                <PopoverContent className="swap-settings" side="bottom" align="end">
-                  <div className="swap-settings__row">
-                    <span className="swap-settings__label">
-                      {copy.slippageTolerance}
-                      <SettingsTip text={copy.addLiquiditySlippageTip} />
-                    </span>
-                    <div className="swap-settings__options">
-                      {SLIPPAGE_PRESETS.map((preset) => (
-                        <button
-                          key={preset}
-                          type="button"
-                          data-selected={slippage === preset}
-                          onClick={() => setSlippage(preset)}
-                        >
-                          {preset}%
-                        </button>
-                      ))}
-                      <span className="swap-settings__unit">
-                        <Input
-                          className="swap-settings__custom numeric-input"
-                          inputMode="decimal"
-                          aria-label={`${copy.slippageTolerance} %`}
-                          aria-invalid={slippageIssue != null || undefined}
-                          aria-describedby={slippageIssue != null ? slippageErrorId : undefined}
-                          value={slippage}
-                          onChange={(event) => {
-                            const next = Number(sanitizeAmount(event.target.value))
-                            setSlippage(Number.isFinite(next) && next >= 0 ? next : 0)
-                          }}
-                        />
-                        <b aria-hidden="true">%</b>
-                      </span>
-                    </div>
-                    {slippageIssue != null ? (
-                      <FieldError id={slippageErrorId}>
-                        {copy[slippageErrorCopyKey(slippageIssue)]}
-                      </FieldError>
-                    ) : null}
-                  </div>
-                  <div className="swap-settings__row">
-                    <span className="swap-settings__label">
-                      {copy.transactionDeadline}
-                      <SettingsTip text={copy.addLiquidityDeadlineTip} />
-                    </span>
-                    <div className="swap-settings__options">
-                      {DEADLINE_PRESETS.map((preset) => (
-                        <button
-                          key={preset}
-                          type="button"
-                          data-selected={deadlineMin === preset}
-                          onClick={() => setDeadlineMin(preset)}
-                        >
-                          {preset}
-                        </button>
-                      ))}
-                      <span className="swap-settings__unit">
-                        <Input
-                          className="swap-settings__custom numeric-input"
-                          inputMode="numeric"
-                          aria-label={`${copy.transactionDeadline} min`}
-                          aria-invalid={!deadlineValid || undefined}
-                          aria-describedby={!deadlineValid ? deadlineErrorId : undefined}
-                          value={deadlineMin}
-                          onChange={(event) => {
-                            const next = Number(sanitizeAmount(event.target.value))
-                            setDeadlineMin(Number.isFinite(next) && next > 0 ? next : 1)
-                          }}
-                        />
-                        <b aria-hidden="true">min</b>
-                      </span>
-                    </div>
-                    {!deadlineValid ? (
-                      <FieldError id={deadlineErrorId}>{copy.deadlineWholeMinutes}</FieldError>
-                    ) : null}
-                  </div>
-                </PopoverContent>
-              </Popover>
-              <DialogClose
-                render={
-                  <button type="button" className="pol-mint__close" aria-label={common.close} />
-                }
-              >
-                <X aria-hidden="true" size={16} />
-              </DialogClose>
-            </div>
-          </header>
+      <ActionDialogShell
+        title={copy.addLiquidityDialogTitle}
+        closeLabel={common.close}
+        toolbar={
+          <SwapSettings
+            locale={locale}
+            settingsLabel={copy.addLiquiditySettingsTitle}
+            slippageTip={copy.addLiquiditySlippageTip}
+            slippageValue={slippageText}
+            onSlippageValue={setSlippageText}
+            deadline={{
+              tip: copy.addLiquidityDeadlineTip,
+              value: deadlineText,
+              onValue: setDeadlineText,
+            }}
+          />
+        }
+      >
 
           <span className="pol-mint__label">{copy.mintSupply}</span>
           <div className="swap-panel__field">
@@ -288,14 +190,14 @@ export function PoolAddLiquidityDialog({
                 onChange={(event) => onBaseInput(sanitizeAmount(event.target.value))}
                 aria-label={`${copy.addLiquidityDialogTitle} ${pool.baseSymbol}`}
                 aria-invalid={baseOver || undefined}
-                aria-describedby={baseOver ? 'pool-base-balance-error' : undefined}
+                aria-describedby={baseOver ? baseBalanceErrorId : undefined}
               />
               <div className="swap-panel__token">
                 <strong>{pool.baseSymbol}</strong>
               </div>
             </div>
             {baseOver ? (
-              <FieldError id="pool-base-balance-error">{common.insufficientBalance}</FieldError>
+              <FieldError id={baseBalanceErrorId}>{common.insufficientBalance}</FieldError>
             ) : null}
             {baseUsd != null ? <span className="swap-panel__field-usd">≈ ${baseUsd}</span> : null}
           </div>
@@ -329,14 +231,14 @@ export function PoolAddLiquidityDialog({
                 onChange={(event) => onQuoteInput(sanitizeAmount(event.target.value))}
                 aria-label={`${copy.addLiquidityDialogTitle} ${pool.quoteSymbol}`}
                 aria-invalid={quoteOver || undefined}
-                aria-describedby={quoteOver ? 'pool-quote-balance-error' : undefined}
+                aria-describedby={quoteOver ? quoteBalanceErrorId : undefined}
               />
               <div className="swap-panel__token">
                 <strong>{pool.quoteSymbol}</strong>
               </div>
             </div>
             {quoteOver ? (
-              <FieldError id="pool-quote-balance-error">{common.insufficientBalance}</FieldError>
+              <FieldError id={quoteBalanceErrorId}>{common.insufficientBalance}</FieldError>
             ) : null}
             {quoteUsd != null ? <span className="swap-panel__field-usd">≈ ${quoteUsd}</span> : null}
           </div>
@@ -355,13 +257,7 @@ export function PoolAddLiquidityDialog({
                 data-numeric
                 aria-label={`${copy.mintYouReceive} ${lpSymbol}`}
               >
-                {lpOut != null ? (
-                  fmtTokenAmount(lpOut, locale)
-                ) : valid ? (
-                  <span className="ax-slot">{copy.onChainSlot}</span>
-                ) : (
-                  '0.00'
-                )}
+                {lpOut != null ? fmtTokenAmount(lpOut, locale) : '0.00'}
               </output>
               <div className="swap-panel__token">
                 <strong>{lpSymbol}</strong>
@@ -404,17 +300,14 @@ export function PoolAddLiquidityDialog({
               </div>
             </dl>
           ) : null}
-          {connected ? (
-            <Button className="swap-panel__cta" disabled>
-              {copy.addLiquidity}
-            </Button>
-          ) : (
-            <Button className="swap-panel__cta" onClick={toggle}>
-              {copy.swapCta}
-            </Button>
-          )}
-        </div>
-      </DialogContent>
+          <DialogCta
+            locale={locale}
+            connected={connected}
+            onConnect={toggle}
+            label={copy.addLiquidity}
+            connectLabel={copy.swapCta}
+          />
+      </ActionDialogShell>
     </Dialog>
   )
 }

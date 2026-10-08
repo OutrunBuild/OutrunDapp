@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { X } from 'lucide-react'
 
 import type { Locale, FixturePolPosition, FixtureVerse } from '@/lib/data/fixture-repository'
@@ -33,8 +33,8 @@ import { FieldError } from '@/components/ui/field'
  * 弹窗删输出区的裁定不冲突——非输入复述）；LP 显示符号=主池对口径
  * {MEME}/{uAsset} LP（repository main 池 pair；与池两弹窗 lpSymbol 惯例一致——
  * 链上 ERC20 全池静态同名 symbol "MLP"/name "Memeverse LP"（SwapFacet.sol:313），
- * 按池区分只能靠对口径）；打开即预填全部余额
- * （同 PolRedeemPtYtDialog 2026-09-27 裁定）；CTA 纪律同前：
+ * 按池区分只能靠对口径）；打开为空输入（2026-10-08 用户裁定，
+ * 废除 2026-09-27 打开预填口径）；CTA 纪律同前：
  * 未连接=Connect Wallet 可点、已连接=操作钮禁用（不伪造成交）。
  */
 export function PolRedeemLpDialog({
@@ -49,7 +49,9 @@ export function PolRedeemLpDialog({
   const copy = getCopy(locale).verseDesk
   const common = getCopy(locale).common
   const { connected, toggle } = useMockWallet()
-  const [amount, setAmount] = useState(amountToInputString(pol.myPol))
+  // 打开为空输入（2026-10-08 用户裁定：金额输入默认空 0.00，废除打开预填余额口径）
+  const [amount, setAmount] = useState('')
+  const balanceErrorId = useId()
 
   const polSymbol = `POL-${verse.symbol}`
   // 主池 LP 对口径（repository main 池 pair [verse.symbol, verse.raiseAsset]）
@@ -103,14 +105,14 @@ export function PolRedeemLpDialog({
                 onChange={(event) => clean(event.target.value)}
                 aria-label={`${copy.redeemPol} ${polSymbol}`}
                 aria-invalid={overBalance || undefined}
-                aria-describedby={overBalance ? 'redeem-lp-balance-error' : undefined}
+                aria-describedby={overBalance ? balanceErrorId : undefined}
               />
               <div className="swap-panel__token">
                 <strong>{polSymbol}</strong>
               </div>
             </div>
             {overBalance ? (
-              <FieldError id="redeem-lp-balance-error">{common.insufficientBalance}</FieldError>
+              <FieldError id={balanceErrorId}>{common.insufficientBalance}</FieldError>
             ) : null}
           </div>
 

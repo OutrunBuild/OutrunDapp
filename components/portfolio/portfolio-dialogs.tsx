@@ -2,11 +2,12 @@
 
 /**
  * Portfolio 操作弹窗族（2026-10-02 四分区裁定）：跨链发送 / PSM 转换 / CDP 赎回 /
- * USR 存取 / 收益库执行 / 滞留恢复。壳与字段原语全部复用 verse 页既有语言
- * （.pol-mint 卡壳 + .swap-panel__* 字段族）；CTA 走 VaultActions 同款原型口径：
+ * USR 存取 / 收益库执行 / 滞留恢复。壳与字段原语（ActionDialogShell/AmountField/
+ * DetailRows/DialogCta）2026-10-08 上提 components/global/action-dialogs.tsx 共享
+ * （与 verse 交易弹窗族同源，CSS 语言不变）；CTA 走 VaultActions 同款原型口径：
  * 未连接=Connect Wallet 可点切换模拟连接，已连接=动作钮禁用、不伪造链上成功。
  */
-import { useId, useState } from 'react'
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { X } from 'lucide-react'
 import type { Locale } from '@/lib/data/fixture-repository'
@@ -15,149 +16,10 @@ import { getCopy } from '../global/copy'
 import { useMockWallet } from '../global/mock-wallet'
 import { ChainLogoMark } from '../global/chain-icons'
 import { formatAmount, formatPercent } from '../global/signal-ui'
-import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
+import { ActionDialogShell, AmountField, DetailRows, DialogCta } from '../global/action-dialogs'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
+import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 import { Sheet, SheetClose, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
-import { Input } from '@/components/ui/input'
-import { FieldError } from '@/components/ui/field'
-
-/** 弹窗壳：标题 + ✕ + 内容（复用 .pol-mint 卡签名） */
-function ActionDialogShell({
-  title,
-  closeLabel,
-  children,
-}: {
-  title: string
-  closeLabel: string
-  children: React.ReactNode
-}) {
-  return (
-    <DialogContent className="pol-mint-pop">
-      <div className="pol-mint ax-glow-card">
-        <header className="pol-mint__head">
-          <DialogTitle className="pol-mint__title">{title}</DialogTitle>
-          <div className="pol-mint__controls">
-            <DialogClose render={<button type="button" className="pol-mint__close" aria-label={closeLabel} />}>
-              <X aria-hidden="true" size={16} />
-            </DialogClose>
-          </div>
-        </header>
-        {children}
-      </div>
-    </DialogContent>
-  )
-}
-
-/** 金额字段（.swap-panel__field 族）：标签 + 余额/Max + 输入 + 右侧代币符号 */
-function AmountField({
-  locale,
-  label,
-  balance,
-  balanceLabel,
-  maxLabel,
-  value,
-  onValue,
-  tokenSymbol,
-  ariaLabel,
-}: {
-  locale: Locale
-  label: string
-  balance: number | null
-  balanceLabel: string
-  maxLabel: string
-  value: string
-  onValue: (next: string) => void
-  tokenSymbol: string
-  ariaLabel: string
-}) {
-  const errorId = useId()
-  // 余额不足：balance 已知且输入>余额（2026-10-04 用户裁定文案一行短句、不带数值）
-  const parsed = Number(value)
-  const overBalance = balance != null && Number.isFinite(parsed) && parsed > balance
-  return (
-    <div className="swap-panel__field">
-      <div className="swap-panel__field-head">
-        <span>{label}</span>
-        <span className="swap-panel__balance">
-          {/* 代币符号已在输入框右侧展示，余额行不重复（2026-10-04 用户裁定） */}
-          {`${balanceLabel}: ${balance == null ? '--' : formatAmount(balance, locale)}`}
-          {balance != null && balance > 0 ? (
-            <button
-              type="button"
-              className="swap-panel__max"
-              onClick={() => onValue(amountToInputString(balance))}
-            >
-              {maxLabel}
-            </button>
-          ) : null}
-        </span>
-      </div>
-      <div className="swap-panel__field-row">
-        <Input
-          className="numeric-input"
-          inputMode="decimal"
-          placeholder="0.00"
-          value={value}
-          maxLength={AMOUNT_MAX_CHARS}
-          aria-label={ariaLabel}
-          aria-invalid={overBalance || undefined}
-          aria-describedby={overBalance ? errorId : undefined}
-          onChange={(event) => onValue(sanitizeAmount(event.target.value))}
-        />
-        <div className="swap-panel__token">
-          <strong>{tokenSymbol}</strong>
-        </div>
-      </div>
-      {overBalance ? (
-        <FieldError id={errorId}>{getCopy(locale).common.insufficientBalance}</FieldError>
-      ) : null}
-    </div>
-  )
-}
-
-/** 详情行组（.swap-panel__details） */
-function DetailRows({ rows }: { rows: Array<[string, React.ReactNode]> }) {
-  return (
-    <dl className="swap-panel__details">
-      {rows.map(([term, data]) => (
-        <div key={term}>
-          <dt>{term}</dt>
-          <dd>{data}</dd>
-        </div>
-      ))}
-    </dl>
-  )
-}
-
-/** 主 CTA：未连接=Connect（可点）；已连接=动作钮禁用（原型 ViewModel，不伪造链上成交） */
-function DialogCta({
-  locale,
-  connected,
-  onConnect,
-  label,
-}: {
-  locale: Locale
-  connected: boolean
-  onConnect: () => void
-  label: string
-}) {
-  return connected ? (
-    <Button className="swap-panel__cta" disabled>
-      {label}
-    </Button>
-  ) : (
-    <Button className="swap-panel__cta" onClick={onConnect}>
-      {getCopy(locale).common.connect}
-    </Button>
-  )
-}
 
 // ---------------------------------------------------------------------------
 // 跨链发送（纯转账两阶段：发送→到账；发送≠完成，完成色只归到账终态）
@@ -359,15 +221,13 @@ export function ConvertDialog({
               : []),
           ]}
         />
-        {connected ? (
-          <Button className="swap-panel__cta" disabled={!valid || mintBlocked || overBalance}>
-            {copy.convertSubmit}
-          </Button>
-        ) : (
-          <Button className="swap-panel__cta" onClick={toggle}>
-            {getCopy(locale).common.connect}
-          </Button>
-        )}
+        <DialogCta
+          locale={locale}
+          connected={connected}
+          onConnect={toggle}
+          label={copy.convertSubmit}
+          disabled={!valid || mintBlocked || overBalance}
+        />
       </ActionDialogShell>
     </Dialog>
   )
@@ -445,7 +305,13 @@ export function CdpRedeemDialog({
             ],
           ]}
         />
-        <DialogCta locale={locale} connected={connected} onConnect={toggle} label={copy.cdpRedeem} />
+        <DialogCta
+          locale={locale}
+          connected={connected}
+          onConnect={toggle}
+          label={copy.cdpRedeem}
+          disabled={!valid}
+        />
       </ActionDialogShell>
     </Dialog>
   )

@@ -13,7 +13,7 @@ import { TokenIconMark } from '../global/token-icons'
 import { getCopy } from '../global/copy'
 import { ConnectWalletCta } from '../global/connect-wallet-cta'
 import { localePath } from '../global/routes'
-import { formatAmount, formatDay } from '../global/signal-ui'
+import { formatAmount, formatDay, formatHex } from '../global/signal-ui'
 import { UserDataGate } from '../global/user-data-gate'
 
 import { Button } from '@/components/ui/button'
@@ -203,9 +203,6 @@ export function ReferralPage({ locale, host }: { locale: Locale; host: string | 
   )
 }
 
-/** 缩略 hex（同 CopyAddress 语法：头 6 尾 4）；txid 与被推荐地址共用 */
-const shortHex = (value: string) => `${value.slice(0, 6)}…${value.slice(-4)}`
-
 function TransactionsPanel({
   locale,
   referral,
@@ -255,7 +252,7 @@ function TransactionsPanel({
           {referral.transactions.map((tx) => (
             <tr key={tx.txId}>
               <th scope="row" className="ref-tx__mono">
-                {shortHex(tx.txId)}
+                {formatHex(tx.txId)}
               </th>
               <td className="ref-tx__commission">
                 <span className="ref-tx__rebate">
@@ -276,7 +273,7 @@ function TransactionsPanel({
                   <TooltipContent>{tx.chainName}</TooltipContent>
                 </Tooltip>
               </td>
-              <td className="ref-tx__mono">{shortHex(tx.friendAddress)}</td>
+              <td className="ref-tx__mono">{formatHex(tx.friendAddress)}</td>
               <td data-numeric>
                 <RelativeTime at={tx.at} locale={locale} now={now} />
               </td>
@@ -303,7 +300,7 @@ function TransactionsPanel({
             <div>
               <dt>{copy.tx.referred}</dt>
               <dd className="ref-tx__mono" data-numeric>
-                {shortHex(tx.friendAddress)}
+                {formatHex(tx.friendAddress)}
               </dd>
             </div>
             <div>
@@ -316,7 +313,7 @@ function TransactionsPanel({
             <div className="ref-mrow__tx">
               <dt>{copy.tx.transaction}</dt>
               <dd className="ref-tx__mono" data-numeric>
-                {shortHex(tx.txId)}
+                {formatHex(tx.txId)}
               </dd>
             </div>
           </dl>
@@ -359,7 +356,7 @@ function FriendsPanel({ locale, referral }: { locale: Locale; referral: FixtureR
           {referral.friends.map((friend) => (
             <tr key={friend.address}>
               <th scope="row" className="ref-tx__mono">
-                {shortHex(friend.address)}
+                {formatHex(friend.address)}
               </th>
               <td className="ref-dim">{formatDay(friend.joinedAt, locale)}</td>
               <td className="ref-dim">${formatAmount(friend.volumeUsd, locale)}</td>
@@ -377,7 +374,7 @@ function FriendsPanel({ locale, referral }: { locale: Locale; referral: FixtureR
           <div className="pf-mrow__head">
             <span className="pf-mrow__id">
               <strong className="ref-tx__mono" data-numeric>
-                {shortHex(friend.address)}
+                {formatHex(friend.address)}
               </strong>
             </span>
             <strong className="ref-mrow__gain ref-mrow__gain--mono" data-numeric>

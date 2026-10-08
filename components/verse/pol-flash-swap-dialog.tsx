@@ -1,41 +1,23 @@
 'use client'
 
 import { useId, useState } from 'react'
-import { ArrowDown, ArrowLeftRight, Info, Settings2, X } from 'lucide-react'
+import { ArrowDown, ArrowLeftRight } from 'lucide-react'
 
 import type { Locale, FixturePolPosition, FixtureVerse } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { useMockWallet } from '../global/mock-wallet'
-import { SLIPPAGE_PRESETS } from './swap-panel'
-import { formatAmount } from '../global/signal-ui'
+import { ActionDialogShell, DialogCta } from '../global/action-dialogs'
+import { SettingsTip, SwapSettings } from '../global/swap-settings'
+import { formatAmount, formatPercent } from '../global/signal-ui'
 import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
 import { fmtTokenAmount, fmtUsd } from '../global/amount-format'
-import { getSlippageIssue, slippageErrorCopyKey } from '../global/slippage-input'
+import { getSlippageIssue, slippageToNumber } from '../global/slippage-input'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
+import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-
-function SettingsTip({ text }: { text: string }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger className="create-info" aria-label={text}>
-        <Info aria-hidden="true" />
-      </TooltipTrigger>
-      <TooltipContent>{text}</TooltipContent>
-    </Tooltip>
-  )
-}
 
 /**
  * Flash Swap 操作弹窗（2026-09-27 方案 B：YT 移出 Swap 卡，进 Tokenization 页 YT 井）。
@@ -47,8 +29,8 @@ function SettingsTip({ text }: { text: string }) {
  * UI 同构：上块=YT 驱动输入（买卖共用不翻转），下块=uAsset 派生只读；模式条只改标签与保护行方向。
  * 闸门仅 locked（井底门控；解锁后 split/merge 关闭、Flash Swap 随之不可用，转结算赎回）。
  * 设置齿轮只留滑点（合约无 deadline 参数；可选限价+到期属高级项原型不做——同 Split/Merge 裁定口径）。
- * 打开即预填全部 YT 余额（§21 Redeem 先例：空输入 0.00 观感差——2026-09-28 用户裁定 Buy 模式
- * 同样预填看原型效果，示范量=当前持有额）；清空/改数后照常重算，模式切换保留输入。
+ * 打开为空输入（2026-10-08 用户裁定：金额输入默认空 0.00，废除 2026-09-28
+ * 打开预填余额口径）；清空/改数后照常重算，模式切换保留输入。
  * CTA 纪律同 Mint 弹窗：未连接=Connect Wallet 可点切换模拟连接、已连接=操作钮禁用（不伪造成交）。
  */
 export function PolFlashSwapDialog({
@@ -68,10 +50,12 @@ export function PolFlashSwapDialog({
   const { connected, toggle } = useMockWallet()
   const [mode, setMode] = useState<'buy' | 'sell'>('buy')
   const legLabelId = useId()
-  const slippageErrorId = useId()
-  // 打开即预填全部 YT 余额（两模式同规——空输入 0.00/-- 观感差，2026-09-28 用户裁定）
-  const [amount, setAmount] = useState(amountToInputString(pol.myYt))
-  const [slippage, setSlippage] = useState<number>(0.5)
+  const balanceErrorId = useId()
+  // 打开为空输入（2026-10-08 用户裁定：金额输入默认空 0.00）
+  const [amount, setAmount] = useState('')
+  // 设置层受控值存 string 原样展示（§25 拍板 A：留点不吞；数值推导经
+  // slippageToNumber，2026-10-08 P1-1 修）
+  const [slippageText, setSlippageText] = useState('0.5')
   const [rateInverted, setRateInverted] = useState(false)
 
   const ytSymbol = `YT-${verse.symbol}`
@@ -89,14 +73,13 @@ export function PolFlashSwapDialog({
   const overBalance =
     mode === 'sell' ? parsed > pol.myYt : uAssetLeg != null && uAssetLeg > pol.myUAsset
   // 滑点校验=§25 口径（slippage-input.ts）：越界期间保护值推导退 '--' 槽位
+  const slippage = slippageToNumber(slippageText)
   const slippageIssue = getSlippageIssue(slippage)
   const protectedLeg =
     uAssetLeg != null && slippageIssue == null
       ? uAssetLeg * (mode === 'buy' ? 1 + slippage / 100 : 1 - slippage / 100)
       : null
   // 大数分层口径=global/amount-format（fmtUsd/fmtTokenAmount；裸乘积有 float64 尾噪必须过层）；
-  // localeTag 留给费率行
-  const localeTag = locale === 'zh' ? 'zh-CN' : 'en-US'
   // 费率行=用户手续费率样本（相对支付额，fixture 直读不做推导——2026-09-28 用户裁定：
   // 假数据不算精确值；谱系与过高回滚口径见 flashFeeNote ⊙ 与 fixture 注释）
   // ≈$：两侧同为 uAsset 计价 × uAssetUsd
@@ -110,72 +93,20 @@ export function PolFlashSwapDialog({
       <DialogTrigger data-slot="button" render={<Button variant="outline" size="sm" />}>
         {copy.flashSwap}
       </DialogTrigger>
-      <DialogContent className="pol-mint-pop">
-        <div className="pol-mint ax-glow-card">
-          <header className="pol-mint__head">
-            <DialogTitle className="pol-mint__title">{copy.flashSwap}</DialogTitle>
-            <div className="pol-mint__controls">
-              <Popover>
-                <PopoverTrigger
-                  className="swap-panel__settings-toggle"
-                  aria-label={copy.flashSettingsTitle}
-                  render={
-                    <button type="button">
-                      <Settings2 aria-hidden="true" />
-                    </button>
-                  }
-                />
-                <PopoverContent className="swap-settings" side="bottom" align="end">
-                  {/* 只留滑点：合约无 deadline；可选限价+到期不做（见组件头注） */}
-                  <div className="swap-settings__row">
-                    <span className="swap-settings__label">
-                      {copy.slippageTolerance}
-                      <SettingsTip text={copy.slippageTip} />
-                    </span>
-                    <div className="swap-settings__options">
-                      {SLIPPAGE_PRESETS.map((preset) => (
-                        <button
-                          key={preset}
-                          type="button"
-                          data-selected={slippage === preset}
-                          onClick={() => setSlippage(preset)}
-                        >
-                          {preset}%
-                        </button>
-                      ))}
-                      <span className="swap-settings__unit">
-                        <Input
-                          className="swap-settings__custom numeric-input"
-                          inputMode="decimal"
-                          aria-label={`${copy.slippageTolerance} %`}
-                          aria-invalid={slippageIssue != null || undefined}
-                          aria-describedby={slippageIssue != null ? slippageErrorId : undefined}
-                          value={slippage}
-                          onChange={(event) => {
-                            const next = Number(sanitizeAmount(event.target.value))
-                            setSlippage(Number.isFinite(next) && next >= 0 ? next : 0)
-                          }}
-                        />
-                        <b aria-hidden="true">%</b>
-                      </span>
-                    </div>
-                    {slippageIssue != null ? (
-                      <FieldError id={slippageErrorId}>
-                        {copy[slippageErrorCopyKey(slippageIssue)]}
-                      </FieldError>
-                    ) : null}
-                  </div>
-                </PopoverContent>
-              </Popover>
-              <DialogClose
-                render={
-                  <button type="button" className="pol-mint__close" aria-label={common.close} />
-                }
-              >
-                <X aria-hidden="true" size={16} />
-              </DialogClose>
-            </div>
-          </header>
+      <ActionDialogShell
+        title={copy.flashSwap}
+        closeLabel={common.close}
+        toolbar={
+          /* 只留滑点：合约无 deadline；可选限价+到期不做（见组件头注） */
+          <SwapSettings
+            locale={locale}
+            settingsLabel={copy.flashSettingsTitle}
+            slippageTip={copy.slippageTip}
+            slippageValue={slippageText}
+            onSlippageValue={setSlippageText}
+          />
+        }
+      >
 
           {/* 模式条：vault 操作卡同款 tab 风 ToggleGroup（买=exact-out 支付上限、卖=到账下限） */}
           <ToggleGroup
@@ -185,8 +116,6 @@ export function PolFlashSwapDialog({
               const next = value[0] as 'buy' | 'sell' | undefined
               if (!next) return
               setMode(next)
-              // Sell 空输入预填全部余额（§21 先例）；Buy 无本金锚不预填
-              if (next === 'sell' && amount === '') setAmount(amountToInputString(pol.myYt))
             }}
           >
             <ToggleGroupItem value="buy">{copy.flashBuy}</ToggleGroupItem>
@@ -220,14 +149,14 @@ export function PolFlashSwapDialog({
                 onChange={(event) => clean(event.target.value)}
                 aria-label={`${copy.flashSwap} ${ytSymbol}`}
                 aria-invalid={overBalance || undefined}
-                aria-describedby={overBalance ? 'flash-balance-error' : undefined}
+                aria-describedby={overBalance ? balanceErrorId : undefined}
               />
               <div className="swap-panel__token">
                 <strong>{ytSymbol}</strong>
               </div>
             </div>
             {overBalance ? (
-              <FieldError id="flash-balance-error">{common.insufficientBalance}</FieldError>
+              <FieldError id={balanceErrorId}>{common.insufficientBalance}</FieldError>
             ) : null}
             {ytUsd != null ? <span className="swap-panel__field-usd">≈ ${ytUsd}</span> : null}
           </div>
@@ -299,22 +228,19 @@ export function PolFlashSwapDialog({
                 <SettingsTip text={copy.flashFeeNote} />
               </dt>
               <dd data-numeric>
-                {(pol.flashUserFeeRate * 100).toLocaleString(localeTag, { maximumFractionDigits: 2 })}%
+                {formatPercent(pol.flashUserFeeRate * 100, locale)}%
               </dd>
             </div>
           </dl>
 
-          {connected ? (
-            <Button className="swap-panel__cta" disabled>
-              {mode === 'buy' ? copy.flashBuy : copy.flashSell}
-            </Button>
-          ) : (
-            <Button className="swap-panel__cta" onClick={toggle}>
-              {copy.swapCta}
-            </Button>
-          )}
-        </div>
-      </DialogContent>
+          <DialogCta
+            locale={locale}
+            connected={connected}
+            onConnect={toggle}
+            label={mode === 'buy' ? copy.flashBuy : copy.flashSell}
+            connectLabel={copy.swapCta}
+          />
+      </ActionDialogShell>
     </Dialog>
   )
 }

@@ -18,6 +18,11 @@ export function formatPercent(value: number, locale: Locale) {
   }).format(value)
 }
 
+/** 地址/交易哈希截断：全站统一 `0x1234…abcd`（头 6 + … + 尾 4；2026-10-08 三处私有实现收敛） */
+export function formatHex(value: string) {
+  return `${value.slice(0, 6)}…${value.slice(-4)}`
+}
+
 /** 市值紧凑格式：固定 B/M/K 缩写 + 两位小数（用户裁定 2026-09-23：不随 locale 换算为亿/万） */
 export function formatMarketCap(value: number) {
   const tiers: Array<[suffix: string, scale: number]> = [
@@ -53,21 +58,6 @@ export function formatDay(value: string, locale: Locale) {
     day: 'numeric',
     timeZone: 'UTC',
   }).format(shifted)
-}
-
-export function formatDuration(from: string, to: string, locale: Locale) {
-  const minutes = Math.max(0, Math.floor((new Date(to).getTime() - new Date(from).getTime()) / 60_000))
-  const days = Math.floor(minutes / 1_440)
-  const hours = Math.floor((minutes % 1_440) / 60)
-  const remainingMinutes = minutes % 60
-
-  if (locale === 'zh') {
-    if (days > 0) return `${days} 天 ${hours} 小时`
-    return `${hours} 小时 ${remainingMinutes} 分钟`
-  }
-
-  if (days > 0) return `${days}d ${hours}h`
-  return `${hours}h ${remainingMinutes}m`
 }
 
 export function SourceRef(_: { value: string; id?: string }) {
@@ -177,8 +167,4 @@ export function ProgressMeter({
 export function LayoutNotes(_: { locale: Locale; items: readonly string[] }) {
   // Cross-page layout notes are prototype documentation, not product content.
   return null
-}
-
-export function SlashMark() {
-  return <span className="slash-mark" aria-hidden="true" />
 }

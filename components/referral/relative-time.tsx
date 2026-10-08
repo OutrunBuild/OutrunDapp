@@ -7,7 +7,7 @@ import type { FixtureReferral, Locale } from '@/lib/data/fixture-repository'
 import { getCopy } from '../global/copy'
 
 /** 分钟粒度相对时间文案；无定时器——页面驻留期间不滚动刷新 */
-function formatRelative(at: string, locale: Locale, now: number) {
+export function formatRelative(at: string, locale: Locale, now: number) {
   const ago = getCopy(locale).referral.ago
   const minutes = Math.max(0, Math.round((now - new Date(at).getTime()) / 60_000))
   if (minutes < 1) return ago.justNow

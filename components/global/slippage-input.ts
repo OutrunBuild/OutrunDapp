@@ -19,3 +19,30 @@ export function getSlippageIssue(value: number): SlippageIssue | null {
 export function slippageErrorCopyKey(issue: SlippageIssue): 'slippageTooLow' | 'slippageTooHigh' {
   return issue === 'below-min' ? 'slippageTooLow' : 'slippageTooHigh'
 }
+
+/** 滑点/截止预设档（R-06：常态默认 0.5%；demo 参照档位 0.1/0.5/1.0 与 10/20/30 分钟）。
+ * 2026-10-08 由 swap-panel.tsx 迁入（组件文件不再充当共享常量模块）；消费方=
+ * 共享设置层 components/global/swap-settings.tsx */
+export const SLIPPAGE_PRESETS = [0.1, 0.5, 1] as const
+export const DEADLINE_PRESETS = [10, 20, 30] as const
+
+/** 交易截止时间整分钟校验（2026-10-03 拍板 A：全站整分钟数，自定义输入保留小数点
+ * 以便就地报错——不再剥点把 1.5 静默变 15；空/0 仍回退 1 分钟）；
+ * 2026-10-08 由 swap-panel.tsx 迁入，§17/§22/§24 弹窗同构设置层复用 */
+export function isWholeMinutes(value: number) {
+  return Number.isInteger(value) && value > 0
+}
+
+/** §25 设置层受控口径（2026-10-08 P1-1 修）：受控 state 存 string 原样展示——尾点/
+ * 空串等键入中间态不经 Number() 落盘（number 状态会吞点：0. 敲成后 0、0.25 静默
+ * 变 25），数值只在推导处经此转数。空/非法回退沿用既有行为：滑点→0（零容忍报错）、
+ * 截止→1 分钟 */
+export function slippageToNumber(value: string) {
+  const next = Number(value)
+  return Number.isFinite(next) && next >= 0 ? next : 0
+}
+
+export function deadlineToNumber(value: string) {
+  const next = Number(value)
+  return Number.isFinite(next) && next > 0 ? next : 1
+}

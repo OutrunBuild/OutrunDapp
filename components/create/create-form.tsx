@@ -44,9 +44,10 @@ import { ChainLogoMark } from '../global/chain-icons'
 import { DiscordIcon, TelegramIcon, XIcon } from '../global/brand-icons'
 import { getCopy } from '../global/copy'
 import { useMockWallet } from '../global/mock-wallet'
-import { localePath, verseHref } from '../global/routes'
+import { verseHref } from '../global/routes'
 import { SourceRef, formatAmount } from '../global/signal-ui'
-import { TxStatus, type TxState } from '../global/tx-status'
+import { TxStatus } from '../global/tx-status'
+import { useTxSimulation } from '../global/tx-simulation'
 
 // 注册参数口径=SPEC-M8 registration-details §3（durationDays/name/symbol/uri/desc/uAsset/
 // omnichainIds）；初始定价/最低成功额度非注册参数（2026-09-22 用户裁定移除，OB lifecycle.md:22
@@ -54,7 +55,7 @@ import { TxStatus, type TxState } from '../global/tx-status'
 // Symbol 占用=同 symbol 上一 verse 创世窗口未结束即锁定（RegistrationCenter:178 SymbolNotUnlock；
 // endTime=创世截止 :186+LaunchImpl:311-322；窗口结束 nonce+1→新 uniqueId 可复用 :189-195）。
 // 样本=verses 快照 genesis 行派生（repository）；精确字节串匹配（大小写敏感、不 trim）；
-// 占用判定以链上读值为准；错误行不带解锁时刻与条件、不加 ⊙（2026-10-02 用户裁定）。
+// 占用判定生产走链上读值；错误行不带解锁时刻与条件、不加 ⊙（2026-10-02 用户裁定）。
 // 布局：Fees 卡并入表单卡 Communities 下方（2026-10-04 用户裁定，脱离 demo 双栏——
 // demo.outrun.build/memeverse/create 为右列侧栏旧制）；可见帮助文案仅时长下方一句，
 // 其余说明收进标签旁 ⊙ 悬浮提示（Info）
@@ -102,6 +103,63 @@ function FieldInfo({ text, hoverOnly }: { text: string; hoverOnly?: boolean }) {
       </TooltipTrigger>
       <TooltipContent>{text}</TooltipContent>
     </Tooltip>
+  )
+}
+
+/** T6 注册成功弹窗（2026-10-01 用户裁定）：T6 抵达自动开、关闭后审阅卡留完成步骤+查看 Verse 兜底；
+    壳复用 .pol-mint（同 DAO/POL 弹窗）——底色/描边光/padding 都在这层 */
+function CreateSuccessDialog({
+  locale,
+  open,
+  onOpenChange,
+  name,
+  symbol,
+  chainName,
+}: {
+  locale: Locale
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  name: string
+  symbol: string
+  chainName: string
+}) {
+  const copy = getCopy(locale)
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <div className="pol-mint">
+          <header className="pol-mint__head">
+            <DialogTitle className="pol-mint__title">
+              {copy.create.launchDoneLead}
+              {copy.create.launchDoneAccent ? (
+                <span className="create-success-pop__title-accent">
+                  {copy.create.launchDoneAccent}
+                </span>
+              ) : null}
+            </DialogTitle>
+            <div className="pol-mint__controls">
+              <DialogClose
+                render={<button type="button" className="pol-mint__close" aria-label={copy.common.close} />}
+              >
+                <X aria-hidden="true" size={16} />
+              </DialogClose>
+            </div>
+          </header>
+          <div className="create-success-pop__body">
+            <p className="tx-success__summary">
+              {fill(copy.create.launchSummary, { name, symbol, chain: chainName })}
+            </p>
+            <Button
+              className="ax-ghost-cta"
+              nativeButton={false}
+              render={<Link href={verseHref(locale, SAMPLE_VERSE_ID)} />}
+            >
+              {copy.create.successViewVerse}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -154,12 +212,10 @@ export function CreateForm({
   const [duration, setDuration] = useState('')
   const [fast, setFast] = useState(false)
   const [reviewing, setReviewing] = useState(false)
-  // 交易签名模拟（state-matrix T4→T5→T6）：确认后前端定时推进，无钱包
-  const [txState, setTxState] = useState<TxState>('idle')
   // T6 注册成功展示=弹窗（2026-10-01 用户裁定）；关闭后卡片留完成步骤+查看 Verse CTA 兜底
   const [successOpen, setSuccessOpen] = useState(false)
-  const txTimers = useRef<ReturnType<typeof setTimeout>[]>([])
-  useEffect(() => () => txTimers.current.forEach(clearTimeout), [])
+  // 交易签名模拟（state-matrix T4→T5→T6）：确认后前端定时推进，无钱包；T6 抵达自动开成功弹窗
+  const { txState, beginSigning, resetTx } = useTxSimulation(() => setSuccessOpen(true))
   // object URL 生命周期=组件等长：换图/移除/卸载统一在此回收（cleanup 跑在 DOM 换图之后，
   // 旧 URL 已无引用），pickLogo/removeLogo 不再散落 revoke
   useEffect(
@@ -287,18 +343,6 @@ export function CreateForm({
     }
     setInvalid(false)
     setReviewing(true)
-  }
-
-  /** 签名模拟推进：T4 等待签名 ≈1.6s → T5 上链确认 ≈1.2s → T6 已确认 */
-  function beginSigning() {
-    setTxState('signing')
-    txTimers.current.push(setTimeout(() => setTxState('confirming'), 1600))
-    txTimers.current.push(
-      setTimeout(() => {
-        setTxState('confirmed')
-        setSuccessOpen(true)
-      }, 2800),
-    )
   }
 
   /** Fees 卡并入表单卡尾部（2026-10-04 用户裁定）：Communities 折叠行下方顺排
@@ -453,7 +497,7 @@ export function CreateForm({
                   variant="outline"
                   onClick={() => {
                     setReviewing(false)
-                    setTxState('idle')
+                    resetTx()
                   }}
                 >
                   <RotateCcw data-icon="inline-start" aria-hidden="true" />
@@ -481,49 +525,14 @@ export function CreateForm({
           </div>
         </div>
       </div>
-      <Dialog
+      <CreateSuccessDialog
+        locale={locale}
         open={txState === 'confirmed' && successOpen}
-        onOpenChange={(open) => setSuccessOpen(open)}
-      >
-        <DialogContent>
-          {/* 壳复用 .pol-mint（同 DAO/POL 弹窗）：底色/描边光/padding 都在这层 */}
-          <div className="pol-mint">
-            <header className="pol-mint__head">
-              <DialogTitle className="pol-mint__title">
-                {copy.create.launchDoneLead}
-                {copy.create.launchDoneAccent ? (
-                  <span className="create-success-pop__title-accent">
-                    {copy.create.launchDoneAccent}
-                  </span>
-                ) : null}
-              </DialogTitle>
-              <div className="pol-mint__controls">
-                <DialogClose
-                  render={<button type="button" className="pol-mint__close" aria-label={copy.common.close} />}
-                >
-                  <X aria-hidden="true" size={16} />
-                </DialogClose>
-              </div>
-            </header>
-            <div className="create-success-pop__body">
-              <p className="tx-success__summary">
-                {fill(copy.create.launchSummary, {
-                  name,
-                  symbol,
-                  chain: govChainOption?.name ?? '',
-                })}
-              </p>
-              <Button
-                className="ax-ghost-cta"
-                nativeButton={false}
-                render={<Link href={verseHref(locale, SAMPLE_VERSE_ID)} />}
-              >
-                {copy.create.successViewVerse}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+        onOpenChange={setSuccessOpen}
+        name={name}
+        symbol={symbol}
+        chainName={govChainOption?.name ?? ''}
+      />
       </>
     )
   }
@@ -560,7 +569,6 @@ export function CreateForm({
                   <div className="create-logo">
                     <label className="create-logo__box" htmlFor="create-logo">
                       {logoUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
                         <img src={logoUrl} alt="" />
                       ) : (
                         <>

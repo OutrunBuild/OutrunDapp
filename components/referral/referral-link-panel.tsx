@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { Check, Copy } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -8,13 +7,14 @@ import { Button } from '@/components/ui/button'
 import type { Locale } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
+import { useCopy } from '../global/use-copy'
 
 /**
  * 邀请链接面板（2026-10-07 用户裁定：删 Share on X 与独立 Copy Link 大钮，
  * 参照图改单行链接井 + 右端嵌入式复制图标钮——黄图标、hover 通电纯黄黑图标，
  * 为页内唯一黄主行动）：
  * - 链接 URL 由 RSC 经 host 头算好传入（SSR 即完整值，无水合闪变）
- * - 复制成功 1.6s 内换 ✓（同 CopyAddress 范式；aria-label 恒为「复制链接」）
+ * - 复制成功 1.6s 内换 ✓（复制行为经 useCopy 与 CopyAddress/VerseShare 共享唯一实现；aria-label 恒为「复制链接」）
  * - 移动端（≤54rem，2026-10-07 用户拍板第二版）：动作主角——井降级为无框
  *   证据行（等宽 14px muted、完整 URL 含 scheme——隐 scheme 曾被用户判
  *   「链接不完整」，撤），下方全宽实心黄切角 CTA（Button default 通道）
@@ -25,7 +25,7 @@ import { getCopy } from '../global/copy'
  */
 export function ReferralLinkPanel({ locale, url }: { locale: Locale; url: string }) {
   const copy = getCopy(locale).referral
-  const [copied, setCopied] = useState(false)
+  const { copied, copy: copyUrl } = useCopy()
 
   const schemeEnd = url.indexOf('://')
   const pathStart = url.indexOf('/', schemeEnd === -1 ? 0 : schemeEnd + 3)
@@ -36,12 +36,7 @@ export function ReferralLinkPanel({ locale, url }: { locale: Locale; url: string
   )
   const path = pathStart === -1 ? '' : url.slice(pathStart)
 
-  const onCopy = () => {
-    void navigator.clipboard?.writeText(url).then(() => {
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1600)
-    })
-  }
+  const onCopy = () => copyUrl(url)
 
   return (
     <section className="action-panel ref-link" aria-labelledby="ref-link-title">

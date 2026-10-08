@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { Check, RotateCcw } from 'lucide-react'
 
@@ -30,7 +30,8 @@ import { getCopy } from '../global/copy'
 import { localePath } from '../global/routes'
 import { formatAmount, ProgressMeter, SourceRef } from '../global/signal-ui'
 import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
-import { TxStatus, type TxState } from '../global/tx-status'
+import { TxStatus } from '../global/tx-status'
+import { useTxSimulation } from '../global/tx-simulation'
 
 // 预购与普通/杠杆创世同级的独立路径（用户裁定 2026-09-21）；普通/杠杆模式内提供一键预购
 type ParticipationMode = 'standard' | 'leverage' | 'preorder'
@@ -88,9 +89,7 @@ export function ParticipationPanel({
   const [preorderAmount, setPreorderAmount] = useState('')
   const [reviewing, setReviewing] = useState(false)
   // 交易签名模拟（state-matrix T4→T5→T6）：确认后前端定时推进，无钱包
-  const [txState, setTxState] = useState<TxState>('idle')
-  const txTimers = useRef<ReturnType<typeof setTimeout>[]>([])
-  useEffect(() => () => txTimers.current.forEach(clearTimeout), [])
+  const { txState, beginSigning, resetTx } = useTxSimulation()
   const [invalid, setInvalid] = useState(false)
   const numericAmount = Number(amount || 0)
   const numericPreorder = Number(preorderAmount || 0)
@@ -191,7 +190,7 @@ export function ParticipationPanel({
 
   function resetReview() {
     setReviewing(false)
-    setTxState('idle')
+    resetTx()
     setInvalid(false)
   }
 
@@ -325,13 +324,6 @@ export function ParticipationPanel({
     </Field>
   )
 
-  /** 签名模拟推进：T4 等待签名 ≈1.6s → T5 上链确认 ≈1.2s → T6 已确认 */
-  function beginSigning() {
-    setTxState('signing')
-    txTimers.current.push(setTimeout(() => setTxState('confirming'), 1600))
-    txTimers.current.push(setTimeout(() => setTxState('confirmed'), 2800))
-  }
-
   if (reviewing) {
     return (
       <div className="participation-review" aria-live="polite">
@@ -397,7 +389,7 @@ export function ParticipationPanel({
               variant="outline"
               onClick={() => {
                 setReviewing(false)
-                setTxState('idle')
+                resetTx()
               }}
             >
               <RotateCcw data-icon="inline-start" aria-hidden="true" />
@@ -471,11 +463,6 @@ export function ParticipationPanel({
               <ToggleGroupItem value="leverage">{copy.verse.leverageMode}</ToggleGroupItem>
               <ToggleGroupItem value="preorder">{copy.verse.preorderMode}</ToggleGroupItem>
             </ToggleGroup>
-            {mode === 'leverage' && !leverageReady ? (
-              <FieldDescription className="form-warning">
-                {copy.verse.leverageRateSlot}
-              </FieldDescription>
-            ) : null}
             {preorderOnly ? <FieldDescription>{copy.verse.preorderHelp}</FieldDescription> : null}
           </Field>
 
@@ -513,23 +500,20 @@ export function ParticipationPanel({
             </Field>
           ) : null}
 
-          {/* 预购 tab：Verse 级容量进度条（已用/上限），位于支付资产+金额前作约束上下文；快照缺失→槽位+CTA 禁用 */}
-          {preorderOnly ? (
-            versePreorderCap != null ? (
-              <Field>
-                <ProgressMeter
-                  label={copy.verse.preorderCapacityLabel}
-                  value={versePreorderPercent}
-                  amount={preorderRaised}
-                  threshold={versePreorderCap}
-                  unit={raiseAssetSymbol}
-                  locale={locale}
-                />
-                <FieldDescription>{copy.verse.preorderCapacityNote}</FieldDescription>
-              </Field>
-            ) : (
-              <FieldDescription className="form-warning">{copy.verse.preorderCapacitySlot}</FieldDescription>
-            )
+          {/* 预购 tab：Verse 级容量进度条（已用/上限），位于支付资产+金额前作约束上下文；
+              快照缺失→容量区不渲染、CTA 禁用（null 不渲染，2026-10-05 用户裁定） */}
+          {preorderOnly && versePreorderCap != null ? (
+            <Field>
+              <ProgressMeter
+                label={copy.verse.preorderCapacityLabel}
+                value={versePreorderPercent}
+                amount={preorderRaised}
+                threshold={versePreorderCap}
+                unit={raiseAssetSymbol}
+                locale={locale}
+              />
+              <FieldDescription>{copy.verse.preorderCapacityNote}</FieldDescription>
+            </Field>
           ) : null}
 
           {effectiveRoute === 'stake' ? (
