@@ -23,9 +23,10 @@ import participations from './data/participations.json';
 import yieldSources from './data/yield-sources.json';
 import createConfig from './data/create-config.json';
 import balances from './data/balances.json';
+import referral from './data/referral.json';
 import scenarios from './scenarios/states.json';
 
 export const fixtureData = {
   chains, assets, verses, markets, positions, psm, usrVaults,
-  bridgeMessages, transactions, governance, staking, polPositions, accounts, notifications, participations, yieldSources, createConfig, balances, scenarios,
+  bridgeMessages, transactions, governance, staking, polPositions, accounts, notifications, participations, yieldSources, createConfig, balances, referral, scenarios,
 } as const;

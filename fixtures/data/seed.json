@@ -15,7 +15,8 @@
     "account": "acct",
     "notification": "ntf",
     "yieldSource": "ysrc",
-    "createConfig": "cfg"
+    "createConfig": "cfg",
+    "referral": "ref"
   },
   "sourceRefPolicy": "docs/architecture.md#<section> 或 docs/page-briefs/source-map.md#<M/S id>；禁绝对路径",
   "sourceMap": {

@@ -46,6 +46,12 @@ export const fixtureAddressSchema = z.object({
   fixtureOnly: z.literal(true),
 });
 
+/** fixture 专用交易哈希：0x64hex 且必须带 fixtureOnly 标记 */
+const fixtureTxHashSchema = z.object({
+  value: z.string().regex(/^0x[0-9a-fA-F]{64}$/, 'EVM tx hash'),
+  fixtureOnly: z.literal(true),
+});
+
 /** sourceRef：仓库相对路径 + 章节/commit 锚（禁绝对路径/禁 /home） */
 export const sourceRefSchema = z.string().refine(
   (s) =>
@@ -415,3 +421,48 @@ export const createConfigSchema = recordSchema
   })
   .refine((config) => config.minDurationDays < config.maxDurationDays, 'minDurationDays < maxDurationDays');
 export const createConfigFile = fixtureFile(createConfigSchema);
+
+/** referral.json（样本账户推荐返佣快照——/referral，R-12；机制=Memeverse hook swap 返佣
+ *  source-map M5/M14/M15：默认 rate=1000bps 即总手续费 10%、in-kind 逐币 pending/claim。
+ *  链上事件 ReferralRebateAccrued 只记 referrer+币种+金额——friends 明细为索引器口径
+ *  样本（2026-10-07 用户裁定保留）；referralCode=UI 短码样式位（demo 样式，链上无
+ *  code→地址注册表，生产映射方案待定，同日用户裁定）。）
+ *  交易行口径：rebate = trade × 费率样本 0.8%（markets feeRate 样本）× 10%。 */
+const referralAssetAmountSchema = z.object({
+  assetId: idSchema,
+  chainId: chainIdSchema,
+  amount: amountSchema,
+});
+/** 交易行内资产腿（币种+数量；链在交易行上） */
+const referralTxAmtSchema = z.object({
+  assetId: idSchema,
+  amount: amountSchema,
+});
+const referralTransactionSchema = z.object({
+  verseId: idSchema,
+  chainId: chainIdSchema,
+  /** 交易哈希（界面缩略显示；2026-10-07 用户裁定参照重设计） */
+  txId: fixtureTxHashSchema,
+  /** 该笔交易的被推荐人（与 friends 列表同址，样本内部自洽） */
+  friend: fixtureAddressSchema,
+  trade: referralTxAmtSchema,
+  rebate: referralTxAmtSchema,
+  at: isoTimeSchema,
+});
+const referralFriendSchema = z.object({
+  address: fixtureAddressSchema,
+  joinedAt: isoTimeSchema,
+  volumeUsd: z.number().nonnegative(),
+  earnedUsd: z.number().nonnegative(),
+});
+export const referralSchema = recordSchema.extend({
+  referralCode: z.string().regex(/^[0-9A-Z]{6}$/, 'demo-style 6-char short code'),
+  /** 返佣率（占总手续费 bps；生产读 hook referrerRebateBps()，0–3500 可配） */
+  rate: rateSchema,
+  friendsCount: z.number().int().positive(),
+  earned: z.array(referralAssetAmountSchema).min(1),
+  pending: z.array(referralAssetAmountSchema).min(1),
+  transactions: z.array(referralTransactionSchema),
+  friends: z.array(referralFriendSchema),
+});
+export const referralFile = fixtureFile(referralSchema);

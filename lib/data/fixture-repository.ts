@@ -1407,3 +1407,107 @@ export function getFixturePortfolioSignals() {
     claimableVerses,
   };
 }
+
+/** /referral（R-12，2026-10-07 用户裁定四项）：Memeverse swap 返佣样本视图。
+ *  机制 G 源 = source-map M5/M14/M15：返佣从协议 35% 份额切出（默认 rate=1000bps
+ *  即总手续费 10%，owner 可调 0–3500）、in-kind 逐币 pending/claim（无批量）、
+ *  单层无绑定自推荐合法、按链独立（pending 行=链×币种）。
+ *  friends 明细与 referralCode 短码为 S 级样本（链上事件不含被推荐人、无 code
+ *  注册表）；≈$ 折算沿用 assets usdSample 样本价。 */
+export type FixtureReferralAssetAmount = {
+  assetId: string;
+  symbol: string;
+  chainId: number;
+  chainName: string;
+  amount: number;
+  /** 样本价折算；无样本价=null（不渲染 ≈$ 行） */
+  usd: number | null;
+};
+
+export type FixtureReferralTransaction = {
+  txId: string;
+  friendAddress: string;
+  chainId: number;
+  chainName: string;
+  rebate: { symbol: string; amount: number; usd: number | null };
+  at: string;
+};
+
+export type FixtureReferralFriend = {
+  address: string;
+  joinedAt: string;
+  volumeUsd: number;
+  earnedUsd: number;
+};
+
+export type FixtureReferral = {
+  /** 链接属主=样本账户（owner 不入 referral.json，从 accounts 派生防两处漂移） */
+  owner: string;
+  referralCode: string;
+  /** 返佣率（占总手续费百分比；生产读 hook referrerRebateBps()） */
+  ratePercent: number;
+  /** 累计已赚 USD（earned × usdSample 求和，无样本价行计 0） */
+  totalEarnedUsd: number;
+  /** 待领 USD（同口径） */
+  pendingUsd: number;
+  friendsCount: number;
+  earned: FixtureReferralAssetAmount[];
+  pending: FixtureReferralAssetAmount[];
+  transactions: FixtureReferralTransaction[];
+  friends: FixtureReferralFriend[];
+};
+
+export function getFixtureReferral(): FixtureReferral | null {
+  const record = fixtureData.referral.items[0];
+  if (!record) return null;
+  const chainMeta = new Map(fixtureData.chains.items.map((chain) => [chain.chainId, chain]));
+  const assetMeta = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
+  const viewAmount = (row: (typeof record.earned)[number]): FixtureReferralAssetAmount => {
+    const asset = assetMeta.get(row.assetId);
+    const value = amount(row.amount.raw);
+    return {
+      assetId: row.assetId,
+      symbol: asset?.symbol ?? row.assetId,
+      chainId: row.chainId,
+      chainName: chainMeta.get(row.chainId)?.name ?? String(row.chainId),
+      amount: value,
+      usd: asset?.usdSample != null ? value * asset.usdSample : null,
+    };
+  };
+  const earned = record.earned.map(viewAmount);
+  const pending = record.pending.map(viewAmount);
+  const sumUsd = (rows: FixtureReferralAssetAmount[]) =>
+    rows.reduce((sum, row) => sum + (row.usd ?? 0), 0);
+  return {
+    owner: getSnapshot().sampleAccount.address,
+    referralCode: record.referralCode,
+    ratePercent: Number(record.rate.raw) / 100,
+    totalEarnedUsd: sumUsd(earned),
+    pendingUsd: sumUsd(pending),
+    friendsCount: record.friendsCount,
+    earned,
+    pending,
+    transactions: record.transactions.map((tx) => ({
+      txId: tx.txId.value,
+      friendAddress: tx.friend.value,
+      chainId: tx.chainId,
+      chainName: chainMeta.get(tx.chainId)?.name ?? String(tx.chainId),
+      rebate: {
+        symbol: assetMeta.get(tx.rebate.assetId)?.symbol ?? tx.rebate.assetId,
+        amount: amount(tx.rebate.amount.raw),
+        usd: (() => {
+          const asset = assetMeta.get(tx.rebate.assetId);
+          const value = amount(tx.rebate.amount.raw);
+          return asset?.usdSample != null ? value * asset.usdSample : null;
+        })(),
+      },
+      at: tx.at,
+    })),
+    friends: record.friends.map((friend) => ({
+      address: friend.address.value,
+      joinedAt: friend.joinedAt,
+      volumeUsd: friend.volumeUsd,
+      earnedUsd: friend.earnedUsd,
+    })),
+  };
+}

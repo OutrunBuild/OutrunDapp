@@ -1,0 +1,168 @@
+{
+  "seed": "seed-001",
+  "generatedFrom": "fixtures/data/seed.json",
+  "items": [
+    {
+      "id": "ref-001",
+      "scenario": ["normal"],
+      "sourceRef": "docs/page-briefs/source-map.md#M15",
+      "referralCode": "R7K4M9",
+      "rate": { "raw": "1000", "unit": "bps", "scale": 4 },
+      "friendsCount": 28,
+      "earned": [
+        { "assetId": "asset-002", "chainId": 1, "amount": { "raw": "1062.30", "decimals": 6 } },
+        { "assetId": "asset-001", "chainId": 8453, "amount": { "raw": "0.0562", "decimals": 18 } },
+        { "assetId": "asset-003", "chainId": 56, "amount": { "raw": "0.0189", "decimals": 18 } }
+      ],
+      "pending": [
+        { "assetId": "asset-002", "chainId": 1, "amount": { "raw": "34.56", "decimals": 6 } },
+        { "assetId": "asset-001", "chainId": 8453, "amount": { "raw": "0.0142", "decimals": 18 } },
+        { "assetId": "asset-003", "chainId": 56, "amount": { "raw": "0.24", "decimals": 18 } }
+      ],
+      "transactions": [
+        {
+          "verseId": "verse-003", "chainId": 1,
+          "txId": { "value": "0x7da2334b5bbe989b4780b2ca3ad4757af8d06343cbc6cd83c3b22a06e8afc461", "fixtureOnly": true },
+          "friend": { "value": "0xaaaa000000000000000000000000000000000004", "fixtureOnly": true },
+          "trade": { "assetId": "asset-002", "amount": { "raw": "18400", "decimals": 6 } },
+          "rebate": { "assetId": "asset-002", "amount": { "raw": "14.72", "decimals": 6 } },
+          "at": "2026-09-30T09:12:00Z"
+        },
+        {
+          "verseId": "verse-012", "chainId": 8453,
+          "txId": { "value": "0xaad52881d738a610194f8bad608d3fe4cd3b18a53c938b76aebe07029eedf044", "fixtureOnly": true },
+          "friend": { "value": "0xaaaa000000000000000000000000000000000002", "fixtureOnly": true },
+          "trade": { "assetId": "asset-001", "amount": { "raw": "4.2", "decimals": 18 } },
+          "rebate": { "assetId": "asset-001", "amount": { "raw": "0.00336", "decimals": 18 } },
+          "at": "2026-09-29T16:41:00Z"
+        },
+        {
+          "verseId": "verse-003", "chainId": 1,
+          "txId": { "value": "0x6e9f55291b2befbc26f0fa88210e0cd2cdd06fad3dff5a0e967cd3518c856560", "fixtureOnly": true },
+          "friend": { "value": "0xaaaa000000000000000000000000000000000007", "fixtureOnly": true },
+          "trade": { "assetId": "asset-002", "amount": { "raw": "6250", "decimals": 6 } },
+          "rebate": { "assetId": "asset-002", "amount": { "raw": "5", "decimals": 6 } },
+          "at": "2026-09-29T08:05:00Z"
+        },
+        {
+          "verseId": "verse-013", "chainId": 56,
+          "txId": { "value": "0x23358b00511cfb1cfc3383869c7f7930e5d6a171384a652716e5231f4610d0c0", "fixtureOnly": true },
+          "friend": { "value": "0xaaaa000000000000000000000000000000000001", "fixtureOnly": true },
+          "trade": { "assetId": "asset-003", "amount": { "raw": "9.6", "decimals": 18 } },
+          "rebate": { "assetId": "asset-003", "amount": { "raw": "0.00768", "decimals": 18 } },
+          "at": "2026-09-28T14:27:00Z"
+        },
+        {
+          "verseId": "verse-014", "chainId": 8453,
+          "txId": { "value": "0xdf96aab3e3a96ac14cf1bd12cbf8aabeef9f93dad7f61a94cfb752b2f487cf62", "fixtureOnly": true },
+          "friend": { "value": "0xaaaa000000000000000000000000000000000006", "fixtureOnly": true },
+          "trade": { "assetId": "asset-001", "amount": { "raw": "2.8", "decimals": 18 } },
+          "rebate": { "assetId": "asset-001", "amount": { "raw": "0.00224", "decimals": 18 } },
+          "at": "2026-09-27T21:33:00Z"
+        },
+        {
+          "verseId": "verse-003", "chainId": 1,
+          "txId": { "value": "0x24c29627b4baf9152110130260c58c876f59471ab9f9e757d1fff06d048cf0a1", "fixtureOnly": true },
+          "friend": { "value": "0xaaaa000000000000000000000000000000000003", "fixtureOnly": true },
+          "trade": { "assetId": "asset-002", "amount": { "raw": "22100", "decimals": 6 } },
+          "rebate": { "assetId": "asset-002", "amount": { "raw": "17.68", "decimals": 6 } },
+          "at": "2026-09-26T11:58:00Z"
+        },
+        {
+          "verseId": "verse-009", "chainId": 56,
+          "txId": { "value": "0xae6f3ed6927a9eb5152682bde3df6cfa7a47a1ffe95210eb36c4c811ba5bf482", "fixtureOnly": true },
+          "friend": { "value": "0xaaaa000000000000000000000000000000000008", "fixtureOnly": true },
+          "trade": { "assetId": "asset-003", "amount": { "raw": "15.4", "decimals": 18 } },
+          "rebate": { "assetId": "asset-003", "amount": { "raw": "0.01232", "decimals": 18 } },
+          "at": "2026-09-25T18:14:00Z"
+        },
+        {
+          "verseId": "verse-012", "chainId": 1,
+          "txId": { "value": "0x6207450d19e92a134362282c88b12bc5ce3861f22c7d035848e13a86c6d3b2e3", "fixtureOnly": true },
+          "friend": { "value": "0xaaaa000000000000000000000000000000000005", "fixtureOnly": true },
+          "trade": { "assetId": "asset-002", "amount": { "raw": "3900", "decimals": 6 } },
+          "rebate": { "assetId": "asset-002", "amount": { "raw": "3.12", "decimals": 6 } },
+          "at": "2026-09-25T07:49:00Z"
+        },
+        {
+          "verseId": "verse-002", "chainId": 8453,
+          "txId": { "value": "0x5828a0d3ae0fb318985b4f14cd0c29baf867d908ddb3a5ad2bdb6aa5412e2fbb", "fixtureOnly": true },
+          "friend": { "value": "0xaaaa000000000000000000000000000000000002", "fixtureOnly": true },
+          "trade": { "assetId": "asset-001", "amount": { "raw": "6.1", "decimals": 18 } },
+          "rebate": { "assetId": "asset-001", "amount": { "raw": "0.00488", "decimals": 18 } },
+          "at": "2026-09-24T13:20:00Z"
+        },
+        {
+          "verseId": "verse-003", "chainId": 1,
+          "txId": { "value": "0x45b68607a68698eb7b8054961799a067a19c0e093fcdd628d99018b66bd86879", "fixtureOnly": true },
+          "friend": { "value": "0xaaaa000000000000000000000000000000000007", "fixtureOnly": true },
+          "trade": { "assetId": "asset-002", "amount": { "raw": "9800", "decimals": 6 } },
+          "rebate": { "assetId": "asset-002", "amount": { "raw": "7.84", "decimals": 6 } },
+          "at": "2026-09-23T10:02:00Z"
+        }
+      ],
+      "friends": [
+        {
+          "address": { "value": "0xaaaa000000000000000000000000000000000001", "fixtureOnly": true },
+          "joinedAt": "2026-07-14T10:22:00Z",
+          "volumeUsd": 128400,
+          "earnedUsd": 102.72
+        },
+        {
+          "address": { "value": "0xaaaa000000000000000000000000000000000002", "fixtureOnly": true },
+          "joinedAt": "2026-08-02T15:48:00Z",
+          "volumeUsd": 86250,
+          "earnedUsd": 69
+        },
+        {
+          "address": { "value": "0xaaaa000000000000000000000000000000000003", "fixtureOnly": true },
+          "joinedAt": "2026-08-19T08:31:00Z",
+          "volumeUsd": 156000,
+          "earnedUsd": 124.8
+        },
+        {
+          "address": { "value": "0xaaaa000000000000000000000000000000000004", "fixtureOnly": true },
+          "joinedAt": "2026-09-02T19:05:00Z",
+          "volumeUsd": 42500,
+          "earnedUsd": 34
+        },
+        {
+          "address": { "value": "0xaaaa000000000000000000000000000000000005", "fixtureOnly": true },
+          "joinedAt": "2026-09-12T12:40:00Z",
+          "volumeUsd": 61300,
+          "earnedUsd": 49.04
+        },
+        {
+          "address": { "value": "0xaaaa000000000000000000000000000000000006", "fixtureOnly": true },
+          "joinedAt": "2026-09-18T09:17:00Z",
+          "volumeUsd": 23700,
+          "earnedUsd": 18.96
+        },
+        {
+          "address": { "value": "0xaaaa000000000000000000000000000000000007", "fixtureOnly": true },
+          "joinedAt": "2026-09-24T21:26:00Z",
+          "volumeUsd": 98400,
+          "earnedUsd": 78.72
+        },
+        {
+          "address": { "value": "0xaaaa000000000000000000000000000000000008", "fixtureOnly": true },
+          "joinedAt": "2026-09-28T14:03:00Z",
+          "volumeUsd": 9840,
+          "earnedUsd": 7.872
+        },
+        {
+          "address": { "value": "0xaaaa000000000000000000000000000000000009", "fixtureOnly": true },
+          "joinedAt": "2026-10-02T11:35:00Z",
+          "volumeUsd": 51200,
+          "earnedUsd": 40.96
+        },
+        {
+          "address": { "value": "0xaaaa00000000000000000000000000000000000a", "fixtureOnly": true },
+          "joinedAt": "2026-10-05T08:50:00Z",
+          "volumeUsd": 18700,
+          "earnedUsd": 14.96
+        }
+      ]
+    }
+  ]
+}
