@@ -738,6 +738,27 @@ svg {
   white-space: nowrap;
 }
 
+/* 无用户参与态页级连接 CTA（2026-10-08 用户裁定，同日二次裁定样式/位置）：
+   未连接时页头下唯一行动；按钮=ax-ghost-cta 黄描边幽灵皮（header 钱包钮同款，
+   皮在组件 className 上），本壳只管槽位——水平居中；节奏随所在页首格——
+   组合页分区 space-7、推荐页卡片 space-6（--ref 修饰档）；移动端接全宽惯例
+   （.ref-link__cta 同款），居中语义随之失效 */
+.connect-cta {
+  display: flex;
+  justify-content: center;
+  margin-block-start: var(--space-7);
+}
+
+.connect-cta--ref {
+  margin-block-start: var(--space-6);
+}
+
+@media (max-width: 54rem) {
+  .connect-cta__button {
+    inline-size: 100%;
+  }
+}
+
 .brand-wordmark {
   display: block;
   /* 2026-10-06 用户裁定「缩小一些」后当日回调：2.45→2.0→2.2（156.8→128→140.8px 宽，

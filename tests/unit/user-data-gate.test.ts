@@ -25,16 +25,18 @@ const REF_NOT_RENDERED = renderToString(
 );
 
 describe('无用户参与态（未连接 SSR）', () => {
-  it('portfolio：KPI/净值 hero/四分区整体隐藏，页头标题+副题保留', () => {
+  it('portfolio：KPI/净值 hero/四分区整体隐藏，页头标题+副题+连接 CTA 保留', () => {
     expect(NOT_RENDERED).toContain('page-intro');
+    expect(NOT_RENDERED).toContain('connect-cta');
     expect(NOT_RENDERED).not.toContain('pf-kpi');
     expect(NOT_RENDERED).not.toContain('pf-hero');
     expect(NOT_RENDERED).not.toContain('pf-zone');
   });
 
-  it('referral：统计/链接/待领/历史隐藏，机制介绍（运作方式+分账条）保留', () => {
+  it('referral：统计/链接/待领/历史隐藏，机制介绍（运作方式+分账条）+连接 CTA 保留', () => {
     expect(REF_NOT_RENDERED).toContain('ref-how');
     expect(REF_NOT_RENDERED).toContain('ref-split');
+    expect(REF_NOT_RENDERED).toContain('connect-cta');
     expect(REF_NOT_RENDERED).not.toContain('ref-stats');
     expect(REF_NOT_RENDERED).not.toContain('ref-link');
     expect(REF_NOT_RENDERED).not.toContain('ref-pending');

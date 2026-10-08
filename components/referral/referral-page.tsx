@@ -11,6 +11,7 @@ import { OutrunShell } from '../global/app-shell'
 import { ChainLogoMark } from '../global/chain-icons'
 import { TokenIconMark } from '../global/token-icons'
 import { getCopy } from '../global/copy'
+import { ConnectWalletCta } from '../global/connect-wallet-cta'
 import { localePath } from '../global/routes'
 import { formatAmount, formatDay } from '../global/signal-ui'
 import { UserDataGate } from '../global/user-data-gate'
@@ -32,7 +33,8 @@ import { RelativeTime } from './relative-time'
  * 机制 G 源 = Memeverse hook swap 返佣（source-map M5/M14/M15）；推荐关系=
  * 被推荐人注册时绑定（应用层，2026-10-07 用户裁定）；friends 明细与短码为 S 级样本。
  * 2026-10-08 用户裁定无用户参与态：未连接时统计簇/邀请链接/待领/历史整体隐藏
- * （UserDataGate，无数据的卡片不显示），机制介绍（运作方式+分账条）保留常显。
+ * （UserDataGate，无数据的卡片不显示），机制介绍（运作方式+分账条）保留常显；
+ * 同日二轮裁定：断连时机制卡下方出黄色连接钱包 CTA（ax-ghost-cta 皮、居中）。
  */
 export function ReferralPage({ locale, host }: { locale: Locale; host: string | null }) {
   const copy = getCopy(locale).referral
@@ -149,6 +151,9 @@ export function ReferralPage({ locale, host }: { locale: Locale; host: string | 
           </div>
         </div>
       </section>
+
+      {/* 无用户参与时机制卡下方=连接 CTA（2026-10-08 二次裁定落位；连接后让位回数据卡） */}
+      <ConnectWalletCta locale={locale} className="connect-cta--ref" />
 
       {/* 待领（无用户参与时随统计簇同隐藏） */}
       <UserDataGate>

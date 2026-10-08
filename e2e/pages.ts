@@ -10,7 +10,8 @@ export type VisualPage = { name: string; path: string; connectWallet?: boolean }
 export const PAGES: VisualPage[] = [
   { name: 'home', path: '/' },
   { name: 'explore', path: '/memeverse/explore' },
-  { name: 'launch', path: '/memeverse/launch' },
+  { name: 'launch', path: '/memeverse/launch', connectWallet: true },
+  { name: 'launch-disconnected', path: '/memeverse/launch' },
   { name: 'verse-21', path: '/memeverse/21' },
   { name: 'portfolio', path: '/portfolio', connectWallet: true },
   { name: 'portfolio-disconnected', path: '/portfolio' },

@@ -15,6 +15,7 @@ import {
 
 import { OutrunShell } from '../global/app-shell'
 import { getCopy } from '../global/copy'
+import { ConnectWalletCta } from '../global/connect-wallet-cta'
 import { formatAmount } from '../global/signal-ui'
 import { UserDataGate } from '../global/user-data-gate'
 import { ActionZone } from './action-zone'
@@ -31,7 +32,8 @@ import { VouchersZone } from './vouchers-zone'
  * 2026-10-05 决议 017 质量轮：页头净值 hero（钱包+储蓄+金库待领样本折算 + 三段分配条）；
  * 2026-10-08 用户裁定分区间距统一：六分区全序列 space-7 48px（取代 017 三组节奏）。
  * 2026-10-08 用户裁定无用户参与态：未连接时 KPI/净值 hero/四分区整体隐藏
- * （UserDataGate，无数据的卡片不显示、不做零值占位），页面只剩页头标题+副题。
+ * （UserDataGate，无数据的卡片不显示、不做零值占位），页面只剩页头标题+副题；
+ * 同日补充裁定：断连时页头下方出黄色连接钱包 CTA（ConnectWalletCta）。
  */
 export function PortfolioPage({ locale }: { locale: Locale }) {
   const snapshot = getFixtureSnapshot()
@@ -160,6 +162,9 @@ export function PortfolioPage({ locale }: { locale: Locale }) {
           </div>
         </UserDataGate>
       </header>
+
+      {/* 无用户参与时页头下方唯一行动（连接后随数据卡一并消失） */}
+      <ConnectWalletCta locale={locale} />
 
       {/* 移动端分区页签 deck（决议 018）：≤54rem 吸顶四分段一次显一区、桌面零变化；
           无用户参与时随四分区一起隐藏（2026-10-08 裁定） */}

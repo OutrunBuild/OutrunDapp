@@ -1069,3 +1069,19 @@ C1 结算储备金按 spec 窄口径且 UI 不露出 · C2 建池剩余资金不
 - **token 影响**：无增删。
 - **登记**：component-contract §33；e2e PAGES `connectWallet` 旗标（portfolio/referral/zh-referral 走连接态基线）+ `*-disconnected` 三档基线锁定断连默认态（闸门失效数据泄漏即红）；单测 `tests/unit/user-data-gate.test.ts` SSR 类名缺席/在场断言。
 - 签名：approved by Jasonrale（用户裁定）
+
+## 2026-10-08 · 无用户参与态补行动入口：两页黄色连接 CTA + Launch 页换连接钮（用户裁定）
+
+- **背景**：同日「无用户参与态」裁定落地后，组合页断连只剩页头标题+副题、推荐页剩机制介绍——两页均无任何行动入口；Launch 页断连时主按钮仍是 Launch（提交进审阅流），与未参与语义矛盾。
+- **方案**：新增 `ConnectWalletCta`（闸门对偶面：未连接渲染黄色主行动=Button default 实心黄+WalletCards 图标+copy.common.connect，点击=头部钱包同一 mock 开关，连接后整块消失）。Portfolio 页头下默认 space-7；Referral 传 `connect-cta--ref` 占链接卡首卡槽位（卡片 space-6）；≤54rem 全宽（ref-link__cta 同惯例）。Launch 表单 submit 位断连时整颗换成同款（create-submit 满宽 size lg），表单字段照常可填、连接不重置草稿。
+- **token 影响**：无增删。
+- **登记**：components.md「无用户参与连接 CTA」行；component-contract §33 补配套 CTA 行；e2e launch 加 `connectWallet` 旗标+`launch-disconnected` 断连条目（launch 断连态从此有基线锁）；单测 CTA 在场断言。
+- 签名：approved by Jasonrale（用户裁定）
+
+## 2026-10-08 · 连接 CTA 二轮纠偏：ax-ghost-cta 皮 + 居中 + 推荐页落机制卡下方（用户裁定）
+
+- **背景**：一轮实现用了 Button default 实心黄切角+左锚、推荐页放机制卡上方；用户纠偏「应该黄色无边框的那种，和 header 里的样式一样」「位置应该居中」「推荐页的按钮应该在 How it work 下方」。
+- **方案**：按钮换 ax-ghost-cta 幽灵皮（透明机身+黄描边黄字+hover 通电，header 钱包钮/原 Launch submit 同款；皮挂组件 className，闸门壳不动）；`.connect-cta` 壳加 flex 居中；推荐页 CTA 从首卡槽位移至机制卡（ref-how）下方、卡片 space-6 不变；Launch 表单 submit 位连接钮同步挂回 `ax-ghost-cta create-submit`（原 Launch 槽位皮原样）。
+- **token 影响**：无增删。
+- **验证**：断连三路由基线重录+目验（皮/居中/落位与裁定一致）。
+- 签名：approved by Jasonrale（用户裁定）

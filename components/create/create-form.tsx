@@ -9,7 +9,7 @@ import {
   type KeyboardEvent,
 } from 'react'
 import Link from 'next/link'
-import { Calculator, Check, ChevronDown, Globe, ImagePlus, Info, RotateCcw, X } from 'lucide-react'
+import { Calculator, Check, ChevronDown, Globe, ImagePlus, Info, RotateCcw, WalletCards, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog'
@@ -127,7 +127,7 @@ export function CreateForm({
   const linksNoteId = useId()
   // 钱包连接链=报价的「发起链」维度（2026-10-02 用户裁定进创建页；不显示跨链提示——
   // 跨链是注册常态，提示会造「只有这种情况才跨链」的歧义）
-  const { connected, chainId: walletChainId } = useMockWallet()
+  const { connected, chainId: walletChainId, toggle: toggleWallet } = useMockWallet()
   // 错误关联：id 只在错误渲染期间被 aria-describedby 条件回指，避免引用不存在的节点
   const logoErrorId = useId()
   const nameErrorId = useId()
@@ -337,14 +337,31 @@ export function CreateForm({
         ) : !config || !govChainOption ? (
           <p>{copy.create.quoteEmpty}</p>
         ) : null}
-        <Button
-          type="submit"
-          className="ax-ghost-cta create-submit"
-          size="lg"
-          disabled={assets.length === 0 || chains.length === 0 || config == null}
-        >
-          {copy.create.submit}
-        </Button>
+        {/* 无用户参与（2026-10-08 用户裁定）：submit 位整颗换成连接钱包钮——
+            原槽位 ax-ghost-cta 皮原样保留（同日二轮裁定「和 header 钱包钮同款」），
+            点击=头部同一 mock 开关，连接后 Launch 原样回归；表单字段照常可填，
+            连接不重置任何已输入草稿 */}
+        {connected ? (
+          <Button
+            type="submit"
+            className="ax-ghost-cta create-submit"
+            size="lg"
+            disabled={assets.length === 0 || chains.length === 0 || config == null}
+          >
+            {copy.create.submit}
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="default"
+            className="ax-ghost-cta create-submit"
+            size="lg"
+            onClick={toggleWallet}
+          >
+            <WalletCards data-icon="inline-start" aria-hidden="true" />
+            {copy.common.connect}
+          </Button>
+        )}
         {config ? <SourceRef value={config.sourceRef} /> : null}
       </section>
     )

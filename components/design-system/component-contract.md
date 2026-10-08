@@ -416,9 +416,10 @@
 | 方面 | 契约 |
 |---|---|
 | 用途 | 无用户参与态（2026-10-08 用户裁定）：mock 钱包未连接（真钱包接入前唯一「参与」信号，`useMockWallet`）时不渲染子树——数据卡片整体隐藏而非零值展示/空态占位；机制介绍类内容不归闸门管辖（referral 运作方式+分账条留在闸门外常显） |
+| 配套 CTA | `ConnectWalletCta`（`components/global/connect-wallet-cta.tsx`，同日补充裁定）：闸门的对偶面——未连接时渲染黄色主行动，点击=头部 WalletControl 同一 mock 开关，连接后整块消失；样式=header 钱包钮同款 ax-ghost-cta 幽灵皮（透明机身+黄描边黄字，同日二轮裁定），壳层 flex 水平居中；Portfolio 页头下默认 space-7 / Referral 机制卡下方传 `connect-cta--ref` 落卡片 space-6（二轮裁定落位）；Launch 表单 submit 位同款按钮在 create-form 内联（断连时整颗替换 Launch submit、原 ax-ghost-cta 槽位皮不变，表单字段照常可填、连接不重置草稿；同日裁定「Launch 页显示连接钱包按钮而非 Launch 按钮」） |
 | 实现 | `components/global/user-data-gate.tsx`（client，`useMockWallet().connected` 三态）；与 PortfolioZoneTabs/ReferralHistory 同构：RSC 渲染的面板经 children 传入、本组件只切换显隐；SSR 与首帧客户端快照恒为未连接（无水合闪变），连接切换为纯客户端重渲染、零网络请求 |
 | 管辖范围 | Portfolio：KPI 带（pf-kpi）+ 净值 hero（pf-hero）+ 四分区 deck（PortfolioZoneTabs 整体，断连时页面只剩页头标题+副题——该页全部为数据卡，裁定后果已明示）；Referral：统计簇（ref-stats）+ 邀请链接（ref-link，用户专属短码随数据同隐）+ 待领（ref-pending）+ 历史（ref-history）。首页/发现/详情/创建页不接闸门 |
-| 登记 | 单测防线 `tests/unit/user-data-gate.test.ts`（SSR 断言卡面类名缺席/机制段在场）；e2e `*-disconnected` 基线条目锁默认态（数据泄漏回断连页面即基线红），`connectWallet` 旗标条目保持连接态全量基线覆盖 |
+| 登记 | 单测防线 `tests/unit/user-data-gate.test.ts`（SSR 断言卡面类名缺席/机制段与连接 CTA 在场）；e2e `*-disconnected` 基线条目锁默认态（数据泄漏回断连页面即基线红），`connectWallet` 旗标条目保持连接态全量基线覆盖（portfolio/referral/launch 三路由） |
 
 ## 附：组件间通用交互契约
 
