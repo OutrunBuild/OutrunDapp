@@ -52,31 +52,4 @@ function PopoverContent({
   )
 }
 
-/** 遮罩 + 居中弹出卡形态（demo 参照：齿轮设置卡为全屏半透明遮罩 + 居中卡；点遮罩关闭走 onClose） */
-function PopoverModalContent({
-  className,
-  onClose,
-  children,
-  ...props
-}: PopoverPrimitive.Popup.Props & { onClose?: () => void }) {
-  return (
-    <PopoverPrimitive.Portal>
-      <PopoverPrimitive.Backdrop
-        data-slot="popover-modal-backdrop"
-        className="fixed inset-0 z-50 bg-black/60"
-        onClick={onClose}
-      />
-      <div className="fixed inset-0 z-50 grid place-items-center p-4">
-        <PopoverPrimitive.Popup
-          data-slot="popover-modal-content"
-          className={cn("w-full max-w-sm p-1 text-sm", className)}
-          {...props}
-        >
-          {children}
-        </PopoverPrimitive.Popup>
-      </div>
-    </PopoverPrimitive.Portal>
-  )
-}
-
-export { Popover, PopoverTrigger, PopoverContent, PopoverModalContent }
+export { Popover, PopoverTrigger, PopoverContent }

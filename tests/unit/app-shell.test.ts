@@ -19,7 +19,10 @@ vi.mock('@/components/global/locale-menu', () => ({
 // 导航归属语义回归防线（fix-review F-1）：e2e 视觉基线对 aria/data 属性维度不敏感
 // （属性翻转实测 0 像素差），此处直接在 SSR HTML 层断言。
 function renderShell(
-  props: { current?: 'home' | 'discover' | 'create' | 'portfolio' | 'referral' } = {},
+  props: {
+    current?: 'home' | 'discover' | 'create' | 'portfolio' | 'referral';
+    locale?: 'en' | 'zh';
+  } = {},
 ) {
   return renderToString(
     createElement(OutrunShell, {
@@ -71,5 +74,19 @@ describe('OutrunShell 导航归属语义', () => {
     expect(html).toContain('data-testid="chain-stub"');
     expect(html).toContain('data-testid="locale-stub"');
     expect(html).toContain('data-testid="wallet-stub"');
+  });
+
+  // aria-label 字典化防线（fix-review F-1 第二轮）：nav 地标可访问名从 copy 层取，
+  // zh 页读屏不播英文；e2e 基线对该维度 0 像素差，只能在 SSR 层钉。
+  it('zh：nav aria-label 从字典取（主导航/移动端主导航），无英文残留', () => {
+    const productHtml = renderShell({ locale: 'zh', current: 'discover' });
+    expect(count(productHtml, 'aria-label="主导航"')).toBe(1);
+    expect(productHtml).toContain('aria-label="移动端主导航"');
+    expect(productHtml).not.toContain('aria-label="Primary"');
+    expect(productHtml).not.toContain('aria-label="Mobile primary"');
+
+    const homeHtml = renderShell({ locale: 'zh', current: 'home' });
+    expect(count(homeHtml, 'aria-label="主导航"')).toBe(1);
+    expect(homeHtml).not.toContain('aria-label="Primary"');
   });
 });

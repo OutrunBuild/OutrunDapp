@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { PAGES } from './pages';
+import { PAGES, ZH_PAGES } from './pages';
 
 // axe 无障碍回归闸门（agent-workflow.md §3.2）：WCAG 2.0/2.1 A+AA 全量扫描，
 // 与 e2e/a11y-baseline.json 基线比对——新增规则或节点数上涨即 FAIL；
@@ -33,7 +33,9 @@ test('axe: 无新增 WCAG A/AA 违规（基线比对）', async ({ page }, testI
   const next: Baseline = {};
   const regressions: string[] = [];
 
-  for (const { name, path, connectWallet } of PAGES) {
+  // zh 变体页进扫描（2026-10-08 测试盲区裁决 [H]）：zh 是不同 DOM——文案/排版变体
+  // 可引入 en 扫不见的违规；「移动端同 DOM」省档理由只覆盖视口、不覆盖语言变体。
+  for (const { name, path, connectWallet } of [...PAGES, ...ZH_PAGES]) {
     await page.goto(path, { waitUntil: 'networkidle' });
     // connectWallet 条目扫连接态全量 DOM（与 visual 基线同口径）；*-disconnected 扫默认态
     if (connectWallet) {

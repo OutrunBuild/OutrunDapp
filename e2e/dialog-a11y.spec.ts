@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
 // 弹窗输出区 aria 关联断言（2026-10-03 用户裁定：e2e 开弹窗）：
+// 末测试另覆盖附则弹层交互契约（Esc/焦点圈闭/焦点还原）于链选择弹窗（2026-10-08 迁 ui/dialog）。
 // 验证 component-contract.md 头部「输出收账框 a11y」通用规则——输出 field 容器 role="group"
 // + aria-labelledby 解析到 head 标签 span；各只读 <output> 的组合 aria-label 含
 // 字段标签文本 + 同行代币章符号。断言取 DOM 自身组词（标签文本+代币章），不钉 copy 字符串，
@@ -123,4 +124,56 @@ test('swap 卡 buy 输出 aria 关联（页面级，无弹窗）', async ({ page
   await expect(desk.locator('output').first()).toBeVisible();
   expect(await desk.locator('output').count()).toBe(1);
   await assertOutputWiring(desk, 'Swap 卡 buy');
+});
+
+test('链选择弹窗：DialogTitle 接线 + 焦点圈闭 + Esc 关闭还原触发器', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1280', '弹窗断言仅桌面档');
+  await page.goto('/', { waitUntil: 'networkidle' });
+  const trigger = page.locator('.chain-dialog__trigger');
+  await trigger.click();
+  const dialog = page.locator(DIALOG);
+  await expect(dialog).toBeVisible();
+
+  // DialogTitle 接线：弹窗可达名锚点解析到面板内标题（ui/dialog.tsx「必须有才过 a11y」）
+  const labelledBy = await dialog.getAttribute('aria-labelledby');
+  expect(labelledBy, 'DialogContent 应有 aria-labelledby（DialogTitle 锚点）').toBeTruthy();
+  await expect(page.locator(`[id="${labelledBy}"]`)).toBeAttached();
+
+  // 打开后焦点进入弹窗（模态契约；base-ui initialFocus 异步落位，先等再 Tab）
+  await expect
+    .poll(
+      () => page.evaluate(() => !!document.activeElement?.closest('[data-slot="dialog-content"]')),
+      {
+        message: '打开后焦点应进入弹窗',
+      },
+    )
+    .toBe(true);
+
+  // 焦点圈闭（附则弹层契约）：连按 Tab 越过弹窗末元素——base-ui 圈闭为 focusout 异步回笼
+  // （非同步拦截，全仓 ui/dialog 弹窗同款原语行为），断言稳态：焦点回笼弹窗内且弹窗不关
+  for (let i = 0; i < 8; i += 1) await page.keyboard.press('Tab');
+  await expect
+    .poll(
+      () => page.evaluate(() => !!document.activeElement?.closest('[data-slot="dialog-content"]')),
+      {
+        message: 'Tab 出界后焦点应回笼弹窗（圈闭稳态）',
+      },
+    )
+    .toBe(true);
+  await expect(page.locator(DIALOG)).toBeVisible();
+
+  // Esc 关闭 + 焦点还原触发器（附则弹层契约）
+  await page.keyboard.press('Escape');
+  await expect(page.locator(DIALOG)).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+
+  // select 语义保留（2026-09-24 裁定链切换唯一入口）：选非首链写 ?chain=、再选回首链删参
+  await trigger.click();
+  await expect(dialog).toBeVisible();
+  await dialog.locator('.chain-dialog__option').nth(1).click();
+  await expect(page).toHaveURL(/chain=/);
+  await trigger.click();
+  await expect(dialog).toBeVisible();
+  await dialog.locator('.chain-dialog__option').first().click();
+  await expect(page).not.toHaveURL(/chain=/);
 });
