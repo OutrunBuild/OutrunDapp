@@ -23,6 +23,7 @@ import {
 import { OutrunShell } from '../global/app-shell'
 import { ChainLogoMark } from '../global/chain-icons'
 import { getCopy } from '../global/copy'
+import { VERSE_TAB_KEYS } from '../global/routes'
 import { ParticipationPanel } from './participation-panel'
 import { DaoPanel, LiquidityPanel, PolPanel } from './verse-tab-panels'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -94,9 +95,6 @@ function participationKindLabel(kind: FixtureParticipation['kind'], locale: Loca
   if (kind === 'leverage') return copy.verse.leverageInterest
   return copy.verse.preorderKind
 }
-
-/** 交易台四页签 key（?tab= 深链白名单——与 VerseTabs 的 ToggleGroupItem value 一致） */
-const VERSE_TAB_KEYS = ['liquidity', 'pol', 'vault', 'dao'] as const
 
 export function VersePage({
   locale,

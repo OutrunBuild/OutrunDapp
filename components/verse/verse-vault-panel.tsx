@@ -3,6 +3,7 @@ import type { Locale, FixtureStaking, FixtureVerse } from '@/lib/data/fixture-re
 import { CopyAddress } from '../global/copy-address'
 import { getCopy } from '../global/copy'
 import { formatMarketCap, formatPercent, SourceRef } from '../global/signal-ui'
+import { fmtTokenAmount } from '../global/amount-format'
 import { VaultActions } from './vault-actions'
 
 /**
@@ -25,8 +26,8 @@ export function VaultPanel({
   staking: FixtureStaking | null
   /** 样本账户本 verse memecoin 余额（pol-positions 样本；Stake 档 Balance/Max，null=槽位态） */
   myMemecoin: number | null
-  /** ?action=withdraw 深链：操作卡直接停在 Withdraw 子页签 */
-  initialView?: 'redeem' | 'withdraw'
+  /** ?action=withdraw 深链：操作卡直接停在 Withdraw 子页签（redeem 是默认态，无需 prop 预设） */
+  initialView?: 'withdraw'
 }) {
   const copy = getCopy(locale).verseDesk
   const shareSymbol = `s${verse.symbol}`
@@ -59,7 +60,7 @@ export function VaultPanel({
             <div>
               <dt>{copy.exchangeRate}</dt>
               <dd>
-                1 {shareSymbol} ≈ {staking.assetsPerShare.toFixed(4)} {verse.symbol}
+                1 {shareSymbol} ≈ {fmtTokenAmount(staking.assetsPerShare, locale)} {verse.symbol}
               </dd>
             </div>
             <div>
@@ -88,9 +89,7 @@ export function VaultPanel({
             initialRedeemMode={initialView}
           />
         </>
-      ) : (
-        <p className="panel-note">{copy.onChainSlot}</p>
-      )}
+      ) : null}
       <SourceRef value="docs/page-briefs/source-map.md#M10" />
     </div>
   )

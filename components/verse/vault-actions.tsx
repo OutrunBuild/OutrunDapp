@@ -9,6 +9,7 @@ import { getCopy } from '../global/copy'
 import { useMockWallet } from '../global/mock-wallet'
 import { formatAmount, formatDay } from '../global/signal-ui'
 import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
+import { fmtTokenAmount } from '../global/amount-format'
 import { Button } from '@/components/ui/button'
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -74,6 +75,9 @@ export function VaultActions({
   myShares,
   myMemecoin,
   pendingRedeems,
+  // 契约调用参数（delegate(delegatee) 入参），非显示字段——UI 无显示设计（2026-10-08 用户裁定）；
+  // 原型无真实交易，参数接收待接线
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   delegatee,
   governanceChain,
   governanceChainName,
@@ -95,8 +99,8 @@ export function VaultActions({
   /** 治理链 chainId（vault 所在链，omnichain.md §The governance chain） */
   governanceChain: number
   governanceChainName: string
-  /** ?action=withdraw 深链初值：组合表 Withdraw 落进来直接见 READY 列表（2026-10-04 用户裁定） */
-  initialRedeemMode?: RedeemMode
+  /** ?action=withdraw 深链初值：组合表 Withdraw 落进来直接见 READY 列表（2026-10-04 用户裁定）；redeem 是默认态，无需 prop 预设 */
+  initialRedeemMode?: 'withdraw'
 }) {
   const copy = getCopy(locale).verseDesk
   const { connected, chainId, toggle, switchChain } = useMockWallet()
@@ -203,13 +207,13 @@ export function VaultActions({
           <div>
             <dt>{copy.exchangeRate}</dt>
             <dd data-numeric>
-              1 {symbol} ≈ {(1 / assetsPerShare).toFixed(4)} {shareSymbol}
+              1 {symbol} ≈ {fmtTokenAmount(1 / assetsPerShare, locale)} {shareSymbol}
             </dd>
           </div>
           <div>
             <dt>{copy.youReceive}</dt>
             <dd data-numeric>
-              {stakeOut != null ? `${stakeOut.toFixed(6)} ${shareSymbol}` : `0.00 ${shareSymbol}`}
+              {stakeOut != null ? `${fmtTokenAmount(stakeOut, locale)} ${shareSymbol}` : `0.00 ${shareSymbol}`}
             </dd>
           </div>
           {wrongChain ? (
@@ -353,13 +357,13 @@ export function VaultActions({
               <div>
                 <dt>{copy.exchangeRate}</dt>
                 <dd data-numeric>
-                  1 {shareSymbol} ≈ {assetsPerShare.toFixed(4)} {symbol}
+                  1 {shareSymbol} ≈ {fmtTokenAmount(assetsPerShare, locale)} {symbol}
                 </dd>
               </div>
               <div>
                 <dt>{copy.youReceiveAfter24h}</dt>
                 <dd data-numeric>
-                  {redeemOut != null ? `${redeemOut.toFixed(6)} ${symbol}` : `0.00 ${symbol}`}
+                  {redeemOut != null ? `${fmtTokenAmount(redeemOut, locale)} ${symbol}` : `0.00 ${symbol}`}
                 </dd>
               </div>
             </dl>
@@ -416,7 +420,7 @@ export function VaultActions({
               <div>
                 <dt>{copy.totalAvailable}</dt>
                 <dd data-numeric>
-                  {claimableTotal.toFixed(2)} {symbol}
+                  {formatAmount(claimableTotal, locale)} {symbol}
                 </dd>
               </div>
             </dl>

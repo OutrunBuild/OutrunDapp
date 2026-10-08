@@ -21,11 +21,23 @@ export function versePathSegment(verseId: string): string {
   return match ? match[1] : verseId
 }
 
+/** 交易台四页签 key（?tab= 深链白名单——与 VerseTabs 的 ToggleGroupItem value 一致） */
+export const VERSE_TAB_KEYS = ['liquidity', 'pol', 'vault', 'dao'] as const
+
+/** URL ?tab=/?action= 原始值 → 白名单窄化（未知值与大小写变体丢弃；action 仅认 withdraw——与 VersePage 消费端同口径） */
+export function narrowVerseQuery(
+  search: { tab?: string; action?: string },
+): { tab?: (typeof VERSE_TAB_KEYS)[number]; action?: 'withdraw' } {
+  const tab = VERSE_TAB_KEYS.find((key) => key === search.tab)
+  const action = search.action === 'withdraw' ? 'withdraw' : undefined
+  return { tab, action }
+}
+
 export function verseHref(
   locale: Locale,
   verseId: string,
   /** 交易台页签深链（?tab=；liquidity=默认不带 query——VersePage 白名单校验） */
-  tab?: 'liquidity' | 'pol' | 'vault' | 'dao',
+  tab?: (typeof VERSE_TAB_KEYS)[number],
   /** 页签内视图深链（?action=，当前仅 vault 页签接受 withdraw——VersePage 白名单校验） */
   action?: 'withdraw',
 ): string {
