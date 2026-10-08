@@ -16,6 +16,9 @@ jobs:
         with:
           node-version-file: .node-version
       - run: corepack enable
+      # §12 机器契约钉 Corepack 0.34.5；ubuntu-latest 的 Node 24.20.0 自带 0.35.0——
+      # runner 侧对齐契约版本，契约本身的重钉（0.35.0 化）留待冻结链重签轮
+      - run: npm install -g corepack@0.34.5
       - run: node scripts/check-runtime.mjs --strict
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
