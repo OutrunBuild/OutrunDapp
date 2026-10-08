@@ -204,17 +204,18 @@ h3 {
   scroll-margin-block-start: calc(var(--space-8) + var(--space-2));
 }
 
-/* 创建页页头：标题居中 + Launch 黄色重音 + 收窄上方间距（页头专属，不影响其他 .page-intro；
-   双类选择器压过 .page-intro 本体的 space-between 与 padding） */
+/* 创建页页头：标题居中（页头专属，不影响其他 .page-intro；双类选择器压过 .page-intro 本体的
+   space-between 与 padding；底部 padding 4 档专属，顶部随四页统一口径 16px） */
 .page-intro.create-intro {
   justify-content: center;
-  padding-block: var(--space-2) var(--space-4);
+  padding-block-end: var(--space-4);
   text-align: center;
 }
 
-/* 创建页主容器顶部内边距同步收窄（24→8px），标题贴近顶栏 */
-.product-main:has(> .create-intro) {
-  padding-block-start: var(--space-2);
+/* 一级页主容器顶部内边距收窄（24→4px）：页头贴近顶栏，2026-10-07 用户裁定四个一级页
+   （含 design-system 镜像页）统一；合计 4+24=28px；原 2026-09-30 创建页专属规则扩面 */
+.product-main:has(> .page-intro, > .discovery-intro) {
+  padding-block-start: var(--space-1);
 }
 
 /* 创建页整卡微收（2026-10-06 用户裁定「卡片稍微缩小、黄红线与卡片同宽」，同日两轮追加收窄）：
@@ -2274,7 +2275,7 @@ svg {
   align-items: end;
   justify-content: space-between;
   gap: var(--space-5);
-  padding-block: var(--space-4) var(--space-5);
+  padding-block: var(--space-6) var(--space-5);
   border-block-end: var(--line-accent) solid var(--accent-primary);
   box-shadow: 0 var(--line-echo) 0 var(--accent-echo);
 }
@@ -8599,7 +8600,7 @@ svg {
   align-items: end;
   justify-content: space-between;
   gap: var(--space-6);
-  padding-block: var(--space-4) var(--space-4);
+  padding-block: var(--space-6) var(--space-4);
 }
 
 .discovery-intro h1 {
