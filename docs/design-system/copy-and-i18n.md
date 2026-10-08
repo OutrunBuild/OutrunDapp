@@ -17,17 +17,19 @@
 - 错误信息 = 原因 + 恢复动作：`Amount exceeds your balance · Use max`。不出现堆栈、错误码作为主文案。
 - 授权类文案用"这会让 X 访问 Y"措辞，不用"approve token"。
 - 文案禁用分号（2026-09-26 用户裁定：分号全是 AI 味）——长句拆成两句或改逗号/破折号，除非该分号有具体必要性。
-- 「以链上读值为准 / On-chain value prevails」类文案**全站禁用**（2026-10-05 用户裁定：此类文案没有任何受众——用户不会看，开发者不需要从 UI 看；数据完整性是数据层职责，不是界面文案）。`onChainSlot` 及同族键（`lockedTimingUnavailable`「解锁时间以链上确认为准」等）全部废止；值缺失时按「null 不渲染」处理，不显示解释句。存量扫除待排期。
+- 「以链上读值为准 / On-chain value prevails」类文案**全站禁用**（2026-10-05 用户裁定：此类文案没有任何受众——用户不会看，开发者不需要从 UI 看；数据完整性是数据层职责，不是界面文案）。`onChainSlot` 及同族键（`lockedTimingUnavailable`「解锁时间以链上确认为准」等）全部废止；值缺失时按「null 不渲染」处理，不显示解释句。存量扫除已于 2026-10-08 完成（六键删除、约 38 处渲染点改 null 不渲染，登记 component-contract.md）。
 - 标题（页面/面板/分区/弹窗标题）一律 Title Case：实词首字母大写，冠词/连词/短介词（a/an/the/and/or/to/of/for）非首尾词保持小写，连字符复合词两段都大写（`Cross-Chain`）——2026-10-03 用户裁定全站统一，en 分支 `*Title` 字段已全量对齐；正文、CTA、标签不受此条管辖。
 
 ## 3. 数字、日期、时长
 
 | 类型 | 函数 | 输出示例（en / zh） |
 |---|---|---|
-| 金额 | `formatAmount(v, locale, compact?)` | `12,400.5` / `12,400.5`；compact `1.2M` / `120万` |
+| 金额 | `formatAmount(v, locale, compact?)`（通用读数：余额/数量常规量级，无大数分层） | `12,400.5` / `12,400.5`；compact `1.20M` / `120.00万` |
 | 百分比 | `formatPercent(v, locale)` + `%` | `64.2%` |
 | 日期时间 | `formatDate(iso, locale)` | `Sep 18, 2026, 14:00` / `2026年9月18日 14:00` |
-| 时长 | `formatDuration(from, to, locale)` | `2d 4h` / `2 天 4 小时` |
+| 时长 | 待办区倒计时徽章内联 `staticDuration(remainingMs, locale)`（`action-zone.tsx`，非共享导出） | `2d 4h` / `2 天 4 小时` |
+| 交易台派生金额（到账/保护价/汇率） | `fmtUsd(v, locale)` / `fmtTokenAmount(v, locale)`（`components/global/amount-format.ts`，大数分层降级；规格与射程真相源=`component-contract.md` §1 大数边界行） | `fmtUsd` 常态 `1,234.56`、`fmtTokenAmount` 常态 `1234.560000`；大数 `39,226T` / `39,226万亿`、`4.3585E40` |
+| 代币单价（token-strip / 蜡烛图图例） | `fmtPrice(v)`（同文件，决议 019 市场口径，中英同形） | `$1.20`、`$0.0042`；极小价 `0.0₄42` |
 
 - 输出一律放在 `data-numeric` 容器里。
 - 单位跟在数字后并用普通字体：`<span data-numeric>12.4</span> USDC`。

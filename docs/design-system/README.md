@@ -57,7 +57,7 @@ components/design-system/tokens.css        token 唯一源
 components/design-system/*.md              契约（token/component/state/motion）
 app/globals.css                            主题桥接 + 页面级 class（.product-shell、.economy-card 等）
 components/ui/*                            shadcn 基础件（base-ui 版：button/input/select/field/label/separator/slider/toggle/toggle-group）
-components/global/signal-ui.tsx         系统原子：StageBadge / SectionHeading / ProgressMeter / SlashMark / 格式化函数
+components/global/signal-ui.tsx         系统原子：StageBadge / SectionHeading / ProgressMeter / 格式化函数
 components/global/app-shell.tsx         OutrunShell：产品壳与营销壳
 components/global/copy.ts               双语文案字典（getCopy）
 public/brand/                              字标与符号成品（禁改色/拉伸/裁切）

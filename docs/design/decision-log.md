@@ -1095,3 +1095,68 @@ C1 结算储备金按 spec 窄口径且 UI 不露出 · C2 建池剩余资金不
 - **验证**：七处前后对比预览逐项拍板（本决议前一轮）；全量 e2e 基线重录（`--update-snapshots=all`）。
 - **同日纠偏（二轮定稿）**：落地后用户仅驳回 hero 引导行一处——「让一次共识，成为」kicker 化后 16px 贴 60px 主标题失衡（元素特写预览没暴露整页语境问题）。`.home-hero__title-lead` 单独恢复原 display 0.7em/600（含 zh 0.65em 特判回填），粗块由 ② Noto 600 补档消解；区头/终章/页脚宣言降档与 #1–#4 模块级降档全部维持。
 - 签名：approved by Jasonrale（用户裁定）
+
+## 2026-10-08 · 决议 019 补充 1 · fmtPrice 扩域到蜡烛图图例 OHLC/MA（用户裁定「扩域」）
+
+- **背景**：交易台蜡烛图图例 OHLC/MA 五处沿 `toFixed(6)` 定长（96ced79），属 e107c48 口径收敛射程（「有 fmtTiered 副本的五处」）外的残留，2026-10-08 fix-review 以 P1（minor）登记路由。决议 019 的 fmtPrice 登记射程仅 token-strip，图例外延无真源，按纪律列 Q 待拍板，用户裁定扩域。机制核对：markets.json 全部 36,480 个价格样本 ∈[0.0037, 0.0525]，toFixed(6) 无精度损失、fixture 钳死无溢出——扩域收益=去尾零市场风格统一（`0.014200`→`0.0142`），代价=图例数值长短不齐（定长对齐让位，已知悉）。
+- **方案**：`candle-chart.tsx` 图例 OHLC o/h/l/c 与 MA 五处 `toFixed(6)`→`fmtPrice`（无 locale 参，中英同形）；`amount-format.ts` fmtPrice 头注与 `component-contract.md` §1 大数边界行射程同步为「token-strip + 蜡烛图图例」。涨跌幅行 `change.toFixed(2)%` 不在本决议射程（§3 百分比表归口，待另拍板）。
+- **token 影响**：无增删。
+- **验证**：tsc 全树绿、vitest 138/138、prettier 绿；candle-order.test.ts 不钉图例格式零冲突。图例视觉变化并入本轮欠账的 e2e 基线重录（vault/flash/图例一起 `--update-snapshots=all`）。
+- 签名：approved by Jasonrale（2026-10-08 用户裁定）
+
+## 2026-10-08 · fixture 层重复推导意见 wontfix（迁移时消解，用户裁定「执行」处置）
+
+- **背景**：code review 意见——`lib/data/fixture-repository.ts` `getSnapshot()` 无缓存，30 个 `getFixture*` 各自全量重推；portfolio 页同请求重复取数（`getFixtureVaultRows` ×3 等），verse 页重复调 `getFixtureParticipations`、每调 `getFixtureVerseTrade` 用随机游走重造 8760 根蜡烛、refund 块 N+1；次级 `verse-trade-desk.tsx` 对页面已取的 `polPosition`/`participationOptions` 再取一次（同值双源）。
+- **裁定（wontfix）**：①正确性无风险——蜡烛随机游走为确定性 PRNG（FNV-1a 种子 + mulberry32，`fixture-repository.ts:510-517`），重复调用产出逐根一致，不存在同请求数据对不上；②21 verses 规模毫秒级、RSC 每请求一次，无可感知代价；③`fixture-repository` 本就是三层边界中唯一合法消费方=刻意的替换缝，链上真数据接入时整体替换——现在包 `react.cache` 是届时直接扔掉的代码，且真数据需要的是跨请求缓存（revalidate/SWR 类），请求内去重不对症。
+- **迁移注意（唯一带走项）**：真数据接入时统一取数入口、消除双源——verse-trade-desk 再取 `polPosition`/`participationOptions` 的模式在真数据下变成两次独立 RPC，可能读到不同链上状态。
+- **token 影响**：无增删；无组件/契约登记（「其余不记」）。
+- 签名：approved by Jasonrale（2026-10-08 用户裁定）
+
+## 决议 025 · 字标交付分辨率衍生变体 480px（2026-10-08，用户裁定「开始修复」）
+
+- **背景**：adjudicate-finding 裁决 TRUE PROBLEM（high）——`public/brand/BRAND-01-wordmark-transparent.png`（2048×527，223427 B）在 `images.unoptimized`（next.config.ts，原型阶段避免 sharp 依赖）下 resize/srcset 全旁路，三个消费点（壳层字标 `app-shell.tsx`、首页 footer `home-page.tsx`、verse 分享卡 `verse-share.tsx`）以 `priority` 直出母版；最大渲染 160 CSS px（footer clamp 封顶），DPR3 物理封顶 480px，冷首屏品牌载荷 ~250KB 中字标占 223KB（4.9~14.5× 过量）。意图层核验：2048 直出无任何决议/契约登记背书——config 注释仅登记 sharp 规避、决议 004 锁识别与红线不锁交付分辨率、`git log -L` 证实 Brand 组件自原型基线原样继承。
+- **决策**：母版不动（004 红线不受影响——衍生为等比缩放（480 宽精确等比高 123.5156，像素网格取整 123，0.42% 纵向亚感知），非改色/拉伸/裁切），从母版等比衍生 `public/brand/BRAND-01-wordmark-transparent-480.png`（480×123 RGBA，LANCZOS+optimize，56223 B）供全部三消费点引用（`src`+`width/height` 同步 480/123）；480px 覆盖全部消费点 DPR≤3。母版保留于 public/brand/（印刷/大尺寸场景真源）；`component-contract.md` verse-share 登记行路径同步。
+- **token 影响**：无增删；CSS 零改动（渲染尺寸全由既有类控制）。
+- **验证**：tsc 全树绿、prettier 绿（三个消费点）；视觉=渲染尺寸不变，e2e 基线预期亚像素级差异低于 1% 容差（并入下轮基线重录核对）。
+- 签名：approved by Jasonrale（2026-10-08 用户裁定「开始修复」）
+
+## 决议 026 · 死代码清剿：三个生而死符号删除 + next-intl 依赖退役（2026-10-08，用户裁定「开始修复」）
+
+- **背景**：adjudicate-finding 裁决（3 sampler 一致收敛 + Layer 2 coverage-diff/意图层核查）——`signal-ui.tsx` `formatDuration` 与 `SlashMark`、`ui/popover.tsx` `PopoverModalContent` 为基线移植「生而死」符号（git 全史零消费者；formatDuration 的登记用例已由 action-zone 本地 `staticDuration` 另行实现，PopoverModalContent 的遮罩居中角色出生即被 Dialog 取代且组件契约从未登记它）；`next-intl` 全仓零 import，其 §3 登记角色（「App Router 中英文路由与消息格式化」）已被落地架构取代（proxy 方案 C + `copy.ts` `getCopy`，copy-and-i18n.md §1-2 normative 登记），搁置的接线步骤无执行记录=登记漂移。zod（`fixtures/schema.ts` 活引用，claim 扫描范围漏 fixtures/）与 `@tanstack/react-query`（§3 目标栈按计划预装、角色未被取代）经裁决不属死依赖，不动。
+- **方案**：删 `formatDuration` 与 `SlashMark`（signal-ui.tsx）+ `globals.css` `.slash-mark` 孤儿块；删 `PopoverModalContent` 定义与导出（components.md §2 Popover 契约本就未含它，删除后代码与契约对齐）；`pnpm remove next-intl`（连带 25 个传递包）+ 同变更删 checker ALLOWLIST 行与 architecture.md 三处登记（主路径摘要栈清单、§3 依赖表 i18n 行、§5 溯源行）。登记同步：copy-and-i18n.md §3「时长」行、components.md §3 `SlashMark`/`formatDuration` 两行、design-system/README.md 真相源清单。倒计时 warning 色规则不受影响（copy-and-i18n.md §3 独立条目，action-zone `deadlineTone` 实现）。时长格式化现实=action-zone 本地 `staticDuration`（locale 盲 `2d 4h`，与原登记 zh「2 天 4 小时」分歧）——按裁决 A1 不扩大射程，zh 时长本地化如有需要另立裁定。
+- **token 影响**：无增删；三个符号/依赖全史零消费，零视觉变化，e2e 基线不受影响。
+- **验证**：tsc --noEmit 全树绿；check-architecture-compliance OK；vitest 152/152；prettier 绿（九个触及文件）。
+- 签名：approved by Jasonrale（2026-10-08 用户裁定「开始修复」）
+
+## 2026-10-08 · 决议 025 补充 1 · symbol 交付分辨率衍生变体 96px（用户裁定「走方案1」）
+
+- **背景**：fix-review 复审字标修复时登记的 pre-existing 同类项——`BRAND-04-symbol-transparent.png`（512×382，27348 B）唯一代码消费点 `app-shell.tsx` Brand compact 分支以 `priority` 直出，渲染恒 32px（`--space-6`），DPR3 物理封顶 96px，512 固有=5.3× 过量。用户裁定同配方处置。
+- **决策**：母版不动，等比衍生 `BRAND-04-symbol-transparent-96.png`（96×72 RGBA，LANCZOS+optimize，8708 B；精确等比高 71.625，像素网格取整 72，0.52% 纵向亚感知——同类取整口径见 025 主文），compact 分支 `src`+`width/height` 同步 96/72。母版与 `BRAND-04-symbol-color-512.png`（layout.tsx favicon 用，非 `<Image>` 渲染路径）保留。`foundations.md` §9 补交付分辨率指引（界面消费勿直引母版，防复发）。
+- **token 影响**：无增删；CSS 零改动。
+- **验证**：tsc 全树绿、prettier 绿、vitest 全量；e2e 三档视口实跑复核（见本条落地当轮记录）。
+- 签名：approved by Jasonrale（2026-10-08 用户裁定「走方案1」）
+
+## 决议 027 · 待办区时长 zh 本地化：staticDuration 接 locale 分支（2026-10-08，用户裁定「zh 本地化」）
+
+- **背景**：决议 026 fix-review PASS 后登记的 pre-existing minor 发现——`action-zone.tsx` `staticDuration` locale 盲，zh 模板「{t}后截止」把英文片段夹进中文句子（实渲染「2d 4h后截止」）；026 删除死符号 `formatDuration` 时其 §3 zh 形态登记（「2 天 4 小时」）一并退役，本决议接续拍板。范围核验：全站 d/h 形态时长产出点仅 `staticDuration` 一处（<24h 走秒倒计时 DeadlineClock/RedeemCountdown 均为纯数字 `HH:MM:SS`；TokenPair 契约示例无代码实现；verse-tab 用 locale 感知 `formatDay`）。
+- **方案**：`staticDuration(remainingMs, locale)` 加 zh 分支 `${days} 天 ${hours} 小时`（en 维持紧凑 `2d 4h`），两调用点（保护窗卡 hero、周期激励行）传 locale。登记回填：copy-and-i18n.md §3 恢复「时长」行（指向 action-zone 内联实现，非共享导出）；component-contract.md §4 徽章规则行补 zh 示例「2 天 4 小时后截止」。
+- **token 影响**：无增删。
+- **验证**：tsc 全树绿；vitest 152/152；prettier 绿（三个触及文件）。e2e：ZH_PAGES 原未覆盖 zh portfolio（无既有基线可漂移）——补 `zh-portfolio` 连接态条目（`e2e/pages.ts`，zh 只锁移动端一张随 §3.2 口径），清 `.next-e2e` 全新构建首轮写入基线，页面快照实证 zh 时长渲染「3 天 13 小时后截止」等、复跑绿；en portfolio 连接/断连六条对既有基线零漂移（同轮实测决议 026 零视觉变化主张）。
+- 签名：approved by Jasonrale（2026-10-08 用户裁定「zh 本地化」）
+
+## 决议 028 · 字体装载清单死档修剪：Noto Sans SC −900 / Saira Condensed −800（2026-10-08，用户裁定「确认处理」）
+
+- **背景**：fix-review 低危项 adjudicate-finding 裁决 UNPROVEN（意图层不定：foundations §2 枚举 5 档 vs 2026-10-08 补档裁定叙事「400/500/600/700 四档梯度双语闭合」），用户拍板收敛。`fonts.ts` 两处零消费死档：Noto Sans SC 900（font-black / font-weight:900 / 内联 fontWeight / bolder 全站零命中；请求域 400–700 且四档全真值，永不为最近匹配；出处=决议 012 补充 2 v0 整包采纳「Noto +900」，从未被单独裁定，补档 891af3b 只加 600 未修剪）与 Saira Condensed 800（同零命中；foundations §2 display 行登记仅 600/700，800 从未入登记，出处同 v0 整包采纳「Saira +800」）。影响=产物死 @font-face（旧构建实测 Noto 900 计 101 条 unicode-range 拆分，裁决轮采样）+ woff2 部署载荷；preload:false 下浏览器永不匹配下载、运行时零成本。
+- **方案**：`fonts.ts` Noto weight 去 `'900'`（终态 `['400','500','600','700']`，与补档裁定「四档梯度双语闭合」口径对齐）；Saira weight 去 `'800'`（终态 `['600','700']`，与 foundations §2 既有登记对齐——display 行登记本就无 800，无需改）；`foundations.md` §2 中文行枚举同步 400/500/600/700 + 去档注记。同轮另办（非设计变更、不另立决议）：action-zone 保护窗常量单源化——`PROTECTION_WINDOW_MS` 由 `fixture-repository.ts` 导出（带 genesis.md:43 源注），删除 `action-zone.tsx` 本地 `WINDOW_MS` 重定义，余量条分母与数据层窗口同源。
+- **token 影响**：无增删（仅字体装载清单变化）。
+- **验证**：tsc --noEmit 全树绿；e2e 三档视口全量实跑 46 passed / 0 failed / 32 skipped（既有跳过口径不变；900/800 全站零消费，删除零视觉 diff 实证）；.next-e2e 产物 CSS `font-weight:900`/`800` 归零、600/700 在位。
+- 签名：approved by Jasonrale（2026-10-08 用户裁定「确认处理」）
+
+### 决议 018 补充 9 · ④分区代码词汇 vouchers→participations（2026-10-08 用户裁定「vouchers 这个单词有歧义，换一个」）
+
+- **背景**：补充 3 已把 voucher 词族逐出可见文案（en 页签 `Joined`、区标题 `Participations`、副标题改写——依据=OutrunBook 全库零次使用 voucher、真源词族 participation/join），但代码词汇层残留：`VouchersZone`/`FixtureVoucherRow`/`getFixtureVoucherRows`、CSS `.pf-vouchers`/`.pf-voucher-row`（globals.css 45 处选择器）、分区键 `'vouchers'`、锚点 `#pf-vouchers`、copy 键 `portfolio.vouchers`。用户裁定换词。
+- **选词**：`participations`——补充 3 登记的区全称（Participations/参与凭证）即真源词族名词形；fixture 源数据本名 `getFixtureParticipations()`（行视图以 Row 后缀区分）。
+- **方案**：词族全量替换（含大写形态，11 文件）：组件 `ParticipationsZone`/`ParticipationRow`+文件 `participations-zone.tsx`、类型 `FixtureParticipationRow`、getter `getFixtureParticipationRows`、CSS `.pf-participations`/`.pf-participation-row`（含 positions-zone 借用的 `__none` 共享选择器）、分区键/`data-zone-wrap`/badges/children `'participations'`、锚点 `#pf-participations`（KPI href+ANCHOR_ZONES+components.md 登记）、copy 键 `portfolio.participations`。可见文案值零变化（Joined/已参与/Participations 不动）；zh 文档词「参与凭证」不动。登记同步：components.md（4 处 class 引用）、component-contract.md §29、page-briefs/portfolio.md（`?section=` 枚举字面——该参数本无实现，纯登记面）。历史决议/critique 存档不改（decision-log 14 处历史提及保留）。
+- **token 影响**：无增删（class 改名不附样式变化）。
+- **验证**：tsc --noEmit 全树绿；vitest 183/183；check:design 0 命中；fixture boundary --source OK；prettier 绿；e2e 基线无需重录（class/键名/锚点 id 不进渲染输出，页签 aria-label 与文案值未动）。
+- 签名：approved by Jasonrale（2026-10-08 用户裁定「vouchers 这个单词有歧义，换一个」）

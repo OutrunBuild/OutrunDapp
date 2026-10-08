@@ -35,13 +35,13 @@
 - 阶段过滤是 URL 状态（`?stage=`、`?chain=`、`?q=`），tab 是 `<a aria-current>`，可分享、可后退。
 - `aria-busy` 挂在 `.discovery-browser` 根，过渡期内不用骨架替换整页。
 
-### 3.2 Verse 详情（`verse-page.tsx` + `verse-lifecycle.tsx` + `participation-panel.tsx`）
+### 3.2 Verse 详情（`verse-page.tsx` + `participation-panel.tsx`）
 
 `.verse-hero`（身份 + StageBadge + 计时）→ `.stage-tabs` → `.verse-workbench`（`.workbench-primary` 表单/面板 + `.workbench-secondary` 门槛/时间线）。
 - 双门槛用两个 `ProgressMeter`，禁合并进度条。
 - 参与表单遵循 component-contract §1 AmountInput 与 §7 TransactionReview。
 
-### 3.3 首页（`home-page.tsx` + `mechanism-primer.tsx`）
+### 3.3 首页（`home-page.tsx` + `mechanism-primer.tsx` + `verse-lifecycle.tsx`）
 
 `.home-hero`（display 标题黄字重音 + 主 CTA）→ `.home-engine`/`.home-mechanism`（三引擎图解）→ `.home-final-cta`。
 - 营销页允许更大留白与 T3，但禁：居中三卡片模板、渐变 hero、图标 emoji。
