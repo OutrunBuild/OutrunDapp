@@ -1,6 +1,6 @@
 import type { Locale, FixtureStaking, FixtureVerse } from '@/lib/data/fixture-repository'
 
-import { CopyAddress } from './copy-address'
+import { CopyAddress } from '../global/copy-address'
 import { getCopy } from '../global/copy'
 import { formatMarketCap, formatPercent, SourceRef } from '../global/signal-ui'
 import { VaultActions } from './vault-actions'

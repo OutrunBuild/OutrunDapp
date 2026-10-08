@@ -3,12 +3,12 @@
 import { useState } from 'react'
 import { Check, Copy } from 'lucide-react'
 
-import { getCopy } from '../global/copy'
+import { getCopy } from './copy'
 import type { Locale } from '@/lib/data/fixture-repository'
 
-/** CA 复制原子：唯一需要客户端交互的统计条元素 */
+/** 地址复制原子（2026-10-07 由 verse/ 迁入 global：verse 与 referral 两域共用） */
 export function CopyAddress({ locale, value }: { locale: Locale; value: string }) {
-  const copy = getCopy(locale).verseDesk
+  const copy = getCopy(locale).common
   const [copied, setCopied] = useState(false)
   const short = `${value.slice(0, 6)}…${value.slice(-4)}`
   return (

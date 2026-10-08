@@ -7,7 +7,7 @@ import { getFixtureAssetUsdSample, getFixtureParticipationOptions, getFixturePol
 import { fmtPrice } from '@/components/global/amount-format'
 
 import { CandleChart } from './candle-chart'
-import { CopyAddress } from './copy-address'
+import { CopyAddress } from '../global/copy-address'
 import { getCopy } from '../global/copy'
 import { SwapPanel } from './swap-panel'
 import { formatAmount, formatMarketCap, formatPercent } from '../global/signal-ui'

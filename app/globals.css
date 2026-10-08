@@ -9288,6 +9288,15 @@ button.pf-action__link {
   box-shadow: inset 2px 0 0 var(--or-cyan);
 }
 
+/* referral 待领行（2026-10-08 用户裁定）：代币图标前置——Portfolio 激励行无图标，
+   共享原语模板不动，仅此作用域加首列 */
+/* 图标↔symbol 间距收紧（2026-10-08 用户裁定：缩一点点）=列距 16→12；
+   amount↔actions 的 2026-10-07 有效 24 裁定由 __actions 内距补偿保住 */
+.ref-pending .pf-claim-row {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  column-gap: var(--space-3);
+}
+
 .pf-claim-row__id {
   display: grid;
   gap: 2px;
@@ -11288,4 +11297,632 @@ button.pf-action__link {
   color: var(--color-text-tertiary);
   font-family: var(--font-data);
   font-size: var(--text-xs);
+}
+
+/* ==========================================================================
+   Referral（/referral，R-12；2026-10-07 v4：运作上移一格（用户裁定））
+   统计簇（首屏一组，首格主读数 28px）→ 链接 → 运作（三步先行）→ 待领 → tabs 历史；
+   依据：ReferralRock/Webtonic 转化指南 + GMX/Jupiter/Binance 同构。
+   复用原语：.action-panel（链接信号面板）、.pf-panel + .pf-claim-row（统计/待领/运作）、
+   .verse-tabs（流水双签）、.pf-table（表格）
+   ========================================================================== */
+
+/* 卡片节奏（2026-10-07 用户裁定）：五卡各自独立、无分组，卡间一律 space-6 */
+.ref-stats,
+.ref-link,
+.ref-how,
+.ref-pending,
+.ref-history {
+  margin-block-start: var(--space-6);
+}
+
+/* 面板标题声腔 2026-10-07 二次裁定：弃大写微标签语言（12px 档与正文拉不开层级），
+   改用 .ref-link__title 同族真标题——display 字体 18px 600 句首大写（行动组主角 20px 低一档）；
+   三次裁定：色退 text-secondary——内容强调字为主白，标题全白无区分；
+   2026-10-08 四次裁定（中文标题「丑且大」整改）：display 600 落到 Noto 无 600 字重
+   （fonts.ts 仅载 400/500/700/900，600 请求按 spec 升到 700）＝粗宋块，且 18/20px 放大——
+   降档为 body 族 text-base 500（Noto/ Plex 双语都有真实 500），层级由色退+字重+bar 位置承担 */
+.ref-nameplate {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-transform: none;
+}
+
+/* 待领/运作面板：标题下分隔线对齐 .verse-tabs__bar 的 border-strong 档（同页 tabs 头） */
+.ref-how .pf-panel__bar,
+.ref-pending .pf-panel__bar {
+  border-block-end-color: var(--color-border-strong);
+}
+
+/* bar 底线到内容间距：运作面板升一档（space-2→3，2026-10-07 裁定红框间距放大）；
+   待领面板归零——首行 .pf-claim-row 自带 space-3 顶距，再叠 body 顶距会双计（25.5px vs how 12px，
+   2026-10-07 用户裁定缩小对齐） */
+.ref-how .pf-panel__body {
+  padding-block-start: var(--space-3);
+}
+
+.ref-pending .pf-panel__body {
+  padding-block: 0;
+}
+
+/* 行悬停背景带缩小 2026-10-07 用户裁定：行本身不动（高度/内距/行高/按钮全部还原），
+   悬停色带不满行高——改为内嵌 chip：上下各让 10px、左右各让 8px，青色左标随带走 */
+.ref-pending .pf-claim-row {
+  position: relative;
+  z-index: 0;
+}
+
+/* 行高微降裁定：两行文字行高 1.55→1.3（内距/按钮/间距口径不动） */
+.ref-pending .pf-claim-row__id :is(strong, span),
+.ref-pending .pf-claim-row__amount :is(strong, span) {
+  line-height: 1.3;
+}
+
+/* Claim 钮降档裁定 2026-10-07：40→36→32px（control-height−space-2；基类 !important 作用域反压） */
+.ref-pending .pf-claim-row__actions [data-slot='button'] {
+  min-block-size: calc(var(--control-height) - var(--space-2)) !important;
+}
+
+/* 返佣数据↔Claim 间距微增裁定 2026-10-07：列左内距 +8px（有效列距 16→24，按钮右缘不动） */
+.ref-pending .pf-claim-row__actions {
+  padding-inline-start: calc(var(--space-2) + var(--space-1));
+}
+
+.ref-pending .pf-claim-row:hover {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* 待领行无悬停效果（2026-10-08 用户裁定）：基类 hover 与旧的内衬高亮条全部
+   中和——行是只读台账（Claim 恒禁用），无交互可预告 */
+.ref-pending .pf-claim-row:hover::before {
+  content: none;
+}
+
+/* 统计簇：面板内 4 格 hairline 分列；首格=主读数（num-xl 28px 档），其余 16px 同档 */
+.ref-stats__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.ref-stats__grid > div {
+  display: grid;
+  gap: var(--space-1);
+  align-content: center;
+  min-block-size: var(--space-8);
+  padding: var(--space-2) var(--space-4);
+}
+
+.ref-stats__grid > div + div {
+  border-inline-start: 1px solid var(--color-border);
+}
+
+.ref-stats__label {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  /* 大写微标签行高 1.2；继承 body 1.55 会把格子顶高（同 __value 的 1.05 整改） */
+  line-height: 1.2;
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+}
+
+.ref-stats__value {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-semibold);
+  /* 1.05 对齐 .pf-hero__value 读数档；默认继承 1.55 会把 hero 首格撑高 ~10px */
+  line-height: 1.05;
+}
+
+.ref-stats__value--hero {
+  font-size: var(--text-num-xl);
+}
+
+/* 链接面板：行动组主角——标题与链接井同行、链接井 40px、URL 16px mono */
+.ref-link {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+/* 标题与 .ref-nameplate 同族同档（2026-10-08 四次裁定；原 20px display 600 见 nameplate 注释） */
+.ref-link__title {
+  flex: none;
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.ref-link__url {
+  display: flex;
+  flex: 1;
+  min-inline-size: 0;
+  align-items: stretch;
+  min-block-size: var(--control-height);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-inset);
+}
+
+.ref-link__url-text {
+  display: flex;
+  flex: 1;
+  min-inline-size: 0;
+  align-items: center;
+  padding-inline: var(--space-4);
+  overflow: hidden;
+  color: var(--color-text);
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-base);
+  letter-spacing: 0.01em;
+}
+
+/* URL 中段截断（flex 容器上的 text-overflow 不生效，须落到块级子元素）：
+   host 段收缩出省略号，路径段（/ref/短码）恒不截——短码任何视口可见；
+   scheme 段常显（2026-10-07 用户裁定：证据行必须完整 URL，隐 scheme 判「链接不完整」） */
+.ref-link__url-scheme {
+  flex: none;
+  white-space: nowrap;
+}
+
+.ref-link__url-host {
+  flex: 0 1 auto;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ref-link__url-tail {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* 移动端主 CTA（≤54rem 才显示）：全宽实心黄切角钮（Button default 通道接管复制），
+   桌面隐藏——复制走井内嵌图标钮，每档恰一个触发器（黄主行动唯一约束） */
+.ref-link__cta {
+  display: none;
+}
+
+/* 页内唯一黄主行动：黄图标钮骑井右端（hover 通电纯黄+黑图标，同黄档 CTA 通道） */
+.ref-link__copy {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: var(--control-height);
+  border: 0;
+  border-inline-start: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--accent-primary);
+  cursor: pointer;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.ref-link__copy:hover {
+  background: var(--accent-primary);
+  color: var(--color-bg);
+}
+
+.ref-link__copy[data-copied='true'] {
+  color: var(--color-success);
+}
+
+/* 返佣数据与代币 Symbol 同款（2026-10-07 用户裁定）：正文字体 text-sm semibold，
+   弃 16px mono 档（font-size 回落基类 text-sm） */
+.ref-pending .pf-claim-row__amount strong {
+  font-family: var(--font-body);
+}
+
+/* 运作面板：三步先行（面板主体）→ hairline → 分账条 */
+.ref-how__steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ref-how__steps li {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.ref-how__index {
+  color: var(--color-text-tertiary);
+  font-family: var(--font-data);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.ref-how__steps h3 {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.ref-how__steps p {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+}
+
+/* 分账条：决议 015 补充——品牌三色 LP 黄(--accent-primary)/协议 品红(--accent-echo)/你 青(--or-cyan)；
+   hairline 上下间距 2026-10-07 用户裁定缩到 12px（margin/padding 20/16→12/12） */
+.ref-split {
+  display: grid;
+  gap: var(--space-2);
+  margin-block-start: var(--space-3);
+  padding-block-start: var(--space-3);
+  /* 分隔线统一强边线档（2026-10-07 用户裁定：与标题栏/tabs 头一致） */
+  border-block-start: 1px solid var(--color-border-strong);
+}
+
+.ref-split__label {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+}
+
+.ref-split__bar {
+  display: flex;
+  gap: 2px;
+  block-size: 8px;
+}
+
+.ref-split__seg--lp {
+  background: var(--accent-primary);
+}
+
+.ref-split__seg--protocol {
+  background: var(--accent-echo);
+}
+
+.ref-split__seg--you {
+  background: var(--or-cyan);
+}
+
+.ref-split__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+}
+
+/* 方点坐在基线上（8px≈text-xs 大写字高，视觉与文字块齐平）；
+   vertical-align:middle 按 x 半字高对齐会把方点整体压低并垂到基线下（2026-10-07 修正） */
+.ref-split__dot {
+  display: inline-block;
+  inline-size: var(--space-2);
+  block-size: var(--space-2);
+  margin-inline-end: var(--space-1);
+}
+
+.ref-split__dot--lp {
+  background: var(--accent-primary);
+}
+
+.ref-split__dot--protocol {
+  background: var(--accent-echo);
+}
+
+.ref-split__dot--you {
+  background: var(--or-cyan);
+}
+
+/* 流水双签：Friends 签尾计数（mono 三级灰，随签文字流） */
+.ref-tabs__count {
+  margin-inline-start: var(--space-2);
+  color: var(--color-text-tertiary);
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+}
+
+/* 表格层次：非主列（网络/时间/交易额）降噪，返佣列保持主色 */
+.ref-dim {
+  color: var(--color-text-tertiary);
+}
+
+/* Friends 表 Trading Volume 列（2026-10-07 用户裁定）：与 Joined 列拉开一档
+   ——列距走 colgroup col width 下限（真实最小列宽）。
+   禁用 position:relative 位移格子：Chrome 按（位移后的）单元格盒切割
+   tr 悬停底色，行带断层（同 ref-tx 实证） */
+/* 两表列距（2026-10-07 用户裁定落位）走 table-layout:fixed + colgroup 百分比：
+   列位在所有视口严格按比例呈现（auto 布局的 col width 只是下限，宽视口被
+   自然列宽越过即失效——已踩坑）；fixed 下无定位格子，tr 悬停底色连续。
+   位移类（position:relative）与 padding 缩进均禁用：前者切碎行悬停底色
+   （Chrome 按位移后单元格盒切割，实证），后者被列宽再分配吃掉 */
+.ref-tx {
+  min-inline-size: 700px;
+  table-layout: fixed;
+}
+
+.ref-tx__col-transaction {
+  width: 25.04%;
+}
+
+.ref-tx__col-commission {
+  width: 13.8%;
+}
+
+.ref-tx__col-network {
+  width: 30.2%;
+}
+
+.ref-tx__col-referred {
+  width: 18.36%;
+}
+
+.ref-tx__col-time {
+  width: 12.6%;
+}
+
+.ref-friends {
+  min-inline-size: 680px;
+  table-layout: fixed;
+}
+
+.ref-friends__col-address {
+  width: 33.2%;
+}
+
+.ref-friends__col-joined {
+  width: 30%;
+}
+
+.ref-friends__col-volume {
+  width: 25.3%;
+}
+
+/* Friends 表数据格统一数据字体（2026-10-07 用户裁定：与 Transactions 卡一致
+   ——txid/地址/时间的 IBM Plex Mono 口径），Address 为纯文本缩略无复制钮 */
+.ref-friends tbody th,
+.ref-friends tbody td {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ref-friends__col-earned {
+  width: 12.9%;
+}
+
+/* 卡内纵向呼吸（2026-10-07 用户裁定缩小）：面板 padding-block space-5→space-3，
+   并吃掉 pf-table-wrap 的 space-3 上边距（叠在 padding 上成 32px 空腔） */
+.ref-history .verse-tabs__panel {
+  padding-block: var(--space-3);
+}
+
+.ref-history .pf-table-wrap {
+  margin-block-start: 0;
+}
+
+/* 交易表列语法（2026-10-07 参照重设计，用户裁定）：Transaction=缩略 txid、
+   Commission=返佣、Network=链图标（悬停 Tooltip 出链名）、Referred=被推荐地址、
+   Time=相对时间。参照实测：文字列左锚、Time 右锚、Network 图标列居中 */
+.ref-tx__mono {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ref-tx__commission {
+  white-space: nowrap;
+}
+
+.ref-tx__rebate {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* 列宽下限走 colgroup col width（auto 布局中的真实最小列宽）：
+   Transaction 150px / Network 176px——分别把 Commission、Referred Address
+   推离左邻（2026-10-07 用户裁定两轮微调的落位）。
+   禁用 position:relative 位移格子：Chrome 会按（位移后的）单元格盒切割
+   tr 悬停底色，行带出现断层——已实证回滚 */
+/* 特异度需压过 .pf-table th/td 的 text-align:start（(0,1,1)），挂 .pf-table 前缀 */
+.pf-table .ref-tx__net {
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* 图标触发钮同 pf-asset-row__icon-trigger 语法：负 margin 抵 padding 扩悬停热区不占版 */
+.ref-tx__icon-trigger {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1);
+  margin: calc(var(--space-1) * -1);
+  border: none;
+  background: none;
+}
+
+/* —— 双表移动端台账行（决议 018 同构，2026-10-07）：≤49rem 横滚表格让位 .pf-mrow
+   堆叠行——返佣额领衔（正文 semibold 档，ref-pending 返佣数据同裁定口径）+相对时间
+   右锚三级灰（钱包流水惯例）；friends 贡献额走 --mono 变体（friends 表数据格 mono 档）。
+   桌面/平板表格与 2026-10-07 列距裁定不动 —— */
+.ref-mrow__gain {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.ref-mrow__gain--mono {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+.ref-mrow__when {
+  color: var(--color-text-tertiary);
+  font-size: var(--text-xs);
+}
+
+/* 网络事实格：链图标+链名内联（桌面 tooltip 出名，触屏无悬停故常显） */
+.ref-mrow__chain {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* friends 事实值降噪=桌面 ref-dim 同口径；特异度压 .pf-mrow__facts dd[data-numeric] */
+.ref-history .pf-mrow__facts dd.ref-dim {
+  color: var(--color-text-tertiary);
+}
+
+/* txid 审计槽通栏独占（金库 .pf-mrow__facts 末格同法） */
+.ref-history .pf-mrow__facts .ref-mrow__tx {
+  grid-column: 1 / -1;
+}
+
+/* 双表横滚让位台账行（决议 018 同构）：断点=实测契合边界——ref-tx min 700px 在
+   ≥788px 视口完整放下（860 平板档保留用户调距的表格），≤49rem(784px) 换台账行 */
+@media (max-width: 49rem) {
+  .ref-history .pf-table-wrap {
+    display: none;
+  }
+
+  .ref-history .pf-mrows {
+    display: grid;
+  }
+}
+
+@media (max-width: 54rem) {
+  /* 链接卡 v2（2026-10-07 用户拍板：动作主角）：标题 → 证据行 → 全宽黄 CTA 纵排。
+     行布局在 390px 下井仅剩半宽、URL 只露 scheme 即被截断，且井形态无视觉锚点 */
+  .ref-link {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+
+  /* 井降级为证据行：去框去底，等宽 14px 二级灰（链接是要「用」的，不是要「读」的） */
+  .ref-link__url {
+    min-block-size: 0;
+    border: 0;
+    background: none;
+  }
+
+  .ref-link__url-text {
+    padding-inline: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+  }
+
+  /* 井内嵌图标钮让位（触发达全宽 CTA；display:none 同时出 a11y 树） */
+  .ref-link__copy {
+    display: none;
+  }
+
+  .ref-link__cta {
+    display: inline-flex;
+    inline-size: 100%;
+  }
+
+  /* 统计簇 2×2：列分隔线让位十字 hairline（偶数列左线 + 下两行顶线） */
+  .ref-stats__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* KPI 卡 2×2 形态去掉 ≈ 前缀（2026-10-07 用户裁定）：卡片档降噪，桌面横排保留 */
+  .ref-stats__approx {
+    display: none;
+  }
+
+  .ref-stats__grid > div + div {
+    border-inline-start: 0;
+  }
+
+  .ref-stats__grid > div:nth-child(even) {
+    border-inline-start: 1px solid var(--color-border);
+  }
+
+  .ref-stats__grid > div:nth-child(n + 3) {
+    border-block-start: 1px solid var(--color-border);
+  }
+
+  .ref-how__steps {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+
+  .ref-how__steps li + li {
+    border-block-start: 1px solid var(--color-border);
+    padding-block-start: var(--space-3);
+  }
+}
+
+/* 待领行移动端双行布局（2026-10-08 用户裁定重排：加图标后单行四区把金额挤在
+   身份与按钮之间——改钱包流水惯例：首行=图标+身份居左、金额两行右锚（ref-mrow
+   领衔+右锚同构）；次行=Claim 右对齐与金额同侧，归属清晰、各行呼吸到位） */
+@media (max-width: 30rem) {
+  .ref-pending .pf-claim-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'icon id amount'
+      'actions actions actions';
+    align-items: center;
+  }
+
+  .ref-pending .pf-claim-row > img {
+    grid-area: icon;
+  }
+
+  .ref-pending .pf-claim-row__id {
+    grid-area: id;
+  }
+
+  .ref-pending .pf-claim-row__amount {
+    grid-area: amount;
+  }
+
+  .ref-pending .pf-claim-row__actions {
+    grid-area: actions;
+    padding-inline-start: 0;
+  }
+
+  /* 领取钮平铺整行（2026-10-08 三次裁定：居中→整行自适应） */
+  .ref-pending .pf-claim-row__actions [data-slot='button'] {
+    inline-size: 100%;
+  }
+
+  /* 单行化后行高缩短，行间补 hairline 分隔（同 .pf-asset-row 行底语法；首行无顶线） */
+  .ref-pending .pf-claim-row + .pf-claim-row {
+    border-block-start: 1px solid var(--color-border);
+  }
+
+  /* 末行底部呼吸：body 上下距 0 档下末行仅 space-3 顶齐档，卡底升 space-4 对齐面板内距档 */
+  .ref-pending .pf-claim-row:last-child {
+    padding-block-end: var(--space-4);
+  }
+}
+
+/* 极窄回落 ≤20rem（320px 档）：三列挤不下「BNB Smart Chain」+ 双行金额+钮，
+   恢复通用折行（按钮次行回落左）；分隔线与末行底距保留 */
+@media (max-width: 20rem) {
+  .ref-pending .pf-claim-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'icon id amount'
+      'actions actions actions';
+    align-items: start;
+  }
+
+  .ref-pending .pf-claim-row__actions {
+    grid-area: actions;
+  }
 }
