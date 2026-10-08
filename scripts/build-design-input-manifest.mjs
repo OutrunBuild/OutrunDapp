@@ -4,7 +4,7 @@
 // scans HTML/CSS/Markdown for embedded/referenced assets + data URIs, refusing
 // the manifest if a denied/unknown source slips in via a board reference.
 import { createHash } from 'node:crypto';
-import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join, relative, sep } from 'node:path';
 
 const ROOT = process.cwd();
@@ -116,5 +116,5 @@ for (const f of written.files) {
   verified++;
 }
 console.log(
-  `manifest OK: ${verified} files verified, filesSha256=${selfCheck.slice(0, 16)}…, total ${(all.filter((f) => f !== OUT).reduce((s, f) => s + 1, 0), written.files.reduce((s, f) => s + f.bytes, 0))} bytes`,
+  `manifest OK: ${verified} files verified, filesSha256=${selfCheck.slice(0, 16)}…, total ${(all.filter((f) => f !== OUT).reduce((s, _f) => s + 1, 0), written.files.reduce((s, _f) => s + _f.bytes, 0))} bytes`,
 );

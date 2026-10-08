@@ -15,6 +15,5 @@ export function ChainLogoMark({ chainId, size = 16, ...props }: SVGProps<HTMLEle
   const src = CHAIN_LOGO[chainId]
   if (!src) return null
   const style = { inlineSize: size, blockSize: size, ...props.style }
-  // eslint-disable-next-line @next/next/no-img-element
   return <img src={src} alt="" style={style} />
 }

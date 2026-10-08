@@ -5,8 +5,8 @@
 import { createServer } from 'node:http';
 import { createReadStream } from 'node:fs';
 import { stat, realpath } from 'node:fs/promises';
-import { extname, join, resolve, sep } from 'node:path';
-import { argv, exit } from 'node:process';
+import { extname, resolve, sep } from 'node:path';
+import { argv } from 'node:process';
 
 function arg(name, dflt) {
   const i = argv.indexOf(`--${name}`);

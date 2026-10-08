@@ -11,7 +11,7 @@
 // A handoff whose architectureHash differs from the live file is SUPERSEDED
 // (non-zero exit); the checker never rewrites it.
 import { createHash } from 'node:crypto';
-import { readFileSync, writeFileSync, mkdtempSync, cpSync, rmSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -110,18 +110,7 @@ if (args.includes('--self-test')) {
     const writeHandoff = (b) =>
       writeFileSync(h, `# h\n\n\`\`\`json\n${JSON.stringify(b, null, 2)}\n\`\`\`\n`);
     writeHandoff(block);
-    const sh = (cmd) => {
-      try {
-        execFileSyncSh(cmd);
-        return 0;
-      } catch (e) {
-        return e.status;
-      }
-    };
     const { execFileSync } = await import('node:child_process');
-    function execFileSyncSh(cmd) {
-      execFileSync(process.execPath, cmd, { stdio: 'pipe' });
-    }
     const run = (argv) => {
       try {
         execFileSync(

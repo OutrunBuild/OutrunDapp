@@ -30,6 +30,5 @@ export function TokenIconMark({
   const hit = Object.entries(TOKEN_ICON).find(([prefix]) => symbol.startsWith(prefix))
   if (!hit) return null
   const style = { inlineSize: size, blockSize: size, ...props.style }
-  // eslint-disable-next-line @next/next/no-img-element
   return <img src={hit[1]} alt="" style={style} className={props.className} />
 }
