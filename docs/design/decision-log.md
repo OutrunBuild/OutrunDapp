@@ -1085,3 +1085,13 @@ C1 结算储备金按 spec 窄口径且 UI 不露出 · C2 建池剩余资金不
 - **token 影响**：无增删。
 - **验证**：断连三路由基线重录+目验（皮/居中/落位与裁定一致）。
 - 签名：approved by Jasonrale（用户裁定）
+
+## 2026-10-08 · 笨重标题整改：A 档七处降档 + Noto 600/Plex 700 字重补档（用户裁定「①+②全做」）
+
+- **背景**：referral 三标题四轮裁定暴露系统性问题——Noto Sans SC 仅载 400/500/700/900，全站 `font-weight: 600` 的中文按字体匹配规则升档渲染成 700 粗块（en 走 IBM Plex Sans 真 600 正常），display 族大号中文标题最显笨重。全站审计定档：A 档 7 处大标题（18–44px display 600 中文）同病；B 档（全站按钮 label/全局 h2,h3/12px 中文标签族/「参与成功」标题）同根因但字号小；表头 `th` 与裸 `strong` 走 UA bold（请求 700）反向不一致——zh 命中真 700、en Plex 无 700 落 600。
+- **方案（① A 档降档，referral 四轮裁定语法延伸，逐处预览拍板）**：`.panel-title`（verse 面板标题）→body 16px/500/text-secondary；`.pol-mint__title`（全部 verse 弹窗标题共用）→body 18px/500/主白；`.swap-panel__head h2`（交易台卡头）→body 16px/500/text-secondary；`.section-heading h2`（portfolio 区头）→body 20px/500/主白；`.home-hero__title-lead`（首页 hero 引导行）→body 16px/500/text-secondary + label-tracking（kicker 化，原 zh 专属 0.65em 覆盖随固定字号删除）；`.home-section__heading h2`/`.home-final-cta h2`（首页区头/终章）→body 500、clamp(20px, 3vw, 32px)；`.site-footer__statement`（页脚宣言）→body 500、clamp(20px, 2.35vw, 32px)。display 族自此仅余页面 h1、hero 主题行、空态大标题（有意 700 展示粗体）。
+- **方案（② 字重补档）**：`fonts.ts` Noto Sans SC 补 `'600'`——B 档全组恢复真实 semibold，中英按钮/标签字重一致；IBM Plex Sans 补 `'700'`——en 侧表头/裸 strong 命中真粗体与 zh 对齐。400/500/600/700 四档梯度双语闭合。
+- **token 影响**：无增删（仅字体装载清单与既有规则取值变化）。
+- **验证**：七处前后对比预览逐项拍板（本决议前一轮）；全量 e2e 基线重录（`--update-snapshots=all`）。
+- **同日纠偏（二轮定稿）**：落地后用户仅驳回 hero 引导行一处——「让一次共识，成为」kicker 化后 16px 贴 60px 主标题失衡（元素特写预览没暴露整页语境问题）。`.home-hero__title-lead` 单独恢复原 display 0.7em/600（含 zh 0.65em 特判回填），粗块由 ② Noto 600 补档消解；区头/终章/页脚宣言降档与 #1–#4 模块级降档全部维持。
+- 签名：approved by Jasonrale（用户裁定）

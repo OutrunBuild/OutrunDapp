@@ -1047,6 +1047,8 @@ svg {
   line-height: 1.14;
 }
 
+/* zh 引导行特判（2026-10-08 纠偏轮恢复：笨重标题整改曾撤，整页语境下 16px kicker
+   压不住 60px 主标题被用户驳回；保留原档、由 Noto 600 补档消粗块） */
 .outrun-site[lang='zh-CN'] .home-hero__title-lead {
   font-size: 0.65em;
   letter-spacing: 0;
@@ -1054,10 +1056,14 @@ svg {
 }
 
 /* 句末句号减重缩径：全角句号圆环占字身 ~35%（拉丁句点 ~10%），700 字重下厚而显大；
-   400 字重 + 0.55em（圆环 ≈11px，2026-10-01 用户反馈「有点大」后两轮收敛） */
+   400 字重 + 0.55em（圆环 ≈11px，2026-10-01 用户反馈「有点大」后两轮收敛）；
+   2026-10-08 用户裁定右移一点点（+0.08em，≈2.8px@64px 标题）：inline-block + transform——
+   裸行内 span 上 transform 是 no-op（首版无效即此因），transform 不参与布局、fit-content 不受影响 */
 .home-hero__title-period {
+  display: inline-block;
   font-size: 0.55em;
   font-weight: 400;
+  transform: translateX(0.08em);
 }
 
 .outrun-site[lang='zh-CN'] .home-hero__title-accent::after {
@@ -1127,8 +1133,9 @@ svg {
 
 .section-heading h2 {
   color: var(--color-text);
-  font-family: var(--font-display);
-  font-size: var(--text-xl);
+  font-family: var(--font-body);
+  font-size: var(--text-lg);
+  font-weight: 500;
   letter-spacing: var(--display-tracking);
 }
 
@@ -1154,10 +1161,10 @@ svg {
 .home-final-cta h2 {
   max-inline-size: 22ch;
   color: var(--color-text);
-  font-family: var(--font-display);
-  font-size: clamp(var(--text-xl), 3vw, 2.75rem);
-  letter-spacing: -0.02em;
-  line-height: 1.1;
+  font-family: var(--font-body);
+  font-size: clamp(var(--text-lg), 3vw, 32px);
+  font-weight: 500;
+  line-height: 1.15;
   text-wrap: balance;
 }
 
@@ -2031,9 +2038,9 @@ svg {
 .site-footer__statement {
   max-inline-size: 30ch;
   color: var(--color-text);
-  font-family: var(--font-display);
-  font-size: clamp(var(--text-xl), 2.35vw, var(--display-title));
-  font-weight: 600;
+  font-family: var(--font-body);
+  font-size: clamp(var(--text-lg), 2.35vw, 32px);
+  font-weight: 500;
   letter-spacing: var(--display-tracking);
   line-height: 1.2;
   text-wrap: balance;
@@ -4136,9 +4143,10 @@ svg {
 
 .swap-panel__head h2 {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 600;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--color-text-secondary);
   letter-spacing: 0.015em;
 }
 
@@ -4705,9 +4713,10 @@ svg {
 
 .pol-mint__title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 600;
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  font-weight: 500;
+  color: var(--color-text);
   letter-spacing: 0.015em;
 }
 
@@ -5006,13 +5015,16 @@ svg {
 
 /* 面板标题条（2026-09-23 用户裁定：四标签卡面板标题的 ax-echo-bar 签名线移除，仅保留展示字体）
    2026-09-26 字号 22→18px（--text-md）：面板内容全为 11–15px（KPI 标签/mono 数值/地址/池对），
-   22px 标题比正文大近 50% 头重脚轻；交易台 22px 卡头旁是 22px KPI 读数故不变 */
+   22px 标题比正文大近 50% 头重脚轻；交易台 22px 卡头旁是 22px KPI 读数故不变；
+   2026-10-08 笨重标题整改：display 18px/600 → body 16px/500/text-secondary（referral
+   四轮裁定同款；600 对 CJK 落 Noto 700 粗块，见 decision-log 同日条），交易台/弹窗同步降档 */
 .panel-title {
   margin: 0;
   padding-block-end: var(--space-2);
-  font-family: var(--font-display);
-  font-size: var(--text-md);
-  font-weight: 600;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--color-text-secondary);
   letter-spacing: 0.02em;
 }
 

@@ -47,10 +47,10 @@
 
 | 角色 | 变量 | 字体 | 用途 |
 |---|---|---|---|
-| display | `--font-display` | Saira Condensed 600/700 | 页面 h1、营销大标题；`font-size: var(--display-title)`（clamp 30–44px），`letter-spacing: var(--display-tracking)` |
-| body | `--font-body` = `font-sans` | IBM Plex Sans | 正文、导航、按钮、表头 |
+| display | `--font-display` | Saira Condensed 600/700 | 页面 h1、hero 主题行与引导行、空态大标题（2026-10-08 笨重标题整改：面板/弹窗/卡头/区头/页脚宣言标题降档 body，hero 引导行当日纠偏恢复 display）；`font-size: var(--display-title)`（clamp 30–44px），`letter-spacing: var(--display-tracking)` |
+| body | `--font-body` = `font-sans` | IBM Plex Sans 400/500/600/700 | 正文、导航、按钮、表头、面板/区头/弹窗标题 |
 | data | `--font-data` = `font-mono` | IBM Plex Mono + `tabular-nums` | 仅数字/地址/hash/时间戳，通过 `data-numeric` 或 `.num` |
-| 中文 | `--font-noto-sc` | Noto Sans SC | 作为三者的回退链 |
+| 中文 | `--font-noto-sc` | Noto Sans SC 400/500/600/700/900 | 作为三者的回退链；字重覆盖须含 600（2026-10-08 补档裁定：缺档会让全站 600 中文升档渲染 700 粗块、与 en 侧不一致） |
 
 加载链路：`next/font` 在 `components/design-system/fonts.ts` 声明（`--font-d1-display` Saira Condensed、`--font-d1-body` IBM Plex Sans、`--font-plex-mono`、`--font-noto-sc`），`app/layout.tsx` 挂到 `<html>`；`tokens.css` 第 137–139 行把它们组合成 `--font-display/--font-body/--font-data`。**不要在别处再次声明这些字体**。Stage-01 审阅工具（`components/direction-choice/fonts.ts`）只负责 D2/D3 候选字体，并从设计系统文件 re-export D1，保证生产字体单一来源。
 
