@@ -2785,7 +2785,7 @@ svg {
 }
 
 /* 抖音式错版字效（2026-09-22 用户裁定）：白主字形+青左上/品红右下双向错位，em 随字号缩放；
-   共用面=verse ticker/Explore 卡 symbol/create 标题；双类选择器抬高优先级压过 .page-intro h1 等上下文规则；
+   共用面=verse ticker/Explore 卡 symbol（create 标题 2026-10-07 用户裁定摘除）；双类选择器抬高优先级压过 .page-intro h1 等上下文规则；
    字号不入类（随上下文） */
 .ax-glitch-text,
 .ax-glitch-text.ax-glitch-text {

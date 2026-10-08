@@ -26,7 +26,7 @@ export function CreatePage({ locale }: { locale: Locale }) {
     >
       <header className="page-intro create-intro">
         <div>
-          <h1 className="ax-glitch-text ax-fault-title">
+          <h1 className="ax-fault-title">
             {copy.create.titleLead} {copy.create.titleAccent}
             <span
               className="ax-fault-title__chroma"
