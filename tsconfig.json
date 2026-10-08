@@ -1,10 +1,6 @@
 {
   "compilerOptions": {
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "target": "ES6",
     "skipLibCheck": true,
@@ -23,9 +19,7 @@
       }
     ],
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"]
     }
   },
   "include": [
@@ -45,8 +39,5 @@
     ".next-4175/types/**/*.ts",
     ".next-4175/dev/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "docs/prototype/v0-export"
-  ]
+  "exclude": ["node_modules", "docs/prototype/v0-export"]
 }
