@@ -25,4 +25,5 @@ export const ZH_PAGES: VisualPage[] = [
   { name: 'zh-explore', path: '/zh/memeverse/explore' },
   { name: 'zh-referral', path: '/zh/referral', connectWallet: true },
   { name: 'zh-referral-disconnected', path: '/zh/referral' },
+  { name: 'zh-portfolio', path: '/zh/portfolio', connectWallet: true },
 ];

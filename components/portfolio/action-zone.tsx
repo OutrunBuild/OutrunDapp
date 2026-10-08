@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 import type { FixturePortfolioAction, Locale } from '@/lib/data/fixture-repository'
+import { PROTECTION_WINDOW_MS } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { verseHref } from '../global/routes'
@@ -19,7 +20,6 @@ import { formatAmount, SectionHeading } from '../global/signal-ui'
 import { Button } from '@/components/ui/button'
 
 const HOUR_MS = 3_600_000
-const WINDOW_MS = 24 * HOUR_MS
 
 /** 走秒倒计时（<24h 场景；锚定快照剩余毫秒，纯展示层 tick） */
 function DeadlineClock({ remainingMs, template }: { remainingMs: number; template: string }) {
@@ -35,9 +35,11 @@ function DeadlineClock({ remainingMs, template }: { remainingMs: number; templat
   return <span data-numeric>{template.replace('{t}', time)}</span>
 }
 
-function staticDuration(remainingMs: number) {
+/** ≥24h 徽章时长：en 紧凑 d/h，zh 中文单位词（2026-10-08 用户裁定 zh 本地化） */
+function staticDuration(remainingMs: number, locale: Locale) {
   const days = Math.floor(remainingMs / (24 * HOUR_MS))
   const hours = Math.floor((remainingMs % (24 * HOUR_MS)) / HOUR_MS)
+  if (locale === 'zh') return `${days} 天 ${hours} 小时`
   return `${days}d ${hours}h`
 }
 
@@ -112,13 +114,13 @@ export function ActionZone({
             // 保护窗卡：倒计时 hero + 窗口余量条 + 在场本金 KV
             const tone = deadlineTone(action.remainingMs)
             const remainingMs = action.remainingMs ?? 0
-            const windowLeft = Math.min(100, Math.round((remainingMs / WINDOW_MS) * 100))
+            const windowLeft = Math.min(100, Math.round((remainingMs / PROTECTION_WINDOW_MS) * 100))
             const clock =
-              remainingMs < WINDOW_MS ? (
+              remainingMs < PROTECTION_WINDOW_MS ? (
                 <DeadlineClock remainingMs={remainingMs} template={copy.deadlineWithin} />
               ) : (
                 <span data-numeric>
-                  {copy.deadlineWithin.replace('{t}', staticDuration(remainingMs))}
+                  {copy.deadlineWithin.replace('{t}', staticDuration(remainingMs, locale))}
                 </span>
               )
             return (
@@ -177,7 +179,7 @@ export function ActionZone({
                       <strong>{action.verse?.symbol}</strong>
                       {action.remainingMs != null ? (
                         <span>
-                          {copy.deadlineWithin.replace('{t}', staticDuration(action.remainingMs))}
+                          {copy.deadlineWithin.replace('{t}', staticDuration(action.remainingMs, locale))}
                         </span>
                       ) : null}
                     </div>
