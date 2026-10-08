@@ -8,6 +8,7 @@ import type { FixtureVerse, Locale } from '@/lib/data/fixture-repository'
 
 import { XIcon } from '../global/brand-icons'
 import { getCopy } from '../global/copy'
+import { useCopy } from '../global/use-copy'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -34,7 +35,7 @@ export function VerseShare({ locale, verse }: { locale: Locale; verse: FixtureVe
   const [hintIndex, setHintIndex] = useState(0)
   const [shareOpen, setShareOpen] = useState(false)
   const [tweetIndex, setTweetIndex] = useState(0)
-  const [copied, setCopied] = useState(false)
+  const { copied, copy: copyToClipboard, reset: resetCopied } = useCopy()
 
   const shareUrl = typeof window === 'undefined' ? '' : window.location.href
   const tweet = copy.shareTweets[tweetIndex]?.replaceAll('{symbol}', verse.symbol) ?? ''
@@ -47,7 +48,7 @@ export function VerseShare({ locale, verse }: { locale: Locale; verse: FixtureVe
           setShareOpen(open)
           if (open) {
             setTweetIndex(Math.floor(Math.random() * copy.shareTweets.length))
-            setCopied(false)
+            resetCopied()
           }
         }}
       >
@@ -97,9 +98,9 @@ export function VerseShare({ locale, verse }: { locale: Locale; verse: FixtureVe
               <div className="verse-share-card__meta">
                 <Image
                   className="verse-share-card__logo"
-                  src="/brand/BRAND-01-wordmark-transparent.png"
-                  width={2048}
-                  height={527}
+                  src="/brand/BRAND-01-wordmark-transparent-480.png"
+                  width={480}
+                  height={123}
                   alt="Outrun"
                 />
                 {/* symbol+name 同行（023 补充 14 用户裁定）：基线对齐 */}
@@ -119,12 +120,7 @@ export function VerseShare({ locale, verse }: { locale: Locale; verse: FixtureVe
               <Button
                 className="verse-share-card__copy"
                 variant="outline"
-                onClick={() => {
-                  void navigator.clipboard?.writeText(shareUrl).then(() => {
-                    setCopied(true)
-                    window.setTimeout(() => setCopied(false), 1600)
-                  })
-                }}
+                onClick={() => copyToClipboard(shareUrl)}
               >
                 {copied ? <Check size={16} aria-hidden="true" /> : <Link2 size={16} aria-hidden="true" />}
                 {copied ? copy.shareCopied : copy.shareCopyLink}

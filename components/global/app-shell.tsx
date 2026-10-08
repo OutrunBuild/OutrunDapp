@@ -3,7 +3,7 @@ import Link from 'next/link'
 import type { SVGProps } from 'react'
 import { Compass, Home, Users, WalletCards } from 'lucide-react'
 
-import { ChainSelectorDialog } from '@/components/global/chain-selector-dialog'
+import { ChainSelectorDialog } from './chain-selector-dialog'
 
 import { getFixtureChains, type Locale, type FixtureChain } from '@/lib/data/fixture-repository'
 
@@ -43,18 +43,18 @@ function Brand({ compact = false }: { compact?: boolean }) {
   return compact ? (
     <Image
       className="brand-symbol"
-      src="/brand/BRAND-04-symbol-transparent.png"
-      width={512}
-      height={382}
+      src="/brand/BRAND-04-symbol-transparent-96.png"
+      width={96}
+      height={72}
       alt="Outrun"
       priority
     />
   ) : (
     <Image
       className="brand-wordmark"
-      src="/brand/BRAND-01-wordmark-transparent.png"
-      width={2048}
-      height={527}
+      src="/brand/BRAND-01-wordmark-transparent-480.png"
+      width={480}
+      height={123}
       alt="Outrun"
       priority
     />
@@ -81,7 +81,7 @@ function MarketingHeader({
         <span className="marketing-brand__wide"><Brand /></span>
         <span className="marketing-brand__compact"><Brand compact /></span>
       </Link>
-      <nav className="marketing-nav" aria-label="Primary">
+      <nav className="marketing-nav" aria-label={copy.common.primaryNav}>
         {[
           { href: '/memeverse/explore', label: copy.common.discover },
           { href: '/portfolio', label: copy.common.portfolio },
@@ -106,7 +106,7 @@ function MarketingHeader({
   )
 }
 
-function ProductSidebar({ locale, current, accountAddress }: Omit<ShellProps, 'children'>) {
+function ProductSidebar({ locale, current }: Omit<ShellProps, 'children'>) {
   const copy = getCopy(locale)
 
   return (
@@ -114,7 +114,7 @@ function ProductSidebar({ locale, current, accountAddress }: Omit<ShellProps, 'c
       <Link className="product-sidebar__brand" href={localePath(locale, '')} aria-label={copy.common.home}>
         <Brand />
       </Link>
-      <nav className="product-nav" aria-label="Primary">
+      <nav className="product-nav" aria-label={copy.common.primaryNav}>
         {navItems.map((item) => {
           const Icon = item.icon
           const isActive = item.key === current
@@ -147,7 +147,7 @@ function MobileNavigation({ locale, current }: { locale: Locale; current?: NavKe
   // 全部可用项（5 格，2026-10-07 随 referral 入导航裁定）；禁用占位项不上底栏
   const items = navItems.filter((item) => item.available)
   return (
-    <nav className="mobile-navigation" aria-label="Mobile primary">
+    <nav className="mobile-navigation" aria-label={copy.common.mobilePrimaryNav}>
       {items.map((item) => {
         const Icon = item.icon
         const active = item.key === current

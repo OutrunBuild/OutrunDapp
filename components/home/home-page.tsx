@@ -4,15 +4,15 @@ import { Fragment } from 'react'
 import { ArrowRight, ExternalLink } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { DiscordIcon, GitHubIcon, TelegramIcon, XIcon } from '@/components/global/brand-icons'
+import { DiscordIcon, GitHubIcon, TelegramIcon, XIcon } from '../global/brand-icons'
 import { getFixtureSnapshot, type Locale } from '@/lib/data/fixture-repository'
 
 import { OutrunShell } from '../global/app-shell'
 import { getCopy } from '../global/copy'
 import { MechanismPrimer } from './mechanism-primer'
 import { localePath } from '../global/routes'
-import { VerseLifecycle } from '../verse/verse-lifecycle'
-import { formatMarketCap, SourceRef } from '../global/signal-ui'
+import { VerseLifecycle } from './verse-lifecycle'
+import { formatMarketCap } from '../global/signal-ui'
 
 const OUTRUN_BOOK_URL = 'https://github.com/OutrunBuild/OutrunBook'
 const OUTRUN_GITHUB_URL = 'https://github.com/OutrunBuild'
@@ -27,9 +27,9 @@ function SiteFooter({ locale }: { locale: Locale }) {
           <Link className="site-footer__brand" href={localePath(locale, '')} aria-label={copy.common.home}>
             <Image
               className="site-footer__wordmark"
-              src="/brand/BRAND-01-wordmark-transparent.png"
-              width={2048}
-              height={527}
+              src="/brand/BRAND-01-wordmark-transparent-480.png"
+              width={480}
+              height={123}
               alt="Outrun"
             />
           </Link>
