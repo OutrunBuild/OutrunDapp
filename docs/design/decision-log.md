@@ -978,10 +978,94 @@ C1 结算储备金按 spec 窄口径且 UI 不露出 · C2 建池剩余资金不
 - **验证**：computed 探针（非 hover 黄描边黄字、hover 填黄 rgb(252,238,10)+黑字，与全站 ghost-cta 行为一致）；2x 截图目检；`check:design`、tsc 绿；e2e 全量 25 passed。
 - 签名：approved by Jasonrale（用户裁定）
 
+### 决议 015 补充 · 返佣分账条三色改品牌黄/红/青（用户裁定「我说的是我们品牌的的黄红青」）
+
+- **方案**：`/referral` 运作卡分账条（WHERE EACH SWAP FEE GOES）三段改品牌三色（logo-spec themed symbol 同源 `--or-yellow/--or-red/--or-cyan`）——LP 65%=黄 `--accent-primary`(#FCEE0A)、Protocol 25%=红 `--accent-echo`(#FF06B5；即品牌变量 `--or-red`，token 名 logo-magenta-bright)、You 10%=青 `--or-cyan`(#00F0FF)（图例色点同步）；取代 015 原映射（LP=text-tertiary/Protocol=accent-echo/You=accent-primary）在本消费位的适用——Protocol 品红与 015 原判一致，本裁定新增 LP 黄与 You 青。015 数据语义系列其余消费位（data-stage 阶段色等）不动。
+- **边界注记**：青色限界（§2.4 链接/focus 专用、禁大面积色块）在本消费位开例外面——You 段≈71×8px 小图形填充非大面积色块，用户裁定品牌青入列。
+- **token 影响**：无增删（两版误修撤销：首版误加 `--color-info #4C8DFF`、二版误用反馈族 `--color-danger`——品牌红=logo-spec `--or-red` #FF06B5，本仓 token 名 `--logo-magenta-bright`/`--accent-echo`）。
+- **验证**：2x 截图目检（黄/红/蓝三段+图例点）；`check:design`、tsc 绿；referral 基线 `=all` 重录。
+- 签名：approved by Jasonrale（用户裁定）
+
 ## 决议 024 · 首页导航终端索引 + 文案提亮（2026-10-07 用户拍板：方案「终端索引」+ 配色「提亮一档」）
 
 - **方案**：`.marketing-nav` 三入口每枚前置终端索引序号 `01/02/03`（`.marketing-nav__index`：mono `--font-data`、`--text-xs`、`--label-tracking` 字距、静止三级灰、悬停转黄 `--accent-primary`；`aria-hidden` 装饰编号不进可访问名，TSX 由 map+padStart 生成）；文案色提亮一档 `--color-text-secondary`→`--color-text`（悬停文字提亮随之退役——悬停信号=斜切芯片浮现+序号转黄双通道）；字号维持 16px（2026-10-06 裁定）。
 - **口径放宽**：001-A「等宽仅数据字段」对**装饰性编号**放行（序号非数据读数、非正文；用户在方案选项中拍板放行）。等宽用于正文/标签的禁令不变。
 - **token 影响**：无增删（`--label-tracking` 为既有 token 启用消费）。
 - **验证**：Playwright 实测 label #E6E9F0/16px、序号 IBM Plex Mono/三级灰、悬停序号 #FCEE0A；header 52px、nav 368px、1280/1024 零溢出；home 三档 + zh-home 基线 `=all` 重录；vitest（含新序号断言）、check:design、prettier 绿。
+- 签名：approved by Jasonrale（用户裁定）
+
+## 2026-10-07 · 错版字效应用面收敛：create 标题摘除 `.ax-glitch-text`（用户裁定「摘掉 create h1 上的 ax-glitch-text」）
+
+- **背景**：四个一级页标题核对时发现唯一 create（Consensus Launch）还挂着 2026-09-22 裁定的 `.ax-glitch-text` ticker 皮肤（IBM Plex Mono/semibold/大写/0.08em 字距），其余三页（发现/收益组合/推荐）均为 Saira Condensed 展示字体——四页字体不一致的根源。沿革：2026-09-30 改版一用户曾以「字体不需要调那么大…原来的字体就挺好的」裁定一级页标题摘掉该皮肤，但 2026-10-01 动效四连败整体回滚时 create 被恢复回 2026-09-22 状态（`.ax-fault-title` 随后叠加上去），皮肤残留至今。本次用户裁定摘除，与 09-30 字体裁定方向一致。
+- **方案**：`create-page.tsx` h1 `ax-glitch-text ax-fault-title` → `ax-fault-title`。排版回落 `.page-intro h1` 上下文（`--font-display`/700/`--display-tracking`/原文大小写），四个一级页标题排版统一。静态青/品红 echo 与动画均由 `.ax-fault-title` 独供（原双类规则「create 由 0-2-0 重申同值」随之失效，无视觉损失）；`ax-fault-title` 的 v8 编舞、封锁纪律、reduced-motion 回退零改动。
+- **登记**：components.md 错版字效条目应用面去 create 标题、标题信号失真条目静态层描述改「create 曾由双类重申」；globals.css `.ax-glitch-text` 头注释共用面同步。ticker/Explore 卡 symbol 两处共用面不动。
+- **token 影响**：无增删。
+- **验证**：tsc 绿；`check:design` 裸值 0 命中；prettier 绿（4 触点文件）；e2e launch 三档基线 `=all` 重录（desktop/tablet 差异低于 1% 容差被 changed 模式跳过，按已知坑定向 `=all` 强制重写，mobile 重录后像素抽验=混合大小写 Saira Condensed）；全量 29 passed / 16 skipped 两连绿。
+- 签名：approved by Jasonrale（用户裁定）
+
+## 2026-10-07 · 一级页页头到顶栏间距统一 16px（用户裁定「4个页面的 h1 与 Header 之间的间距需要缩小一点，并且统一一致」）
+
+- **背景**：四个一级页 h1 到顶栏的间距不一致——create 16px（product-main 8 + 页头 8，2026-09-30 裁定收紧），发现/收益组合/推荐 40px（24+16）。用户裁定缩小并统一。
+- **方案**：统一到 create 既有值 16px（唯一被裁定过的紧凑值，三页缩小、create 不动、无页面变大）：① `.product-main:has(> .create-intro)` 顶部收窄规则扩面为 `:has(> .page-intro, > .discovery-intro)`（四个一级页页头均为 product-main 直接子）；② `.page-intro` padding-block-start `--space-4`→`--space-2`；③ `.discovery-intro` 同步（bottom 维持各自原值：page-intro `--space-5`/discovery-intro `--space-4`/create-intro `--space-4` 不动，本裁定只管顶部）。design-system 镜像页（showcase 亦用 `.page-intro`）随规范联动属预期。
+- **登记**：components.md 页面引言条目、component-contract.md PageIntro 行补间距口径。
+- **token 影响**：无增删。
+- **追记（同日用户反馈「16px 太小了，增大一点」）**：页头顶部 padding 回 `--space-4`（合计 8+16=24px，四页仍统一；create-intro 的 padding 覆盖随之瘦身为仅 `padding-block-end`，顶部随默认）。首轮 16px 基线作废重录。
+- **终值（同日两轮）**：用户在 dev 疑「看不到变化」，跳 `--space-7` 56px 做可见性验证（确认为浏览器旧标签假象，HMR 静默断连）；用户确认可见后裁定回调——页头顶部 padding 定 `--space-6`，32px 态后再微调一轮：主容器 `--space-1` 4px + 页头 `--space-6` 24px，**终值 28px**（28 不在 token 刻度上，用 4+24 组合避免裸值），56/24/32px 中间态基线作废。
+- **验证**：`check:design` 裸值 0 命中；prettier 绿；e2e changed 模式重录恰 14 张（explore/portfolio/referral/design-system ×3 + zh-explore/zh-referral mobile），launch 三档 mtime 未动= create 逐像素不变的回归护栏，home/verse 不受影响；全量 29 passed / 16 skipped 两连绿。
+- **e2e 事故记录（追记轮重录时）**：追记轮 update run 收尾时 zh-referral mobile 基线抢拍到 1859px 异常帧（高负载下 `fonts.ready` 早于 zh 字体实际 swap 完成，fallback 度量入了基线）；浏览器 5 连测证明页面确定性 1852px（en 1893px 同样稳定），孤立重录基线=1852 后单测三连绿+全量 29 passed。同类抢拍复发时按「孤立重录+高度对比」处置。
+- 签名：approved by Jasonrale（用户裁定）
+
+
+
+## 2026-10-07 · 推荐页分账条图例按条宽分布（用户裁定方案「1」）
+
+- **背景**：用户报告 `/referral` 运作卡分账条「青色线段位置比品红低一点点，不自己看都看不出来」。排查（Playwright 布局盒三视口×五档缩放 + 两张用户截图逐列亚像素边缘测量）证明三段渲染几何逐列对齐（差 <0.1px、硬边）——非渲染缺陷；青段降亮 80% 试验（后还原）无效，排除亮度错觉。根因为**上下文不对称视觉错觉**：条上方全宽 hairline+左对齐 label 提供单侧强水平参考，下方图例原为左聚排，右侧（品红/青段下方）无锚点，凝视判读时右段顶边系统性读低（视觉模型消融矩阵：同几何合成条在无文字/上下对称文字/仅下文字配置判读对齐；左上近距文字+左下远距文字配置复现「顶边略低、底边对齐、右段显窄」，与用户描述一致）。
+- **方案**：`.ref-split__legend` 增 `justify-content: space-between`（保留 flex-wrap 与 gap）——图例三项沿条宽分布，You 10% 右缘对齐青段右缘，右侧获得水平参考锚；中项落位条宽居中、不严格对位品红段（锚定目的已达成，接受）。hairline/label 不动（2026-10-07 既有裁定不受影响）。
+- **登记**：components.md Referral 页 `.ref-split` 条目补图例分布口径。
+- **token 影响**：无增删。
+- **验证**：图例三项实测 x 范围 LP 0-49 / Protocol 449-530 / You 930-986（bar 宽 986、青段 887-986，右缘对齐）；基线像素抽验图例三色点 x≈254/704/1184（青点贴面板右缘）；check:design 裸值 0 命中；e2e referral 三档 + zh-referral mobile 基线 `=all` 重录（4 passed）。
+- 签名：approved by Jasonrale（用户裁定）
+
+## 2026-10-07 · 分账条图例分布方案回退（用户实测无效+图例被弄乱，「本来是左对齐的」）
+
+- **回退**：`.ref-split__legend` 撤 `justify-content: space-between`，还原左聚排；components.md 相应口径回退；referral 基线再重录。
+- **排查终态**（软件层全部排除，均有实测证据）：布局盒（三视口×五档缩放 top/height 全等）、光栅行（用户两张截图逐列亚像素边缘差 <0.1px 且硬边）、亮度假说（用户 80% 降亮实测无效）、上下文锚定假说（图例分布实测无效，随之证伪）、扫描线层（0deg 水平纹、相位与 x 无关）、图例点对位（色点不在段下方）。存疑二候选均在用户硬件/感知侧：①面板物理——Diamond Pentile OLED 绿子像素晶格相对红蓝晶格错位约半子像素，青（绿+蓝）发光以绿晶格为主、品红（红+蓝）以红蓝晶格为主，同一帧缓冲 y 在物理发光面上错位，截图不可见；②色彩视觉重量错觉——蓝青系视知觉「重」读作下沉，色相驱动、与亮度弱相关（降亮无效相容）。判别实验=色对测试页（含红绿对/同色对照/左右换序消位置偏置）+异屏对照。
+- 签名：approved by Jasonrale（用户裁定）
+
+## 2026-10-07 · referral 统计簇移动端去 ≈ 前缀（用户裁定）
+
+- **背景**：用户报告移动端 `/referral` KPI 卡（2×2 统计簇）不需要 ≈ 符号——Earned/Pending 两格美元估值读数「≈ $1,284.50 / ≈ $96.20」，卡片档符号添噪。
+- **方案**：`≈ ` 包 `.ref-stats__approx` span，≤54rem（2×2 卡形态断点，与十字 hairline 同档）`display: none`；桌面 ≥54rem 四列横排保留 ≈（估值语义仍在）。待领行 USD 换算（`≈ $…`）与桌面读数不在本次范围。
+- **登记**：components.md Referral 页 `.ref-stats` 条目补 2×2 形态去前缀口径。
+- 签名：approved by Jasonrale（用户裁定）
+
+## 2026-10-08 · 组合页金库 signpost 卡 CTA 平铺整卡（用户裁定「withdraw 按钮的宽度应该自适应平铺整张卡片」，取代 018 补充 6 居中）
+
+- **背景**：≤30rem 金库可取出卡底栏（hint 句 + Withdraw 钮）折行后按钮独行，018 补充 6 裁定为 `margin-inline: auto` 居中；用户实测后改裁定平铺整卡宽。
+- **方案**：同选择器 `.pf-action[data-kind='vault'] .pf-action__foot > :last-child` 的 `margin-inline: auto` 改 `inline-size: 100%`——按钮 `inline-flex` + `justify-center`，满宽后 label 仍水平居中；保护窗卡底栏（KV+按钮同行）选择器不触达、不受波及。
+- **token 影响**：无增删。
+- 签名：approved by Jasonrale（用户裁定）
+
+## 2026-10-08 · 组合页六分区间距统一 48px（用户裁定「每个部分之间的间距应该统一一致」，取代 017 Q6 三组节奏）
+
+- **背景**：桌面六分区序贯流间距交替 96/48/96/48/48（017 Q6 三组节奏：行动→钱→仓位，组间 `--space-9` 96px > 组内 `--space-7` 48px 承担分组识别）；用户判读为不一致，要求各部分间距统一。移动端页签内同症：money 页签内 assets→savings 32px、positions 页签内 positions→vault 48px（`.pf-zone-sub` gap 未随 018 移动档下调）。
+- **方案**：桌面 `.pf-zone-group` margin-block-start `--space-9`→`--space-7`，六分区全序列（页头→①→②→③→④）统一 48px；≤54rem `.pf-zone-sub` gap 补齐 `--space-6` 32px、`.pf-zone-group` margin `--space-8`→`--space-7` 48px（页签条→首分区与待办页签 48px 对齐）；≤30rem `.pf-zone-sub` gap 补齐 `--space-5` 24px、margin 行随基档等值删除。组识别语义撤除——六分区平权、节奏本身即层级。
+- **token 影响**：无增删；`--space-9` 退为保留档（仅存 verse-share-card 宽度类消费位），token-contract §1 该行补记。
+- **登记**：components.md Portfolio KPI 带/deck 两行、component-contract §29 分区映射措辞、`portfolio-page.tsx`/`portfolio-zone-tabs.tsx`/globals.css 注释同步。
+- 签名：approved by Jasonrale（用户裁定）
+
+## 2026-10-08 · 导航 referral 图标 Gift→Users + account 占位项删除（用户裁定）
+
+- **背景**：主导航 referral 项用 lucide `Gift`，语义偏「奖励/礼包」不达「邀请」——市场惯例 crypto 产品 invite 入口主流是「人」系图标（Telegram/PayPal/Revolut 与 OKX/Binance/Bitget 的 invite 均为双人/加人形态），Gift 路线属奖励钩子型消费产品（Robinhood 送股、Coinbase）。且侧栏 `UserRound` 语义归属「账户」，`UserPlus` 会与之混淆。
+- **方案**：referral 图标 `Gift`→`Users`（双人=「我和我邀请的人」，与单人形状可区分）；account 占位项（`available: false`，`/account` 路由本不存在）从 `navItems` 整体删除，`copy.common` 两语言 label 同步移除；单测 `current="account"` 禁用分支用例随之退役、renderShell 联合类型换 `referral`。顶栏 marketing-nav R-12 后已为四入口，components.md 两处「三入口/01-03」残留口径一并更正（01–04）。
+- **token 影响**：无增删。
+- **验证**：`tsc --noEmit` 绿；app-shell 单测 4/4；e2e 三档视口基线 `--update-snapshots=all` 重录 29 passed，像素抽验确认新基线含真实差异；不属品牌方向/色板/字体/密度，按导航构成裁定登记。
+- 签名：approved by Jasonrale（用户裁定）
+
+## 2026-10-08 · 无用户参与态：组合/推荐两页数据卡整体隐藏（用户裁定）
+
+- **背景**：此前两页不读钱包连接态——头部显示 Connect 的同时正文渲染满屏样本数据（「未连接但满屏数据」）。用户裁定：无用户参与时推荐页保留机制介绍、只去掉推荐相关数据；收益组合页同样无相关数据；没有数据的卡片不显示（不做零值占位/空态卡）。
+- **方案**：新增 `UserDataGate`（client 闸门，`useMockWallet().connected` 三态，RSC children 传入只切显隐）。Portfolio 隐藏 pf-kpi + pf-hero + 四分区 deck（断连时只剩页头标题+副题）；Referral 隐藏 ref-stats/ref-link/ref-pending/ref-history 四卡，ref-how（运作方式+分账条）闸门外常显；机制率 10% 属机制常量不随隐藏。SSR/首帧恒为未连接快照，无水合闪变。
+- **token 影响**：无增删。
+- **登记**：component-contract §33；e2e PAGES `connectWallet` 旗标（portfolio/referral/zh-referral 走连接态基线）+ `*-disconnected` 三档基线锁定断连默认态（闸门失效数据泄漏即红）；单测 `tests/unit/user-data-gate.test.ts` SSR 类名缺席/在场断言。
 - 签名：approved by Jasonrale（用户裁定）

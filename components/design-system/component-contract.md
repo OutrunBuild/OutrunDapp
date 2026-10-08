@@ -139,7 +139,7 @@
 
 | 组件 | 实现 | 契约 |
 |---|---|---|
-| PageIntro | `.page-intro`（h1 + p ≤66ch，底部黄 2px + 品红 1px 回声） | 每页一次，唯一 h1 |
+| PageIntro | `.page-intro`（h1 + p ≤66ch，底部黄 2px + 品红 1px 回声；到顶栏间距 4px+24px=28px，2026-10-07 四个一级页统一） | 每页一次，唯一 h1 |
 | StageTabs | `.stage-tabs a[data-active]`（56px，激活 = 顶部黄线 + 黄字 + 黄 inset） | 单页内阶段切换；与 LifecycleTabs 不同页混用 |
 | SectionHeading | `signal-ui.tsx` 导出，`header.section-heading.ax-echo-bar`（`__row` = h2 + aside；description `<p>` 在行下、贴底边框；签名线锚定边框不随描述下沉，决议 014 几何化） | 每个 section 一个 h2，`aside` 放筛选/计数；`id?` 透传 h2 作为 `aria-labelledby` 目标（showcase 六区块 2026-10-03 由内容元素迁至 h2） |
 | Verse 头部 | `.verse-hero`/`.verse-identity`（verse-page 内联） | （2026-09-22 用户裁定多轮定稿）symbol 大图形（约 198px）绝对定位左侧，文本列 padding 让位：①名称行=ticker 在前（数据等宽 `--text-num-lg`+主行动黄+大写字距+抖音式错版 text-shadow：青左上/品红右下 0.08em）+name 随后（`--text-lg` 无回声阴影，不抢戏）+徽章右推同行；②描述紧跟名称行（SPEC-M8 ≤255 字节→68ch 约四行）；③底行两端=链信息（左，label 样式：`--text-sm`+大写+0.08em 字距，与描述正文分层；组间 `--space-5`/组内 `--space-2`）+社交图标（右，同 flex 行天然同线）；社交=官方品牌图标（`brand-icons.tsx` simple-icons path：X/Discord/Telegram+lucide Globe），顺序 website→x→discord→telegram（repository SOCIAL_ORDER；fixture kind twitter 已改名 x）；「Economy overview」标签删除；hero 顶部无 padding（主容器 24px 唯一留白）；底部签名线随阶段双线规律（`data-stage` 驱动 `--stage-color` 主线 + `--stage-next` 回声，与 economy-card 上边缘同律，2026-09-26）；四项统计在右列 `.stats-panel` 新卡（Key metrics 2×2） |
@@ -362,9 +362,9 @@
 |---|---|
 | 用途 | Portfolio 页 ≤54rem 分区导航：待办(n)/资产/仓位/凭证(n) 四页签一次显一区（移动端长滚动治理——旧版 390 全页 8122px 且表格横滚）；KPI 信号带窄视口让位页签角标（「摘要即导航」语义保留） |
 | 实现 | `components/portfolio/portfolio-zone-tabs.tsx`（'use client'）→ `.pf-deck[data-zone][data-js]` > `nav.pf-zone-tabs`（ToggleGroup `__bar` + `__badge`）+ `[data-zone-wrap]` × 4；样式 `app/globals.css` 的 `.pf-deck/.pf-zone-tabs*/.pf-mrow*` |
-| 结构 | 页签项=文本 + 可选 `__badge[data-tone]` 等宽计数（warning=待办、success=可领，0 不渲染）；分区映射与桌面三组一致——①ActionZone ②Assets+Savings ③Positions+Vault（`.pf-zone-sub` 内）④Vouchers；全部分区常驻 DOM（RSC 直出） |
-| 状态 | 激活=`[data-pressed]` 黄字 + 3px 底缘指示条（verse-tabs__bar 同语法）；分区显隐仅 `[data-js]` 挂载标记存在时由 CSS 生效——SSR/无 JS 全可见（优雅降级） |
-| 行为 | 页签点击=换区 + 滚动到分区顶（双 rAF 等 React 提交；`scroll-margin-block-start` 避开吸顶顶栏+页签条）；`#pf-*` 页内锚点（金库 signpost 卡 CTA 等）由 deck 事件委托接管换区+滚动（隐藏分区无盒模型，原生锚点跳转落空）；`?claimable=1` 深链 SSR 初值落凭证页签；待办为空则待办页签与 wrap 不渲染；仓位/金库表格 ≤54rem 隐藏、`.pf-mrow` 堆叠台账行接管（身份行 `--row-height` 触达 + 事实格 dt/dd，跨行 dd 盒共线） |
+| 结构 | 页签项=文本 + 可选 `__badge[data-tone]` 等宽计数（warning=待办、success=可领，0 不渲染）；分区映射与桌面序贯分组一致——①ActionZone ②Assets+Savings ③Positions+Vault（`.pf-zone-sub` 内）④Vouchers；全部分区常驻 DOM（RSC 直出） |
+| 状态 | 激活=`[data-pressed]` 黄字 + 2px 底缘指示条（2026-10-07 用户裁定由 3px 减细）（verse-tabs__bar 同语法）；分区显隐仅 `[data-js]` 挂载标记存在时由 CSS 生效——SSR/无 JS 全可见（优雅降级） |
+| 行为 | 页签点击=换区 + 滚动到分区顶（双 rAF 等 React 提交；`scroll-margin-block-start` 避开吸顶顶栏+页签条）；`#pf-*` 页内锚点（金库 signpost 卡 CTA 等）由 deck 事件委托接管换区+滚动（隐藏分区无盒模型，原生锚点跳转落空）；凭证区可领筛选=组件内客户端态 button（2026-10-08 用户裁定：`?claimable=1` URL 导航整页刷新被否，同仓位链筛选先例）；待办为空则待办页签与 wrap 不渲染；仓位/金库表格 ≤54rem 隐藏、`.pf-mrow` 堆叠台账行接管（身份行 `--row-height` 触达 + 事实格 dt/dd，跨行 dd 盒共线） |
 | 响应式 | ≤54rem 页签条吸顶于顶栏下（`--space-8`+1px 偏移、stage-tabs 全出血负边距、surface-header+blur）；≥54rem 页签条 display:none、deck=透明布局层（桌面渲染零变化，翻转实验逐像素验证） |
 | aria | `nav[aria-label]`（copy `portfolio.tabs.group`）；ToggleGroup 互斥单选（base-ui `data-pressed`）；计数在文本流内随标签朗读 |
 
@@ -388,13 +388,37 @@
 |---|---|
 | 用途 | Verse 详情页传播出口（参照 jasonrale/Outrun-Frontend 同名功能）：hero 右上角「提示符+分享钮」双图标钮组 + 分享弹窗（Copy link / Share on X） |
 | 实现 | `components/verse/verse-share.tsx`（client）；原语 base-ui Dialog + Tooltip（触屏点按开气泡走 ui/tooltip.tsx 内建护栏）；样式 `.verse-share*` / `.verse-share-card*`（globals.css）；壳复用 `.pol-mint` |
-| 结构 | 挂点=hero `verse-identity__badges`（titlerow 右端；2026-10-06 用户裁定 hero 阶段徽章删除让位，FastGenesis 徽章保留同容器）；**单礼物钮=分享按钮本体**（Share2 退役，023 补充 7；无边框幽灵钮：悬停/触点出随机 1/4 促销语 tooltip side=top、点击开弹窗——TooltipTrigger 经 render 披在 DialogTrigger 上，一颗钮两触发器）；**颜色=阶段主色 `--stage-color`**（023 补充 16：genesis 黄/locked 品红/unlocked 青/refund 橙，hover 提亮 mix；hero 源=`.verse-hero[data-stage]`、弹窗源=DialogContent `data-stage`+`.verse-share-pop` 入共享阶段组）；弹窗=标题行（标题+礼物图形=返佣说明 tooltip 触发器（info 符号退役，礼物兼任提示符，颜色=阶段主色，023 补充 16）+✕）→ 项目卡（**Premium dark 三件套凹板**（023 补充 15 终态）：面内纵向渐变（raised→混 12% 品红深档 surface，底部呼应壳层灯）+ 双 background-clip 渐变描边（border-strong→border）+ 顶缘受光 `inset 0 1px 0 --scanline-white`；无切角无伪元素、退出材质组——「盒中盒双材质」为杂乱根源（补充 4/11/12 补丁洗撤销）；弹窗视觉表达收拢到壳层单一环境灯（`.verse-share-pop .pol-mint::after` 低位深品红 12% 长尾升起）；monogram 底=对角渐变（raised→inset）+顶缘受光+text-secondary 灰调；symbol 首 2 字 monogram 缩略位（raised+hairline，**stretch+aspect-ratio：边长=右列内容高**，023 补充 14 消 thumb 下空白）+ 品牌字标成品 Logo 96px（`public/brand/BRAND-01-wordmark-transparent.png`，禁改色/拉伸/裁切；用户裁定 symbol 换字母 logo）+ **symbol 28px display（0.06em 品红错位回声）与 name 同行基线对齐**（`__idrow`，023 补充 14）+ 描述 2 行截断（meta 列组距 8px）+ JOIN US 品红 tinted 徽章）→ 双 CTA（**复用全站标准组件范式**，023 补充 19 终态：Share on X=`variant=default`+`.ax-ghost-cta` 黄色非实心钮（hover 填黄黑字，同 home/create/参与面板）；Copy link=纯 `variant=outline` 原味——补充 17/18 的手搓 important 覆盖全部撤销）——弹窗 460px 档 |
+| 结构 | 挂点=hero `verse-identity__badges`（titlerow 右端；2026-10-06 用户裁定 hero 阶段徽章删除让位，FastGenesis 徽章保留同容器）；**单礼物钮=分享按钮本体**（Share2 退役，023 补充 7；无边框幽灵钮：悬停/触点出随机 1/4 促销语 tooltip side=top、点击开弹窗——TooltipTrigger 经 render 披在 DialogTrigger 上，一颗钮两触发器）；**颜色=阶段主色 `--stage-color`**（023 补充 16：genesis 黄/locked 品红/unlocked 青/refund 橙，hover 提亮 mix；hero 源=`.verse-hero[data-stage]`、弹窗源=DialogContent `data-stage`+`.verse-share-pop` 入共享阶段组）；弹窗=标题行（标题+礼物图形=返佣说明 tooltip 触发器（info 符号退役，礼物兼任提示符，颜色=阶段主色，023 补充 16）+✕）→ 项目卡（**Premium dark 三件套凹板**（023 补充 15 终态）：面内纵向渐变（raised→混 12% 品红深档 surface，底部呼应壳层灯）+ 双 background-clip 渐变描边（border-strong→border）+ 顶缘受光 `inset 0 1px 0 --scanline-white`；无切角无伪元素、退出材质组——「盒中盒双材质」为杂乱根源（补充 4/11/12 补丁洗撤销）；弹窗视觉表达收拢到壳层单一环境灯（`.verse-share-pop .pol-mint::after` 低位深品红 12% 长尾升起）；monogram 底=对角渐变（raised→inset）+顶缘受光+text-secondary 灰调；symbol 首 2 字 monogram 缩略位（raised+hairline，**stretch+aspect-ratio：边长=右列内容高**，023 补充 14 消 thumb 下空白）+ 品牌字标成品 Logo 96px（`public/brand/BRAND-01-wordmark-transparent.png`，禁改色/拉伸/裁切；用户裁定 symbol 换字母 logo）+ **symbol 28px display（0.06em 品红错位回声）与 name 同行基线对齐**（`__idrow`，023 补充 14；flex-wrap 兜底：meta 列不足同行最小宽时 name 换到 symbol 下一行——460 档 meta=198px 已是 SWHL 级名字零余量临界，卡内换行不许顶出卡缘）+ 描述 2 行截断（meta 列组距 8px）+ JOIN US 品红 tinted 徽章）→ 双 CTA（**复用全站标准组件范式**，023 补充 19 终态：Share on X=`variant=default`+`.ax-ghost-cta` 黄色非实心钮（hover 填黄黑字，同 home/create/参与面板）；Copy link=纯 `variant=outline` 原味——补充 17/18 的手搓 important 覆盖全部撤销）——弹窗 460px 档 |
 | 状态 | 双图标钮 1.5s 循环抖动（±2.5px、70% 处回正静默）——motion 契约 infinite 装饰例外（决议 023），`prefers-reduced-motion` 自动停抖、零 glow；Copy link 点击=✓Copied 1600ms 回落（同 CopyAddress 节奏） |
 | 行为 | 复制=`navigator.clipboard.writeText(window.location.href)`；X=`twitter.com/intent/tweet`（text=随机 1/5 推文模板 `{symbol}` 替换 + url=当前页，新开标签）；随机文案在开启瞬间定值（onOpenChange 换 index）——SSR/水合不参与；触发源恒 general（无 intro 祝贺段）；成交后自动弹**不接线**（原型 CTA 恒 disabled 不伪造成交，同 PolMintDialog 契约） |
-| 响应式 | 全档=titlerow 右端（badges 容器 margin-auto 右推；≤640px 旧「徽章行左锚」覆盖随阶段徽章删除退役——折行时分享组随行右悬）；弹窗 `min(460px, 94vw)` 居中 |
+| 响应式 | 全档=titlerow 右端（badges 容器 margin-auto 右推；≤640px 旧「徽章行左锚」覆盖随阶段徽章删除退役——折行时分享组随行右悬）；弹窗 `min(460px, 94vw)` 居中；**项目卡 ≤30rem 媒体对象头重排**（窄视口下「边长=右列高」机制把 meta 挤到不足 idrow 同行宽（390 实测 thumb 156px vs meta 96px）文本顶穿卡缘；改网格：monogram 96px（=logo 宽）左柱与 logo/idrow 并置、desc/cta 通栏、meta `display:contents` 升格网格项、thumb 压基础 stretch 为 center 保方形——idrow 两行换行时右柱高过 96px） |
 | aria | 双图标钮 aria-label（shareLabel/shareHintLabel）；DialogTitle=分享标题；✕ aria-label=common.close；抖动纯装饰不进 live region |
 | 文案权限 | 返佣说明=OutrunBook `ecosystem/flywheel.md` 口径（推荐返佣出自协议交易费份额）；en 推文模板照搬参考仓、zh 新写（copy-and-i18n 双语纪律） |
 
+
+## 32. Referral 页（/referral 推荐返佣 · 已落地 · 2026-10-07）
+
+| 方面 | 契约 |
+|---|---|
+| 用途 | 推荐返佣页（R-12，2026-10-07 用户裁定四项；同日 v3 行业共识骨架：统计簇→链接→待领→运作→tabs 历史，依据 ReferralRock/Webtonic 转化指南 + GMX/Jupiter/Binance 同构——统计簇首屏一组、链接前置、三步居后、双 tab 收尾；**同日 v4 用户裁定运作上移一格**：统计簇→链接→运作→待领→tabs 历史，弃「三步居后」） |
+| 实现 | `components/referral/referral-page.tsx`（RSC）+ `referral-link-panel.tsx`（client，复制）+ `referral-history-tabs.tsx`（client，`ReferralHistory` verse-tabs 双签+Friends 计数）；数据=`getFixtureReferral()`（fixtures/data/referral.json，sourceRef M15）；样式 `.ref-*`（globals.css），复用 `.action-panel`/`.pf-panel`+`.pf-claim-row`+`.pf-panel__bar`/`.verse-tabs`/`.pf-table` 原语；统计簇=pf-panel 内 4 格 hairline 分列（首格 Total Earned 28px 主读数、余 16px；≤54rem 2×2 十字 hairline）；卡片节奏（2026-10-07 用户裁定）=五卡各自独立、无分组，卡间一律 space-6 |
+| 链接 | `<origin>/ref/<短码>`：URL 由 RSC 从 host 头定值传入（SSR 即完整值，无水合闪变；localhost 判 http、其余 https）；短码=fixture 样本位（2026-10-07 用户裁定沿用 demo 短码样式——链上无 code→地址注册表，生产映射方案待定，与 G8 冲突已知悉）；`/ref/<code>` 落地路由与 swap 侧 ref 接线本期不做 |
+| 状态 | 链接面板=**单行链接井 + 右端嵌入式复制图标钮**（2026-10-07 用户裁定：删 Share on X 与独立 Copy Link 大钮，参照图改版）——复制钮=页内唯一黄主行动（黄图标、hover 通电纯黄+黑图标，黄档通道；`aria-label` 恒为 copyLink），点击→✓ 图标 1600ms 回落+copied 态青图标（同 CopyAddress 节奏）；URL 显示层拆 scheme/host/路径三段中段截断（host 段省略号、`/ref/短码`段恒可见——窄视口可读性；复制写完整 URL）；**≤54rem v2（2026-10-07 用户拍板第二版）**：动作主角——井降级为无框证据行（等宽 text-sm 二级灰、完整 URL 含 scheme——同日裁定撤隐 scheme，用户判「链接不完整」），复制由全宽实心黄切角 `__cta`（Button default 通道 40px，成功态 ✓+「已复制/Copied」1600ms）接管，井内嵌图标钮 display:none 出 a11y 树（每档恰一个触发器、黄主行动唯一）；Claim=outline **恒禁用**（原型不伪造成交，PolMintDialog/VerseShare 同契约——G 源：hook `claimRebate` 逐币 pull、无批量，operations.md:665）；待领零项整区不渲染（Portfolio 零项先例）；待领行=代币图标前置（`TokenIconMark` 28px + symbol/链名，2026-10-08 用户裁定（20→24→28 两轮加大）；Portfolio 激励行无图标，`.pf-claim-row` 共享模板不动、`.ref-pending` 作用域加首列；图标↔symbol 列距 16→12（2026-10-08 裁定，amount↔actions 有效 24 由 __actions 内距 8→12 补偿保住）；≤30rem 四区显式 areas（icon/id/amount/actions——基类同断点给子元素绑过 grid-area，作用域必须显式对齐否则孤儿命名生隐式空轨）、≤30rem 双行布局（2026-10-08 用户裁定重排：首行=图标+身份居左、金额两行右锚，次行=Claim 平铺整行自适应（2026-10-08 三次裁定：右对齐→居中→整行）、actions 列距补偿内距归零）、≤20rem 同整行；行悬停效果移除（2026-10-08 用户裁定——只读台账、Claim 恒禁用，无交互可预告） |
+| 数据口径 | G：默认 rate=1000bps（总费 10%）、分账 LP65/协议(35−rate)/你 rate、in-kind 逐币、按链独立、自推荐合法（M5/M14/M15 + OB hook.md/flywheel.md）；**推荐关系=被推荐人注册时绑定、已注册用户点链接不重绑**（2026-10-07 用户裁定——链上 hook 无 referee 绑定，绑定由应用层实现，文案已按此口径）；S：全部数值为 fixture 样本（≈$ 沿用 assets usdSample；friends 明细链上无依据=索引器口径样本；rate 展示值生产读 `referrerRebateBps()`）；无「以链上读值为准」类文案（全站禁用） |
+| 双签 | `.verse-tabs` 卡壳+通栏页签头复用（黄字+2px 指示条语法）；客户端态无 URL 参数（历史视图非可分享状态，PortfolioZoneTabs 同口径）；两面板表 RSC 渲染经 children 传入 |
+| 表格 | `.pf-table`：**Transactions（2026-10-07 参照重设计，用户裁定）=Transaction(缩略 txid, th+`.ref-tx__mono`)/Commission(返佣=纯数额+`TokenIconMark` 16px **取代符号文本**（图标在数额后），`.ref-tx__rebate` 行内组，悬停 `Tooltip` 出 Symbol（Network 列链徽同款 `aria-label`+TooltipContent）——2026-10-08 用户裁定三轮定形；移动端 `.ref-mrow__gain` 行首=数额+图标（触屏无悬停，无气泡）))/Network(`ChainLogoMark` 16px 居中，`Tooltip` 悬停出链名——pf-asset-row 同款 `aria-label`+TooltipContent 先例)/Referred Address(缩略, `.ref-tx__mono`)/Time(`RelativeTime` 相对时间, `data-numeric` 右锚)**；参照实测对齐：文字列左锚、Time 右锚、图标列居中；`RelativeTime`=client 件（`relative-time.tsx`，RSC 传 now：服务端首帧即相对时间、水合零差异——「日期→相对」闪变已根除 2026-10-07；挂载后按客户端 Date.now() 重算，e2e 冻结时钟下确定，分钟粒度无定时器）；Friends（数据格统一数据字体 mono，2026-10-07 裁定）=Address(th, 纯文本缩略 `.ref-tx__mono` 无复制钮——CopyAddress 移除)/Joined/Volume/Earned（数字列 `data-numeric` 右对齐）；空态 `.empty-state`（tx 空带 explore ghost CTA） |
+| aria | 分区 SectionHeading `aria-labelledby`；KPI 带 `aria-label`；分账条 `role="img"` + 图例文本并行（不只靠颜色）；复制钮成功态文本可见 |
+| 响应式 | 统计簇 ≤54rem 2×2 十字 hairline；链接卡 ≤54rem v2 动作主角（标题→证据行（无框、完整 URL 含 scheme）→全宽黄 CTA；≥54rem 行布局+井内嵌图标钮，全宽时原文完整）；三步 ≥54rem 三列 hairline / 以下纵排；双签走共享 `.verse-tabs` 移动档两列单行（en 签 2026-10-07 用户裁定缩短 Transactions/Friends——卡头已供 Referral History 语境，原 Referral Transactions/Referred Friends 在半宽格 ≤375px 触碰/重叠，zh 短签不受影响）；双表 ≤49rem 横滚表格让位 `.pf-mrows` 台账行（决议 018 同构，2026-10-07：流水行=返佣额领衔+相对时间右锚/facts=被推荐·网络（链名常显）/txid 通栏；friends 行=地址+贡献额/facts=加入·交易量（ref-dim 降噪）；断点=ref-tx min 700px 实测契合边界 ≥788px——860 平板档保留表格、非 54rem 一刀切）；>49rem 表格 `.pf-table-wrap` 横滚（仅极窄桌面窗口出现） |
+
+
+## 33. UserDataGate（用户数据闸门 · 已落地 · 2026-10-08）
+
+| 方面 | 契约 |
+|---|---|
+| 用途 | 无用户参与态（2026-10-08 用户裁定）：mock 钱包未连接（真钱包接入前唯一「参与」信号，`useMockWallet`）时不渲染子树——数据卡片整体隐藏而非零值展示/空态占位；机制介绍类内容不归闸门管辖（referral 运作方式+分账条留在闸门外常显） |
+| 实现 | `components/global/user-data-gate.tsx`（client，`useMockWallet().connected` 三态）；与 PortfolioZoneTabs/ReferralHistory 同构：RSC 渲染的面板经 children 传入、本组件只切换显隐；SSR 与首帧客户端快照恒为未连接（无水合闪变），连接切换为纯客户端重渲染、零网络请求 |
+| 管辖范围 | Portfolio：KPI 带（pf-kpi）+ 净值 hero（pf-hero）+ 四分区 deck（PortfolioZoneTabs 整体，断连时页面只剩页头标题+副题——该页全部为数据卡，裁定后果已明示）；Referral：统计簇（ref-stats）+ 邀请链接（ref-link，用户专属短码随数据同隐）+ 待领（ref-pending）+ 历史（ref-history）。首页/发现/详情/创建页不接闸门 |
+| 登记 | 单测防线 `tests/unit/user-data-gate.test.ts`（SSR 断言卡面类名缺席/机制段在场）；e2e `*-disconnected` 基线条目锁默认态（数据泄漏回断连页面即基线红），`connectWallet` 旗标条目保持连接态全量基线覆盖 |
 
 ## 附：组件间通用交互契约
 
@@ -402,3 +426,14 @@
 - 所有异步动作：进行中可取消或明确不可取消；完成后 toast + 内联状态双通道。
 - 复制：`navigator.clipboard` + 成功 toast「Copied」+ 失败回退选中文案。
 - 地址/hash/symbol/长文本：截断规则统一（`0x1234…abcd`），悬停完整值（title）+复制按钮。
+
+## TokenIconMark（uAsset 代币图标，2026-10-07 定稿）
+
+| 方面 | 契约 |
+|---|---|
+| 用途 | 代币资产身份图标：uAsset 族（UUSD/UETH/UBNB，含 Credit 前缀匹配）=品牌章；储备/原生（BNB/ETH/USDC/USDT）=官方**代币**图标（CoinGecko/Trust Wallet 代币资产源，全部落 `public/tokens/`；ETH=蓝圆白菱代币图标，勿用 `public/chains/` 灰阶链徽——链徽归链属语义，2026-10-07 用户纠错；第三方资产不套品牌章）；`components/global/token-icons.tsx`，`hasTokenIcon(symbol)` 谓词供混合列表降级判断 |
+| 制式 | v3.1 印章：黄地圆 `--logo-yellow` #FCEE0A + 品红字 `--logo-magenta-bright` #FF06B5，纯双色平涂、无边框角标渐变；几何=官方标轮廓追踪（ETH/BNB，`script/token-icons/extract-glyphs.py`）+ 对标调轻 $（UUSD 手绘）；构造/审计全记录 `docs/design/token-icons/README.md` |
+| 资产 | `public/tokens/<t>.svg`（512 viewBox 主形）+ `<t>-256.png`（Trust Wallet 上架格式，`script/token-icons/export-png.mjs` 透明底导出）；改几何走 `script/token-icons/build.mjs` 重跑，禁手改 SVG |
+| 接入位 | Portfolio 资产行 tile（20px，替代旧链徽/$ 文本占位——链徽只表达链属，2026-10-07 定稿换装）；Swap 选币器行（28px：uAsset=品牌章、BNB/ETH/USDC/USDT=官方图标，2026-10-07 用户指漏 BNB 后补；memecoin/POL/PT/YT 无图标品类保持二字文本徽章）；链徽仍归链分布行/跨链弹窗/Network 列（链属语义不变） |
+| 降级 | 未知 symbol 返回 null（谓词 false 时调用方渲染自身兜底，如选币器文本徽章）；无 alt（装饰性，aria-hidden 用法与 ChainLogoMark 同契约） |
+
