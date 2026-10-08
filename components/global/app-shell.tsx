@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { Compass, Home, Plus, UserRound, WalletCards } from 'lucide-react'
+import type { SVGProps } from 'react'
+import { Compass, Home, Users, WalletCards } from 'lucide-react'
 
 import { ChainSelectorDialog } from '@/components/global/chain-selector-dialog'
 
@@ -18,12 +19,21 @@ type ShellProps = {
   children: React.ReactNode
 }
 
+// Launch 位 ✨ 图标：gpt-image-2.5-sunburst 按用户参照图（三星群）生成的描边线稿，
+// 后处理清理星尘雾 + 描边加权至家族线宽（8%，见 components.md §5）。
+// span.nav-spark 用 CSS mask 吃 currentColor，随导航态变色，与 lucide 家族同行为。
+function LaunchSparkIcon({ className }: SVGProps<HTMLElement>) {
+  return <span className={className ? `nav-spark ${className}` : 'nav-spark'} aria-hidden="true" />
+}
+
 const navItems = [
   { key: 'home', href: '', icon: Home, available: true },
   { key: 'discover', href: '/memeverse/explore', icon: Compass, available: true },
-  { key: 'create', href: '/memeverse/launch', icon: Plus, available: true },
+  { key: 'create', href: '/memeverse/launch', icon: LaunchSparkIcon, available: true },
   { key: 'portfolio', href: '/portfolio', icon: WalletCards, available: true },
-  { key: 'account', href: '/account', icon: UserRound, available: false },
+  // referral（R-12，2026-10-07 用户裁定）：侧栏+移动底栏都进主导航，
+  // 底栏由「取前 4 项」改为「取全部可用项」（5 格）
+  { key: 'referral', href: '/referral', icon: Users, available: true },
 ] as const
 
 // current 的合法值直接取导航键表：两份清单无法漂移
@@ -76,6 +86,7 @@ function MarketingHeader({
           { href: '/memeverse/explore', label: copy.common.discover },
           { href: '/portfolio', label: copy.common.portfolio },
           { href: '/memeverse/launch', label: copy.common.create },
+          { href: '/referral', label: copy.common.referral },
         ].map((item, index) => (
           <Link className="marketing-nav__link" href={localePath(locale, item.href)} key={item.href}>
             {/* 终端索引序号（决议 024）：装饰性编号，aria-hidden 不进可访问名 */}
@@ -133,7 +144,8 @@ function ProductSidebar({ locale, current, accountAddress }: Omit<ShellProps, 'c
 
 function MobileNavigation({ locale, current }: { locale: Locale; current?: NavKey }) {
   const copy = getCopy(locale)
-  const items = navItems.slice(0, 4)
+  // 全部可用项（5 格，2026-10-07 随 referral 入导航裁定）；禁用占位项不上底栏
+  const items = navItems.filter((item) => item.available)
   return (
     <nav className="mobile-navigation" aria-label="Mobile primary">
       {items.map((item) => {

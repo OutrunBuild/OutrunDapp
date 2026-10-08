@@ -2155,6 +2155,17 @@ svg {
   block-size: var(--text-md);
 }
 
+/* Launch ✨ 描边位图：mask 吃 currentColor 随导航态变色（与 lucide 家族同行为）。
+   盒子按 1.2× 槽位放大（2026-10-08 用户拍板「大一点点」）：PNG 自带 10% 边距，
+   放大后可见星群 ≈ 槽位 96%，比描边兄弟可见字形大 一档，槽位布局不受挤 */
+.nav-spark {
+  display: inline-block;
+  inline-size: calc(var(--text-md) * 1.2);
+  block-size: calc(var(--text-md) * 1.2);
+  background-color: currentColor;
+  mask: url('/nav/launch-sparkles.png') center / contain no-repeat;
+}
+
 .product-nav__item[data-active='true'] {
   border-inline-start: 2px solid var(--accent-primary);
   background: var(--color-surface-raised);
@@ -8171,7 +8182,8 @@ svg {
     inset-inline: 0;
     inset-block-end: 0;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    /* 5 格（2026-10-07 referral 入导航）：全部可用项上底栏 */
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     min-block-size: calc(var(--space-8) + env(safe-area-inset-bottom));
     padding-block-end: env(safe-area-inset-bottom);
     border-block-start: 1px solid var(--color-border-strong);
