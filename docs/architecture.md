@@ -21,7 +21,7 @@ meta:
 
 ## 主路径摘要
 
-原型用 v0 Plus 与仓库设计 Skills 生成覆盖 11 条路由、双语响应式、全状态的 Next.js 原型，验收前不进入业务开发。栈为 Next.js 16、React 19、TypeScript、Tailwind CSS、shadcn/ui、next-intl、TanStack Query、wagmi 3、viem、Privy 和 Kernel V3.3。Privy 接入 embedded EOA 及 MetaMask、OKX Wallet、Coinbase Wallet、WalletConnect 外部 EOA。Memeverse 写操作由 EOA 发送 EIP-7702 Type-4，在 Kernel 中原子执行 `approval? → beginAccountSession → Router → endAccountSession`；gas 由用户支付。数据走直接 RPC 与六链 The Graph，ABI 从固定合约 commit 冻结；测试含 Vitest、Playwright、Anvil fork 和测试网，部署 Vercel，监控 Sentry。
+原型用 v0 Plus 与仓库设计 Skills 生成覆盖 11 条路由、双语响应式、全状态的 Next.js 原型，验收前不进入业务开发。栈为 Next.js 16、React 19、TypeScript、Tailwind CSS、shadcn/ui、TanStack Query、wagmi 3、viem、Privy 和 Kernel V3.3。Privy 接入 embedded EOA 及 MetaMask、OKX Wallet、Coinbase Wallet、WalletConnect 外部 EOA。Memeverse 写操作由 EOA 发送 EIP-7702 Type-4，在 Kernel 中原子执行 `approval? → beginAccountSession → Router → endAccountSession`；gas 由用户支付。数据走直接 RPC 与六链 The Graph，ABI 从固定合约 commit 冻结；测试含 Vitest、Playwright、Anvil fork 和测试网，部署 Vercel，监控 Sentry。
 
 ## 1. 产品目标、术语与阶段门
 
@@ -100,7 +100,6 @@ Outrun DApp 提供 Memeverse 与 OutStake 的完整用户功能、全部核心�
 | Components                           | shadcn/ui                          | 4.19.0                             | 可访问性基础组件，源码归仓库                                                                                                                                     |
 | Icons                                | lucide-react                       | 1.37.0                             | 统一图标系统                                                                                                                                                     |
 | Charting                             | lightweight-charts                 | 5.2.1                              | Verse 详情页 K 线交易台（candle-chart），客户端渲染不进 RSC 树                                                                                                    |
-| i18n                                 | next-intl                          | 4.14.1                             | App Router 中英文路由与消息格式化                                                                                                                                |
 | Async state                          | TanStack Query                     | 5.102.8                            | RPC、GraphQL、交易和缓存状态                                                                                                                                     |
 | Validation                           | Zod                                | 4.5.4                              | 配置、部署 manifest、表单和 API 边界校验                                                                                                                         |
 | Ethereum state                       | wagmi                              | 3.7.7                              | 钱包连接、账户、网络和 React 链状态                                                                                                                              |
@@ -572,7 +571,6 @@ Sentry 中的钱包地址默认哈希化；只有用户主动复制或进入区�
 - shadcn `4.19.0`：[release](https://github.com/shadcn-ui/ui/releases/tag/shadcn%404.19.0)。
 - lucide-react `1.37.0`：[npm](https://www.npmjs.com/package/lucide-react/v/1.37.0)、[repository](https://github.com/lucide-icons/lucide)。
 - lightweight-charts `5.2.1`：[npm](https://www.npmjs.com/package/lightweight-charts/v/5.2.1)、[repository](https://github.com/tradingview/lightweight-charts)。
-- next-intl `4.14.1`：[release](https://github.com/amannn/next-intl/releases/tag/v4.14.1)。
 - TanStack Query `5.102.8`：[npm](https://www.npmjs.com/package/@tanstack/react-query/v/5.102.8)、[repository](https://github.com/TanStack/query)。
 - Zod `4.5.4`：[npm](https://www.npmjs.com/package/zod/v/4.5.4)、[repository](https://github.com/colinhacks/zod)。
 - wagmi `3.7.7`：[release](https://github.com/wevm/wagmi/releases/tag/wagmi%403.7.7)。
@@ -640,7 +638,15 @@ Sentry 中的钱包地址默认哈希化；只有用户主动复制或进入区�
 
 用户裁决（会话内拍板「A，按最佳实践，能保留的尽量保留」）：语言切换零副作用——切换 locale 不重置任何会话内状态。外部 URL 语义不变（2026-09-22 方案 C：zh 带 `/zh` 前缀、en 无前缀、`/` 依 cookie 307、旧地址 307 收敛）；本节只登记内部实现事实：
 
-- locale 路由内部统一（`proxy.ts`）：`/zh/**` 与无前缀形态一律内部 rewrite 到 `/en/**` 路由树（`[locale]` 段内部恒为 `en`），跨语言客户端软导航命中同键段缓存、页面树不重挂载（组件 state 全保）。展示语言由 proxy 写入 `x-locale` 请求头下传；生产环境 rewrite 目标会二次进入 proxy，首跳已写入的 `x-locale` 不得覆写（en 分支带已设跳过守卫）。
+- locale 路由内部统一（`proxy.ts`）：`/zh/**` 与无前缀形态一律内部 rewrite 到 `/en/**` 路由树（`[locale]` 段内部恒为 `en`），跨语言客户端软导航命中同键段缓存、页面树不重挂载（组件 state 全保）。展示语言由 proxy 写入 `x-locale` 请求头下传。（原登记「生产环境 rewrite 目标会二次进入 proxy，首跳 `x-locale` 不得覆写、en 分支带已设跳过守卫」——2026-10-08 实证该重入不成立、守卫系死代码，已删，见 §23。）
 - 页面渲染语言改从 `lib/locale.ts getDisplayLocale()`（读 `x-locale`，缺失回退 `en`）取得，不再读 `params.locale`；7 个页面与 home `generateMetadata` 同步切换。
 - 语言切换导航（`components/global/locale-menu.tsx`）：软导航 `router.push` 后紧跟 `router.refresh()` 强制应用新语言载荷（路由树两侧同键时 push 拿不到新载荷——这是统一内部树的代价，refresh 保留组件 state）；popstate 对账（URL 前缀 vs 壳层 `lang` 不一致则 refresh）修正返回/前进的语言错配。首页例外走整页跳转：`/` 依 cookie 307，push+refresh 与预取缓存交错会漂到内部 canonical `/en`，首页无会话内状态可保，取确定性。对端链接在菜单挂载时预取（消除下拉初开即点的预取竞速整页刷新回退）；首页对端 href（`/`、`/zh`）不预取（307 跟随会污染预取缓存）。
 - 事实依据（2026-09-26 生产预览实测）：跨 `[locale]` 段值变化的软导航必然重挂载页面子树（Next.js App Router 客户端缓存按段值索引），为本次修订前「切语言重置全站状态」的根因；模块级状态（如 `mock-wallet`）不受影响，故钱包在软导航下存活。
+
+## 23. 架构修订记录（2026-10-08）
+
+x-locale 头伪造面封堵与「rewrite 二次进入」实证修正（P0-1 裁决→修复→fix-review 全链，护栏 `tests/unit/proxy-locale.test.ts`）：
+
+- **rewrite 不二次进入 proxy（实证推翻 §22 原登记）**：生产构建（Next 16.3.3，`NEXT_DIST_DIR` 隔离插桩）实测每次外部请求 proxy 恰调用一次——`/zh` 单次调用即渲染中文，rewrite 修改头经 `x-middleware-request-*` 机制直达渲染，不重跑 middleware。原 `/en` 分支「已设跳过守卫」对内部流程系死代码，已删。
+- **无前缀分支无条件写 `x-locale: en`**：原条件写入把客户端预置头当内部首跳信号，伪造 `x-locale: zh` 直访 canonical URL 渲染中文（实测复现），违反「URL 前缀仍是语言唯一真源」；内部 rewrite 目标恒为 `/en/**` 不会命中该分支，无条件覆写对合法流零影响。
+- **旧 `/en/**` 直达 307 收敛到无前缀**（原「暂保持可达」提前收敛）：该分支只剩外部请求，`/en/**` → 剥前缀 307（query 保真；原型期 307 与 LEGACY_PATHS 同口径防浏览器缓存，上线换 301）。伪造头直达渲染面随入口消失而封死；站内无 `/en` 链接、e2e 无 `/en` 用例，零存量依赖。

@@ -3,7 +3,7 @@
 // fixture 数据源（阶段 2 步骤 10 建立；阶段 3 检查 v0/create-next-app 导出物必须复用本检查器）。
 // 基础阶段（无 app/）允许 deferred-to-stage-3，不把缺失应用代码误报为通过。
 import { readFileSync, existsSync } from 'node:fs';
-import { argv, exit } from 'node:process';
+import { exit } from 'node:process';
 
 const problems = [];
 const deferred = [];
@@ -41,7 +41,6 @@ const ALLOWLIST = {
     react: '19.2.8',
     'react-dom': '19.2.8',
     'lucide-react': '1.37.0',
-    'next-intl': '4.14.1',
     '@tanstack/react-query': '5.102.8',
     // shadcn/ui 4.19.0 生态运行时件（§3 批准的组件体系依赖）
     '@base-ui/react': '1.5.0',
