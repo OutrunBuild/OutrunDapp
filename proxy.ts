@@ -71,19 +71,23 @@ function localeRouting(request: NextRequest, requestHeaders: Headers): NextRespo
     return NextResponse.rewrite(target, { request: { headers: requestHeaders } });
   }
 
-  // 旧 /en/** 地址暂保持可达，上线前补 301 收敛
+  // 旧 /en/** 地址收敛到 canonical 无前缀（2026-10-08 生产插桩实证：rewrite
+  // 不二次进入 proxy、该分支只剩外部直达请求，原「暂保持可达」提前收敛）。
+  // 307 与 LEGACY_PATHS 同口径（原型期防浏览器缓存），上线换 301；
+  // 伪造 x-locale 直达面随入口消失而封死。
   if (pathname === '/en' || pathname.startsWith('/en/')) {
-    // 生产环境 rewrite 目标会二次进入 proxy：首跳已写入的 x-locale（zh）不得覆写
-    if (!requestHeaders.get('x-locale')) requestHeaders.set('x-locale', 'en');
-    return null;
+    const rest = pathname === '/en' ? '/' : pathname.slice(3);
+    return NextResponse.redirect(new URL(`${rest}${search}`, request.url), 307);
   }
 
   if (pathname === '/' && request.cookies.get(LOCALE_COOKIE)?.value === 'zh') {
     return NextResponse.redirect(new URL(`/zh${search}`, request.url));
   }
 
-  // 其余页面路径 = 英文内容：内部 rewrite 到 /en/**，URL 栏保持无前缀
-  if (!requestHeaders.get('x-locale')) requestHeaders.set('x-locale', 'en');
+  // 其余页面路径 = 英文内容：内部 rewrite 到 /en/**，URL 栏保持无前缀。
+  // 无条件覆写：客户端预置的 x-locale 不得冒充内部首跳信号（内部 rewrite
+  // 目标恒为 /en/**，不会重入本分支；首跳 zh 的保护见上 /en 分支守卫）。
+  requestHeaders.set('x-locale', 'en');
   const target = new URL(`/en${pathname === '/' ? '' : pathname}${search}`, request.url);
   return NextResponse.rewrite(target, { request: { headers: requestHeaders } });
 }
