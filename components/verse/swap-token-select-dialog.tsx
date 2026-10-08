@@ -6,6 +6,7 @@ import { ChevronDown, Search, X } from 'lucide-react'
 import type { Locale } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
+import { TokenIconMark, hasTokenIcon } from '../global/token-icons'
 import { formatAmount } from '../global/signal-ui'
 import {
   Dialog,
@@ -127,9 +128,13 @@ export function SwapTokenSelectDialog({
                     />
                   }
                 >
-                  <span className="token-select__badge" aria-hidden="true">
-                    {badgeOf(option.symbol)}
-                  </span>
+                  {hasTokenIcon(option.symbol) ? (
+                    <TokenIconMark symbol={option.symbol} size={28} aria-hidden="true" />
+                  ) : (
+                    <span className="token-select__badge" aria-hidden="true">
+                      {badgeOf(option.symbol)}
+                    </span>
+                  )}
                   <span className="token-select__id">
                     <strong>{option.symbol}</strong>
                     <span>{option.name}</span>

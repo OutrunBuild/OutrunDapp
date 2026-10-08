@@ -9426,13 +9426,6 @@ button.pf-action__link {
 
 /* 无链属资产的记号字形（UUSD 族=美元符号）：字号对齐 20px 徽标框；--color-text
    提到与彩色链徽同存在感（2026-10-04 用户裁定优化） */
-.pf-asset-row__tile-glyph {
-  color: var(--color-text);
-  font-family: var(--font-data);
-  font-size: var(--text-lg);
-  line-height: 1;
-}
-
 .pf-asset-row__id {
   display: grid;
   gap: var(--space-1);

@@ -9,6 +9,7 @@ import type { FixturePsmPair, FixtureWalletAsset, Locale } from '@/lib/data/fixt
 
 import { getCopy } from '../global/copy'
 import { ChainLogoMark } from '../global/chain-icons'
+import { TokenIconMark } from '../global/token-icons'
 import { formatAmount, formatMarketCap, SectionHeading } from '../global/signal-ui'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 import { AssetActionsSheet, BridgeDialog, ConvertDialog } from './portfolio-dialogs'
@@ -63,23 +64,11 @@ function AssetRow({
 
   return (
     <li className="pf-asset-row" data-kind={asset.kind}>
-      {/* UUSD 族无单一链属（多链发行），链徽会误读成 ETH——用美元记号字形当资产标识。
-          链徽悬停气泡=链名（2026-10-04 用户裁定，仓位表同款） */}
+      {/* 资产身份=代币图标（2026-10-07 定稿 v3.1 印章制式；旧方案链徽/UUSD'$'字形占位
+          已废——链徽只表达链属不表达资产）。链徽仍在下方链分布行（悬停=链名，
+          2026-10-04 用户裁定） */}
       <span className="pf-asset-row__tile">
-        {asset.symbol.startsWith('UUSD') ? (
-          <span className="pf-asset-row__tile-glyph" aria-hidden="true">
-            $
-          </span>
-        ) : asset.chains[0] ? (
-          <Tooltip>
-            <TooltipTrigger aria-label={asset.chains[0].chainName} className="pf-asset-row__icon-trigger">
-              <ChainLogoMark chainId={asset.chains[0].chainId} size={20} />
-            </TooltipTrigger>
-            <TooltipContent>{asset.chains[0].chainName}</TooltipContent>
-          </Tooltip>
-        ) : (
-          <ChainLogoMark chainId={1} size={20} aria-hidden="true" />
-        )}
+        <TokenIconMark symbol={asset.symbol} size={20} aria-hidden="true" />
       </span>
       <div className="pf-asset-row__id">
         <strong>{asset.symbol}</strong>
