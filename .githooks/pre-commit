@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# 快门：对 staged blob（git show :file，非工作树版本）跑 prettier --check 与 eslint。
+# 检查 staged 内容本身——staged 与工作树错位（stage 后工作树又被改/又被格式化）不产生假拦或假放。
+# prettier 域 = staged ∩ 非 .prettierignore：components/fixtures/docs 按仓库「字节冻结优先」裁定在域外，
+# 跳过并公示清单；eslint 走 --stdin --stdin-filename，文件名必须用仓库相对路径（绝对路径会找不到 flat config）。
+# 只查 staged——并行会话与未暂存改动不得令本次 commit 失败（同 Memeverse/OutStake 的 .githooks 约定）。
+# 挂载：git config core.hooksPath .githooks（本仓 .git/config 已设，全局 ~/.gitconfig 亦指向同路径）。
+# 重门（typecheck/test/三 checker）在 pre-push；紧急绕过 = git commit --no-verify，事后补跑：
+#   pnpm typecheck && pnpm lint && pnpm format:check && pnpm test \
+#     && pnpm check:design && pnpm check:contrast && node scripts/check-architecture-compliance.mjs
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+mapfile -t staged < <(git diff --cached --name-only --diff-filter=ACMR)
+if [ "${#staged[@]}" -eq 0 ]; then
+  exit 0
+fi
+
+skipped=()
+eslint_targets=()
+for f in "${staged[@]}"; do
+  in_prettier_domain=0 in_eslint_domain=0
+  case "$f" in
+    *.ts|*.tsx|*.js|*.jsx|*.mts|*.cts|*.mjs|*.cjs|*.json|*.css|*.md|*.yml|*.yaml) in_prettier_domain=1 ;;
+  esac
+  case "$f" in
+    *.ts|*.tsx|*.js|*.jsx|*.mts|*.cts|*.mjs|*.cjs) in_eslint_domain=1 ;;
+  esac
+  if [ "$in_prettier_domain" = 0 ] && [ "$in_eslint_domain" = 0 ]; then
+    continue
+  fi
+
+  if [ "$in_prettier_domain" = 1 ]; then
+    if pnpm exec prettier --file-info "$f" | grep -q '"ignored"[[:space:]]*:[[:space:]]*true'; then
+      skipped+=("$f")
+    elif ! git show :"$f" | pnpm exec prettier --check --stdin-filepath "$f"; then
+      echo "pre-commit: staged 内容未过 prettier：$f（格式化后重新 git add）" >&2
+      exit 1
+    fi
+  fi
+
+  if [ "$in_eslint_domain" = 1 ]; then
+    eslint_targets+=("$f")
+  fi
+done
+
+if [ "${#skipped[@]}" -gt 0 ]; then
+  echo "pre-commit: prettier 域外跳过（.prettierignore 字节冻结裁定）：${skipped[*]}" >&2
+fi
+
+for f in "${eslint_targets[@]}"; do
+  if ! git show :"$f" | pnpm exec eslint --stdin --stdin-filename "$f"; then
+    echo "pre-commit: staged 内容未过 eslint：$f（修复后重新 git add）" >&2
+    exit 1
+  fi
+done

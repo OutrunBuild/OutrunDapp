@@ -1,0 +1,24 @@
+# 最小 CI：docs/architecture.md §12 裁定范围的先导子集（typecheck/lint/format/vitest 全量，
+# vitest 内含 fixture-boundary 与设计裸值/对比度/架构合规三 checker）；生产构建、Playwright、
+# ABI/manifest 校验随完整 §12 合规轮补齐。闸门口径与 .githooks/pre-push 保持一致。
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - run: corepack enable
+      - run: node scripts/check-runtime.mjs --strict
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm test
