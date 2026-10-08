@@ -1,13 +1,15 @@
 /**
- * ④参与凭证区（服务端组件；RSC）：阶段分组面板 + 行式清单（2026-10-05 用户裁定重做：
+ * ④已参与区（服务端组件；RSC）：阶段分组面板 + 行式清单（2026-10-05 用户裁定重做：
  * 字母表头数字矩阵「不是产品 UI」——行改资产行同款 ledger 节奏：tile 视觉锚 / 身份 +
  * 构成行（单位行内嵌「15.25K POL」、零值省略）/ 右缘主数字 + 日期副行 / 行尾动作；
  * 可领绿数=持仓行主数字，锁定行副行=预计解锁日（创世截止+365d 固定锁期，
- * MemeverseRegistrationLib.sol:14 合约常量）。可领筛选走 URL 状态（?claimable=1，
- * 发现页 ?stage= 同款模式：链接可分享、可后退、零客户端态）；操作出口深链 verse
- * 详情（PD-02 出口规则：跨 Verse 领取类深链对应 Verse）。
+ * MemeverseRegistrationLib.sol:14 合约常量）。可领筛选=组件内客户端态按钮（2026-10-08
+ * 用户裁定：?claimable=1 URL 导航整页刷新被否，同仓位链筛选先例 positions-zone）；
+ * 操作出口深链 verse 详情（PD-02 出口规则：跨 Verse 领取类深链对应 Verse）。
  */
+'use client'
 import Link from 'next/link'
+import { useState } from 'react'
 
 import type { FixtureVoucherRow, Locale, VerseStage } from '@/lib/data/fixture-repository'
 
@@ -67,7 +69,7 @@ function VoucherRow({ locale, row }: { locale: Locale; row: FixtureVoucherRow })
       </span>
     ) : null
 
-  // 构成行：创世=截止日；持仓=凭证构成
+  // 构成行：创世=截止日；持仓=POL/PT/YT 构成
   const makeup =
     row.holdings != null ? (
       <MakeupLine locale={locale} holdings={row.holdings} />
@@ -116,40 +118,32 @@ function VoucherRow({ locale, row }: { locale: Locale; row: FixtureVoucherRow })
   )
 }
 
-export function VouchersZone({
-  locale,
-  rows,
-  claimableOnly,
-  claimableCount,
-}: {
-  locale: Locale
-  rows: FixtureVoucherRow[]
-  /** ?claimable=1 → 仅显示 claimableYt>0 的持仓行 */
-  claimableOnly: boolean
-  claimableCount: number
-}) {
+export function VouchersZone({ locale, rows }: { locale: Locale; rows: FixtureVoucherRow[] }) {
   const copy = getCopy(locale).portfolio.vouchers
-  const baseHref = localePath(locale, '/portfolio')
+  const [claimableOnly, setClaimableOnly] = useState(false)
+  const claimableCount = rows.filter((row) => (row.holdings?.claimableYt ?? 0) > 0).length
   const visible = claimableOnly
     ? rows.filter((row) => (row.holdings?.claimableYt ?? 0) > 0)
     : rows
 
   const filterToggle = claimableCount > 0 && (
     <nav className="pf-vouchers__filter" aria-label={copy.filterClaimable}>
-      <a
-        href={baseHref}
-        aria-current={claimableOnly ? undefined : 'page'}
+      <button
+        type="button"
+        aria-pressed={!claimableOnly}
         data-selected={!claimableOnly || undefined}
+        onClick={() => setClaimableOnly(false)}
       >
         {copy.filterAll}
-      </a>
-      <a
-        href={`${baseHref}?claimable=1`}
-        aria-current={claimableOnly ? 'page' : undefined}
+      </button>
+      <button
+        type="button"
+        aria-pressed={claimableOnly}
         data-selected={claimableOnly || undefined}
+        onClick={() => setClaimableOnly(true)}
       >
         {`${copy.filterClaimable} (${claimableCount})`}
-      </a>
+      </button>
     </nav>
   )
 

@@ -1,10 +1,11 @@
 'use client'
 
 /**
- * 移动端分区页签 deck（决议 018）：≤54rem 顶栏下吸顶四分段（待办/资产/仓位/凭证），
+ * 移动端分区页签 deck（决议 018）：≤54rem 顶栏下吸顶四分段（待办/资产/仓位/已参与），
  * 一次只显示一个分区；KPI 信号带在窄视口让位页签角标（「摘要即导航」语义不变，
- * 计数随页签常驻可视）。桌面 ≥54rem：页签条 display:none、四分区按 017 三组
- * 节奏序贯全显——deck 只做布局包装，DOM 层级多一层透明块，视觉零变化。
+ * 计数随页签常驻可视）。桌面 ≥54rem：页签条 display:none、四分区序贯全显
+ * （间距统一节奏 2026-10-08 用户裁定，见 globals.css）——deck 只做布局包装，
+ * DOM 层级多一层透明块，视觉零变化。
  * 全部分区常驻 DOM（RSC 直出），无 JS 时不隐藏任何分区（优雅降级）；
  * #pf-* 页内锚点（金库 signpost 卡 CTA 等）目标可能在隐藏分区——无盒模型
  * 原生锚点滚不动，由 deck 接管为换区 + 滚动到位。
@@ -116,8 +117,8 @@ export function PortfolioZoneTabs({
       <div data-zone-wrap="money" className="pf-zone-group">
         {children.money}
       </div>
-      {/* 仓位/凭证同属桌面第三组（017 三组节奏），移动端各占一页签——外层组保留，
-          内层 sub 网格间隙与组内 gap 同档，桌面间距不变 */}
+      {/* 仓位/已参与同属桌面尾组，移动端各占一页签——外层组保留，
+          内层 sub 网格间隙与组 gap 同档（按断点取档，见 globals.css） */}
       <div className="pf-zone-group pf-deck__tail">
         <div data-zone-wrap="positions" className="pf-zone-sub">
           {children.positions}

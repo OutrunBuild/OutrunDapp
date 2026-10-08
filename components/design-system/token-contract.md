@@ -12,7 +12,7 @@
 | 字标 | 004 | brand/ 包唯一基准；字标 ≥96px 宽，<150px 用 symbol；浅底 mono；禁改色/拉伸/裁切 |
 | 方向与去极客 | 001 + 001-A | 等宽仅数据字段；无 KERNEL/DELEGATED 等符号；文案消费化 |
 | 复古未来主义签名层 | 010（r10 提取） | HUD 网格（44/22px 青线）/品红回声轨（-72px 位移回声）/CRT 扫描线/信号脉冲 1.4s/斜切三档（≤8/10/12px）/glow 分层开关 `[data-glow=on]`/卡片青 tinted chrome/字体身份（Saira Condensed+IBM Plex Sans/Mono） |
-| 字阶与间距新档 | 017（2026-10-05） | `--text-num-xl` 28px（hero 净值读数唯一消费位：组合页头）；`--space-9` 96px（页面级分区组间距，组间 > 组内承担分组识别）；KPI 计数档全站钉 `--text-md`（终结 pf-kpi 18 / verse 芯片 15 并存；**例外 2026-10-06 用户裁定**：Yield Vault 概览、DAO 概览+周期卡 dd 18→16 稍缩小，与各自移动档 hairline 行 dd 16 归一——globals.css 共享 KPI dd 规则后的 scoped 覆盖段） |
+| 字阶与间距新档 | 017（2026-10-05） | `--text-num-xl` 28px（hero 净值读数唯一消费位：组合页头）；`--space-9` 96px（页面级分区组间距，组间 > 组内承担分组识别；**2026-10-08 用户裁定组合页组距统一为 `--space-7`，本档退为保留、仅存宽度类消费位**）；KPI 计数档全站钉 `--text-md`（终结 pf-kpi 18 / verse 芯片 15 并存；**例外 2026-10-06 用户裁定**：Yield Vault 概览、DAO 概览+周期卡 dd 18→16 稍缩小，与各自移动档 hairline 行 dd 16 归一——globals.css 共享 KPI dd 规则后的 scoped 覆盖段） |
 
 ## 2. 使用边界（硬规则）
 

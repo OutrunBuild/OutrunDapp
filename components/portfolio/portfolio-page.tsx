@@ -16,6 +16,7 @@ import {
 import { OutrunShell } from '../global/app-shell'
 import { getCopy } from '../global/copy'
 import { formatAmount } from '../global/signal-ui'
+import { UserDataGate } from '../global/user-data-gate'
 import { ActionZone } from './action-zone'
 import { AssetsZone, type AssetRowView } from './assets-zone'
 import { PortfolioZoneTabs } from './portfolio-zone-tabs'
@@ -25,18 +26,14 @@ import { VouchersZone } from './vouchers-zone'
 /**
  * /portfolio（2026-10-02 四分区裁定）：①待办（只收逾期有后果项，同类聚合）②资产与跨链
  * （余额按链分布 + 跨链/1:1 转换/存入储蓄弹窗）③仓位与储蓄（CDP 质押仓位 + USR 储蓄卡 +
- * 收益库存单表）④参与凭证（阶段分组表 + 可领 URL 筛选）。信号状态行=页级签名（摘要
+ * 收益库存单表）④已参与（阶段分组表 + 可领客户端筛选）。信号状态行=页级签名（摘要
  * 即导航，锚点直达分区）；在途段已删（2026-10-04 裁定删在途卡），滞留段随待办卡锚①。
  * 2026-10-05 决议 017 质量轮：页头净值 hero（钱包+储蓄+金库待领样本折算 + 三段分配条）；
- * 三组节奏 行动→钱（资产+储蓄）→仓位（仓位+金库+凭证），组距 96px 明显大于组内。
+ * 2026-10-08 用户裁定分区间距统一：六分区全序列 space-7 48px（取代 017 三组节奏）。
+ * 2026-10-08 用户裁定无用户参与态：未连接时 KPI/净值 hero/四分区整体隐藏
+ * （UserDataGate，无数据的卡片不显示、不做零值占位），页面只剩页头标题+副题。
  */
-export function PortfolioPage({
-  locale,
-  claimable,
-}: {
-  locale: Locale
-  claimable?: string
-}) {
+export function PortfolioPage({ locale }: { locale: Locale }) {
   const snapshot = getFixtureSnapshot()
   const copy = getCopy(locale).portfolio
   const signals = getFixturePortfolioSignals()
@@ -54,7 +51,6 @@ export function PortfolioPage({
     if (asset.kind === 'uasset') uAssetBalances[asset.symbol] = asset.total
   }
   const reserveBalances = getFixtureReserveBalances()
-  const claimableOnly = claimable === '1'
 
   const signalItems = [
     { href: '#pf-actions', tone: 'warning', label: copy.signals.todo, value: signals.actionCount },
@@ -118,24 +114,27 @@ export function PortfolioPage({
             />
           </h1>
           <p>{copy.sub}</p>
-          <nav className="pf-kpi" aria-label={copy.signals.groupLabel}>
-            {signalItems.map((item) => (
-              <a
-                key={`${item.href}-${item.tone}`}
-                href={item.href}
-                data-tone={item.tone}
-                data-zero={item.value === 0 || undefined}
-              >
-                <span className="pf-kpi__label">
-                  <i aria-hidden="true" />
-                  {item.label}
-                </span>
-                <strong data-numeric>{item.value}</strong>
-              </a>
-            ))}
-          </nav>
+          <UserDataGate>
+            <nav className="pf-kpi" aria-label={copy.signals.groupLabel}>
+              {signalItems.map((item) => (
+                <a
+                  key={`${item.href}-${item.tone}`}
+                  href={item.href}
+                  data-tone={item.tone}
+                  data-zero={item.value === 0 || undefined}
+                >
+                  <span className="pf-kpi__label">
+                    <i aria-hidden="true" />
+                    {item.label}
+                  </span>
+                  <strong data-numeric>{item.value}</strong>
+                </a>
+              ))}
+            </nav>
+          </UserDataGate>
         </div>
-        <div className="pf-hero">
+        <UserDataGate>
+          <div className="pf-hero">
           <span className="pf-hero__label">{copy.totalLabel}</span>
           <strong className="pf-hero__value" data-numeric>
             ≈ ${formatAmount(totalUsd, locale)}
@@ -158,14 +157,16 @@ export function PortfolioPage({
                 </span>
               ))}
           </p>
-        </div>
+          </div>
+        </UserDataGate>
       </header>
 
       {/* 移动端分区页签 deck（决议 018）：≤54rem 吸顶四分段一次显一区、桌面零变化；
-          ?claimable=1 深链默认落凭证页签（KPI 带/锚点语义随页签承接） */}
-      <PortfolioZoneTabs
+          无用户参与时随四分区一起隐藏（2026-10-08 裁定） */}
+      <UserDataGate>
+        <PortfolioZoneTabs
         locale={locale}
-        initialZone={claimableOnly ? 'vouchers' : actions.length > 0 ? 'action' : 'money'}
+        initialZone={actions.length > 0 ? 'action' : 'money'}
         hasAction={actions.length > 0}
         badges={{ action: signals.actionCount, vouchers: signals.claimableVerses }}
       >
@@ -187,16 +188,10 @@ export function PortfolioPage({
               <VaultZone locale={locale} vaultRows={vaultRows} />
             </>
           ),
-          vouchers: (
-            <VouchersZone
-              locale={locale}
-              rows={getFixtureVoucherRows()}
-              claimableOnly={claimableOnly}
-              claimableCount={signals.claimableVerses}
-            />
-          ),
+          vouchers: <VouchersZone locale={locale} rows={getFixtureVoucherRows()} />,
         }}
-      </PortfolioZoneTabs>
+        </PortfolioZoneTabs>
+      </UserDataGate>
     </OutrunShell>
   )
 }

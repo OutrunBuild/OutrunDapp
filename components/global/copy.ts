@@ -1151,7 +1151,7 @@ const zh: typeof en = {
         action: '待办',
         money: '资产',
         positions: '仓位',
-        vouchers: '凭证',
+        vouchers: '已参与',
       },
       totalLabel: '流动资产',
       legendWallet: '钱包',
@@ -1246,7 +1246,7 @@ const zh: typeof en = {
         stakeCta: '去质押',
       },
       vouchers: {
-        title: '参与凭证',
+        title: '已参与',
         sub: '你的创世参与——解锁后就是 POL/PT/YT 余额。',
         filterAll: '全部',
         filterClaimable: '可领',

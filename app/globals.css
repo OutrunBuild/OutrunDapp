@@ -9002,22 +9002,21 @@ svg {
   box-shadow: inset 2px 0 0 var(--or-cyan);
 }
 
-/* ①待办区：悬浮警报卡（不上容器——紧急内容直接在画布上），截止色阶走左缘色条。
-   017 三组节奏：行动组紧贴页头（space-7），钱/仓位两组走 .pf-zone-group（space-9 组距） */
+/* ①待办区：悬浮警报卡（不上容器——紧急内容直接在画布上），截止色阶走左缘色条 */
 .pf-actions {
   margin-block-start: var(--space-7);
 }
 
-/* 页面级分区组（017）：组间 96px 明显大于组内 48px——留白分配不均承担分组识别 */
+/* 分区组间距（2026-10-08 用户裁定「每个部分之间的间距应该统一一致」，取代 017 三组节奏）：
+   六分区全序列统一 space-7 48px——页头→①→②→③→④无组间/组内之分 */
 .pf-zone-group {
   display: grid;
   gap: var(--space-7);
-  margin-block-start: var(--space-9);
+  margin-block-start: var(--space-7);
 }
 
 /* —— 移动端分区页签 deck（决议 018）：桌面态=透明布局层 ——
-   页签条隐藏、四分区按 017 三组节奏序贯全显；sub=第三组内的两个移动分区，
-   间隙与组内 gap 同档，桌面组距不变。 */
+   页签条隐藏、四分区序贯全显；sub=尾组内的两个移动分区，间隙与组 gap 同档 */
 .pf-zone-sub {
   display: grid;
   gap: var(--space-7);
@@ -9963,7 +9962,7 @@ button.pf-action__link {
 
 .pf-positions__filter a,
 .pf-positions__filter button,
-.pf-vouchers__filter a {
+.pf-vouchers__filter button {
   padding: var(--space-1) var(--space-3);
   color: var(--color-text-secondary);
   font-size: var(--text-sm);
@@ -9971,8 +9970,9 @@ button.pf-action__link {
   white-space: nowrap;
 }
 
-/* 仓位筛选=客户端态按钮（URL 导航整页刷新被否）：重置按钮默认皮 */
-.pf-positions__filter button {
+/* 仓位/凭证筛选=客户端态按钮（URL 导航整页刷新被否）：重置按钮默认皮 */
+.pf-positions__filter button,
+.pf-vouchers__filter button {
   border: none;
   background: none;
   font-family: inherit;
@@ -9981,7 +9981,7 @@ button.pf-action__link {
 
 .pf-positions__filter a[data-selected],
 .pf-positions__filter button[data-selected],
-.pf-vouchers__filter a[data-selected] {
+.pf-vouchers__filter button[data-selected] {
   background: color-mix(in srgb, var(--or-cyan) 10%, transparent);
   color: var(--or-cyan);
 }
@@ -10310,7 +10310,7 @@ button.pf-action__link {
     display: grid;
   }
 
-  /* 仓位/凭证页签都未激活时第三组整组让位（空 grid 容器仍会占 96px 组距） */
+  /* 仓位/凭证页签都未激活时尾组整组让位（空 grid 容器仍会占 48px 组距） */
   .pf-deck[data-js]:not([data-zone='positions']):not([data-zone='vouchers']) .pf-deck__tail {
     display: none;
   }
@@ -10357,7 +10357,12 @@ button.pf-action__link {
 
   .pf-zone-group {
     gap: var(--space-6);
-    margin-block-start: var(--space-8);
+    margin-block-start: var(--space-7);
+  }
+
+  /* 页签内兄弟分区间隙与组 gap 同档（≤54rem=32px）——间距统一节奏按断点取档 */
+  .pf-zone-sub {
+    gap: var(--space-6);
   }
 
   /* 资产行移动端=纯台账单线（决议 018 补充）：链分布数值让位链徽标、按钮让位
@@ -10423,7 +10428,10 @@ button.pf-action__link {
 @media (max-width: 30rem) {
   .pf-zone-group {
     gap: var(--space-5);
-    margin-block-start: var(--space-7);
+  }
+
+  .pf-zone-sub {
+    gap: var(--space-5);
   }
 
   .pf-actions__list {
@@ -10434,11 +10442,10 @@ button.pf-action__link {
     flex-wrap: wrap;
   }
 
-  /* 金库 signpost 卡 CTA 折行独占一行时居中（2026-10-05 用户裁定）：
-     auto margin 同行无自由空间可吸收=零影响，独行时吸收全部自由空间=居中——
-     保护窗卡底栏（KV+按钮同行）不受波及 */
+  /* 金库 signpost 卡 CTA 折行独占一行时平铺整卡（2026-10-08 用户裁定，
+     取代 018 补充 6 居中）——保护窗卡底栏（KV+按钮同行）不受波及 */
   .pf-action[data-kind='vault'] .pf-action__foot > :last-child {
-    margin-inline: auto;
+    inline-size: 100%;
   }
 
   /* 领取行折两行：身份+金额一行、动作换行回落左 */
