@@ -43,7 +43,7 @@ export function fmtTokenAmount(value: number, locale: Locale) {
 /** 单价下标切换阈值：小数点后前导零达到该数（价格 <10^-(N-1)）即切下标记零 */
 export const PRICE_SUBSCRIPT_ZERO_THRESHOLD = 4
 
-/** 代币单价（token-strip 价格唯一口径，决议 019 市场.toFixed(2) 法币惯例（$1.20）；
+/** 代币单价（token-strip 与蜡烛图图例价格唯一口径——决议 019，2026-10-08 扩域图例 OHLC/MA；市场.toFixed(2) 法币惯例（$1.20）；
  * <1 六位有效数字并裁尾随零（0.004200→0.0042）；
  * 前导零 ≥PRICE_SUBSCRIPT_ZERO_THRESHOLD 下标记零（0.0000042→0.0₅42，下标=前导零总数，学币安/Capital.com）。
  * 固定小数位在极小价会吃有效位（0.0000421.toFixed(6)=$0.000004），故按有效位而非小数位取数。
