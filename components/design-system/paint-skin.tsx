@@ -26,9 +26,22 @@ export function PaintSkin() {
     const paintCss = window.CSS as unknown as {
       paintWorklet?: { addModule(url: string): Promise<void> }
     }
-    paintCss.paintWorklet?.addModule('/paint/chamfer-border.js').catch((error: unknown) => {
-      console.error('[paint-skin] worklet 注册失败', error)
-    })
+    // 注册完成打标记：paint() 在 worklet 就位前光栅化为空（按钮只剩文字），
+    // e2e 视觉基线的 stabilize() 等此标记避免把「无描边」竞态写进基线（2026-10-07）；
+    // 不支持 worklet 的浏览器走 @supports CSS 回落，无需等待、直接标记
+    if (!paintCss.paintWorklet) {
+      root.dataset.paintReady = '1'
+      return () => mq.removeEventListener('change', onChange)
+    }
+    paintCss.paintWorklet.addModule('/paint/chamfer-border.js').then(
+      () => {
+        root.dataset.paintReady = '1'
+      },
+      (error: unknown) => {
+        console.error('[paint-skin] worklet 注册失败', error)
+        root.dataset.paintReady = '1'
+      },
+    )
 
     return () => mq.removeEventListener('change', onChange)
   }, [])

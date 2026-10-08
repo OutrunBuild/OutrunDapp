@@ -25,27 +25,39 @@ async function stabilize(page: Page) {
       '*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}',
   });
   await page.evaluate(() => document.fonts.ready);
+  // paint worklet 就位闸（2026-10-07）：注册前 paint() 光栅化为空（按钮无描边只剩文字），
+  // 曾把 zh 基线写坏；PaintSkin 注册完成打 html[data-paint-ready]。超时兜底吞掉
+  // （非 Chromium/装载失败走 CSS 回落时标记仍会置位，此闸只防竞态不判错）
+  await page.waitForSelector('html[data-paint-ready]', { timeout: 2000 }).catch(() => {});
   // K 线 canvas 与字体布局的收敛余量
   await page.waitForTimeout(300);
 }
 
-async function shoot(page: Page, name: string, path: string) {
+async function connectWallet(page: Page) {
+  // 产品壳仅 product-topbar 一处钱包钮（marketing-header 只在 home 壳）
+  const control = page.locator('.wallet-control');
+  await control.click();
+  await expect(control).toHaveAttribute('aria-pressed', 'true');
+}
+
+async function shoot(page: Page, name: string, path: string, connect = false) {
   const res = await page.goto(path, { waitUntil: 'networkidle' });
   expect(res?.status(), `${path} 应为 200`).toBe(200);
+  if (connect) await connectWallet(page);
   await stabilize(page);
   await expect(page).toHaveScreenshot(`${name}.png`, { fullPage: true });
 }
 
-for (const { name, path } of PAGES) {
+for (const { name, path, connectWallet } of PAGES) {
   test(`visual: ${name}`, async ({ page }) => {
-    await shoot(page, name, path);
+    await shoot(page, name, path, connectWallet === true);
   });
 }
 
 // zh 只锁移动端档（与 agent-workflow §3.2「/zh 移动端一张」口径一致）
-for (const { name, path } of ZH_PAGES) {
+for (const { name, path, connectWallet } of ZH_PAGES) {
   test(`visual: ${name}`, async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'mobile-390', 'zh 仅移动端档');
-    await shoot(page, name, path);
+    await shoot(page, name, path, connectWallet === true);
   });
 }

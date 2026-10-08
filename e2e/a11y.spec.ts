@@ -33,8 +33,14 @@ test('axe: 无新增 WCAG A/AA 违规（基线比对）', async ({ page }, testI
   const next: Baseline = {};
   const regressions: string[] = [];
 
-  for (const { name, path } of PAGES) {
+  for (const { name, path, connectWallet } of PAGES) {
     await page.goto(path, { waitUntil: 'networkidle' });
+    // connectWallet 条目扫连接态全量 DOM（与 visual 基线同口径）；*-disconnected 扫默认态
+    if (connectWallet) {
+      const control = page.locator('.wallet-control');
+      await control.click();
+      await expect(control).toHaveAttribute('aria-pressed', 'true');
+    }
     const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
     const found: Entry[] = results.violations.map((v) => ({
       id: v.id,
