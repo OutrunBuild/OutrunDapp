@@ -7993,6 +7993,11 @@ svg {
   .create-identity > .create-identity__logo {
     grid-row: auto;
   }
+
+  /* 单列档 logo 靶位独占一行，居中呈现（桌面三列档仍靠左与名称/Symbol 对排） */
+  .create-logo {
+    justify-content: center;
+  }
 }
 
 .workbench-secondary {
