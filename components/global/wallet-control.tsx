@@ -19,9 +19,10 @@ export function WalletControl({ locale, address }: { locale: Locale; address: st
   return (
     <Button
       type="button"
-      variant="outline"
       size="default"
-      className="wallet-control"
+      /* 皮肤=黄色幽灵主 CTA（2026-10-08 用户裁定：与首页 Explore Communities
+         同款 ax-ghost-cta；variant 随全站该范式走 default 档） */
+      className="wallet-control ax-ghost-cta"
       aria-pressed={connected}
       /* 极窄档（≤18.75rem）label span 被 CSS 隐藏转纯图标——aria-label 承接可访问名
          （display:none 文本不进 acc name；与可见文本同串，常规档零行为差异） */
