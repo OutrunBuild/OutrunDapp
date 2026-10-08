@@ -98,6 +98,9 @@ html {
   background: var(--color-bg);
   scroll-behavior: smooth;
   scroll-padding-block-start: calc(var(--space-8) + var(--space-2));
+  /* 视口级禁横向滚动必须挂 html：body 的 overflow-x 依赖「body→视口」传播机制，
+     iOS WebKit 该传播链路不可靠（固定定位元素在场时可被拖动），根元素值直达视口不经传播 */
+  overflow-x: clip;
 }
 
 body {
@@ -4530,9 +4533,12 @@ svg {
   block-size: auto;
 }
 
-/* symbol+name 同行（023 补充 14）：基线对齐，name 随 symbol 下缘齐平 */
+/* symbol+name 同行（023 补充 14）：基线对齐，name 随 symbol 下缘齐平；
+   flex-wrap 兜底：meta 列不足同行最小宽时 name 换到 symbol 下一行（卡内换行，
+   不许顶出卡缘）——460 档 meta=198px 已是 SWHL 级名字的零余量临界 */
 .verse-share-card__idrow {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: var(--space-3);
   min-inline-size: 0;
@@ -4575,6 +4581,53 @@ svg {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--accent-echo);
+}
+
+/* 移动端（≤30rem）重排＝媒体对象头：窄视口下「边长=右列高」的 thumb 机制把
+   meta 挤到不足 idrow 同行最小宽（390 实测 thumb 156px vs meta 96px），文本
+   顶穿卡缘。改网格：monogram 96px（=logo 宽，同宽对齐）左柱与 logo/idrow 并置，
+   desc/cta 通栏取整卡宽度；meta display:contents 升格为网格项（纯视口内行为，
+   桌面 460 档 flex 不受影响） */
+@media (max-width: 30rem) {
+  .verse-share-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      'thumb logo'
+      'thumb idrow'
+      'desc desc'
+      'cta cta';
+    column-gap: var(--space-4);
+    row-gap: var(--space-2);
+    align-items: center;
+  }
+
+  .verse-share-card__meta {
+    display: contents;
+  }
+
+  .verse-share-card__thumb {
+    grid-area: thumb;
+    /* 压基础 stretch：idrow 换行走两行时右柱高过 96px，不压会拉成竖矩形 */
+    align-self: center;
+    inline-size: var(--space-9);
+  }
+
+  .verse-share-card__logo {
+    grid-area: logo;
+  }
+
+  .verse-share-card__idrow {
+    grid-area: idrow;
+  }
+
+  .verse-share-card__desc {
+    grid-area: desc;
+  }
+
+  .verse-share-card__cta {
+    grid-area: cta;
+  }
 }
 
 /* 壳层环境灯（023 补充 13 终态·推倒重做，撤 11/12 补丁洗）：整弹窗只此一处
@@ -4922,7 +4975,7 @@ svg {
   position: absolute;
   inset-inline: 0;
   bottom: -1px;
-  block-size: 3px;
+  block-size: 2px;
   background: var(--accent-primary);
 }
 
