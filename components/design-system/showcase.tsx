@@ -1,13 +1,13 @@
 import Link from 'next/link'
 
-import type { Locale, VerseStage } from '@/lib/data/fixture-repository'
+import type { Locale, VerseStage } from '@/lib/data/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
-import { OutrunShell } from '@/components/global/app-shell'
-import { getCopy } from '@/components/global/copy'
-import { localePath } from '@/components/global/routes'
-import { ProgressMeter, SectionHeading, StageBadge } from '@/components/global/signal-ui'
+import { OutrunShell } from '../global/app-shell'
+import { getCopy } from '../global/copy'
+import { localePath } from '../global/routes'
+import { ProgressMeter, SectionHeading, StageBadge } from '../global/signal-ui'
 
 const STAGES: readonly VerseStage[] = ['genesis', 'locked', 'unlocked', 'refund']
 

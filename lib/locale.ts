@@ -1,6 +1,6 @@
 import { headers } from 'next/headers';
 
-import type { Locale } from '@/lib/data/fixture-repository';
+import type { Locale } from '@/lib/data/types';
 
 /**
  * 展示语言来源（2026-09-26 语言切换零副作用方案）：
