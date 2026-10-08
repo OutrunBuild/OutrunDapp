@@ -1,5 +1,3 @@
-'use client'
-
 /**
  * ②资产与跨链区（2026-10-02 裁定：跨链功能并入 Portfolio，v1 无 /bridge 独立页；
  * 余额=Data surface 面板（可跨链行 + 只读页脚）。在途 Signal panel 已删
@@ -11,7 +9,7 @@ import { getCopy } from '../global/copy'
 import { ChainLogoMark } from '../global/chain-icons'
 import { TokenIconMark } from '../global/token-icons'
 import { formatAmount, formatMarketCap, SectionHeading } from '../global/signal-ui'
-import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { AssetActionsSheet, BridgeDialog, ConvertDialog } from './portfolio-dialogs'
 
 export type AssetRowView = FixtureWalletAsset & {

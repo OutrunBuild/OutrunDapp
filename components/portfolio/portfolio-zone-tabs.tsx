@@ -17,7 +17,7 @@ import type { Locale } from '@/lib/data/fixture-repository'
 import { getCopy } from '../global/copy'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
-export type PfZoneKey = 'action' | 'money' | 'positions' | 'vouchers'
+export type PfZoneKey = 'action' | 'money' | 'positions' | 'participations'
 
 /** #pf-* 锚点 → 所属分区 */
 const ANCHOR_ZONES: Record<string, PfZoneKey> = {
@@ -26,7 +26,7 @@ const ANCHOR_ZONES: Record<string, PfZoneKey> = {
   'pf-savings': 'money',
   'pf-positions': 'positions',
   'pf-vault': 'positions',
-  'pf-vouchers': 'vouchers',
+  'pf-participations': 'participations',
 }
 
 export function PortfolioZoneTabs({
@@ -39,7 +39,7 @@ export function PortfolioZoneTabs({
   locale: Locale
   initialZone: PfZoneKey
   hasAction: boolean
-  badges: { action: number; vouchers: number }
+  badges: { action: number; participations: number }
   children: Record<PfZoneKey, ReactNode>
 }) {
   const copy = getCopy(locale).portfolio.tabs
@@ -103,11 +103,11 @@ export function PortfolioZoneTabs({
           ) : null}
           <ToggleGroupItem value="money">{copy.money}</ToggleGroupItem>
           <ToggleGroupItem value="positions">{copy.positions}</ToggleGroupItem>
-          <ToggleGroupItem value="vouchers">
-            {copy.vouchers}
-            {badges.vouchers > 0 ? (
+          <ToggleGroupItem value="participations">
+            {copy.participations}
+            {badges.participations > 0 ? (
               <strong className="pf-zone-tabs__badge" data-tone="success" data-numeric>
-                {badges.vouchers}
+                {badges.participations}
               </strong>
             ) : null}
           </ToggleGroupItem>
@@ -123,8 +123,8 @@ export function PortfolioZoneTabs({
         <div data-zone-wrap="positions" className="pf-zone-sub">
           {children.positions}
         </div>
-        <div data-zone-wrap="vouchers" className="pf-zone-sub">
-          {children.vouchers}
+        <div data-zone-wrap="participations" className="pf-zone-sub">
+          {children.participations}
         </div>
       </div>
     </div>

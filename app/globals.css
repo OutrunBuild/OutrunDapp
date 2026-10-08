@@ -346,17 +346,7 @@ svg {
   color: var(--color-text);
 }
 
-.chain-dialog__overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: grid;
-  place-items: center;
-  padding: var(--space-4);
-  /* 用户要求：弹窗时背景虚化 */
-  background: color-mix(in srgb, var(--color-bg) 45%, transparent);
-  backdrop-filter: blur(10px);
-}
+/* 遮罩/背景虚化走全局 [data-slot='dialog-backdrop']（同款用户语言，2026-10-08 迁 ui/dialog） */
 
 .chain-dialog__panel {
   inline-size: min(360px, 92vw);
@@ -368,14 +358,7 @@ svg {
   box-shadow: var(--shadow-header);
 }
 
-.chain-dialog__title {
-  margin-block-end: var(--space-3);
-  color: var(--color-text-tertiary);
-  font-family: var(--font-data);
-  font-size: var(--text-xs);
-  letter-spacing: var(--label-tracking);
-  text-transform: uppercase;
-}
+/* 标题行不可见（2026-10-08 用户裁定删「Viewing chain/查看链」）——可达名由 sr-only DialogTitle 承接 */
 
 .chain-dialog__list {
   display: grid;
@@ -1103,15 +1086,6 @@ svg {
       transparent
     )
     1;
-}
-
-.slash-mark {
-  display: inline-block;
-  inline-size: var(--space-5);
-  block-size: var(--space-2);
-  clip-path: polygon(var(--chamfer-card) 0, 100% 0, calc(100% - var(--chamfer-card)) 100%, 0 100%);
-  background: var(--accent-primary);
-  box-shadow: var(--space-2) 0 0 var(--accent-echo);
 }
 
 .home-section {
@@ -5111,10 +5085,6 @@ svg {
   font-size: var(--text-xs, 0.75rem);
 }
 
-.ax-slot {
-  color: var(--or-cyan);
-}
-
 /* Liquidity */
 .liquidity-panel {
   display: grid;
@@ -6482,8 +6452,13 @@ svg {
   font-size: 13px !important;
 }
 
+/* Tally「进入」钮字档与同排 KPI 数值同款（2026-10-08 用户裁定）：
+   对齐 dao-panel__stats dd——var(--text-base)/常规体/正文白，font-medium 一并撤销，
+   白色覆盖 outline 皮肤次级灰（特异性高于 601 行基线；hover 通电青仍由 604 行接管） */
 .dao-panel__tally [data-slot='button'] {
-  font-size: 15px !important;
+  font-size: var(--text-base) !important;
+  font-weight: 400 !important;
+  color: var(--color-text) !important;
 }
 
 .stat-action [data-slot='button'] {
@@ -9012,9 +8987,9 @@ svg {
 /* 组合页分区头签名线移除（2026-10-06 用户裁定「收益组合页，每张卡上的这条青色线删掉」）：
    青线+品红回声=决议 014 .ax-echo-bar，仅组合页整线退役（content:none 连回声一起删）；
    其余页面 SectionHeading 签名线不动 */
-:is(.pf-actions, .pf-assets, .pf-positions, .pf-savings, .pf-vault, .pf-vouchers)
+:is(.pf-actions, .pf-assets, .pf-positions, .pf-savings, .pf-vault, .pf-participations)
   > .ax-echo-bar::before,
-:is(.pf-actions, .pf-assets, .pf-positions, .pf-savings, .pf-vault, .pf-vouchers)
+:is(.pf-actions, .pf-assets, .pf-positions, .pf-savings, .pf-vault, .pf-participations)
   > .ax-echo-bar::after {
   content: none;
 }
@@ -9627,12 +9602,12 @@ button.pf-action__link {
    aside 限宽让芯片组 max-inline-size 有确定基准（row 宽）——③仓位与④凭证同补
    （凭证区曾漏：390 恰好满格、375 类窄屏 "Claimable only" 溢出右缘，018 补充 4） */
 .pf-positions .section-heading__row,
-.pf-vouchers .section-heading__row {
+.pf-participations .section-heading__row {
   flex-wrap: wrap;
 }
 
 .pf-positions .section-heading__aside,
-.pf-vouchers .section-heading__aside {
+.pf-participations .section-heading__aside {
   max-inline-size: 100%;
 }
 
@@ -10007,18 +9982,18 @@ button.pf-action__link {
 
 /* ④参与凭证：筛选=Signal 面板芯片（筛选语法）；阶段组=内嵌 .pf-panel（017 面板化：
    材质/投影随面板原语，阶段主线改为面板首 child 元素——伪元素位已被材质占用） */
-.pf-vouchers__groups {
+.pf-participations__groups {
   display: grid;
   gap: var(--space-4);
 }
 
-.pf-vouchers__group {
+.pf-participations__group {
   min-inline-size: 0;
 }
 
 /* 阶段主线：顶缘 2px --stage-color（组 selector 供变量，线体在面板内随内容层绘制；
    切角同步裁剪，不悬出面板右上斜边） */
-.pf-vouchers__stage-line {
+.pf-participations__stage-line {
   position: absolute;
   inset-inline: 0;
   inset-block-start: 0;
@@ -10034,7 +10009,7 @@ button.pf-action__link {
 }
 
 .pf-positions__filter,
-.pf-vouchers__filter {
+.pf-participations__filter {
   display: inline-flex;
   flex-wrap: wrap;
   max-inline-size: 100%;
@@ -10054,7 +10029,7 @@ button.pf-action__link {
 
 .pf-positions__filter a,
 .pf-positions__filter button,
-.pf-vouchers__filter button {
+.pf-participations__filter button {
   padding: var(--space-1) var(--space-3);
   color: var(--color-text-secondary);
   font-size: var(--text-sm);
@@ -10064,7 +10039,7 @@ button.pf-action__link {
 
 /* 仓位/凭证筛选=客户端态按钮（URL 导航整页刷新被否）：重置按钮默认皮 */
 .pf-positions__filter button,
-.pf-vouchers__filter button {
+.pf-participations__filter button {
   border: none;
   background: none;
   font-family: inherit;
@@ -10073,12 +10048,12 @@ button.pf-action__link {
 
 .pf-positions__filter a[data-selected],
 .pf-positions__filter button[data-selected],
-.pf-vouchers__filter button[data-selected] {
+.pf-participations__filter button[data-selected] {
   background: color-mix(in srgb, var(--or-cyan) 10%, transparent);
   color: var(--or-cyan);
 }
 
-.pf-vouchers__group-head {
+.pf-participations__group-head {
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -10088,21 +10063,21 @@ button.pf-action__link {
 
 /* 铭牌语法=徽章居左、计数居右（pf-panel__bar 同款）——auto margin 只上计数
    span[data-numeric]，曾用裸 span 选择器把 StageBadge 一并推到行中 */
-.pf-vouchers__group-head span[data-numeric] {
+.pf-participations__group-head span[data-numeric] {
   margin-inline-start: auto;
   color: var(--color-text-secondary);
   /* 017：组头计数对齐铭牌语法档（text-xs），与 .pf-panel__bar 计数同档 */
   font-size: var(--text-xs);
 }
 
-.pf-vouchers__flags {
+.pf-participations__flags {
   display: inline-flex;
   flex-wrap: wrap;
   gap: var(--space-1);
   margin-inline-start: var(--space-2);
 }
 
-.pf-vouchers__flag {
+.pf-participations__flag {
   padding: 0 var(--space-1);
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-secondary);
@@ -10113,11 +10088,11 @@ button.pf-action__link {
 /* ④凭证行（2026-10-05 用户裁定重做：字母表头数字矩阵→资产行同款 ledger 版式——
    tile 视觉锚 | 身份+构成行（单位行内嵌、零值省略）| 右缘主数字+日期副行 | 行尾动作；
    无表头行——列语义由内容自承载，右缘对齐经 justify-items:end 共线） */
-.pf-vouchers__list {
+.pf-participations__list {
   display: grid;
 }
 
-.pf-voucher-row {
+.pf-participation-row {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) max-content 7rem;
   align-items: center;
@@ -10126,12 +10101,12 @@ button.pf-action__link {
   border-block-end: 1px solid var(--color-border);
 }
 
-.pf-voucher-row:last-child {
+.pf-participation-row:last-child {
   border-block-end: none;
 }
 
 /* 行视觉锚：verse 字母瓷片（资产行 tile 同款配方） */
-.pf-voucher-row__tile {
+.pf-participation-row__tile {
   display: grid;
   place-items: center;
   inline-size: 40px;
@@ -10148,53 +10123,53 @@ button.pf-action__link {
   );
 }
 
-.pf-voucher-row__glyph {
+.pf-participation-row__glyph {
   color: var(--color-text);
   font-family: var(--font-data);
   font-size: var(--text-lg);
   line-height: 1;
 }
 
-.pf-voucher-row__id {
+.pf-participation-row__id {
   display: grid;
   gap: var(--space-1);
   justify-items: start;
   min-inline-size: 0;
 }
 
-.pf-voucher-row__verse {
+.pf-participation-row__verse {
   color: var(--color-text);
   font-size: var(--text-md);
   text-decoration: none;
 }
 
-.pf-voucher-row__verse:hover,
-.pf-voucher-row__verse:focus-visible {
+.pf-participation-row__verse:hover,
+.pf-participation-row__verse:focus-visible {
   text-decoration: underline;
 }
 
 /* 构成行=单位行内嵌的安静第二行（15.25K POL · 6.1K YT · …） */
-.pf-voucher-row__makeup {
+.pf-participation-row__makeup {
   color: var(--color-text-secondary);
   font-family: var(--font-data);
   font-size: var(--text-xs);
 }
 
 /* 创世行的截止日副行 */
-.pf-voucher-row__note {
+.pf-participation-row__note {
   color: var(--color-text-tertiary);
   font-family: var(--font-data);
   font-size: var(--text-xs);
 }
 
 /* 右缘主数字（创世参与额/可领 YT）+日期副行 */
-.pf-voucher-row__state {
+.pf-participation-row__state {
   display: grid;
   gap: 2px;
   justify-items: end;
 }
 
-.pf-voucher-row__amount {
+.pf-participation-row__amount {
   color: var(--color-text);
   font-family: var(--font-data);
   font-size: var(--text-num-lg);
@@ -10202,23 +10177,23 @@ button.pf-action__link {
   white-space: nowrap;
 }
 
-.pf-voucher-row__unit {
+.pf-participation-row__unit {
   margin-inline-start: var(--space-1);
   color: var(--color-text-secondary);
   font-size: var(--text-sm);
 }
 
-.pf-claimable .pf-voucher-row__amount,
-.pf-claimable .pf-voucher-row__unit {
+.pf-claimable .pf-participation-row__amount,
+.pf-claimable .pf-participation-row__unit {
   color: var(--color-success);
 }
 
-.pf-voucher-row__none {
+.pf-participation-row__none {
   color: var(--color-text-tertiary);
   font-family: var(--font-data);
 }
 
-.pf-voucher-row__date {
+.pf-participation-row__date {
   color: var(--color-text-tertiary);
   font-family: var(--font-data);
   font-size: var(--text-xs);
@@ -10226,7 +10201,7 @@ button.pf-action__link {
   text-align: end;
 }
 
-.pf-voucher-row__action {
+.pf-participation-row__action {
   display: flex;
   justify-content: flex-end;
 }
@@ -10398,12 +10373,12 @@ button.pf-action__link {
     display: grid;
   }
 
-  .pf-deck[data-js][data-zone='vouchers'] [data-zone-wrap='vouchers'] {
+  .pf-deck[data-js][data-zone='participations'] [data-zone-wrap='participations'] {
     display: grid;
   }
 
   /* 仓位/凭证页签都未激活时尾组整组让位（空 grid 容器仍会占 48px 组距） */
-  .pf-deck[data-js]:not([data-zone='positions']):not([data-zone='vouchers']) .pf-deck__tail {
+  .pf-deck[data-js]:not([data-zone='positions']):not([data-zone='participations']) .pf-deck__tail {
     display: none;
   }
 
@@ -10495,7 +10470,7 @@ button.pf-action__link {
   }
 
   /* 凭证行同款堆叠：身份/主数字一行，动作换行右对齐（构成行嵌在身份块内随之换行） */
-  .pf-voucher-row {
+  .pf-participation-row {
     grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-areas:
       'tile identity state'
@@ -10503,16 +10478,16 @@ button.pf-action__link {
     row-gap: var(--space-2);
   }
 
-  .pf-voucher-row__tile {
+  .pf-participation-row__tile {
     grid-area: tile;
   }
-  .pf-voucher-row__id {
+  .pf-participation-row__id {
     grid-area: identity;
   }
-  .pf-voucher-row__state {
+  .pf-participation-row__state {
     grid-area: state;
   }
-  .pf-voucher-row__action {
+  .pf-participation-row__action {
     grid-area: action;
   }
 }
@@ -10570,8 +10545,8 @@ button.pf-action__link {
   .pf-panel__footer,
   .pf-assets__group,
   .pf-asset-row,
-  .pf-voucher-row,
-  .pf-vouchers__group-head,
+  .pf-participation-row,
+  .pf-participations__group-head,
   .pf-mrow {
     padding-inline: var(--space-3);
   }
@@ -10653,7 +10628,7 @@ button.pf-action__link {
   .economy-card,
   .back-to-top,
   .verse-hero,
-  .pf-vouchers__group,
+  .pf-participations__group,
   .verse-share-pop
 )[data-stage='genesis'] {
   --stage-color: var(--accent-primary);
@@ -10664,7 +10639,7 @@ button.pf-action__link {
   .economy-card,
   .back-to-top,
   .verse-hero,
-  .pf-vouchers__group,
+  .pf-participations__group,
   .verse-share-pop
 )[data-stage='locked'] {
   --stage-color: var(--accent-echo);
@@ -10675,7 +10650,7 @@ button.pf-action__link {
   .economy-card,
   .back-to-top,
   .verse-hero,
-  .pf-vouchers__group,
+  .pf-participations__group,
   .verse-share-pop
 )[data-stage='unlocked'] {
   --stage-color: var(--or-cyan);
@@ -10686,7 +10661,7 @@ button.pf-action__link {
   .economy-card,
   .back-to-top,
   .verse-hero,
-  .pf-vouchers__group,
+  .pf-participations__group,
   .verse-share-pop
 )[data-stage='refund'] {
   --stage-color: var(--color-warning);

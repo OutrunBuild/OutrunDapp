@@ -4,6 +4,8 @@
 // 直接或间接导入：由 scripts/check-fixture-boundary.mjs --source / --graph production 强制。
 import { OUTRUN_FIXTURE_ONLY_v1, fixtureData } from '../../fixtures/index';
 
+import type { VerseStage } from './types';
+
 export const FIXTURE_ONLY_SENTINEL = OUTRUN_FIXTURE_ONLY_v1;
 
 export const fixtureRepository = {
@@ -31,16 +33,9 @@ export const fixtureRepository = {
 // 来自上方 fixture 读取，禁止自造领域数值；价格/涨跌由 candles 推导）。
 // ---------------------------------------------------------------------------
 
-export type FixtureChain = {
-  chainId: number;
-  name: string;
-  env: 'mainnet' | 'testnet';
-  nativeSymbol: string;
-  sourceRef: string;
-};
-
-export type Locale = 'zh' | 'en';
-export type VerseStage = 'genesis' | 'locked' | 'unlocked' | 'refund';
+// FixtureChain/Locale/VerseStage 是三层共用基础类型，已下沉 lib/data/types.ts（2026-10-08）；
+// 此处 re-export 维持既有消费方（components 域组件等）不动。
+export type { FixtureChain, Locale, VerseStage } from './types';
 
 export type SourceRecord = { id: string; sourceRef: string };
 
@@ -51,11 +46,11 @@ export type FixtureMarket = SourceRecord & {
   feeState: string;
   /** 池动态费率（markets feeRate bps→比率，如 0.008=0.8%——OB:memeverse/hook.md 动态费样本）；null=槽位 */
   feeRate: number | null;
-  /** 24h 成交量快照；null=fixture 缺失→UI 显「以链上读值为准」槽位 */
+  /** 24h 成交量快照；null=fixture 缺失→UI 不渲染 */
   volume24h: number | null;
-  /** 近 7 日费率年化样本（展示推导值）；null=槽位 */
+  /** 近 7 日费率年化样本（展示推导值）；null=该 APR 区不渲染 */
   apr7d: number | null;
-  /** LP 铸得率样本：每供给 1 quote 侧铸得 LP 数量（Add Liquidity 弹窗输出推导）；null=槽位 */
+  /** LP 铸得率样本：每供给 1 quote 侧铸得 LP 数量（Add Liquidity 弹窗输出推导）；null=弹窗输出随空值 0.00 */
   lpPerQuote: number | null;
 };
 
@@ -91,11 +86,11 @@ export type FixtureVerse = SourceRecord & {
   leverageProgress: number;
   preorderProgress: number;
   endsAt: string;
-  /** 预购容量比例快照（容量=(普通资金+杠杆债务本金)×70%×容量比例）；fixture 缺失=null→UI 显「以链上读值为准」槽位 */
+  /** 预购容量比例快照（容量=(普通资金+杠杆债务本金)×70%×容量比例）；fixture 缺失=null→UI 不渲染 */
   preorderCapacityRatio: number | null;
-  /** 杠杆一次性利率快照（注册时锁定、非年化；债务额度=利息÷利率）；fixture 缺失=null→UI 显「以链上读值为准」槽位 */
+  /** 杠杆一次性利率快照（注册时锁定、非年化；债务额度=利息÷利率）；fixture 缺失=null→UI 不渲染 */
   leverageInterestRate: number | null;
-  /** 杠杆债务上限快照（uAsset 计）；fixture 缺失=null→UI 显「以链上读值为准」槽位 */
+  /** 杠杆债务上限快照（uAsset 计）；fixture 缺失=null→UI 不渲染 */
   leverageDebtCap: number | null;
   /** Fast Mode：任一门槛达标即提前结束创世（fixture 未标记时为 false） */
   fastGenesis: boolean;
@@ -259,7 +254,7 @@ function getSnapshot(): FixtureSnapshot {
     .flatMap((verse) => verse.markets)
     .reduce((sum, market) => sum + market.tvl, 0);
   // 累计参与地址样本：各 verse participants（地址级去重样本）求和；跨 verse 重叠未扣减，
-  // 量级样本、以链上读值为准。勿用 accounts.items 计数——那是组合页 persona 钱包，非全网样本。
+  // 量级样本、生产读链上值。勿用 accounts.items 计数——那是组合页 persona 钱包，非全网样本。
   const participantTotal = verses.reduce((sum, verse) => sum + verse.participantCount, 0);
   const sampleAccount = fixtureData.accounts.items[0];
 
@@ -425,7 +420,7 @@ export type FixtureCreateConfig = {
   sourceRef: string;
 };
 
-/** 创建表单读链参数快照（R-04 表单机制主源=SPEC-M8；缺省文件时 UI 走「以链上读值为准」槽位） */
+/** 创建表单读链参数快照（R-04 表单机制主源=SPEC-M8；缺省文件时返回 null→UI null 不渲染） */
 export function getFixtureCreateConfig(): FixtureCreateConfig | null {
   const config = fixtureData.createConfig.items[0];
   if (!config) return null;
@@ -443,7 +438,7 @@ export function getFixtureCreateConfig(): FixtureCreateConfig | null {
  *  （MemeverseRegistrationCenterUpgradeable.sol:178 SymbolNotUnlock；endTime=注册+durationDays×DAY
  *  :186=创世截止——MemeverseLaunchImpl.sol:311-322；创世结束 nonce+1→新 uniqueId 即可复用 :189-195）。
  *  样本口径：快照 stage='genesis' 的 verse=创世窗口内=锁定中。合约映射键为原始字节串——
- *  匹配必须大小写敏感、不 trim。生产=previewRegistration+symbolRegistry 链上读值（以链上读值为准） */
+ *  匹配必须大小写敏感、不 trim。生产=previewRegistration+symbolRegistry 链上读值 */
 export function getFixtureOccupiedSymbols(): string[] {
   return fixtureRepository
     .verses()
@@ -466,7 +461,7 @@ export function getFixtureChains() {
 // 四标签详情页 ViewModel（2026-09-23 用户裁定：Locked/Unlocked 详情页 = 头卡 + 统计条/K线/Swap
 // 持久区 + Liquidity/POL/Yield Vault/DAO 四标签；数值口径：四池=four-pools.md、POL 名义价值=
 // Memeverse spec polend/pt-yt-splitter.md §4（全范围 2×uAsset 侧）、质押=governance-yield §6、
-// 周期激励=M10:332-337。样本数值全部来自 fixtures，缺失字段→null→UI 显「以链上读值为准」槽位。
+// 周期激励=M10:332-337。样本数值全部来自 fixtures，缺失字段→null→UI 不渲染。
 // ---------------------------------------------------------------------------
 
 export type FixtureCandle = { t: string; o: number; h: number; l: number; c: number; v: number };
@@ -648,7 +643,7 @@ export function getFixtureAssetUsdSample(symbol: string): number | null {
   return asset?.usdSample ?? null;
 }
 
-/** Memecoin 质押收益库样本（locked/unlocked verse；null=该 verse 无样本→面板整体走槽位态） */
+/** Memecoin 质押收益库样本（locked/unlocked verse；null=该 verse 无样本→面板整体不渲染，null 不渲染，2026-10-05 裁定） */
 export function getFixtureStaking(verseId: string): FixtureStaking | null {
   const record = fixtureData.staking.items.find((item) => item.verseId === verseId);
   if (!record) return null;
@@ -703,13 +698,13 @@ export type FixturePolPosition = {
   myLp: { main: number; 'pol-uasset': number; 'pt-uasset': number; 'pt-pol': number };
   /** 创世结束后可领 YT（claimNormalYT 一次性按出资比例——MemeverseSettlementImpl.sol:88） */
   claimableYt: number;
-  /** 每 1 YT 赎回摊得 uAsset（结算后剩余池×份额/流通 YT——POLSplitterUpgradeable.sol:404；null=无样本槽位态） */
+  /** 每 1 YT 赎回摊得 uAsset（结算后剩余池×份额/流通 YT——POLSplitterUpgradeable.sol:404；null=井腿 '--'、弹窗输出随空值 0.00） */
   ytRedeemUAssetPerUnit: number | null;
-  /** 每 1 YT 赎回摊得 memecoin（settlementMemecoin×份额/流通 YT——POLSplitterUpgradeable.sol:405；null=无样本槽位态） */
+  /** 每 1 YT 赎回摊得 memecoin（settlementMemecoin×份额/流通 YT——POLSplitterUpgradeable.sol:405；null=井腿 '--'、弹窗输出随空值 0.00） */
   ytRedeemMemecoinPerUnit: number | null;
 };
 
-/** POL/PT/YT 持仓与估值样本（locked/unlocked verse；null=槽位态） */
+/** POL/PT/YT 持仓与估值样本（locked/unlocked verse；null=该面板不渲染） */
 export function getFixturePolPosition(verseId: string): FixturePolPosition | null {
   const record = fixtureData.polPositions.items.find((item) => item.verseId === verseId);
   if (!record) return null;
@@ -789,7 +784,7 @@ export type FixtureGovernanceState = {
   proposalCount: { total: number; active: number } | null;
 };
 
-/** DAO 治理周期状态样本（locked/unlocked verse；null=该 verse 无治理样本→DAO 标签槽位态） */
+/** DAO 治理周期状态样本（locked/unlocked verse；null=该 verse 无治理样本→DAO 标签仅标题） */
 export function getFixtureGovernanceState(verseId: string): FixtureGovernanceState | null {
   const record = fixtureData.governance.items.find((item) => item.verseId === verseId);
   if (!record) return null;
@@ -866,7 +861,7 @@ export function getFixtureGovernanceState(verseId: string): FixtureGovernanceSta
 const ANCHOR_MS = Date.parse(FIXTURE_TIME_ANCHOR);
 
 /** 24 小时流动性保护窗（genesis.md:43——锚定实际解锁交易时刻非 unlockTime） */
-const PROTECTION_WINDOW_MS = 24 * 60 * 60 * 1000;
+export const PROTECTION_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 /** 样本账户钱包余额视图（②区资产行）：资产 → 链分布聚合（产品资产=uAsset 族+创世积分；
  *  储备/原生余额与本产品无关，不出表——2026-10-02 用户裁定） */
@@ -1307,7 +1302,7 @@ export function getFixturePortfolioActions(): FixturePortfolioAction[] {
 }
 
 /** ④参与凭证行：创世中=参与记录（未来凭证）；锁定/已解锁=POL/PT/YT/LP 持仓 */
-export type FixtureVoucherRow = {
+export type FixtureParticipationRow = {
   verse: {
     id: string;
     symbol: string;
@@ -1338,10 +1333,10 @@ export type FixtureVoucherRow = {
   } | null;
 };
 
-export function getFixtureVoucherRows(): FixtureVoucherRow[] {
+export function getFixtureParticipationRows(): FixtureParticipationRow[] {
   const snapshot = getSnapshot();
   const participations = getFixtureParticipations();
-  const rows: FixtureVoucherRow[] = [];
+  const rows: FixtureParticipationRow[] = [];
 
   for (const verse of snapshot.verses) {
     const mine = participations.filter((p) => p.verseId === verse.id);
@@ -1399,7 +1394,7 @@ export function getFixtureVoucherRows(): FixtureVoucherRow[] {
 /** ①待办区/状态行共用：页级信号计数（待办/可领/滞留） */
 export function getFixturePortfolioSignals() {
   const actions = getFixturePortfolioActions();
-  const claimableVerses = getFixtureVoucherRows().filter(
+  const claimableVerses = getFixtureParticipationRows().filter(
     (row) => (row.holdings?.claimableYt ?? 0) > 0,
   ).length;
   return {

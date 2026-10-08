@@ -22,7 +22,7 @@ import { getCopy } from '../global/copy'
 import { ChainLogoMark } from '../global/chain-icons'
 import { verseHref } from '../global/routes'
 import { formatAmount, formatMarketCap, formatPercent, SectionHeading } from '../global/signal-ui'
-import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { CdpRedeemDialog, UsrSavingsDialog } from './portfolio-dialogs'
 
 /**
@@ -442,7 +442,7 @@ export function VaultZone({ locale, vaultRows }: { locale: Locale; vaultRows: Fi
                         <small>{copy.waiting}</small>
                       </span>
                     ) : (
-                      <span className="pf-voucher-row__none" aria-hidden="true">
+                      <span className="pf-participation-row__none" aria-hidden="true">
                         --
                       </span>
                     )}

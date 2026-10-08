@@ -8,7 +8,7 @@ import {
   getFixtureSnapshot,
   getFixtureUsrSavings,
   getFixtureVaultRows,
-  getFixtureVoucherRows,
+  getFixtureParticipationRows,
   getFixtureWalletAssets,
   type Locale,
 } from '@/lib/data/fixture-repository'
@@ -22,7 +22,7 @@ import { ActionZone } from './action-zone'
 import { AssetsZone, type AssetRowView } from './assets-zone'
 import { PortfolioZoneTabs } from './portfolio-zone-tabs'
 import { SavingsZone, StakedPositionsZone, VaultZone } from './positions-zone'
-import { VouchersZone } from './vouchers-zone'
+import { ParticipationsZone } from './participations-zone'
 
 /**
  * /portfolio（2026-10-02 四分区裁定）：①待办（只收逾期有后果项，同类聚合）②资产与跨链
@@ -56,7 +56,7 @@ export function PortfolioPage({ locale }: { locale: Locale }) {
 
   const signalItems = [
     { href: '#pf-actions', tone: 'warning', label: copy.signals.todo, value: signals.actionCount },
-    { href: '#pf-vouchers', tone: 'success', label: copy.signals.claimable, value: signals.claimableVerses },
+    { href: '#pf-participations', tone: 'success', label: copy.signals.claimable, value: signals.claimableVerses },
   ]
 
   // 净值 hero（017）：钱包 + 储蓄 + 金库待领，fixture 样本价折算（快照口径）
@@ -173,7 +173,7 @@ export function PortfolioPage({ locale }: { locale: Locale }) {
         locale={locale}
         initialZone={actions.length > 0 ? 'action' : 'money'}
         hasAction={actions.length > 0}
-        badges={{ action: signals.actionCount, vouchers: signals.claimableVerses }}
+        badges={{ action: signals.actionCount, participations: signals.claimableVerses }}
       >
         {{
           action: <ActionZone locale={locale} actions={actions} />,
@@ -193,7 +193,7 @@ export function PortfolioPage({ locale }: { locale: Locale }) {
               <VaultZone locale={locale} vaultRows={vaultRows} />
             </>
           ),
-          vouchers: <VouchersZone locale={locale} rows={getFixtureVoucherRows()} />,
+          participations: <ParticipationsZone locale={locale} rows={getFixtureParticipationRows()} />,
         }}
         </PortfolioZoneTabs>
       </UserDataGate>
