@@ -2,21 +2,26 @@ import type { Metadata, Viewport } from 'next';
 
 import { productFontClassName } from '@/components/design-system/fonts';
 import { PaintSkin } from '@/components/design-system/paint-skin';
+import { getCopy } from '@/components/global/copy';
+import { getDisplayLocale } from '@/lib/locale';
 
 import './globals.css';
 
-export const metadata: Metadata = {
-  title: {
-    default: 'Outrun · Community-owned Onchain Economies',
-    template: '%s · Outrun',
-  },
-  description:
-    'Turn shared belief into a living onchain economy with coordinated liquidity, yield and community governance.',
-  icons: {
-    icon: '/brand/BRAND-04-symbol-color-512.png',
-  },
-  generator: 'v0.app',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const copy = getCopy(await getDisplayLocale());
+
+  return {
+    title: {
+      default: copy.meta.rootTitle,
+      template: copy.meta.titleTemplate,
+    },
+    description: copy.meta.homeDescription,
+    icons: {
+      icon: '/brand/BRAND-04-symbol-color-512.png',
+    },
+    generator: 'v0.app',
+  };
+}
 
 export const viewport: Viewport = {
   colorScheme: 'dark',

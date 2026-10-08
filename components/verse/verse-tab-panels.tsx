@@ -24,13 +24,10 @@ import { PolRedeemLpDialog } from './pol-redeem-lp-dialog'
 import { PolFlashSwapDialog } from './pol-flash-swap-dialog'
 import { PolRedeemPtYtDialog } from './pol-redeem-pt-yt-dialog'
 import { PolSplitMergeDialog } from './pol-split-merge-dialog'
-import { formatAmount, formatDay, formatMarketCap, formatPercent, formatStamp, SourceRef } from '../global/signal-ui'
+import { formatAmount, formatDay, formatMarketCap, formatPercent, SourceRef } from '../global/signal-ui'
 
-function Slot({ children }: { children: React.ReactNode }) {
-  return <span className="ax-slot">{children}</span>
-}
-
-/** Liquidity 标签：四池总览 + 池卡（four-pools.md:9-14；APR/量=样本+读链槽位）；
+/** Liquidity 标签：四池总览 + 池卡（four-pools.md:9-14；APR/量=样本，
+ *  缺失字段→该行不渲染——null 不渲染，2026-10-05 用户裁定）；
  *  池卡双钮 Add/Remove 2026-09-27 改弹窗（PoolAddLiquidityDialog/PoolRemoveLiquidityDialog，
  *  机制分层见各组件头注；同日用户裁定 Add 短文案） */
 export function LiquidityPanel({
@@ -61,10 +58,12 @@ export function LiquidityPanel({
           <dt>{copy.totalValueLocked}</dt>
           <dd>{`$${formatMarketCap(trade.pools.reduce((sum, pool) => sum + pool.tvl, 0))}`}</dd>
         </div>
-        <div>
-          <dt>{copy.liquidityVolume}</dt>
-          <dd>{hasVolume ? `$${formatMarketCap(volumeTotal)}` : <Slot>{copy.onChainSlot}</Slot>}</dd>
-        </div>
+        {hasVolume ? (
+          <div>
+            <dt>{copy.liquidityVolume}</dt>
+            <dd>{`$${formatMarketCap(volumeTotal)}`}</dd>
+          </div>
+        ) : null}
       </dl>
       <h3 className="panel-title">{copy.poolsTitle}</h3>
       <ul className="liquidity-panel__pools">
@@ -77,32 +76,26 @@ export function LiquidityPanel({
               <strong className="pool-card__pair" data-numeric>
                 {pool.baseSymbol}/{pool.quoteSymbol}
               </strong>
-              <span className="pool-card__apr">
-                <span className="pool-card__apr-label">{copy.aprLabel}</span>
-                <strong className="pool-card__apr-value" data-numeric>
-                  {pool.apr7d != null ? (
-                    `${formatPercent(pool.apr7d * 100, locale)}%`
-                  ) : (
-                    <Slot>{copy.onChainSlot}</Slot>
-                  )}
-                </strong>
-              </span>
+              {pool.apr7d != null ? (
+                <span className="pool-card__apr">
+                  <span className="pool-card__apr-label">{copy.aprLabel}</span>
+                  <strong className="pool-card__apr-value" data-numeric>
+                    {`${formatPercent(pool.apr7d * 100, locale)}%`}
+                  </strong>
+                </span>
+              ) : null}
             </header>
             <dl className="pool-card__stats" data-numeric>
               <div>
                 <dt>TVL</dt>
                 <dd>{`$${formatMarketCap(pool.tvl)}`}</dd>
               </div>
-              <div>
-                <dt>{copy.liquidityVolume}</dt>
-                <dd>
-                  {pool.volume24h != null ? (
-                    `$${formatMarketCap(pool.volume24h)}`
-                  ) : (
-                    <Slot>{copy.onChainSlot}</Slot>
-                  )}
-                </dd>
-              </div>
+              {pool.volume24h != null ? (
+                <div>
+                  <dt>{copy.liquidityVolume}</dt>
+                  <dd>{`$${formatMarketCap(pool.volume24h)}`}</dd>
+                </div>
+              ) : null}
             </dl>
             {/* 池卡双钮 Add/Remove（2026-09-27 用户裁定：新增 Remove 移除流动性、Add 改短文案）；
                 2026-09-30 起收全宽等分行（同 POL 终端卡满行钮语言） */}
@@ -151,7 +144,6 @@ export function PolPanel({
   price: number | null
 }) {
   const copy = getCopy(locale).verseDesk
-  const locked = verse.stage === 'locked'
   const unlocked = verse.stage === 'unlocked'
   // POL-/PT-/YT-<MEME>（MemeverseLaunchImpl.sol:117-119；POLSplitterUpgradeable.sol:225-226）
   const polSymbol = `POL-${verse.symbol}`
@@ -219,10 +211,12 @@ export function PolPanel({
               {/* symbol 卡头已示，余额行不重复；估值内联尾随（2026-09-23 用户裁定） */}
               <strong className="pol-card__amount" data-numeric>
                 {formatAmount(pol.myPol, locale)}
-                <span className="pol-card__est">
-                  {/* ≈ 即分隔（同 pol-twin 美元回声行），原「· ≈」双标点在移动档折行后 · 孤悬行首 */}
-                  ≈ {estUsd ?? <Slot>{copy.onChainSlot}</Slot>}
-                </span>
+                {estUsd != null ? (
+                  <span className="pol-card__est">
+                    {/* ≈ 即分隔（同 pol-twin 美元回声行），原「· ≈」双标点在移动档折行后 · 孤悬行首 */}
+                    ≈ {estUsd}
+                  </span>
+                ) : null}
               </strong>
             </div>
             <div
@@ -234,9 +228,9 @@ export function PolPanel({
               <div className="pol-gauge__row">
                 <span className="pol-gauge__legend pol-gauge__legend--market">
                   <span className="pol-gauge__legend-label">{copy.marketPrice}</span>
-                  <strong className="pol-gauge__value pol-gauge__value--market">
-                    {marketUsd ?? <Slot>{copy.onChainSlot}</Slot>}
-                  </strong>
+                  {marketUsd != null ? (
+                    <strong className="pol-gauge__value pol-gauge__value--market">{marketUsd}</strong>
+                  ) : null}
                 </span>
                 <span className="pol-gauge__readout" data-trend={deltaPct < 0 ? 'down' : 'up'}>
                   <em>{copy.vsNominal}</em>
@@ -278,9 +272,9 @@ export function PolPanel({
                       <TooltipContent>{copy.nominalNote}</TooltipContent>
                     </Tooltip>
                   </span>
-                  <strong className="pol-gauge__value pol-gauge__value--nominal">
-                    {nominalUsd ?? <Slot>{copy.onChainSlot}</Slot>}
-                  </strong>
+                  {nominalUsd != null ? (
+                    <strong className="pol-gauge__value pol-gauge__value--nominal">{nominalUsd}</strong>
+                  ) : null}
                 </span>
               </div>
             </div>
@@ -372,9 +366,11 @@ export function PolPanel({
                     </span>
                   </div>
                 </div>
-                <p className="pol-twin__usd" data-numeric>
-                  ≈ {ptUsd != null ? `$${formatAmount(ptUsd, locale)}` : <Slot>{copy.onChainSlot}</Slot>}
-                </p>
+                {ptUsd != null ? (
+                  <p className="pol-twin__usd" data-numeric>
+                    ≈ ${formatAmount(ptUsd, locale)}
+                  </p>
+                ) : null}
               </div>
               <div className="pol-twin__well" data-token="yt">
                 <div className="pol-twin__head">
@@ -421,9 +417,11 @@ export function PolPanel({
                     </span>
                   </div>
                 </div>
-                <p className="pol-twin__usd" data-numeric>
-                  ≈ {ytUsd != null ? `$${formatAmount(ytUsd, locale)}` : <Slot>{copy.onChainSlot}</Slot>}
-                </p>
+                {ytUsd != null ? (
+                  <p className="pol-twin__usd" data-numeric>
+                    ≈ ${formatAmount(ytUsd, locale)}
+                  </p>
+                ) : null}
               </div>
             </div>
             {/* 通栏操作区（v3 2026-09-28：井底清空纯读，操作统一井组下通栏——跨阶段位置统一；
@@ -459,11 +457,7 @@ export function PolPanel({
             </div>
           </section>
         </div>
-      ) : (
-        <p className="panel-note">
-          <Slot>{copy.onChainSlot}</Slot>
-        </p>
-      )}
+      ) : null}
       <SourceRef value="docs/page-briefs/source-map.md#M14" />
     </div>
   )
@@ -485,9 +479,6 @@ export function DaoPanel({
     return (
       <div className="dao-panel">
         <h3 className="panel-title">{copy.daoTitle.replace('{symbol}', verse.symbol)}</h3>
-        <p className="panel-note">
-          <Slot>{copy.onChainSlot}</Slot>
-        </p>
       </div>
     )
   }
@@ -502,9 +493,7 @@ export function DaoPanel({
               <>
                 {copy.governorLabel}: <CopyAddress locale={locale} value={governance.governorAddress} />
               </>
-            ) : (
-              <Slot>{copy.onChainSlot}</Slot>
-            )}
+            ) : null}
           </div>
           <dl className="dao-panel__head-live" data-numeric>
             <dt>{copy.liveIn}</dt>
@@ -512,35 +501,29 @@ export function DaoPanel({
           </dl>
         </header>
         <dl className="dao-panel__stats" data-numeric>
-          <div>
-            <dt>{copy.delegates}</dt>
-            <dd>
-              {governance.delegates != null ? formatAmount(governance.delegates, locale) : <Slot>{copy.onChainSlot}</Slot>}
-            </dd>
-          </div>
-          <div>
-            <dt>{copy.proposals}</dt>
-            <dd>
-              {governance.proposalCount ? (
-                <>
-                  {governance.proposalCount.total}{' '}
-                  <span className="stat-flag">
-                    ({copy.activeCount.replace('{n}', String(governance.proposalCount.active))})
-                  </span>
-                </>
-              ) : (
-                <Slot>{copy.onChainSlot}</Slot>
-              )}
-            </dd>
-          </div>
-          <div>
-            <dt>{copy.votingPower}</dt>
-            <dd>
-              {governance.totalVotingPower != null
-                ? `${formatMarketCap(governance.totalVotingPower)} s${verse.symbol}`
-                : <Slot>{copy.onChainSlot}</Slot>}
-            </dd>
-          </div>
+          {governance.delegates != null ? (
+            <div>
+              <dt>{copy.delegates}</dt>
+              <dd>{formatAmount(governance.delegates, locale)}</dd>
+            </div>
+          ) : null}
+          {governance.proposalCount ? (
+            <div>
+              <dt>{copy.proposals}</dt>
+              <dd>
+                {governance.proposalCount.total}{' '}
+                <span className="stat-flag">
+                  ({copy.activeCount.replace('{n}', String(governance.proposalCount.active))})
+                </span>
+              </dd>
+            </div>
+          ) : null}
+          {governance.totalVotingPower != null ? (
+            <div>
+              <dt>{copy.votingPower}</dt>
+              <dd>{`${formatMarketCap(governance.totalVotingPower)} s${verse.symbol}`}</dd>
+            </div>
+          ) : null}
           <div className="dao-panel__tally">
             <dt className="dao-panel__tally-label">
               {copy.tallyCard}
@@ -627,34 +610,24 @@ export function DaoPanel({
                   <dd>${formatAmount(governance.treasuryUAsset, locale)}</dd>
                 </>
               </DaoFundDialog>
-            ) : (
+            ) : governance.treasuryUAsset != null ? (
               <div>
                 <dt>{copy.treasury}</dt>
-                <dd>
-                  {governance.treasuryUAsset != null ? (
-                    `$${formatAmount(governance.treasuryUAsset, locale)}`
-                  ) : (
-                    <Slot>{copy.onChainSlot}</Slot>
-                  )}
-                </dd>
+                <dd>{`$${formatAmount(governance.treasuryUAsset, locale)}`}</dd>
               </div>
-            )}
-            <div>
-              <dt>{copy.rewardRatio}</dt>
-              <dd>
-                {governance.rewardRatioBps != null
-                  ? `${governance.rewardRatioBps / 100}%`
-                  : <Slot>{copy.onChainSlot}</Slot>}
-              </dd>
-            </div>
-            <div>
-              <dt>{copy.cumulativePool}</dt>
-              <dd>
-                {governance.cumulativeIncentivePool != null
-                  ? `$${formatAmount(governance.cumulativeIncentivePool, locale)}`
-                  : <Slot>{copy.onChainSlot}</Slot>}
-              </dd>
-            </div>
+            ) : null}
+            {governance.rewardRatioBps != null ? (
+              <div>
+                <dt>{copy.rewardRatio}</dt>
+                <dd>{`${governance.rewardRatioBps / 100}%`}</dd>
+              </div>
+            ) : null}
+            {governance.cumulativeIncentivePool != null ? (
+              <div>
+                <dt>{copy.cumulativePool}</dt>
+                <dd>{`$${formatAmount(governance.cumulativeIncentivePool, locale)}`}</dd>
+              </div>
+            ) : null}
             {governance.currentCycleVotes ? (
               <>
                 <div>

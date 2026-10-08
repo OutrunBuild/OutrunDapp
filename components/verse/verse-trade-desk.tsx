@@ -4,7 +4,7 @@ import type {
   FixtureVerseTrade,
 } from '@/lib/data/fixture-repository'
 import { getFixtureAssetUsdSample, getFixtureParticipationOptions, getFixturePolPosition } from '@/lib/data/fixture-repository'
-import { fmtPrice } from '@/components/global/amount-format'
+import { fmtPrice } from '../global/amount-format'
 
 import { CandleChart } from './candle-chart'
 import { CopyAddress } from '../global/copy-address'
@@ -15,7 +15,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 
 /** 统计胶囊：本体走 dl/dt/dd；触发器=dd 内可聚焦 button（Tab 可达——2026-10-03 修键盘不可达，对齐 f50ea4d 触发器契约，
  *  此前 render={<div/>} 整体替换默认 button 不进 Tab 链）；aria-label 含可见值+全称+全量（WCAG 2.5.3 可访问名须含可见
- *  文本，槽位芯片 value===tipValue 去重）；气泡=全称+完整数值（2026-09-23 用户裁定） */
+ *  文本，value===tipValue 时去重）；气泡=全称+完整数值（2026-09-23 用户裁定） */
 function StatChip({
   label,
   value,
@@ -52,7 +52,8 @@ function StatChip({
 /**
  * 交易台持久区（头卡下方、标签区上方）：代币统计条 + 主池 K 线 + 标准 Swap。
  * 统计口径（Q&A 2026-09-23）：Liq=四池 TVL 合计；Vol=四池 24h 量合计；
- * 市值=现价×总供应（推导）；CA=fixture 样本。缺失字段→「以链上读值为准」槽位。
+ * 市值=现价×总供应（推导）；CA=fixture 样本。缺失字段→该统计胶囊不渲染
+ * （null 不渲染，2026-10-05 用户裁定）。
  */
 /** 价格=fmtPrice 市场口径唯一实现（决议 019，取代 2026-09-23 固定 6 位小数+尾零灰显）：
  *  ≥1 两位小数、<1 六位有效数字裁尾零、前导零 ≥4 下标记零——读「价位」不展示精度噪音 */
@@ -90,36 +91,44 @@ export function VerseTradeDesk({
             <div className="token-strip__row">
               <strong className="token-strip__symbol ax-glitch-text">{verse.symbol}</strong>
               <dl className="token-strip__chips">
-                <StatChip
-                  label={copy.marketCap}
-                  value={stats.marketCap != null ? `$${formatMarketCap(stats.marketCap)}` : copy.onChainSlot}
-                  tipTitle={copy.marketCapFull}
-                  tipValue={stats.marketCap != null ? `$${formatAmount(stats.marketCap, locale)}` : copy.onChainSlot}
-                />
+                {stats.marketCap != null ? (
+                  <StatChip
+                    label={copy.marketCap}
+                    value={`$${formatMarketCap(stats.marketCap)}`}
+                    tipTitle={copy.marketCapFull}
+                    tipValue={`$${formatAmount(stats.marketCap, locale)}`}
+                  />
+                ) : null}
                 <StatChip
                   label={copy.liquidity}
                   value={`$${formatMarketCap(stats.liquidity)}`}
                   tipTitle={copy.liquidityFull}
                   tipValue={`$${formatAmount(stats.liquidity, locale)}`}
                 />
-                <StatChip
-                  label={copy.volume24h}
-                  value={stats.volume24h != null ? `$${formatMarketCap(stats.volume24h)}` : copy.onChainSlot}
-                  tipTitle={copy.volume24hFull}
-                  tipValue={stats.volume24h != null ? `$${formatAmount(stats.volume24h, locale)}` : copy.onChainSlot}
-                />
-                <StatChip
-                  label={copy.holders}
-                  value={stats.holders != null ? formatAmount(stats.holders, locale, true) : copy.onChainSlot}
-                  tipTitle={copy.holdersFull}
-                  tipValue={stats.holders != null ? formatAmount(stats.holders, locale) : copy.onChainSlot}
-                />
-                <StatChip
-                  label={copy.totalSupply}
-                  value={stats.totalSupply != null ? formatMarketCap(stats.totalSupply) : copy.onChainSlot}
-                  tipTitle={copy.totalSupplyFull}
-                  tipValue={stats.totalSupply != null ? formatAmount(stats.totalSupply, locale) : copy.onChainSlot}
-                />
+                {stats.volume24h != null ? (
+                  <StatChip
+                    label={copy.volume24h}
+                    value={`$${formatMarketCap(stats.volume24h)}`}
+                    tipTitle={copy.volume24hFull}
+                    tipValue={`$${formatAmount(stats.volume24h, locale)}`}
+                  />
+                ) : null}
+                {stats.holders != null ? (
+                  <StatChip
+                    label={copy.holders}
+                    value={formatAmount(stats.holders, locale, true)}
+                    tipTitle={copy.holdersFull}
+                    tipValue={formatAmount(stats.holders, locale)}
+                  />
+                ) : null}
+                {stats.totalSupply != null ? (
+                  <StatChip
+                    label={copy.totalSupply}
+                    value={formatMarketCap(stats.totalSupply)}
+                    tipTitle={copy.totalSupplyFull}
+                    tipValue={formatAmount(stats.totalSupply, locale)}
+                  />
+                ) : null}
               </dl>
             </div>
           </div>
@@ -134,9 +143,11 @@ export function VerseTradeDesk({
                  React 列表 key 告警（react.dev/link/warning-keys：在元素创建处给 key） */
               <div key="chart-header" className="candle-chart__row">
                 <div className="token-strip__price">
-                  <strong>
-                    {stats.price != null ? <SplitPrice price={stats.price} /> : copy.onChainSlot}
-                  </strong>
+                  {stats.price != null ? (
+                    <strong>
+                      <SplitPrice price={stats.price} />
+                    </strong>
+                  ) : null}
                   {stats.change24h != null ? (
                     <span data-trend={stats.change24h >= 0 ? 'up' : 'down'}>
                       {stats.change24h >= 0 ? '+' : ''}

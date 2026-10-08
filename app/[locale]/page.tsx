@@ -1,22 +1,15 @@
 import type { Metadata } from 'next';
 
+import { getCopy } from '@/components/global/copy';
 import { HomePage } from '@/components/home/home-page';
 import { getDisplayLocale } from '@/lib/locale';
 
 export async function generateMetadata(): Promise<Metadata> {
-  const locale = await getDisplayLocale();
-
-  if (locale === 'zh') {
-    return {
-      title: '社区所有的链上经济体',
-      description: '让一次共识成为持续运转的链上经济体，以流动性、收益与社区治理延续共同价值。',
-    };
-  }
+  const copy = getCopy(await getDisplayLocale());
 
   return {
-    title: 'Community-owned Onchain Economies',
-    description:
-      'Turn shared belief into a living onchain economy with coordinated liquidity, yield and community governance.',
+    title: copy.meta.homeTitle,
+    description: copy.meta.homeDescription,
   };
 }
 

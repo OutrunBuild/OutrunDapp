@@ -34,7 +34,7 @@
       "id": "preorder-window",
       "rule": "预购窗口=创世期间（与创世同窗口，非独立前置窗口——决议 007 用户纠正）；预购容量=(普通资金+杠杆债务本金)×70%×容量比例；一键预购个人上限=创世资金按面值折算 uAsset×70%×容量比例",
       "evidence": "OB memeverse/lifecycle.md#L10-18 + preorder.md#L15-19",
-      "check": "verse-001（容量比例 0.8）断言一键预购上限=输入折算 uAsset×70%×0.8 实时显示并拦截超限；verse-022（创世态但 fixture 缺容量比例）断言仅显「以链上读值为准」槽位、不拦截"
+      "check": "verse-001（容量比例 0.8）断言一键预购上限=输入折算 uAsset×70%×0.8 实时显示并拦截超限；verse-022（创世态但 fixture 缺容量比例）断言容量区不渲染（null 不渲染，2026-10-05 用户裁定）、CTA 禁用不拦截"
     },
     {
       "id": "governance-epoch",

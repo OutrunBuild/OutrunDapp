@@ -102,8 +102,8 @@
       "sha256": "5000d69cf015242b449fc5bc8abb3e295f7a0436492606649c18ee407b982b6a"
     },
     "fixtures/invariants/lifecycle.json": {
-      "bytes": 4246,
-      "sha256": "4a9a2747bb15879453ee2042838c028320343a6d67cd687d077f03d1fa8091b4"
+      "bytes": 4281,
+      "sha256": "44fb0d1dff848525a3d3f6c1eb151363cfd45ba4a99d2592619300939ab14be5"
     },
     "fixtures/invariants/state-scenarios.json": {
       "bytes": 3114,
@@ -114,8 +114,8 @@
       "sha256": "e88f59e2e200092f7ba2be06baf3e355b73e2c82d1981cf98fc6d369454c9d8d"
     },
     "fixtures/schema.ts": {
-      "bytes": 26648,
-      "sha256": "877c579b83b3f9faa2030cd742f1adeb47a1f4a46c6e61ed5141a25c0d86638d"
+      "bytes": 26791,
+      "sha256": "e21393d324a86334fe0db9475875715cbe5c0caa554dacd6a395bf29ec897702"
     },
     "fixtures/manifest.json": {
       "bytes": 0,

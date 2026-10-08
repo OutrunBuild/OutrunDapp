@@ -4,7 +4,7 @@
 
 ## 项目
 
-Next.js 16 App Router · React 19 · Tailwind v4 · shadcn（`base` 原语，非 radix）· `pnpm`。路由 `app/[locale]/…`，`locale ∈ en | zh`，默认 `en`。URL scheme（2026-09-22 方案 C）：en 无前缀（`proxy.ts` 内部 rewrite 到 `/en/**`），zh 带 `/zh` 前缀；语言切换走 `components/global/routes.ts` 的 `localePath`，勿手拼 `/${locale}`。memeverse 详情页 URL 用数字段 `/memeverse/<verseId 数字>`（= 链上 uint256 verseId 口径），fixture 行 id（`verse-021`）不进 URL；创建页=`/memeverse/launch`（原 `/launch`）、发现页=`/memeverse/explore`（原 `/memeverse`）（2026-09-23 用户裁定，旧地址由 `proxy.ts` 307 收敛）。产品代码按域分桶：`components/verse/`（详情页/交易台/POL·池·赎回弹窗群）、`components/home/`、`components/discovery/`、`components/create/`、`components/portfolio/`，跨页共享件在 `components/global/`（shell/wallet/copy/routes/signal-ui 等）（2026-10-02 由 `components/prototype/` 按 import 闭包拆分）；`components/axis-choice/`、`components/direction-choice/`、`app/design-review/` 是 Stage-01 内部审阅工具，不是产品界面，不要按产品规范改写。
+Next.js 16 App Router · React 19 · Tailwind v4 · shadcn（`base` 原语，非 radix）· `pnpm`。路由 `app/[locale]/…`，`locale ∈ en | zh`，默认 `en`。URL scheme（2026-09-22 方案 C）：en 无前缀（`proxy.ts` 内部 rewrite 到 `/en/**`），zh 带 `/zh` 前缀；语言切换走 `components/global/routes.ts` 的 `localePath`，勿手拼 `/${locale}`。memeverse 详情页 URL 用数字段 `/memeverse/<verseId 数字>`（= 链上 uint256 verseId 口径），fixture 行 id（`verse-021`）不进 URL；创建页=`/memeverse/launch`（原 `/launch`）、发现页=`/memeverse/explore`（原 `/memeverse`）（2026-09-23 用户裁定，旧地址由 `proxy.ts` 307 收敛）。产品代码按域分桶：`components/verse/`（详情页/交易台/POL·池·赎回弹窗群）、`components/home/`、`components/discovery/`、`components/create/`、`components/portfolio/`、`components/referral/`，跨页共享件在 `components/global/`（shell/wallet/copy/routes/signal-ui 等）（2026-10-02 由 `components/prototype/` 按 import 闭包拆分）。
 
 ## 产品真源
 
@@ -16,7 +16,7 @@ Next.js 16 App Router · React 19 · Tailwind v4 · shadcn（`base` 原语，非
 
 冲突规则：产品叙事以 OutrunBook 为准、机制以合约 spec 为准；冲突登记 `source-map.md` 对账区，Agent 不裁决。
 
-工作方式：页面/交互需要机制公式或样本数值时，**先查真源**（spec 定公式、OutrunBook 定解释与量级），再把样本数据写进 `fixtures/`（schema + sourceRef 齐全，走三层边界），不要以「数据不可得」为由禁用功能或留空；只有 fixture 快照本身缺失的字段才降级为「以链上读值为准」槽位。
+工作方式：页面/交互需要机制公式或样本数值时，**先查真源**（spec 定公式、OutrunBook 定解释与量级），再把样本数据写进 `fixtures/`（schema + sourceRef 齐全，走三层边界），不要以「数据不可得」为由禁用功能或留空；只有 fixture 快照本身缺失的字段才降级为「null 不渲染」槽位（「以链上读值为准」类解释文案 2026-10-05 用户裁定全站禁用，`docs/design-system/copy-and-i18n.md` §2）。
 
 ## 细节保真（新功能 / 新 UI 硬纪律，2026-09-22 用户裁定）
 
@@ -25,10 +25,10 @@ Next.js 16 App Router · React 19 · Tailwind v4 · shadcn（`base` 原语，非
 任何新页面/新功能，**写第一行代码前**先在任务回复里产出「细节台账」，每个字段/数值/文案/交互分支标三态之一：
 
 - **G（真源）**：三仓库或本仓架构有原文 → 引用到 文件:行；界面术语与 OutrunBook 用词一致
-- **S（样本）**：真源无具体值但机制有口径 → 机制口径 + fixture 样本 + 界面标注「以链上读值为准」；参照物（旧 demo 等）的数值只能当样本，禁止当真源引用
+- **S（样本）**：真源无具体值但机制有口径 → 机制口径 + fixture 样本 + 缺失字段「null 不渲染」；参照物（旧 demo 等）的数值只能当样本，禁止当真源引用
 - **Q（待拍板）**：真源与参照物都没答案 → 列成清单问用户，**Q 项未拍板不写对应代码**（用户明说「直接做」除外）
 
-参照物必须逐屏截图逐字段核对，不接受一次性文字摘要。交付前逐项复核台账：G 抽查原文、S 确认界面标注在位、Q 确认已拍板。「不猜」的可检验形式 = 每个细节都可追溯到三态之一；出现无出处又无标注的细节即违约。
+参照物必须逐屏截图逐字段核对，不接受一次性文字摘要。交付前逐项复核台账：G 抽查原文、S 确认样本与降级处理在位、Q 确认已拍板。「不猜」的可检验形式 = 每个细节都可追溯到三态之一；出现无出处又无降级处理的细节即违约。
 
 ## UI 工作必读
 
@@ -48,7 +48,7 @@ Next.js 16 App Router · React 19 · Tailwind v4 · shadcn（`base` 原语，非
 
 ## 架构边界
 
-- **fixture 数据边界（三层强制）**：`fixtures/**` → `lib/data/fixture-repository.ts`（唯一合法消费方）→ `components/**`（`ui/`、`design-system/` 通用层除外）。页面/组件禁止直接 import `fixtures/`，生产代码禁止反向到达；派生纪律：组件不自造领域数值——数值口径从产品真源取、样本数据落 `fixtures/`（见「产品真源」），fixture 快照缺失的字段才渲染「以链上读值为准」槽位。由 `scripts/check-fixture-boundary.mjs` 的 `--source` / `--graph production` / `--bundle .next` 三层验证。
+- **fixture 数据边界（三层强制）**：`fixtures/**` → `lib/data/fixture-repository.ts`（唯一合法消费方）→ `components/**`（`ui/`、`design-system/` 通用层除外）。页面/组件禁止直接 import `fixtures/`，生产代码禁止反向到达；派生纪律：组件不自造领域数值——数值口径从产品真源取、样本数据落 `fixtures/`（见「产品真源」），fixture 快照缺失的字段按「null 不渲染」处理。由 `scripts/check-fixture-boundary.mjs` 的 `--source` / `--graph production` / `--bundle .next` 三层验证。
 - **双编译器桥**：`typescript` 包 = `vendor/typescript-bridge`（bin/tsc 走 TS 7.0.2 CLI，require 转发 TS 6.0.2 API）。不要直接改桥、不要用 `typescript` 的程序 API 写 TS7 语法；tsconfig 禁 TS7 废弃选项（`baseUrl`、`target: es5` 等）。
 - **runbook 纪律**：阶段执行走 `docs/runbooks/stage-0N-*.md`，每步结果必须登记 `docs/runbooks/progress.md`；人工决策步骤逐项问答，不得默认替签；证据链（manifest→handoff→checker）变更后需重新冻结。
 
@@ -73,7 +73,6 @@ pnpm dlx shadcn@latest add <component>   # pnpm workspace-root 检查会拦 dlx�
 
 - **Tailwind v4 内容扫描遵循 .gitignore**：忽略 `components/` 这类源码目录会导致工具类整体不生成（曾致按钮布局全坏）。`.gitignore` 只定向忽略证据二进制（如 `docs/design/v0-input/*.tar.gz`），禁止忽略含 CSS/TSX 的目录。
 - **部署纪律**：`pnpm build` 与运行中的 server 不可并发（重建 `.next` 会产生新旧 chunk 混用）；重建后必须按 PID kill 旧 `next start` 再重启（禁 `pkill -f`，会自杀会话）。
-- 本仓库尚无 git commit 历史；大改动前先确认用户是否要基线 commit。
 
 ## 登记义务
 

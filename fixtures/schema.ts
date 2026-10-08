@@ -124,9 +124,9 @@ export const verseSchema = recordSchema.extend({
     leverageInterest: amountSchema, // 双口径独立判定（lifecycle.md:35-49）
     preorderRaised: amountSchema,
     endsAt: isoTimeSchema,
-    preorderCapacityRatio: rateSchema.optional(), // 预购容量比例快照（容量=(普通资金+杠杆债务本金)×70%×容量比例——glossary；读链参数，缺失=UI 显槽位）
-    leverageInterestRate: rateSchema.optional(), // 杠杆一次性利率快照（注册时锁定、非年化；债务额度=利息÷利率——polend.md；读链参数，缺失=UI 显槽位）
-    leverageDebtCap: amountSchema.optional(), // 杠杆债务上限快照（uAsset 计；现债务=已收利息÷利率——POLend LeveragedDebtInfo；读链参数，缺失=UI 显槽位）
+    preorderCapacityRatio: rateSchema.optional(), // 预购容量比例快照（容量=(普通资金+杠杆债务本金)×70%×容量比例——glossary；读链参数，缺失→该区不渲染、提交禁用）
+    leverageInterestRate: rateSchema.optional(), // 杠杆一次性利率快照（注册时锁定、非年化；债务额度=利息÷利率——polend.md；读链参数，缺失→该区不渲染、提交禁用）
+    leverageDebtCap: amountSchema.optional(), // 杠杆债务上限快照（uAsset 计；现债务=已收利息÷利率——POLend LeveragedDebtInfo；读链参数，缺失→该区不渲染、提交禁用）
     fastGenesis: z.boolean().optional(), // Fast Mode：任一门槛达标即提前结束创世（memeverse-create.md §2；默认关闭）
   }),
   unlock: z.object({
@@ -135,7 +135,7 @@ export const verseSchema = recordSchema.extend({
   // 上线后市场活跃快照（发现页锁定中/已解锁卡共用同一字段集，2026-09-23 用户裁定两阶段卡内容一致；
   // 读链参数——机制口径 OB:memeverse/memecoin-staking.md（质押收益与国库入账均来自交易费分成）、
   // OB:memeverse/dao-governance.md（uAsset 计费用入 DAO 国库）；解锁时间不入快照——由
-  // endTime+FIXED_LOCKUP_DURATION 推导（合约常量）；缺失=UI 显 unavailable 槽位）
+  // endTime+FIXED_LOCKUP_DURATION 推导（合约常量）；缺失=解锁时间行不渲染——unavailable 槽位键已随 2026-10-05 裁定废止）
   livePhase: z.object({
     volume24h: amountSchema, // 24h 四池交易量快照（uAsset 计）
     stakingApy: rateSchema, // 质押年化快照（ratio：5.688=568.8%）
@@ -210,9 +210,9 @@ export const marketSchema = recordSchema.extend({
       '15m': z.array(candleSchema).max(500),
     })
     .optional(), // 细粒度蜡烛样本（2026-09-23 用户裁定：全部粒度可选、假数据看效果）
-  volume24h: amountSchema.optional(), // 24h 成交量快照（池维度；缺失=UI 显「以链上读值为准」槽位）
-  apr7d: rateSchema.optional(), // 近 7 日费率年化样本（展示推导值；缺失=槽位）
-  lpPerQuote: rateSchema.optional(), // LP 铸得率样本：每供给 1 quote 侧资产铸得 LP 数量（totalSupply/R_quote v2 式口径；Add Liquidity 弹窗输出推导，2026-09-27；缺失=槽位）
+  volume24h: amountSchema.optional(), // 24h 成交量快照（池维度；缺失→UI 不渲染）
+  apr7d: rateSchema.optional(), // 近 7 日费率年化样本（展示推导值；缺失→该 APR 区不渲染）
+  lpPerQuote: rateSchema.optional(), // LP 铸得率样本：每供给 1 quote 侧资产铸得 LP 数量（totalSupply/R_quote v2 式口径；Add Liquidity 弹窗输出推导，2026-09-27；缺失→弹窗输出随空值 0.00）
   tokenStats: z.object({ // 仅主池条目携带（代币统计条——R-06）
     totalSupply: amountSchema, // Memecoin 总供应快照
     holders: z.number().int().positive(), // 持有人数快照
@@ -248,7 +248,7 @@ export const governanceSchema = recordSchema.extend({
   cycleEndsAt: isoTimeSchema,
   finalized: z.boolean(),
   claimWindowEndsAt: isoTimeSchema.optional(),
-  // —— 以下为 DAO 标签周期激励面（2026-09-23 四标签详情页）；全部可选：无治理数据的 verse 显示槽位 ——
+  // —— 以下为 DAO 标签周期激励面（2026-09-23 四标签详情页）；全部可选：无治理数据的 verse 仅显 DAO 标题（null 不渲染，2026-10-05 裁定）——
   governorAddress: fixtureAddressSchema.optional(), // Governor 合约地址（fixture 样本）
   incentivizerAddress: fixtureAddressSchema.optional(), // 周期激励合约地址（fixture 样本）
   delegates: z.number().int().positive().optional(), // 已委托地址数快照
@@ -323,7 +323,7 @@ export const polPositionSchema = recordSchema.extend({
     'pt-pol': amountSchema,
   }),
   claimableYt: amountSchema, // 创世结束后可领 YT（claimNormalYT：Stage≥Locked 一次性按创世出资比例——MemeverseSettlementImpl.sol:88；2026-09-23 用户裁定 Claim POL 不存在，删除该字段）
-  ytRedeemUAssetPerUnit: rateSchema.optional(), // 每 1 YT 赎回摊得 uAsset（结算回收剩余池派生——POLSplitterUpgradeable.sol:404；locked 记录=结算预估样本（2026-09-28 用户裁定造数看原型效果，gen-pol-yt-uasset-leg.mjs 锚 unlocked 量级 ≈uAssetPerPol 3–5%），unlocked=结算后剩余池派生样本；缺失→「以链上读值为准」槽位）
+  ytRedeemUAssetPerUnit: rateSchema.optional(), // 每 1 YT 赎回摊得 uAsset（结算回收剩余池派生——POLSplitterUpgradeable.sol:404；locked 记录=结算预估样本（2026-09-28 用户裁定造数看原型效果，gen-pol-yt-uasset-leg.mjs 锚 unlocked 量级 ≈uAssetPerPol 3–5%），unlocked=结算后剩余池派生样本；缺失→UI 不渲染）
   ytRedeemMemecoinPerUnit: rateSchema.optional(), // 每 1 YT 赎回摊得 memecoin（redeemYT：settlementMemecoin×份额/流通 YT——POLSplitterUpgradeable.sol:405；同上）
 });
 
@@ -377,7 +377,7 @@ export const participationsFile = fixtureFile(participationSchema);
 export const positionsFile = fixtureFile(positionSchema);
 
 /** balances.json（样本账户钱包余额——链×资产快照，2026-10-02 用户裁定造样本；
- *  Portfolio ②区资产与跨链数据源；数值为样本，生产以链上读值为准） */
+ *  Portfolio ②区资产与跨链数据源；数值为样本，生产读链上值） */
 export const balanceSchema = recordSchema.extend({
   chainId: chainIdSchema,
   assetId: idSchema,

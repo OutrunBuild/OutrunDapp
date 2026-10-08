@@ -35,6 +35,8 @@ const en = {
       languageLabel: 'Language',
       backToDiscovery: 'Back to discovery',
       skip: 'Skip to content',
+      primaryNav: 'Primary',
+      mobilePrimaryNav: 'Mobile primary',
       stages: {
         genesis: 'Genesis',
         locked: 'Locked',
@@ -282,7 +284,7 @@ const en = {
         action: 'To-do',
         money: 'Assets',
         positions: 'Positions',
-        vouchers: 'Joined',
+        participations: 'Joined',
       },
       totalLabel: 'Liquid Assets',
       legendWallet: 'Wallet',
@@ -377,7 +379,7 @@ const en = {
         withdrawCta: 'Withdraw',
         stakeCta: 'Stake',
       },
-      vouchers: {
+      participations: {
         title: 'Participations',
         sub: 'Your genesis participations — POL/PT/YT balances after unlock.',
         filterAll: 'All',
@@ -484,7 +486,6 @@ const en = {
       unlockedAt: 'Unlocked at',
       fixedAnchor: 'Sample data — the clock does not advance',
       endedPending: 'Ended · awaiting stage advance',
-      lockedTimingUnavailable: 'Unlock time will be confirmed on-chain',
       protection: 'Protection window remaining',
       successTitle: 'Either Threshold Can Move Genesis Forward',
       successBody: 'Standard funds and leverage interest are checked independently.',
@@ -520,10 +521,9 @@ const en = {
       preorderCapExceeded: 'Exceeds your preorder cap — at most {cap}.',
       preorderCapacityLabel: 'Preorder capacity',
       preorderCapacityNote:
-        'Capacity = (Genesis funds + leveraged debt) × 70% × capacity ratio. On-chain value prevails.',
+        'Capacity = (Genesis funds + leveraged debt) × 70% × capacity ratio.',
       preorderHeadroom: 'Preorder headroom',
       preorderCapacityExceeded: 'Exceeds preorder capacity — at most {cap}.',
-      preorderCapacitySlot: 'Preorder capacity awaits on-chain read — unavailable in this prototype.',
       payAmount: 'Pay amount',
       modeLabel: 'Participation mode',
       payGroupTitle: 'You Pay',
@@ -547,7 +547,6 @@ const en = {
       leverageUassetHelp: 'Pay with {asset} directly.',
       leverageDirectHelp: '{asset} converts to {raise} at par to cover interest — no position.',
       leverageCreditHelp: 'Burned when Genesis locks.',
-      leverageRateSlot: 'Leverage rate awaits on-chain read — unavailable in this prototype.',
       currentAction: 'What you can do now',
       // 创世四态（lifecycle.md:53-55）：Fast 达标=即可触发；非 Fast 达标=仍等截止；截止后=任何人可触发（决议 008 黄昏区口径另行渲染）
       genesisAction: 'Genesis is open for participation. After the deadline, anyone can trigger the stage advance.',
@@ -763,7 +762,7 @@ const en = {
       switchChainCta: 'Switch to {chain}',
       crossFee: 'Cross-chain fee',
       crossFeeNote:
-        'Quoted by LayerZero at send time and paid exactly in the source chain\'s native token — the on-chain quote prevails.',
+        'Quoted by LayerZero at send time and paid exactly in the source chain\'s native token.',
       // —— DAO 标签 ——
       daoTitle: '{symbol} DAO',
       governorLabel: 'Governor',
@@ -808,7 +807,6 @@ const en = {
       registeredAssetsNote: 'Only assets registered by governance are shown.',
       claimWindowNote:
         "Last cycle's rewards can be claimed before the current cycle ends; unclaimed amounts roll into the treasury at settlement and are not reissued.",
-      onChainSlot: 'On-chain value prevails.',
     },
     create: {
       titleLead: 'Consensus',
@@ -881,6 +879,13 @@ const en = {
       disabled: 'Off',
       noneYet: '—',
     },
+    meta: {
+      homeTitle: 'Community-Owned Onchain Economies',
+      homeDescription:
+        'Turn shared belief into a living onchain economy with coordinated liquidity, yield and community governance.',
+      rootTitle: 'Outrun · Community-Owned Onchain Economies',
+      titleTemplate: '%s · Outrun',
+    },
 }
 
 const zh: typeof en = {
@@ -910,6 +915,8 @@ const zh: typeof en = {
       languageLabel: '语言',
       backToDiscovery: '返回发现页',
       skip: '跳到主要内容',
+      primaryNav: '主导航',
+      mobilePrimaryNav: '移动端主导航',
       stages: {
         genesis: '创世中',
         locked: '锁定中',
@@ -1151,7 +1158,7 @@ const zh: typeof en = {
         action: '待办',
         money: '资产',
         positions: '仓位',
-        vouchers: '已参与',
+        participations: '已参与',
       },
       totalLabel: '流动资产',
       legendWallet: '钱包',
@@ -1245,7 +1252,7 @@ const zh: typeof en = {
         withdrawCta: '去取出',
         stakeCta: '去质押',
       },
-      vouchers: {
+      participations: {
         title: '已参与',
         sub: '你的创世参与——解锁后就是 POL/PT/YT 余额。',
         filterAll: '全部',
@@ -1349,7 +1356,6 @@ const zh: typeof en = {
       unlockedAt: '实际解锁时间',
       fixedAnchor: '示例数据 · 时间不会推进',
       endedPending: '已截止 · 待阶段推进',
-      lockedTimingUnavailable: '解锁时间以链上确认为准',
       protection: '保护期剩余',
       successTitle: '任一门槛独立达标，即可推进创世',
       successBody: '普通资金与杠杆利息分别判断。',
@@ -1383,10 +1389,9 @@ const zh: typeof en = {
       preorderCapLabel: '可预购上限',
       preorderCapExceeded: '超出可预购上限——最多可预购 {cap}。',
       preorderCapacityLabel: '预购容量',
-      preorderCapacityNote: '容量 =（创世资金 + 杠杆债务）× 70% × 容量比例，以链上实时值为准。',
+      preorderCapacityNote: '容量 =（创世资金 + 杠杆债务）× 70% × 容量比例。',
       preorderHeadroom: '可预购余量',
       preorderCapacityExceeded: '超出预购容量——最多可预购 {cap}。',
-      preorderCapacitySlot: '预购容量待链上读值——本原型暂不可预购。',
       payAmount: '支付金额',
       modeLabel: '参与方式',
       payGroupTitle: '你支付',
@@ -1410,7 +1415,6 @@ const zh: typeof en = {
       leverageUassetHelp: '直接支付 {asset}。',
       leverageDirectHelp: '{asset} 按面值兑换为 {raise} 支付利息，无仓位。',
       leverageCreditHelp: '创世锁定时销毁。',
-      leverageRateSlot: '杠杆利率待链上读值——本原型暂不可参与。',
       currentAction: '当前可以做什么',
       // 创世四态（lifecycle.md:53-55）：Fast 达标=即可触发；非 Fast 达标=仍等截止；截止后=任何人可触发（决议 008 黄昏区口径另行渲染）
       genesisAction: '创世开放参与中。截止后任何人可触发阶段推进。',
@@ -1440,7 +1444,7 @@ const zh: typeof en = {
       price: '现价',
       change24h: '24h',
       marketCap: '市值',
-      liquidity: '池流动性',
+      liquidity: '流动性',
       volume24h: '24h 量',
       holders: '持有人',
       totalSupply: '总供应',
@@ -1605,7 +1609,7 @@ const zh: typeof en = {
       stakeCrossCta: '跨链存入 {symbol}',
       switchChainCta: '切换到 {chain}',
       crossFee: '跨链手续费',
-      crossFeeNote: '由 LayerZero 于发送时报价，按源链原生币精确支付——以链上报价为准。',
+      crossFeeNote: '由 LayerZero 于发送时报价，按源链原生币精确支付。',
       daoTitle: '{symbol} DAO',
       governorLabel: '治理合约',
       incentivizer: '激励合约',
@@ -1647,7 +1651,6 @@ const zh: typeof en = {
       assetsLabel: '项资产',
       registeredAssetsNote: '仅显示经治理注册的白名单资产。',
       claimWindowNote: '当前周期内可领取上一周期的奖励；结算时未领部分并入国库，不再补发。',
-      onChainSlot: '以链上读值为准。',
     },
     create: {
       titleLead: '共识',
@@ -1719,6 +1722,12 @@ const zh: typeof en = {
       enabled: '开启',
       disabled: '关闭',
       noneYet: '—',
+    },
+    meta: {
+      homeTitle: '社区所有的链上经济体',
+      homeDescription: '让一次共识成为持续运转的链上经济体，以流动性、收益与社区治理延续共同价值。',
+      rootTitle: 'Outrun · 社区所有的链上经济体',
+      titleTemplate: '%s · Outrun',
     },
 }
 
