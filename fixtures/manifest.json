@@ -35,7 +35,8 @@
     },
     "fixtures/data/governance.json": {
       "bytes": 142597,
-      "sha256": "5692c3062682014444749dcde3c06252621f9a91d456312476b263620a57467f"},
+      "sha256": "5692c3062682014444749dcde3c06252621f9a91d456312476b263620a57467f"
+    },
     "fixtures/data/markets.json": {
       "bytes": 1893671,
       "sha256": "d39ef577393b31a20f91a1290e6922a8075a4ddb4100061b8dd45595b3ae6c7f"
@@ -50,7 +51,8 @@
     },
     "fixtures/data/pol-positions.json": {
       "bytes": 37271,
-      "sha256": "d3d7977ddf4182e597b206e67cca29d47491f97a18ce968fccef45c825fc556c"},
+      "sha256": "d3d7977ddf4182e597b206e67cca29d47491f97a18ce968fccef45c825fc556c"
+    },
     "fixtures/data/positions.json": {
       "bytes": 3822,
       "sha256": "d225b66b95e57aeeddd7b480fffe204a964e5f993ab7e8ebb5925b0257058e96"
@@ -89,7 +91,7 @@
     },
     "fixtures/index.ts": {
       "bytes": 1706,
-      "sha256": "5862d4d6cede0191102d04dc7ab17c7511a8c19df1546e034a0da6b8cc1cfbd2"
+      "sha256": "5862d4d6cede0191102d04dc7ab17c7541a8c19df1546e034a0da6b8cc1cfbd2"
     },
     "fixtures/inspector/index.html": {
       "bytes": 15533,
