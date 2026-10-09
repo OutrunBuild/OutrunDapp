@@ -8410,8 +8410,8 @@ svg {
     inset-inline: 0;
     inset-block-end: 0;
     display: grid;
-    /* 5 格（2026-10-07 referral 入导航）：全部可用项上底栏 */
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    /* 6 格（2026-10-09 faucet 入导航）：全部可用项上底栏，沿用 2026-10-07 referral 裁定 */
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     min-block-size: calc(var(--space-8) + env(safe-area-inset-bottom));
     padding-block-end: env(safe-area-inset-bottom);
     border-block-start: 1px solid var(--color-border-strong);
@@ -12159,5 +12159,158 @@ button.pf-action__link {
 
   .ref-pending .pf-claim-row__actions {
     grid-area: actions;
+  }
+}
+
+/* ==========================================================================
+   Faucet 页（/faucet，2026-10-09 四轮终态）：单一水龙头脑袋面板（两卡合并——用户
+   裁定「这就是个水龙头」，卡面零机制解释，细节收进弹窗）。复用原语：.pf-panel +
+   .pf-panel__bar/.ref-nameplate（铭牌行）、.pf-claim-row（台账行）、
+   .token-select__badge（无图标代币徽章）、.ax-ghost-cta（主 CTA）。
+   ========================================================================== */
+
+.fc-claims {
+  margin-block-start: var(--space-6);
+}
+
+/* 领取行=ref-pending 同款四列（图标首列）；body 顶底归零（行自带行距，末行补底距） */
+.fc-claims .pf-panel__body {
+  padding-block: 0;
+}
+
+.fc-claims .pf-claim-row {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  column-gap: var(--space-3);
+}
+
+.fc-claims .pf-claim-row:last-child {
+  padding-block-end: var(--space-4);
+}
+
+/* 行只读（Claim 恒禁用，ref-pending 2026-10-08 同口径）：基类 hover 中和 */
+.fc-claims .pf-claim-row:hover {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* 冷却/可领状态行（文本化，无框；冷却恒 <24h → warning 档，可领=success 档）。
+   选择器提到 .fc-claims 作用域：基类 `.pf-claim-row__amount span`（0,1,1） tertiary
+   灰会压过单类（0,1,0），颜色必须在此赢过它（2026-10-09 visual-judge 抓出灰渲染） */
+.fc-claims .fc-claims__ready {
+  color: var(--color-success);
+}
+
+.fc-claims .fc-claims__cooling {
+  color: var(--color-warning);
+}
+
+/* 面板行动条（页脚=UUSD 兑换入口，2026-10-09 五轮换位）：左身份簇 + 右主行动 */
+.fc-claims__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-block-start: 1px solid var(--color-border);
+}
+
+.fc-claims__uusd {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.fc-claims__uusd strong {
+  color: var(--color-text);
+}
+
+/* UUSD 品牌章光学配平终值（y=-1.5px 盒心修正、x=1px 右移收紧与文字间距；过冲
+   实验与逐轮编年见 decision-log 2026-10-09 各条——双章锁线轮起 USDC 侧独立
+   微调（.fc-claims__asset img），本值不动） */
+.fc-claims__uusd img {
+  translate: 1px -1.5px;
+}
+
+/* 「由 USDC 兑换」内联资产单元（2026-10-09 三轮）：图标+符号不可断行原子
+   （inline-flex+nowrap，首轮裸 img 被折独行）；16px 章（14px 用户嫌小）；
+   vertical-align 负值显式钉位——inline-flex 自身 baseline 取自 img 底缘
+   （replaced 无文本基线）会骑到行基线上方（用户指认「跑上面」），负值把
+   单元落回行内并与文字墨迹中心配平 */
+.fc-claims__asset {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  white-space: nowrap;
+  vertical-align: -5px;
+}
+
+.fc-claims__asset img {
+  translate: 0 -1.5px;
+}
+
+/* 一键领推行（领取组尾，hairline 分隔；与页脚行动条同解剖） */
+.fc-claims__batch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-block-start: 1px solid var(--color-border);
+}
+
+/* 移动端 ≤30rem（2026-10-09 六轮移动重排，用户裁定：领取钮占满整行、批量行与
+   UUSD 页脚挤压重排）：领取行=ref-pending 同款两行解剖（图标+身份+金额一行、
+   Claim 平铺次行——基类 30rem 块的两列 areas 与本作用域桌面四列覆盖打架，
+   此处 (0,2,0) 同时接管 columns+areas）；批量行与页脚行动条纵排（身份/说明
+   在上、按钮平铺在下），三段动作统一整行口径；行间补 hairline 同
+   ref-pending 折行后语法 */
+@media (max-width: 30rem) {
+  .fc-claims .pf-claim-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'icon id amount'
+      'actions actions actions';
+    align-items: center;
+  }
+
+  .fc-claims .pf-claim-row > img,
+  .fc-claims .pf-claim-row > .token-select__badge {
+    grid-area: icon;
+  }
+
+  .fc-claims .pf-claim-row__id {
+    grid-area: id;
+  }
+
+  .fc-claims .pf-claim-row__amount {
+    grid-area: amount;
+  }
+
+  .fc-claims .pf-claim-row__actions {
+    grid-area: actions;
+  }
+
+  /* 领取钮平铺整行（ref-pending 2026-10-08 三次裁定同款：居中→整行自适应） */
+  .fc-claims .pf-claim-row__actions [data-slot='button'] {
+    inline-size: 100%;
+  }
+
+  .fc-claims .pf-claim-row + .pf-claim-row {
+    border-block-start: 1px solid var(--color-border);
+  }
+
+  /* 批量行/页脚行动条纵排：身份与说明一行、按钮平铺一行（全宽动作统一口径） */
+  .fc-claims__batch,
+  .fc-claims__foot {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+
+  .fc-claims__batch [data-slot='button'],
+  .fc-claims__foot [data-slot='button'] {
+    inline-size: 100%;
   }
 }

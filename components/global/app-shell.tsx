@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import type { SVGProps } from 'react'
-import { Compass, Home, Users, WalletCards } from 'lucide-react'
+import { Compass, Droplets, Home, Users, WalletCards } from 'lucide-react'
 
 import { ChainSelectorDialog } from './chain-selector-dialog'
 
@@ -34,6 +34,8 @@ const navItems = [
   // referral（R-12，2026-10-07 用户裁定）：侧栏+移动底栏都进主导航，
   // 底栏由「取前 4 项」改为「取全部可用项」（5 格）
   { key: 'referral', href: '/referral', icon: Users, available: true },
+  // faucet（2026-10-09）：测试网水龙头页，侧栏+移动底栏随全量可用项（6 格）
+  { key: 'faucet', href: '/faucet', icon: Droplets, available: true },
 ] as const
 
 // current 的合法值直接取导航键表：两份清单无法漂移
@@ -84,9 +86,10 @@ function MarketingHeader({
       <nav className="marketing-nav" aria-label={copy.common.primaryNav}>
         {[
           { href: '/memeverse/explore', label: copy.common.discover },
-          { href: '/portfolio', label: copy.common.portfolio },
           { href: '/memeverse/launch', label: copy.common.create },
+          { href: '/portfolio', label: copy.common.portfolio },
           { href: '/referral', label: copy.common.referral },
+          { href: '/faucet', label: copy.common.faucet },
         ].map((item, index) => (
           <Link className="marketing-nav__link" href={localePath(locale, item.href)} key={item.href}>
             {/* 终端索引序号（决议 024）：装饰性编号，aria-hidden 不进可访问名 */}

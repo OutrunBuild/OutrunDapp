@@ -1,0 +1,47 @@
+{
+  "seed": "seed-001",
+  "generatedFrom": "fixtures/data/seed.json",
+  "items": [
+    {
+      "id": "faucet-001",
+      "scenario": ["normal"],
+      "sourceRef": "docs/page-briefs/source-map.md#S10",
+      "chainId": 11155111,
+      "tokens": [
+        {
+          "symbol": "USDC",
+          "name": "Mock USDC",
+          "decimals": 18,
+          "dailyLimit": { "raw": "1000000", "decimals": 18 },
+          "address": { "value": "0xccccccc000000000000000000000000000000101", "fixtureOnly": true },
+          "cooldownRemainingMs": 0
+        },
+        {
+          "symbol": "sUSDS",
+          "name": "Mock sUSDS",
+          "decimals": 18,
+          "dailyLimit": { "raw": "1000000", "decimals": 18 },
+          "address": { "value": "0xccccccc000000000000000000000000000000102", "fixtureOnly": true },
+          "cooldownRemainingMs": 77100000
+        },
+        {
+          "symbol": "aUSDC",
+          "name": "Mock aUSDC",
+          "decimals": 18,
+          "dailyLimit": { "raw": "1000000", "decimals": 18 },
+          "address": { "value": "0xccccccc000000000000000000000000000000103", "fixtureOnly": true },
+          "cooldownRemainingMs": 0
+        }
+      ],
+      "swap": {
+        "uAssetSymbol": "UUSD",
+        "reserveSymbol": "USDC",
+        "feeIn": { "raw": "10", "unit": "bps", "scale": 4 },
+        "feeOut": { "raw": "10", "unit": "bps", "scale": 4 },
+        "headroom": { "raw": "1900000", "decimals": 18 },
+        "myUAsset": { "raw": "12400.52", "decimals": 18 },
+        "myReserve": { "raw": "100000", "decimals": 18 }
+      }
+    }
+  ]
+}

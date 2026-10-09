@@ -466,3 +466,41 @@ export const referralSchema = recordSchema.extend({
   friends: z.array(referralFriendSchema),
 });
 export const referralFile = fixtureFile(referralSchema);
+
+/** faucet.json（测试网水龙头快照——/faucet；机制=OutStake Faucet.sol source-map S10/S11：
+ *  claim/batchClaim 每注册代币 24h 一次冷却领取，测试网 mock 三币（USDC/sUSDS/aUSDC，
+ *  18-dec）各登记日限 1,000,000×1e18。swap=同链 USDC-PSM 面值兑换 UUSD（机制
+ *  source-map S8：双向 1:1 par、tin/tout 费率、mint 受 stockCap）——UUSD 唯一获取路径
+ *  （2026-10-09 用户两轮口径修正终值）；生息资产（sUSDS/aUSDC）不经 UUSD，直接
+ *  stakeForGenesis 进创世。余额/冷却剩余/headroom 为样本值（冷却快照 remainingMs
+ *  同 vault pendingRedeems 口径，墙钟递减）。） */
+const faucetTokenSchema = z.object({
+  symbol: z.string().min(2),
+  name: z.string().min(3),
+  decimals: z.number().int().min(0).max(18),
+  /** 每日领取额度（合约 dailyLimit，一次性全额 mint 给领取人） */
+  dailyLimit: amountSchema,
+  address: fixtureAddressSchema,
+  /** 冷却剩余毫秒样本（0=可领；>0=ClaimTooSoon 域，UI 倒计时） */
+  cooldownRemainingMs: z.number().int().nonnegative(),
+});
+const faucetSwapSchema = z.object({
+  uAssetSymbol: z.string().min(2),
+  reserveSymbol: z.string().min(2),
+  /** mint 费率（PSM tin，bps） */
+  feeIn: rateSchema,
+  /** redeem 费率（PSM tout，bps） */
+  feeOut: rateSchema,
+  /** 铸造额度余量样本（stockCap−netMinted；null=无样本→明细行槽位） */
+  headroom: amountSchema.nullable(),
+  /** 样本账户 UUSD 余额（Back to USDC 方向 Max 源） */
+  myUAsset: amountSchema,
+  /** 样本账户储备余额（Get UUSD 方向 Max 源） */
+  myReserve: amountSchema,
+});
+export const faucetSchema = recordSchema.extend({
+  chainId: chainIdSchema,
+  tokens: z.array(faucetTokenSchema).min(1),
+  swap: faucetSwapSchema,
+});
+export const faucetFile = fixtureFile(faucetSchema);

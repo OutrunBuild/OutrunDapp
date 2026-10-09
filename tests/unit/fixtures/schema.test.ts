@@ -10,7 +10,7 @@ import {
   usrVaultsFile, bridgeMessagesFile, transactionsFile, governanceFile,
   stakingFile, polPositionsFile,
   accountsFile, notificationsFile, participationsFile, yieldSourcesFile,
-  createConfigFile, balancesFile, referralFile, scenariosFile, scenarioIdSchema, fixtureAddressSchema, CHAIN_IDS,
+  createConfigFile, balancesFile, referralFile, faucetFile, scenariosFile, scenarioIdSchema, fixtureAddressSchema, CHAIN_IDS,
 } from '../../../fixtures/schema';
 
 const fx = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'fixtures');
@@ -25,7 +25,7 @@ const files = {
   'data/accounts.json': accountsFile, 'data/notifications.json': notificationsFile,
   'data/participations.json': participationsFile, 'data/yield-sources.json': yieldSourcesFile,
   'data/create-config.json': createConfigFile, 'data/balances.json': balancesFile,
-  'data/referral.json': referralFile,
+  'data/referral.json': referralFile, 'data/faucet.json': faucetFile,
 } as const;
 
 describe('fixture 数据文件全部通过 schema', () => {

@@ -29,6 +29,10 @@
       "bytes": 470,
       "sha256": "fc1bc749e17266cadc6591f8023c9547cad59b89166455150cf78b7cab527a4e"
     },
+    "fixtures/data/faucet.json": {
+      "bytes": 1576,
+      "sha256": "c4c2eb9d3b7bb09454252ee9503daa2e22907391b1064dbebb94649bcc6094cd"
+    },
     "fixtures/data/governance.json": {
       "bytes": 128191,
       "sha256": "210fc6d6c37fa1fcc7898a244facfab0be178867789c39a4b586e5176c576c96"
@@ -86,8 +90,8 @@
       "sha256": "6525324d906738aae2a26fd579630c955e81e57493680604173f91194f3d3ce2"
     },
     "fixtures/index.ts": {
-      "bytes": 1657,
-      "sha256": "1792c672f13c3c625af229fa6a3899d4bf8fa6b19fbacfe9a03dac23bbb7d137"
+      "bytes": 1706,
+      "sha256": "5862d4d6cede0191102d04dc7ab17c7511a8c19df1546e034a0da6b8cc1cfbd2"
     },
     "fixtures/inspector/index.html": {
       "bytes": 15533,
@@ -114,8 +118,8 @@
       "sha256": "e88f59e2e200092f7ba2be06baf3e355b73e2c82d1981cf98fc6d369454c9d8d"
     },
     "fixtures/schema.ts": {
-      "bytes": 26791,
-      "sha256": "e21393d324a86334fe0db9475875715cbe5c0caa554dacd6a395bf29ec897702"
+      "bytes": 28659,
+      "sha256": "a4d4520f5c0182437af23f9501aae6d96afaabf1aef73dca85e9cfce7fac9311"
     },
     "fixtures/manifest.json": {
       "bytes": 0,

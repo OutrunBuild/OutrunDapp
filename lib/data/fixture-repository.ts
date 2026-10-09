@@ -1509,3 +1509,61 @@ export function getFixtureReferral(): FixtureReferral | null {
     })),
   };
 }
+// ---------------------------------------------------------------------------
+// /faucet（测试网水龙头 + PSM 面值兑换 UUSD；机制 source-map S10/S11/S8——UUSD 唯一
+// 获取路径=PSM，生息资产不经 UUSD 直接 stakeForGenesis，2026-10-09 用户两轮口径终值）
+// ---------------------------------------------------------------------------
+
+export type FixtureFaucetToken = {
+  symbol: string;
+  name: string;
+  /** 每日领取额度（合约 dailyLimit 一次性全额 mint） */
+  dailyLimit: number;
+  /** 冷却剩余毫秒样本（0=可领；>0=ClaimTooSoon 域） */
+  cooldownRemainingMs: number;
+};
+
+export type FixtureFaucet = {
+  chainId: number;
+  chainName: string;
+  tokens: FixtureFaucetToken[];
+  swap: {
+    uAssetSymbol: string;
+    reserveSymbol: string;
+    /** mint 费率（比率，10bps→0.001）；null=无配对样本→费率行槽位 */
+    feeIn: number | null;
+    /** redeem 费率（比率） */
+    feeOut: number;
+    /** 铸造额度余量（stockCap−netMinted 样本）；null=槽位 */
+    headroom: number | null;
+    /** 样本账户 UUSD 余额（Back to USDC 方向 Max 源） */
+    myUAsset: number;
+    /** 样本账户储备余额（Get UUSD 方向 Max 源） */
+    myReserve: number;
+  };
+};
+
+export function getFixtureFaucet(): FixtureFaucet | null {
+  const record = fixtureData.faucet.items[0];
+  if (!record) return null;
+  const chain = fixtureData.chains.items.find((item) => item.chainId === record.chainId);
+  return {
+    chainId: record.chainId,
+    chainName: chain?.name ?? String(record.chainId),
+    tokens: record.tokens.map((token) => ({
+      symbol: token.symbol,
+      name: token.name,
+      dailyLimit: amount(token.dailyLimit.raw),
+      cooldownRemainingMs: token.cooldownRemainingMs,
+    })),
+    swap: {
+      uAssetSymbol: record.swap.uAssetSymbol,
+      reserveSymbol: record.swap.reserveSymbol,
+      feeIn: Number(record.swap.feeIn.raw) / 1e4,
+      feeOut: Number(record.swap.feeOut.raw) / 1e4,
+      headroom: record.swap.headroom ? amount(record.swap.headroom.raw) : null,
+      myUAsset: amount(record.swap.myUAsset.raw),
+      myReserve: amount(record.swap.myReserve.raw),
+    },
+  };
+}

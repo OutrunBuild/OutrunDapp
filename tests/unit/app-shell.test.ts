@@ -20,7 +20,7 @@ vi.mock('@/components/global/locale-menu', () => ({
 // （属性翻转实测 0 像素差），此处直接在 SSR HTML 层断言。
 function renderShell(
   props: {
-    current?: 'home' | 'discover' | 'create' | 'portfolio' | 'referral';
+    current?: 'home' | 'discover' | 'create' | 'portfolio' | 'referral' | 'faucet';
     locale?: 'en' | 'zh';
   } = {},
 ) {
@@ -61,16 +61,24 @@ describe('OutrunShell 导航归属语义', () => {
     expect(count(html, 'aria-current="page"')).toBe(0);
   });
 
-  it('current="home"：顶栏四入口导航 + 网络切换器 + 语言/钱包（2026-10-06 拍板 + R-12 referral 入主导航）', () => {
+  it('current="home"：顶栏五入口导航 + 网络切换器 + 语言/钱包（2026-10-06 拍板 + R-12 referral + 2026-10-09 faucet 入主导航）', () => {
     const html = renderShell({ current: 'home' });
-    expect(count(html, 'marketing-nav__link')).toBe(4);
+    expect(count(html, 'marketing-nav__link')).toBe(5);
     expect(html).toContain('>Explore<');
     expect(html).toContain('>Portfolio<');
     expect(html).toContain('>Launch<');
     expect(html).toContain('>Referral<');
+    expect(html).toContain('>Faucet<');
     // 决议 024：终端索引序号——mono 装饰编号 aria-hidden，不进可访问名
-    expect(count(html, 'marketing-nav__index')).toBe(4);
-    expect(count(html, 'aria-hidden="true">0')).toBe(4);
+    expect(count(html, 'marketing-nav__index')).toBe(5);
+    expect(count(html, 'aria-hidden="true">0')).toBe(5);
+    // 顺序防线（2026-10-09 用户裁定 Launch=02，与侧栏 navItems 同序）：
+    // 序号与入口一一对应，Explore→Launch→Portfolio→Referral→Faucet
+    expect(html).toContain('aria-hidden="true">01</span>Explore');
+    expect(html).toContain('aria-hidden="true">02</span>Launch');
+    expect(html).toContain('aria-hidden="true">03</span>Portfolio');
+    expect(html).toContain('aria-hidden="true">04</span>Referral');
+    expect(html).toContain('aria-hidden="true">05</span>Faucet');
     expect(html).toContain('data-testid="chain-stub"');
     expect(html).toContain('data-testid="locale-stub"');
     expect(html).toContain('data-testid="wallet-stub"');

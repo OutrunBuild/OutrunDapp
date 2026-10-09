@@ -17,6 +17,8 @@ export const PAGES: VisualPage[] = [
   { name: 'portfolio-disconnected', path: '/portfolio' },
   { name: 'referral', path: '/referral', connectWallet: true },
   { name: 'referral-disconnected', path: '/referral' },
+  { name: 'faucet', path: '/faucet', connectWallet: true },
+  { name: 'faucet-disconnected', path: '/faucet' },
   { name: 'design-system', path: '/design-system' },
 ];
 
@@ -26,4 +28,6 @@ export const ZH_PAGES: VisualPage[] = [
   { name: 'zh-referral', path: '/zh/referral', connectWallet: true },
   { name: 'zh-referral-disconnected', path: '/zh/referral' },
   { name: 'zh-portfolio', path: '/zh/portfolio', connectWallet: true },
+  { name: 'zh-faucet', path: '/zh/faucet', connectWallet: true },
+  { name: 'zh-faucet-disconnected', path: '/zh/faucet' },
 ];
