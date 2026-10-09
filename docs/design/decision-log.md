@@ -1347,3 +1347,14 @@ C1 结算储备金按 spec 窄口径且 UI 不露出 · C2 建池剩余资金不
 - **裁定**：`docs/runbooks/` 整目录删除（三个 stage runbook 已执行完毕；11 路由蓝图部分随决议 014 失效）。progress.md 逐条登记、哈希链重签、双签/证据包流程一并退役。
 - **替代工作方式**（轻量化，适用于后续所有阶段）：用户提意见/需求 → Agent 实现 → 门禁（tsc/vitest/prettier/boundary）→ 用户验收。正式裁定仍进本日志；历史溯源以本日志 + git 历史为准。
 - **保留的活文档**：`docs/design/decision-log.md`（唯一裁定记录）、`docs/prototype/flow-matrix.md`（验收清单）、`product-acceptance.md`/`stage-03-handoff.md`（阶段 3 冻结记录）。
+
+## 决议 030 · docs/prototype 证据包清理（2026-10-10，用户裁定「删，包括 v0-export/ 也删了」）
+
+- **裁定**：`docs/prototype/` 清理——删除 `csp/`、`scenario/`、`screenshots/`（round-00+final 两轮快照）、`v0-export/`（含 `v0-export.sha256`/`v0-revision.txt` 元文件）、`v0-input/`；17M → 72K，备份 `/tmp/prototype-removed-20261010/`。孤儿脚本 `scripts/build-prototype-input-manifest.mjs` 已随 e10bbf0 移除；`tsconfig.json` exclude 与 `eslint.config.mjs` ignores 同步去 v0 引用。
+- **依据**：v0 循环 2026-09-20 导入后即结束（96 项打磨全在仓内），产品已于 2026-10-09 全量验收；csp/场景证据的消费 checker 已随轻量化裁定删除，截图证据可由 git 历史 + e2e 视觉基线复现。决议 016 保留清单（flow-matrix / product-acceptance / stage-03-handoff / decision-log）全部不受影响。
+- **有意失配登记**：`docs/prototype/freeze-artifacts.sha256` 与 `stage-03-handoff.md` 为验收时点历史快照，此后不再对账磁盘——manifest 中 csp/scenario/screenshots 条目及已删脚本条目均为「快照时存在」的历史记录。
+- **验证**：tsc / vitest / architecture compliance / lint / prettier（触碰文件）全绿。
+
+### 决议 030 补充 · 二批清理（同日，用户裁定「删」）
+
+- 删除 `skill-preflight.md`（唯一引用者 stage-03 runbook 已随决议 016 删除，全仓零引用）与 11E 打标证据三件（`commit-object-id.txt`/`release-evidence-paths.txt`/`tag-evidence.md`——tag→commit 映射 git 自带，打标证据流程已随决议 016 退役）。同入 `/tmp/prototype-removed-20261010/` 备份；目录终态 44K = 决议 016 保留清单 + `architecture-compliance.md`/`test-matrix.md`。
