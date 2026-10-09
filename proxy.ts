@@ -52,7 +52,11 @@ function legacyRedirect(request: NextRequest): NextResponse | null {
   return NextResponse.redirect(new URL(`${prefix}${target}${search}`, request.url), 307);
 }
 
-function localeRouting(request: NextRequest, requestHeaders: Headers): NextResponse | null {
+function localeRouting(
+  request: NextRequest,
+  requestHeaders: Headers,
+  csp: string,
+): NextResponse | null {
   const legacy = legacyRedirect(request);
   if (legacy) return legacy;
 
@@ -68,7 +72,10 @@ function localeRouting(request: NextRequest, requestHeaders: Headers): NextRespo
       `/en${pathname === '/zh' ? '' : pathname.slice(3)}${search}`,
       request.url,
     );
-    return NextResponse.rewrite(target, { request: { headers: requestHeaders } });
+    // CSP 必须设在 rewrite 响应上（request headers 不会透传为响应头——2026-10-09 步骤 8 发现 /zh 路径 CSP 缺失的根因）
+    const rewritten = NextResponse.rewrite(target, { request: { headers: requestHeaders } });
+    rewritten.headers.set('Content-Security-Policy', csp);
+    return rewritten;
   }
 
   // 旧 /en/** 地址收敛到 canonical 无前缀（2026-10-08 生产插桩实证：rewrite
@@ -101,7 +108,7 @@ export function proxy(request: NextRequest) {
   requestHeaders.set('x-nonce', nonce);
   requestHeaders.set('Content-Security-Policy', csp);
 
-  const routed = localeRouting(request, requestHeaders);
+  const routed = localeRouting(request, requestHeaders, csp);
   if (routed) return routed;
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });

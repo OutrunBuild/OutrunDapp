@@ -39,7 +39,9 @@
     ".next-4175/types/**/*.ts",
     ".next-4175/dev/types/**/*.ts",
     ".next-reentry-probe/types/**/*.ts",
-    ".next-reentry-probe/dev/types/**/*.ts"
+    ".next-reentry-probe/dev/types/**/*.ts",
+    ".next-stage3/types/**/*.ts",
+    ".next-stage3/dev/types/**/*.ts"
   ],
   "exclude": ["node_modules", "docs/prototype/v0-export"]
 }
