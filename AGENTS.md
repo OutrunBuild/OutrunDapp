@@ -50,7 +50,6 @@ Next.js 16 App Router · React 19 · Tailwind v4 · shadcn（`base` 原语，非
 
 - **fixture 数据边界（三层强制）**：`fixtures/**` → `lib/data/fixture-repository.ts`（唯一合法消费方）→ `components/**`（`ui/`、`design-system/` 通用层除外）。页面/组件禁止直接 import `fixtures/`，生产代码禁止反向到达；派生纪律：组件不自造领域数值——数值口径从产品真源取、样本数据落 `fixtures/`（见「产品真源」），fixture 快照缺失的字段按「null 不渲染」处理。由 `scripts/check-fixture-boundary.mjs` 的 `--source` / `--graph production` / `--bundle .next` 三层验证。
 - **双编译器桥**：`typescript` 包 = `vendor/typescript-bridge`（bin/tsc 走 TS 7.0.2 CLI，require 转发 TS 6.0.2 API）。不要直接改桥、不要用 `typescript` 的程序 API 写 TS7 语法；tsconfig 禁 TS7 废弃选项（`baseUrl`、`target: es5` 等）。
-- **runbook 纪律**：阶段执行走 `docs/runbooks/stage-0N-*.md`，每步结果必须登记 `docs/runbooks/progress.md`；人工决策步骤逐项问答，不得默认替签；证据链（manifest→handoff→checker）变更后需重新冻结。
 
 ## 命令
 

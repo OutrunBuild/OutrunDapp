@@ -1341,3 +1341,9 @@ C1 结算储备金按 spec 窄口径且 UI 不露出 · C2 建池剩余资金不
 - **登记**：`components.md` 信号原语表 `formatCount` 行。
 - **验证**：tsc / vitest 190 / prettier（改动文件）/ `check:design-docs` 绿；e2e 构建实开 `/memeverse/34`（verse-034 unlocked，holders 5212）DOM 实测 `Holders: 5.21K`，与相邻 `$13.22M`/`$206.00K`/`1.00B` 同单位语言；verse-21 三档基线复跑绿（**覆盖缺口登记**：verse-21=genesis 无统计条，holders chip 无 e2e 基线覆盖——本轮及当日早前 compact 改动均不产生 e2e diff）。
 - 签名：approved by Jasonrale（2026-10-09 用户裁定）
+
+## 决议 016 · runbook 流程退役（2026-10-09，用户裁定「过时、冗余、可删」）
+
+- **裁定**：`docs/runbooks/` 整目录删除（三个 stage runbook 已执行完毕；11 路由蓝图部分随决议 014 失效）。progress.md 逐条登记、哈希链重签、双签/证据包流程一并退役。
+- **替代工作方式**（轻量化，适用于后续所有阶段）：用户提意见/需求 → Agent 实现 → 门禁（tsc/vitest/prettier/boundary）→ 用户验收。正式裁定仍进本日志；历史溯源以本日志 + git 历史为准。
+- **保留的活文档**：`docs/design/decision-log.md`（唯一裁定记录）、`docs/prototype/flow-matrix.md`（验收清单）、`product-acceptance.md`/`stage-03-handoff.md`（阶段 3 冻结记录）。
