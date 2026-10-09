@@ -34,6 +34,8 @@ import { FieldError } from '@/components/ui/field'
  * 与井读数同序），You receive 明细行随之删除（信息不重复）；rate 缺样本→随空值 0.00
  * （「以链上读值为准」槽位 2026-10-05 用户裁定全站废止）。
  * CTA 纪律同 Split/Merge：未连接=Connect Wallet 可点、已连接=操作钮禁用（不伪造成交）。
+ * Max 零值禁用（2026-10-09 用户裁定，同 Split/Merge 弹窗）：销毁币余额 ≤0 时
+ * Max disabled——amountToInputString(0) 空串填充=死按钮观感。
  */
 export function PolRedeemPtYtDialog({
   locale,
@@ -109,7 +111,7 @@ export function PolRedeemPtYtDialog({
               <span>{copy.burnLabel}</span>
               <span className="swap-panel__balance">
                 {copy.balance}: <span data-numeric>{formatAmount(balance, locale)}</span>
-                <button type="button" className="swap-panel__max" onClick={() => clean(amountToInputString(balance))}>
+                <button type="button" className="swap-panel__max" disabled={balance <= 0} onClick={() => clean(amountToInputString(balance))}>
                   {copy.max}
                 </button>
               </span>

@@ -29,6 +29,9 @@ import { FieldError } from '@/components/ui/field'
  * CTA 纪律同 Mint 弹窗：未连接=Connect Wallet 可点切换模拟连接、已连接=操作钮禁用
  * （原型不伪造链上成交，无任何提示文案）。
  * 无估值行（2026-09-26 用户裁定删 split 输入 ≈$ 换算；PT/YT 本就无独立价样本）。
+ * Max 零值禁用（2026-10-09 用户裁定「Max 按钮是坏的」）：amountToInputString(0)
+ * 返回空串、点击无任何可见效果=死按钮观感——可填额 ≤0 时 Max 转入 disabled
+ * （merge 双框=maxMerge=min(PT,YT)、split=POL 余额），余额 0 是诚实禁用态。
  */
 export function PolSplitMergeDialog({
   locale,
@@ -86,7 +89,7 @@ export function PolSplitMergeDialog({
                 <span>POL</span>
                 <span className="swap-panel__balance">
                   {copy.balance}: <span data-numeric>{formatAmount(pol.myPol, locale)}</span>
-                  <button type="button" className="swap-panel__max" onClick={() => clean(amountToInputString(pol.myPol))}>
+                  <button type="button" className="swap-panel__max" disabled={pol.myPol <= 0} onClick={() => clean(amountToInputString(pol.myPol))}>
                     {copy.max}
                   </button>
                 </span>
@@ -118,7 +121,7 @@ export function PolSplitMergeDialog({
                   <span>PT</span>
                   <span className="swap-panel__balance">
                     {copy.balance}: <span data-numeric>{formatAmount(pol.myPt, locale)}</span>
-                    <button type="button" className="swap-panel__max" onClick={() => clean(amountToInputString(maxMerge))}>
+                    <button type="button" className="swap-panel__max" disabled={maxMerge <= 0} onClick={() => clean(amountToInputString(maxMerge))}>
                       {copy.max}
                     </button>
                   </span>
@@ -145,7 +148,7 @@ export function PolSplitMergeDialog({
                   <span>YT</span>
                   <span className="swap-panel__balance">
                     {copy.balance}: <span data-numeric>{formatAmount(pol.myYt, locale)}</span>
-                    <button type="button" className="swap-panel__max" onClick={() => clean(amountToInputString(maxMerge))}>
+                    <button type="button" className="swap-panel__max" disabled={maxMerge <= 0} onClick={() => clean(amountToInputString(maxMerge))}>
                       {copy.max}
                     </button>
                   </span>

@@ -4501,6 +4501,12 @@ svg {
   cursor: pointer;
 }
 
+/* Max 零值禁用（2026-10-09 用户裁定）：可填余额 ≤0 时死点击转诚实禁用态 */
+.swap-panel__max:disabled {
+  color: var(--color-text-secondary);
+  cursor: default;
+}
+
 .swap-panel__field-usd {
   color: var(--color-text-secondary);
   font-family: var(--font-data);
