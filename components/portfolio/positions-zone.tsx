@@ -162,7 +162,6 @@ export function StakedPositionsZone({
                       <div className="pf-positions__act">
                         <CdpRedeemDialog
                           locale={locale}
-                          appearance="link"
                           triggerLabel={copy.cdpRedeem}
                           uAssetSymbol={position.uAssetSymbol}
                           collateralSymbol={position.collateralSymbol}
@@ -190,7 +189,6 @@ export function StakedPositionsZone({
                 </span>
                 <CdpRedeemDialog
                   locale={locale}
-                  appearance="link"
                   triggerLabel={copy.cdpRedeem}
                   uAssetSymbol={position.uAssetSymbol}
                   collateralSymbol={position.collateralSymbol}

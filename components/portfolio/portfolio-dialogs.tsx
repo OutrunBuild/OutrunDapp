@@ -55,7 +55,7 @@ export function BridgeDialog({
 
   return (
     <Dialog>
-      <DialogTrigger data-slot="button" render={<Button variant="outline" />}>
+      <DialogTrigger data-slot="button" render={<Button variant="outline" size="xs" />}>
         {triggerLabel}
       </DialogTrigger>
       <ActionDialogShell title={copy.bridgeTitle} closeLabel={getCopy(locale).common.close}>
@@ -163,7 +163,7 @@ export function ConvertDialog({
 
   return (
     <Dialog>
-      <DialogTrigger data-slot="button" render={<Button variant="outline" />}>
+      <DialogTrigger data-slot="button" render={<Button variant="outline" size="xs" />}>
         {triggerLabel}
       </DialogTrigger>
       <ActionDialogShell title={`${copy.convertTitle} · ${uAssetSymbol}`} closeLabel={getCopy(locale).common.close}>
@@ -245,7 +245,6 @@ export function CdpRedeemDialog({
   collateralAmount,
   debt,
   uAssetBalance,
-  appearance = 'button',
 }: {
   locale: Locale
   triggerLabel: string
@@ -254,8 +253,6 @@ export function CdpRedeemDialog({
   collateralAmount: number
   debt: number
   uAssetBalance: number | null
-  /** 表格行内用 link（pf-table__link 语法），卡片布局用 button（默认） */
-  appearance?: 'button' | 'link'
 }) {
   const copy = getCopy(locale).portfolio.positions
   const { connected, toggle } = useMockWallet()
@@ -265,16 +262,7 @@ export function CdpRedeemDialog({
 
   return (
     <Dialog>
-      <DialogTrigger
-        data-slot="button"
-        render={
-          appearance === 'link' ? (
-            <button type="button" className="pf-table__link" />
-          ) : (
-            <Button variant="outline" />
-          )
-        }
-      >
+      <DialogTrigger data-slot="button" render={<Button variant="outline" size="xs" />}>
         {triggerLabel}
       </DialogTrigger>
       <ActionDialogShell title={`${copy.cdpRedeem} · ${uAssetSymbol}`} closeLabel={getCopy(locale).common.close}>

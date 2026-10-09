@@ -1165,7 +1165,7 @@ export type FixturePortfolioAction = {
   /** 快照锚点距截止剩余毫秒（null=无截止；剩余 ms 有值=限时窗项，null=随时可办项） */
   remainingMs: number | null;
   /**
-   * 金额锚（样本口径）：refund=合计参与额（uAsset）；protection=在场本金
+   * 金额锚（样本口径）：refund=合计参与额（uAsset）；protection=创世本金
    * （myPt + myPol×uAssetPerPol，genesis.md 本位权利构成）；incentive=native myClaimable
    */
   amount: number | null;
@@ -1185,7 +1185,7 @@ export function getFixturePortfolioActions(): FixturePortfolioAction[] {
   const snapshot = getSnapshot();
   const actions: FixturePortfolioAction[] = [];
 
-  // 24h 保护窗（解锁后未满 24h——锚定 unlockedAtTx，genesis.md:43）；金额=在场本金
+  // 24h 保护窗（解锁后未满 24h——锚定 unlockedAtTx，genesis.md:43）；金额=创世本金
   // （PT 1:1 本位 + POL 按 uAssetPerPol 折 uAsset 侧，genesis.md:58-65 全额退出权利构成）
   for (const verse of snapshot.verses) {
     if (verse.stage !== 'unlocked' || !verse.unlockedAt) continue;
@@ -1509,6 +1509,7 @@ export function getFixtureReferral(): FixtureReferral | null {
     })),
   };
 }
+
 // ---------------------------------------------------------------------------
 // /faucet（测试网水龙头 + PSM 面值兑换 UUSD；机制 source-map S10/S11/S8——UUSD 唯一
 // 获取路径=PSM，生息资产不经 UUSD 直接 stakeForGenesis，2026-10-09 用户两轮口径终值）
