@@ -33,15 +33,20 @@ export function PaintSkin() {
       root.dataset.paintReady = '1'
       return () => mq.removeEventListener('change', onChange)
     }
-    paintCss.paintWorklet.addModule('/paint/chamfer-border.js').then(
-      () => {
-        root.dataset.paintReady = '1'
-      },
-      (error: unknown) => {
-        console.error('[paint-skin] worklet 注册失败', error)
-        root.dataset.paintReady = '1'
-      },
-    )
+    // 预水合内联装载（app/layout.tsx 的 nonce 内联脚本）已抢跑 addModule 时不再
+    // 重复注册——本组件只保留 --dpr / resolution MQ 追踪；内联脚本被 CSP 拦截
+    // （nonce 缺失等）时 __paintBooted 不在，本组件兜底走原注册路径
+    if (!(window as unknown as { __paintBooted?: boolean }).__paintBooted) {
+      paintCss.paintWorklet.addModule('/paint/chamfer-border.js').then(
+        () => {
+          root.dataset.paintReady = '1'
+        },
+        (error: unknown) => {
+          console.error('[paint-skin] worklet 注册失败', error)
+          root.dataset.paintReady = '1'
+        },
+      )
+    }
 
     return () => mq.removeEventListener('change', onChange)
   }, [])
