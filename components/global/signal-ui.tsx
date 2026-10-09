@@ -34,6 +34,16 @@ export function formatMarketCap(value: number) {
   return tier ? `${(value / tier[1]).toFixed(2)}${tier[0]}` : value.toFixed(2)
 }
 
+/** 计数格式化（2026-10-09 用户裁定）：人数等计数是天然整数——未达单位量级时出现
+ *  小数点不符合常识，小数只允许伴随 K/M/B 出现；达量级与 formatMarketCap 同语言
+ *  （K/M/B 两位小数，不随 locale 换算，统计条单位统一） */
+export function formatCount(value: number) {
+  if (value < 1_000) {
+    return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value)
+  }
+  return formatMarketCap(value)
+}
+
 export function formatDate(value: string, locale: Locale) {
   return new Intl.DateTimeFormat(locale === 'zh' ? 'zh-CN' : 'en-US', {
     dateStyle: 'medium',

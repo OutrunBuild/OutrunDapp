@@ -10,7 +10,7 @@ import { CandleChart } from './candle-chart'
 import { CopyAddress } from '../global/copy-address'
 import { getCopy } from '../global/copy'
 import { SwapPanel } from './swap-panel'
-import { formatAmount, formatMarketCap, formatPercent } from '../global/signal-ui'
+import { formatAmount, formatCount, formatMarketCap, formatPercent } from '../global/signal-ui'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 /** 统计胶囊：本体走 dl/dt/dd；触发器=dd 内可聚焦 button（Tab 可达——2026-10-03 修键盘不可达，对齐 f50ea4d 触发器契约，
@@ -116,7 +116,7 @@ export function VerseTradeDesk({
                 {stats.holders != null ? (
                   <StatChip
                     label={copy.holders}
-                    value={formatAmount(stats.holders, locale, true)}
+                    value={formatCount(stats.holders)}
                     tipTitle={copy.holdersFull}
                     tipValue={formatAmount(stats.holders, locale)}
                   />
