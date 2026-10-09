@@ -7554,6 +7554,36 @@ svg {
   list-style: none;
 }
 
+.tx-status__outcome {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-inset);
+}
+
+.tx-status__outcome strong {
+  color: var(--color-text);
+  font-size: var(--text-sm);
+}
+
+.tx-status__outcome p {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.tx-status__outcome[data-outcome='reverted'] {
+  border-color: var(--color-danger);
+}
+
+.tx-status__outcome[data-outcome='reverted'] strong {
+  color: var(--color-danger);
+}
+
+.tx-status__outcome[data-outcome='cancelled'] {
+  border-color: var(--color-border-signal-strong);
+}
+
 .tx-status__step {
   display: flex;
   align-items: center;

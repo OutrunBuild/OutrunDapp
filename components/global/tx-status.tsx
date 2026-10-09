@@ -6,7 +6,13 @@ import type { Locale } from '@/lib/data/fixture-repository'
 
 import { getCopy } from './copy'
 
-export type TxState = 'idle' | 'signing' | 'confirming' | 'confirmed'
+export type TxState =
+  | 'idle'
+  | 'signing'
+  | 'confirming'
+  | 'confirmed'
+  | 'cancelled'
+  | 'reverted'
 
 const TX_ORDER = ['signing', 'confirming', 'confirmed'] as const
 
@@ -16,10 +22,26 @@ const TX_ORDER = ['signing', 'confirming', 'confirmed'] as const
  * 原型无钱包：签名/上链由调用方定时模拟推进，无 hash/gas，关键事实行省略。
  * aria：交易状态是关键信息，容器 assertive（契约 §8）。
  */
-export function TxStatus({ locale, state }: { locale: Locale; state: 'signing' | 'confirming' | 'confirmed' }) {
+export function TxStatus({ locale, state }: { locale: Locale; state: TxState }) {
   const copy = getCopy(locale)
   const labels = [copy.verse.txSign, copy.verse.txSubmit, copy.verse.txDone]
-  const current = TX_ORDER.indexOf(state)
+
+  // 终态附加（决议：拒签=Cancelled 非失败语气；回退=Reverted 失败语气+原因占位）
+  if (state === 'cancelled' || state === 'reverted') {
+    const cancelled = state === 'cancelled'
+    return (
+      <div className="tx-status__outcome" data-outcome={state} role={cancelled ? 'status' : 'alert'}>
+        <strong>{cancelled ? copy.verse.txCancelled : copy.verse.txReverted}</strong>
+        <p>
+          {cancelled
+            ? copy.verse.txCancelledNote
+            : copy.verse.txRevertedNote}
+        </p>
+      </div>
+    )
+  }
+
+  const current = TX_ORDER.indexOf(state as 'signing' | 'confirming' | 'confirmed')
 
   return (
     <ol className="tx-status" aria-live="assertive">
