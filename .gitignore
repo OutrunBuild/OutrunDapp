@@ -70,7 +70,6 @@ next-env.d.ts
 docs/review
 docs/runbooks
 docs/prototype
-docs/page-briefs
 
 # Playwright e2e（.next-e2e 独立构建产物与运行报告；快照基线 e2e/*-snapshots/ 需入库）
 .next-e2e/

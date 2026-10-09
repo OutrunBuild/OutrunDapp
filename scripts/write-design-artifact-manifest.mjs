@@ -47,6 +47,7 @@ const TREES = [
   'scripts/build-design-input-manifest.mjs',
   'scripts/record-v0-revision.mjs',
   'scripts/write-design-artifact-manifest.mjs',
+  'scripts/check-design-freeze.mjs',
   'scripts/check-handoff-integrity.mjs',
   'scripts/check-runtime.mjs',
   'scripts/bootstrap-pnpm.mjs',

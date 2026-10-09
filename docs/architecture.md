@@ -21,7 +21,7 @@ meta:
 
 ## 主路径摘要
 
-原型用 v0 Plus 与仓库设计 Skills 生成覆盖 11 条路由、双语响应式、全状态的 Next.js 原型，验收前不进入业务开发。栈为 Next.js 16、React 19、TypeScript、Tailwind CSS、shadcn/ui、TanStack Query、wagmi 3、viem、Privy 和 Kernel V3.3。Privy 接入 embedded EOA 及 MetaMask、OKX Wallet、Coinbase Wallet、WalletConnect 外部 EOA。Memeverse 写操作由 EOA 发送 EIP-7702 Type-4，在 Kernel 中原子执行 `approval? → beginAccountSession → Router → endAccountSession`；gas 由用户支付。数据走直接 RPC 与六链 The Graph，ABI 从固定合约 commit 冻结；测试含 Vitest、Playwright、Anvil fork 和测试网，部署 Vercel，监控 Sentry。
+原型用 v0 Plus 与仓库设计 Skills 生成覆盖 7 条产品路由（另含 `/design-system` 工具页）、双语响应式、全状态的 Next.js 原型，验收前不进入业务开发。栈为 Next.js 16、React 19、TypeScript、Tailwind CSS、shadcn/ui、TanStack Query、wagmi 3、viem、Privy 和 Kernel V3.3。Privy 接入 embedded EOA 及 MetaMask、OKX Wallet、Coinbase Wallet、WalletConnect 外部 EOA。Memeverse 写操作由 EOA 发送 EIP-7702 Type-4，在 Kernel 中原子执行 `approval? → beginAccountSession → Router → endAccountSession`；gas 由用户支付。数据走直接 RPC 与六链 The Graph，ABI 从固定合约 commit 冻结；测试含 Vitest、Playwright、Anvil fork 和测试网，部署 Vercel，监控 Sentry。
 
 ## 1. 产品目标、术语与阶段门
 
@@ -60,25 +60,21 @@ Outrun DApp 提供 Memeverse 与 OutStake 的完整用户功能、全部核心�
 
 ## 2. 信息架构与页面清单
 
-路由表中的路径省略了 `/{locale}` 前缀；实际 canonical 路径均为 `/{locale}` 加表中路径，`locale` 固定为 `zh` 或 `en`。表中的 `/` 代表 `/{locale}/`，不是额外的非 locale 路由。裸 `/` 只作为入口别名，必须 `307` 重定向到默认 locale `/en`（2026-09-17 修订，原默认 `/zh`；依据阶段 1 决议 001-B 与修订记录 §21），不计入 11 条页面路由；应用生成的内部链接必须始终带显式 locale。
+URL 方案：zh 路径带 `/zh` 前缀；en 为无前缀 canonical（`proxy.ts` 内部 rewrite 到 `/en/**`，应用树只有 `app/[locale]`）。表中的 `/` 代表落地页（en canonical `/`、zh `/zh`）。旧地址（`/launch`、`/memeverse`、`/memeverse/create`、`/en/**` 等）由 `proxy.ts` 307 收敛到 canonical（原型期防浏览器缓存，上线换 301；2026-09-22 方案 C）。语言切换走 `components/global/routes.ts` 的 `localePath`，禁止手拼 `/${locale}`。共 7 条产品路由；另有 `/design-system` 设计系统工具页（内部，不进导航）与 4 条嵌入型资产动线（组件级，非路由）。动态段 `[verseId]` = 链上 uint256 verseId，fixture 行 id 不进 URL。
 
-| 路由                              | 页面职责         | 核心功能与数据                                                                        |
-| --------------------------------- | ---------------- | ------------------------------------------------------------------------------------- |
-| `/`                               | 产品落地页       | 产品介绍（双模块闭环）、三档参与路径、关键指标（营销口径）、支持资产（uAsset 族）说明与进入产品 CTA；无个性化摘要（2026-09-17 决议 007 修订，原「生态总览+用户摘要」职责移至发现页与 /portfolio；app 子域拆分为阶段 3 基础设施议题） |
-| `/bridge`                         | 全链资产         | uAsset 与 GenesisCredit 跨链报价、源链/目标链、限额、费用、消息状态和历史记录         |
-| `/memeverse`                      | Memeverse 发现   | Verse 列表、生命周期、治理链、参与规模、搜索、过滤和排序                              |
-| `/memeverse/create`               | 创建 Memeverse   | 注册参数、symbol 校验、多链选择、费用报价、提交和跨链注册状态                         |
-| `/memeverse/[verseId]`            | Verse 总览       | 生命周期、Genesis、Preorder、退款、领取、四池、关键时间和用户权益                     |
-| `/memeverse/[verseId]/trade`      | Swap 与流动性    | 普通 Swap、Permit2、加减流动性、流动性提供者（LP）费用、推荐返佣和动态费率            |
-| `/memeverse/[verseId]/yield`       | 收益（Yield）      | 杠杆 Genesis、GenesisCredit 付息/退款、split、merge、YT Flash Swap、settlement 和赎回；PT/YT 凭证管理 |
-| `/memeverse/[verseId]/stake`      | Memecoin Staking | 存入、赎回请求、领取、收益、跨链 Staking 和委托状态                                   |
-| `/memeverse/[verseId]/governance` | DAO 治理         | 去中心化自治组织（DAO）的提案、投票、投票权、周期奖励、国库资产和执行状态             |
-| `/portfolio`                      | 统一资产与活动   | 六链余额、uAsset/SY 资产、CDP 仓位与债务赎回（open-term，`redeem` 唯一减借）、USR 储蓄（suToken）与收益、GenesisCredit、Genesis/POL/PT/YT、奖励、待领取项、跨链在途/滞留提醒（详情与历史在 `/bridge`；交易历史归全局交易中心，2026-09-17 决议 007 修订） |
-| `/account`                        | 钱包与智能账户   | 已连接钱包、活动账户、逐链 EIP-7702 状态、实现地址、启用、替换和撤销                  |
+| 路由                    | 页面职责         | 核心功能与数据                                                                        |
+| ----------------------- | ---------------- | ------------------------------------------------------------------------------------- |
+| `/`                     | 产品落地页       | Hero 定位（双模块闭环）、营销口径指标证据带、双引擎卡、机制入门与生命周期教育、进入产品 CTA；无个性化摘要（决议 007） |
+| `/memeverse/explore`    | Memeverse 发现   | Verse 列表（阶段 tab：创世中默认/锁定中/已解锁，不跨阶段混排）、阶段内排序、治理链/资产族/创世模式过滤、搜索、参与规模 |
+| `/memeverse/launch`     | 创建 Memeverse   | 注册参数、symbol 校验、多链选择、费用报价、提交和跨链注册状态                         |
+| `/memeverse/[verseId]`  | Verse 详情单页   | 头卡+判定面板（双门槛/Fast Genesis）+参与面板（Genesis/Preorder/退款/领取）+交易台持久区（统计条/K 线/Swap）+四标签 `?tab=liquidity\|pol\|vault\|dao`（流动性与 LP、POL 铸造/赎回与拆合、收益库赎回、DAO 治理） |
+| `/portfolio`            | 统一资产与活动   | 六链余额、uAsset/SY 资产（行内跨链 BridgeDialog/面值兑换/存入储蓄入口）、CDP 仓位与债务赎回（open-term，`redeem` 唯一减借）、USR 储蓄（suToken）、GenesisCredit、Genesis/POL/PT/YT 凭证、待领取项、跨链在途/滞留提醒（跨链发起并入本页，v1 无独立 bridge 页；交易历史归全局交易中心，决议 007） |
+| `/referral`             | 推荐返佣         | 邀请链接（/ref/短码样式）、返佣 KPI（累计/待领/人数/费率）、逐币种领取、分账说明（65/25/10）、流水与朋友表 |
+| `/faucet`               | 测试网水龙头     | 三 mock 代币领取（逐 token 24h 冷却/批量）、Get UUSD（PSM 面值 1:1）、生息资产直达创世入口 |
 
 全局交互面包含主网/测试网模式、查看链选择器、钱包选择器、交易中心、跨链消息详情、通知中心和中英文切换。跨链消息详情由交易中心承载（决议 007）；通知中心 v1 延后——待办提醒由 `/portfolio` 可行动区与操作完成 toast 承接（决议 007，2026-09-17，条目保留供后续版本）。全局交互面与页面一并进入高保真验收。
 
-> **产品裁定（2026-09-14）**：OutStake 模块与品牌对最终用户隐藏，用户仅通过参与 Memeverse 间接使用 OutStake 能力。据此 `/outstake`、`/outstake/[market]`、`/positions` 三条路由撤出页面清单（14 → 11）：uAsset 获取（创世质押铸造、PSM 面值兑换）、USR 储蓄、仓位管理与债务赎回作为**嵌入型资产动线**进入 Memeverse 参与流程与 `/portfolio`，在阶段 2 以组件级 brief 定义，不设独立品牌页面。导航与文案不得出现 OutStake 字样；uAsset、suToken 等可作为用户资产命名，SY、CDP、PSM、Kernel 等机制词汇仅必要时出现且须经阶段 2 术语表定稿。
+> **产品裁定（2026-09-14）**：OutStake 模块与品牌对最终用户隐藏，用户仅通过参与 Memeverse 间接使用 OutStake 能力。据此 `/outstake`、`/outstake/[market]`、`/positions` 三条路由撤出页面清单：uAsset 获取（创世质押铸造、PSM 面值兑换）、USR 储蓄、仓位管理与债务赎回作为**嵌入型资产动线**进入 Memeverse 参与流程与 `/portfolio`，以组件级 brief 定义，不设独立品牌页面。导航与文案不得出现 OutStake 字样；uAsset、suToken 等可作为用户资产命名，SY、CDP、PSM、Kernel 等机制词汇仅必要时出现且须经术语表定稿。后续路由演进：详情页四子路由（trade/yield/stake/governance）并入单页四标签（2026-09-23 裁定）；创建/发现页并入 `/memeverse/*` 域（2026-09-23 裁定）；跨链功能并入 `/portfolio`、无独立 bridge 页（2026-10-02 裁定）；新增 `/referral`（2026-10-07）与 `/faucet`（2026-10-09）。
 
 ## 3. 前端技术栈
 
@@ -380,7 +376,7 @@ viem 直接读取以下数据：
 
 Memeverse 动态部署的 Memecoin、POL、PT、YT、YieldVault 和 Governor 使用 subgraph data source template。每个实体主键包含 chainId 和链上唯一标识，禁止跨链仅用地址作为主键。
 
-全局列表和跨链聚合通过 Next.js 服务端 repository 查询 Graph，并使用短时缓存和请求去重。浏览器只查询当前用户必须实时读取的数据。页面同时读取 Graph `_meta.block.number` 和 RPC 最新安全块。索引落后超过 120 秒时显示同步状态；余额、授权、账户代码和交易最终结果始终以 RPC 为准。
+全局列表和跨链聚合通过 Next.js 服务端 repository 查询 Graph，并使用短时缓存和请求去重。浏览器只查询当前用户必须实时读取的数据。页面同时读取 Graph `_meta.block.number` 和 RPC 最新安全块。索引落后时静默降级（聚合历史数据稍旧，不显示用户可见状态）；余额、授权、账户代码和交易最终结果始终以 RPC 为准。（决议 015：原「显示同步状态」的用户可见横幅撤除）
 
 ## 10. UI 与可访问性标准
 
@@ -393,7 +389,7 @@ Memeverse 动态部署的 Memecoin、POL、PT、YT、YieldVault 和 Governor 使
 - 所有 motion 尊重 `prefers-reduced-motion`。
 - 表格数字使用 tabular numerals；地址、hash、symbol 和长文本支持截断及复制。
 - 中文和英文不使用同一固定字符宽度推断布局；两种语言分别进行溢出测试。
-- 页面必须处理零余额、零仓位、未部署、暂停、RPC 故障、索引延迟和用户拒签。
+- 页面必须处理零余额、零仓位、未部署、暂停、RPC 故障和用户拒签。（索引延迟为静默降级，决议 015——不再列为用户可见状态）
 
 ## 11. 测试体系
 
@@ -473,7 +469,7 @@ Sentry 记录脱敏后的：
 监控阈值固定为：
 
 - RPC 5 分钟错误率超过 1% 或 p95 超过 2 秒告警。
-- Graph 索引落后超过 120 秒展示降级状态并告警。
+- Graph 索引落后时静默降级（聚合数据稍旧），不做用户可见展示。（决议 015）
 - Type-4 transaction Pending 超过 2 分钟提示用户，超过 10 分钟触发运维告警。
 - Privy、Alchemy、Infura、Graph 和 Vercel 用量达到 70% 预警、90% 高优先级告警。
 - Kernel implementation、Memeverse/OutStake 代理实现、peer、暂停和 rate-limit 配置发生未登记变化时立即告警。

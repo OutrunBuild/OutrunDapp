@@ -20,6 +20,9 @@ jobs:
       # runner 侧对齐契约版本，契约本身的重钉（0.35.0 化）留待冻结链重签轮
       - run: npm install -g corepack@0.34.5
       - run: node scripts/check-runtime.mjs --strict
+      # docs/design 冻结清单工作树完整性（纯 node、无依赖；2026-10-09 接线防静默漂移——
+      # v0-input 树删除后 manifest 失修 147 条即前车之鉴）
+      - run: node scripts/check-design-freeze.mjs
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       # 存量 lint 债清偿期：11 处（unused vars/失效 @next 指令）集中在 8 个并行在途文件

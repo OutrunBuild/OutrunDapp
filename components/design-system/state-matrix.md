@@ -1,4 +1,6 @@
-# 状态矩阵（Stage-01 步骤 11 · 页面 brief 直接引用）
+# 状态矩阵
+
+> 路径以决议 014 后的现役路由为准（bridge/account 蓝图路由已作废；verse 子功能=详情页 tab）。（Stage-01 步骤 11 · 页面 brief 直接引用）
 
 > 覆盖 architecture.md §1（原型全状态）、§6.2（账户九态）、§7（交易十一态）、§10（边界状态）、§11.2（测试矩阵账户态）、§15（模块完成状态）。页面 brief（阶段 2）按「路由 × 状态」引用本矩阵编号，不重复定义。
 > 视觉语言全部走 tokens.css；文案消费化（决议 001-A）。
@@ -51,16 +53,16 @@
 | 路由 | 必测状态集 |
 |---|---|
 | `/` | A1/A3/A6 · D1/D2/D3 · D8 |
-| `/bridge` | A1/A3/A6 · T1–T11（跨链 T10 必测）· D2/D4/D6 |
 | `/memeverse/explore` | A1 · D1/D2/D3/D6 · 搜索空结果 |
 | `/memeverse/launch` | 表单校验态 · T2/T3 · D4（暂停期创建禁用） |
 | `/memeverse/[verseId]` | VerseStage 四态 · 领取矩阵 · A6 前置 · D4/D5 |
-| `/trade` | T 全集（动态费率分解）· A3 升级引导 · D5 |
-| `/pol` | T2/T3/T4（会话包裹）· 密度 T1 局部 · D2/D6 |
-| `/stake` | 异步两步赎回状态 · 委托状态 · 上限 5 笔提示 |
-| `/governance` | 提案四态 · 领取窗口倒计时 · 启动期禁提 |
-| `/portfolio` | 嵌入动线四线（铸造/PSM/USR/赎回）各自状态 · D2/D4/D6 · 密度 T1 局部 |
-| `/account` | A1–A9 全集 · 逐链委托矩阵 |
+| `/memeverse/[verseId]`（liquidity tab） | T 全集（动态费率分解）· A3 升级引导 · D5 |
+| `/memeverse/[verseId]`（pol tab） | T2/T3/T4（会话包裹）· 密度 T1 局部 · D2/D6 |
+| `/memeverse/[verseId]`（vault tab） | 异步两步赎回状态 · 委托状态 · 上限 5 笔提示 |
+| `/memeverse/[verseId]`（dao tab） | 提案四态 · 领取窗口倒计时 · 启动期禁提 |
+| `/portfolio` | 嵌入动线四线（铸造/PSM/USR/赎回）各自状态 · 跨链 BridgeDialog 发起/在途 · D2/D4/D6 · 密度 T1 局部 |
+| `/referral` | A1 · D2（无推荐记录/无待领） · 逐币种待领领取 T2/T3 · 链接生成/复制反馈 |
+| `/faucet` | A1 · D2（无可领） · 冷却中态（ClaimTooSoon 行内） · batchClaim 原子失败回滚 · UUSD 兑换（PSM quote 态） · D8 |
 
 ## 5. 状态文案规范（决议 001-A）
 

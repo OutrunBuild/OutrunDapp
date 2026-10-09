@@ -1,0 +1,319 @@
+{
+  "urlScheme": {
+    "locales": ["en", "zh"],
+    "defaultLocale": "en",
+    "canonical": "en 无前缀（proxy.ts 内部 rewrite 到 /en/**）；zh 带 /zh 前缀",
+    "legacyConvergence": "旧地址（/launch、/memeverse、/memeverse/create、/en/** 等）由 proxy.ts 307 收敛到 canonical；语言切换走 components/global/routes.ts 的 localePath",
+    "dynamicSegmentConvention": "[verseId]（= 链上 uint256 verseId；fixture 行 id 不进 URL）"
+  },
+  "entries": [
+    {
+      "id": "R-01",
+      "kind": "route",
+      "path": "/",
+      "responsibility": "产品落地页：Hero 定位+证据带（营销口径指标）、双引擎卡、机制入门段、生命周期教育段、收尾 CTA；无个性化摘要",
+      "dynamicParams": [],
+      "fixturePath": null,
+      "sources": [
+        "docs/architecture.md#2",
+        "vision.md",
+        "ecosystem/business-model.md",
+        "ecosystem/playbooks.md"
+      ],
+      "dataDependencies": {
+        "graph": [
+          "营销指标（总锁定、已部署 Verse 数、累计参与地址）"
+        ],
+        "rpc": [],
+        "tx": []
+      },
+      "briefFile": "home.md",
+      "note": "落地页非仪表页；CTA 指向发现页与文档；不得写死地址/ABI"
+    },
+    {
+      "id": "R-02",
+      "kind": "route",
+      "path": "/memeverse/explore",
+      "responsibility": "Memeverse 发现：Verse 列表（阶段 tab：创世中默认/锁定中/已解锁）、阶段内排序、治理链/资产族/创世模式过滤、搜索、参与规模",
+      "dynamicParams": [],
+      "fixturePath": null,
+      "sources": [
+        "docs/spec/verse/state-machines.md",
+        "docs/spec/verse/lifecycle-details.md",
+        "memeverse/lifecycle.md",
+        "memeverse/vs-pump-fun.md"
+      ],
+      "dataDependencies": {
+        "graph": [
+          "Verse 列表/参与规模"
+        ],
+        "rpc": [],
+        "tx": []
+      },
+      "briefFile": "memeverse-discovery.md",
+      "note": "阶段=分组维度不跨阶段混排，无「全部」「退款」tab（退款态动线由 Portfolio 承接，经搜索可达）；不得写死地址/ABI"
+    },
+    {
+      "id": "R-03",
+      "kind": "route",
+      "path": "/memeverse/launch",
+      "responsibility": "创建 Memeverse（Consensus Launch）：注册参数、symbol 校验、多链选择、费用报价、提交与跨链注册状态",
+      "dynamicParams": [],
+      "fixturePath": null,
+      "sources": [
+        "docs/spec/verse/registration-details.md"
+      ],
+      "dataDependencies": {
+        "graph": [],
+        "rpc": [
+          "注册报价/symbol 校验"
+        ],
+        "tx": [
+          "注册支付"
+        ]
+      },
+      "briefFile": "memeverse-create.md",
+      "note": "来源只引用 registration-details.md；不得写死地址/ABI"
+    },
+    {
+      "id": "R-04",
+      "kind": "route",
+      "path": "/memeverse/[verseId]",
+      "responsibility": "Verse 详情单页：头卡（Overview）+交易台持久区（统计条/K 线/Swap）+ 参与面板（普通/杠杆/预购，挂 EF-1/EF-2）+ 四标签 ?tab=liquidity|pol|vault|dao（tab 白名单=components/global/routes.ts VERSE_TAB_KEYS；非白名单值回落 liquidity）",
+      "dynamicParams": ["verseId"],
+      "fixturePath": "fixtures/data/verses.json#verse-001|verse-002|verse-003|verse-004",
+      "tabBriefs": {
+        "tradeDesk+liquidity": "verse-trade.md",
+        "pol+vault": "verse-yield.md",
+        "dao": "verse-governance.md"
+      },
+      "sources": [
+        "docs/spec/verse/lifecycle-details.md",
+        "docs/spec/verse/state-machines.md",
+        "docs/spec/router/router-and-user-flows.md",
+        "memeverse/genesis.md",
+        "memeverse/preorder.md",
+        "memeverse/four-pools.md",
+        "memeverse/lifecycle.md"
+      ],
+      "dataDependencies": {
+        "graph": [
+          "Verse 元数据/历史/深度"
+        ],
+        "rpc": [
+          "权益/领取状态/报价/头寸"
+        ],
+        "tx": [
+          "Genesis 参与（普通/杠杆）",
+          "Preorder",
+          "退款",
+          "领取",
+          "swap/流动性",
+          "POL/vault 操作",
+          "投票"
+        ]
+      },
+      "briefFile": "verse-overview.md",
+      "note": "参与面板（普通创世默认+杠杆切换+预购分配器；直接参与/质押参与，机制词不露）；成功判定双门槛独立；不得写死地址/ABI"
+    },
+    {
+      "id": "R-05",
+      "kind": "route",
+      "path": "/portfolio",
+      "responsibility": "统一资产与活动：六链余额、uAsset/SY 资产（行内跨链 BridgeDialog、面值兑换、存入储蓄入口）、CDP 仓位与债务赎回（EF-4）、USR 储蓄（EF-3）、GenesisCredit、Genesis/POL/PT/YT 凭证、待领取项、跨链在途/滞留提醒；交易历史归全局交易中心",
+      "dynamicParams": [],
+      "fixturePath": null,
+      "sources": [
+        "docs/spec/router/router-and-user-flows.md",
+        "docs/spec/position/accounting.md",
+        "docs/spec/position/state-machines.md",
+        "docs/spec/protocol.md",
+        "docs/spec/psm/peg-stability-module.md",
+        "docs/spec/usr/usr-vaults.md",
+        "docs/spec/interoperation/interoperation-details.md",
+        "reference/participation-map.md",
+        "ecosystem/flywheel.md"
+      ],
+      "dataDependencies": {
+        "graph": [
+          "聚合"
+        ],
+        "rpc": [
+          "余额/授权/回执实时值"
+        ],
+        "tx": [
+          "债务赎回",
+          "USR 存取",
+          "领取",
+          "跨链发送（BridgeDialog）"
+        ]
+      },
+      "briefFile": "portfolio.md",
+      "note": "三分区（可行动/仓位与储蓄/凭证）；跨链功能并入本页（v1 无独立 bridge 页）；索引延迟降级不得覆盖余额/授权/回执；不得写死地址/ABI"
+    },
+    {
+      "id": "R-06",
+      "kind": "route",
+      "path": "/referral",
+      "responsibility": "推荐返佣：邀请链接生成（/ref/<短码> 样式）、返佣 KPI（累计收益/待领/推荐人数/费率）、逐币种待领与领取入口、运作方式说明（65/25/10 分账）、返佣流水与被推荐朋友表",
+      "dynamicParams": [],
+      "fixturePath": "fixtures/data/referral.json",
+      "sources": [
+        "docs/spec/swap/uniswap-v4.md",
+        "src/swap/MemeverseUniswapHookUpgradeable.sol",
+        "docs/GLOSSARY.md",
+        "memeverse/hook.md",
+        "ecosystem/flywheel.md"
+      ],
+      "dataDependencies": {
+        "graph": [
+          "返佣率（referrerRebateBps，默认 1000bps）",
+          "逐币种 pendingRebate 与累计已赚（in-kind 多币种）",
+          "被推荐人明细（索引器口径——链上事件只记 referrer+币种+金额）"
+        ],
+        "rpc": [
+          "pendingRebateOf(referrer, currency)",
+          "referrerRebateBps()"
+        ],
+        "tx": [
+          "claimRebate(currency, recipient)（逐币 pull，无批量）"
+        ]
+      },
+      "briefFile": null,
+      "note": "机制细节台账与行为契约见 components/design-system/component-contract.md §32；Friends 表=fixture 样本；链接短码样式为样本（链上无 code 注册表，生产映射待定）；/ref/<code> 落地路由与 swap 侧 ref 接线不在本期"
+    },
+    {
+      "id": "R-07",
+      "kind": "route",
+      "path": "/faucet",
+      "responsibility": "测试网水龙头：三 mock 代币逐 token 24h 冷却领取/批量领取、UUSD 面值兑换（PSM 口径）、生息资产直达创世入口",
+      "dynamicParams": [],
+      "fixturePath": "fixtures/data/faucet.json",
+      "sources": [
+        "test/support/Faucet.sol",
+        "script/deploy/OutstakeScript.s.sol",
+        "docs/spec/psm/peg-stability-module.md",
+        "docs/spec/router/router-and-user-flows.md"
+      ],
+      "dataDependencies": {
+        "graph": [],
+        "rpc": [
+          "冷却剩余/可领集合"
+        ],
+        "tx": [
+          "claim/batchClaim",
+          "PSM mint/redeem"
+        ]
+      },
+      "briefFile": null,
+      "note": "行为契约见 components/design-system/component-contract.md §34；batchClaim 前端只传可领集合（合约按传入数组原子执行，任一冷却中整笔回滚）；侧栏+移动底栏导航可见"
+    },
+    {
+      "id": "INT-01",
+      "kind": "internal",
+      "path": "/design-system",
+      "responsibility": "设计系统 showcase 工具页（tokens/组件/状态矩阵可视核对）；不进产品导航，e2e 视觉基线承载页之一",
+      "dynamicParams": [],
+      "fixturePath": null,
+      "sources": [
+        "DESIGN.md",
+        "components/design-system/tokens.css"
+      ],
+      "dataDependencies": {
+        "graph": [],
+        "rpc": [],
+        "tx": []
+      },
+      "briefFile": null,
+      "note": "非产品路由；变更走设计系统契约登记（docs/design-system/components.md）"
+    },
+    {
+      "id": "GS-01",
+      "kind": "global-surface",
+      "path": null,
+      "responsibility": "全局交互面（非 URL 路由）：主网/测试网模式、查看链选择器、钱包选择器、交易中心、跨链消息详情、通知中心（v1 延后）、中英文切换",
+      "dynamicParams": [],
+      "fixturePath": null,
+      "sources": [
+        "docs/architecture.md#2",
+        "docs/architecture.md#5",
+        "docs/architecture.md#7"
+      ],
+      "briefFile": "global-interactions.md",
+      "note": "草稿清空、错误网络禁写、用户动作触发弹窗；不得伪装成额外路由；不得写死地址/ABI"
+    },
+    {
+      "id": "EF-1",
+      "kind": "embedded-flow",
+      "path": null,
+      "responsibility": "创世质押铸 uAsset（CDP / OutStake router `SP.stakeForGenesis`；uAsset 面值铸造唯一入口）",
+      "dynamicParams": ["verseId (上下文)"],
+      "mountPoints": [
+        "R-04 /memeverse/[verseId] 参与面板（质押参与路径）"
+      ],
+      "fixturePath": null,
+      "sources": [
+        "docs/spec/router/router-and-user-flows.md",
+        "docs/spec/position/accounting.md",
+        "outstake/uasset.md",
+        "outstake/router.md"
+      ],
+      "briefFile": "asset-flows.md",
+      "note": "组件级 brief；完成后回到发起页出口；不得写死地址/ABI"
+    },
+    {
+      "id": "EF-2",
+      "kind": "embedded-flow",
+      "path": null,
+      "responsibility": "PSM 面值兑换（tin/tout 费率、stockCap headroom、dust 域 quote 返 0 不可执行、储备枯竭关闭面值退出）",
+      "dynamicParams": ["verseId (上下文)"],
+      "mountPoints": [
+        "R-04 /memeverse/[verseId] 参与面板（直接参与路径）",
+        "R-05 /portfolio（uAsset 行内「面值兑换」）",
+        "R-07 /faucet（Get UUSD 弹窗）"
+      ],
+      "fixturePath": null,
+      "sources": [
+        "docs/spec/psm/peg-stability-module.md",
+        "outstake/psm.md"
+      ],
+      "briefFile": "asset-flows.md",
+      "note": "组件级 brief；完成后回到发起页出口；不得写死地址/ABI"
+    },
+    {
+      "id": "EF-3",
+      "kind": "embedded-flow",
+      "path": null,
+      "responsibility": "USR 储蓄（ERC4626 存取、suToken 份额、accrualIndex 计息、usrRate=0 未激活面）",
+      "dynamicParams": [],
+      "mountPoints": [
+        "R-05 /portfolio"
+      ],
+      "fixturePath": null,
+      "sources": [
+        "docs/spec/usr/usr-vaults.md",
+        "outstake/usr.md"
+      ],
+      "briefFile": "asset-flows.md",
+      "note": "组件级 brief；不得写死地址/ABI"
+    },
+    {
+      "id": "EF-4",
+      "kind": "embedded-flow",
+      "path": null,
+      "responsibility": "CDP 仓位管理与债务赎回（open-term 无到期；redeem 双腿销债为唯一减借路径，无增借入口）",
+      "dynamicParams": [],
+      "mountPoints": [
+        "R-05 /portfolio"
+      ],
+      "fixturePath": null,
+      "sources": [
+        "docs/spec/position/accounting.md",
+        "docs/spec/position/state-machines.md",
+        "outstake/staking-modes.md"
+      ],
+      "briefFile": "asset-flows.md",
+      "note": "仓位大白话五件套=当前零利率（治理可调）/无清算/无到期/随时可赎/需主动；组件级 brief；不得写死地址/ABI"
+    }
+  ]
+}
