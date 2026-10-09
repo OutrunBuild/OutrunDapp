@@ -147,6 +147,11 @@ function ProductSidebar({ locale, current }: Omit<ShellProps, 'children'>) {
 
 function MobileNavigation({ locale, current }: { locale: Locale; current?: NavKey }) {
   const copy = getCopy(locale)
+  // 底栏短标签（2026-10-09 用户裁定：资产组合→资产、推荐返佣→推荐）；未列键回退全称
+  const shortLabels: Partial<Record<NavKey, string>> = {
+    portfolio: copy.common.portfolioShort,
+    referral: copy.common.referralShort,
+  }
   // 全部可用项（5 格，2026-10-07 随 referral 入导航裁定）；禁用占位项不上底栏
   const items = navItems.filter((item) => item.available)
   return (
@@ -154,7 +159,7 @@ function MobileNavigation({ locale, current }: { locale: Locale; current?: NavKe
       {items.map((item) => {
         const Icon = item.icon
         const active = item.key === current
-        const label = copy.common[item.key]
+        const label = shortLabels[item.key] ?? copy.common[item.key]
         return item.available ? (
           <Link key={item.key} href={localePath(locale, item.href)} data-active={active} aria-current={active ? 'page' : undefined}>
             <Icon aria-hidden="true" />
