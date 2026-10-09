@@ -314,7 +314,18 @@ const en = {
         ctaIncentive: 'Claim Rewards',
         ctaVault: 'Withdraw',
         ctaRefund: 'Review & Claim',
-      },
+        // —— 保护窗 Exit 弹窗（2026-10-09：卡 CTA 由跳 verse 页改页内弹窗；
+        //     redeemMemecoinLiquidity 两路径——POL→LP 1:1 / unwrap 拆 memecoin+uAsset）——
+        exitTitle: 'Exit POL',
+        exitModeLp: 'Redeem to LP',
+        exitModeSplit: 'Split to {m} + {u}',
+        exitReceive: 'You receive',
+        exitCta: 'Exit now',
+        exitMinReceived: 'Min received',
+        exitMaxSlippage: 'Max slippage',
+        exitSettingsTitle: 'Exit Settings',
+        exitSlippageTip: 'If the pool ratio moves against you by more than this percent, the split reverts.',
+        exitDeadlineTip: 'If the split stays pending longer than this, it reverts.',      },
       assets: {
         title: 'Assets & Cross-Chain',
         sub: 'Balances by chain — bridging moves them between chains.',
@@ -1222,7 +1233,17 @@ const zh: typeof en = {
         ctaIncentive: '去领取',
         ctaVault: '去取出',
         ctaRefund: '查看并领取',
-      },
+        // —— 保护窗 Exit 弹窗（键位同 en 段）——
+        exitTitle: '退出 POL',
+        exitModeLp: '赎回为 LP',
+        exitModeSplit: '拆成 {m} + {u}',
+        exitReceive: '获得',
+        exitCta: '退出',
+        exitMinReceived: '最少获得',
+        exitMaxSlippage: '最大滑点',
+        exitSettingsTitle: '退出设置',
+        exitSlippageTip: '若池子比例向不利方向变动超过该比例，拆分会回退。',
+        exitDeadlineTip: '若拆分在此时长内未完成确认，将回退。',      },
       assets: {
         title: '资产与跨链',
         sub: '余额按链分布，跨链就是把余额在链之间移动。',

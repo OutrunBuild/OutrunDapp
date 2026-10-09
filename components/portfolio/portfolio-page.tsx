@@ -2,6 +2,7 @@ import {
   getFixtureCdpPositions,
   getFixtureChains,
   getFixturePsmPair,
+  getFixturePolPosition,
   getFixturePortfolioActions,
   getFixtureReserveBalances,
   getFixturePortfolioSignals,
@@ -19,6 +20,7 @@ import { ConnectWalletCta } from '../global/connect-wallet-cta'
 import { formatAmount } from '../global/signal-ui'
 import { UserDataGate } from '../global/user-data-gate'
 import { ActionZone } from './action-zone'
+import type { ProtectionExitContext } from './protection-exit-dialog'
 import { AssetsZone, type AssetRowView } from './assets-zone'
 import { PortfolioZoneTabs } from './portfolio-zone-tabs'
 import { SavingsZone, StakedPositionsZone, VaultZone } from './positions-zone'
@@ -53,6 +55,24 @@ export function PortfolioPage({ locale }: { locale: Locale }) {
     if (asset.kind === 'uasset') uAssetBalances[asset.symbol] = asset.total
   }
   const reserveBalances = getFixtureReserveBalances()
+
+  // 保护窗 Exit 上下文（2026-10-09）：有 POL 仓位样本的 protection 行=页内弹窗；
+  // 缺行不进映射 → 卡片 Exit 回落跳 verse 页。价格/美元样本供拆币腿估算与回声。
+  const protectionExits: Record<string, ProtectionExitContext> = {}
+  for (const action of actions) {
+    if (action.kind !== 'protection' || !action.verse) continue
+    const verse = snapshot.verses.find((candidate) => candidate.id === action.verse?.id)
+    const pol = verse ? getFixturePolPosition(verse.id) : null
+    if (!verse || !pol) continue
+    protectionExits[verse.id] = {
+      verse,
+      pol,
+      price: verse.currentPrice,
+      uAssetUsd:
+        assets.find((asset) => asset.kind === 'uasset' && asset.symbol === verse.raiseAsset)
+          ?.usdSample ?? null,
+    }
+  }
 
   const signalItems = [
     { href: '#pf-actions', tone: 'warning', label: copy.signals.todo, value: signals.actionCount },
@@ -176,7 +196,9 @@ export function PortfolioPage({ locale }: { locale: Locale }) {
         badges={{ action: signals.actionCount, participations: signals.claimableVerses }}
       >
         {{
-          action: <ActionZone locale={locale} actions={actions} />,
+          action: (
+            <ActionZone locale={locale} actions={actions} protectionExits={protectionExits} />
+          ),
           money: (
             <>
               <AssetsZone locale={locale} assets={assets} chains={chains} reserveBalances={reserveBalances} />

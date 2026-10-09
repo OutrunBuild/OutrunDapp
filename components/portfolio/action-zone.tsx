@@ -18,6 +18,7 @@ import { getCopy } from '../global/copy'
 import { verseHref } from '../global/routes'
 import { formatAmount, SectionHeading } from '../global/signal-ui'
 import { Button } from '@/components/ui/button'
+import { ProtectionExitDialog, type ProtectionExitContext } from './protection-exit-dialog'
 
 const HOUR_MS = 3_600_000
 
@@ -55,9 +56,12 @@ function deadlineTone(remainingMs: number | null): Tone {
 export function ActionZone({
   locale,
   actions,
+  protectionExits,
 }: {
   locale: Locale
   actions: FixturePortfolioAction[]
+  /** 保护窗卡 Exit 上下文（verseId 键；缺行=Exit 回落跳 verse 页） */
+  protectionExits?: Record<string, ProtectionExitContext>
 }) {
   const copy = getCopy(locale).portfolio.action
   if (actions.length === 0) return null
@@ -92,9 +96,6 @@ export function ActionZone({
                       {action.amountUsd != null ? (
                         <strong data-numeric>≈ ${formatAmount(action.amountUsd, locale)}</strong>
                       ) : null}
-                      <span data-numeric>
-                        {copy.vaultReadySub.replace('{n}', String(action.count ?? 0))}
-                      </span>
                     </div>
                     <div className="pf-action__foot">
                       <p className="pf-action__hint">{copy.vaultReadyHint}</p>
@@ -111,8 +112,9 @@ export function ActionZone({
               )
             }
 
-            // 保护窗卡：倒计时 hero + 窗口余量条 + 在场本金 KV
+            // 保护窗卡：倒计时 hero + 窗口余量条 + 创世本金 KV
             const tone = deadlineTone(action.remainingMs)
+            const exitContext = action.verse ? protectionExits?.[action.verse.id] : undefined
             const remainingMs = action.remainingMs ?? 0
             const windowLeft = Math.min(100, Math.round((remainingMs / PROTECTION_WINDOW_MS) * 100))
             const clock =
@@ -149,13 +151,23 @@ export function ActionZone({
                         </strong>
                       </div>
                     ) : null}
-                    <Button
-                      variant="outline"
-                      nativeButton={false}
-                      render={<Link href={verseHref(locale, action.verse?.id ?? '')} />}
-                    >
-                      {copy.ctaProtection}
-                    </Button>
+                    {/* Exit 钮（2026-10-09）：有 POL 仓位样本=页内弹窗（LP 直转/现场拆两币，
+                        redeemMemecoinLiquidity 两 overload）；fixture 缺行=保留跳 verse 页 */}
+                    {protectionExits && exitContext ? (
+                      <ProtectionExitDialog
+                        locale={locale}
+                        context={exitContext}
+                        triggerLabel={copy.ctaProtection}
+                      />
+                    ) : (
+                      <Button
+                        variant="outline"
+                        nativeButton={false}
+                        render={<Link href={verseHref(locale, action.verse?.id ?? '')} />}
+                      >
+                        {copy.ctaProtection}
+                      </Button>
+                    )}
                   </div>
                 </article>
               </li>
