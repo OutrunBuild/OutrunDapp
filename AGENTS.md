@@ -62,6 +62,8 @@ pnpm node scripts/check-fixture-boundary.mjs --source   # 边界三层（另两�
 pnpm node scripts/check-architecture-compliance.mjs    # §3 版本/目录/RSC 边界
 pnpm check:design                 # 设计裸值扫描（hex/原始色类/space-*/transition:all；--self-test 自检）
 pnpm check:contrast               # tokens.css 对比度闸门（对 DESIGN.md §2 实测值防漂移）
+pnpm build:cjk-font               # 中文字体子集重切（改 copy.ts/fixtures 中文文案后必须跑，决议 029）
+pnpm check:cjk-font               # 子集对账闸（已入 vitest 契约闸；--self-test 双谓词自检）
 pnpm test:e2e                     # Playwright 三档视口视觉基线 + axe 无障碍扫描（NEXT_DIST_DIR=.next-e2e 独立构建，不碰 .next）
 pnpm design:detect <file.tsx>     # impeccable 设计反模式检测（agent-workflow §3.3）
 pnpm exec prettier --check .

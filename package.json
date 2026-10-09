@@ -18,6 +18,8 @@
     "test:e2e": "playwright test",
     "check:design": "node scripts/check-design-bare-values.mjs",
     "check:contrast": "node scripts/check-design-contrast.mjs",
+    "build:cjk-font": "node scripts/build-cjk-font.mjs",
+    "check:cjk-font": "node scripts/check-cjk-subset.mjs",
     "design:detect": "node .agents/skills/impeccable/scripts/detect.mjs --target"
   },
   "dependencies": {

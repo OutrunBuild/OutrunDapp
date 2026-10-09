@@ -110,6 +110,8 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // paint/ = Paint Worklet 静态资产（public/paint/**，需原样 URL 加载，不走 locale rewrite）
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.ico$|.*\\.svg$|paint/).*)'],
+  // paint/ = Paint Worklet 静态资产、fonts/ = CJK 字体子集产物（public/**，需原样 URL 加载，不走 locale rewrite）
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.ico$|.*\\.svg$|paint/|fonts/).*)',
+  ],
 };

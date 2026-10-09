@@ -53,11 +53,14 @@
   --accent-echo: var(--logo-magenta-bright);  /* 回声层专用，正文禁用 */
   --accent-link: var(--or-cyan);
 
-  /* ---------- 字体角色（010 终选：r10 部署已定，next/font 自托管） ----------
+  /* ---------- 字体角色（010 终选；拉丁 next/font 自托管，中文自托管子集变体 029-2） ----------
      display=Saira Condensed（复古未来主义窄体大标题 600/700）；
      body=IBM Plex Sans；data=IBM Plex Mono（tabular-nums）；中文 Noto Sans SC。
      桥接：next/font CSS 变量（design-system/fonts.ts 挂载）优先，家族名兜底——
-     修复 v0 产出曾发生的字体断链（globals 引用悬空回落系统字体）。 */
+     修复 v0 产出曾发生的字体断链（globals 引用悬空回落系统字体）。
+     中文（决议 029 补充 2）：'Noto Sans SC' 家族名不变，供给源已从 next/font
+     452 分片改为全站文案子集变体单文件（font-preload.tsx 内联 @font-face，
+     wght 100-900；scripts/build-cjk-font.mjs 产物）——本栈零改动即生效。 */
   --font-display: var(--font-d1-display, 'Saira Condensed'), 'Noto Sans SC', system-ui, sans-serif;
   --font-body: var(--font-d1-body, 'IBM Plex Sans'), 'Noto Sans SC', system-ui, sans-serif;
   --font-data: var(--font-plex-mono, 'IBM Plex Mono'), ui-monospace, 'Noto Sans SC', monospace;

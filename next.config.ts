@@ -28,6 +28,17 @@ const nextConfig: NextConfig = {
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
         ],
       },
+      {
+        // CJK 字体子集产物（决议 029 补充 2）：文件名含内容哈希，可安全 immutable
+        source: '/fonts/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
+      {
+        // 覆盖清单 URL 不带哈希、每次重切内容会变，不得 immutable（仅对账闸读文件，
+        // 此头只是防未来出现 HTTP 消费者时被缓存一年旧版）
+        source: '/fonts/noto-sc-subset-chars.json',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' }],
+      },
     ];
   },
 };

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 
 import { productFontClassName } from '@/components/design-system/fonts';
+import { FontPreloadLinks } from '@/components/design-system/font-preload';
 import { PaintSkin } from '@/components/design-system/paint-skin';
 import { getCopy } from '@/components/global/copy';
 import { getDisplayLocale } from '@/lib/locale';
@@ -39,6 +40,7 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className={productFontClassName}>
+        <FontPreloadLinks />
         <PaintSkin />
         {/* 标题信号失真的湍流滤镜（.ax-fault-title 爆窗帧引用，globals.css）：x 频率≈0
               → 每条扫描线整体水平位移 = 信号撕裂质感；baseFrequency x 保持 0 是形征 */}
