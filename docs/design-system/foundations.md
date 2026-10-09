@@ -47,12 +47,12 @@
 
 | 角色 | 变量 | 字体 | 用途 |
 |---|---|---|---|
-| display | `--font-display` | Saira Condensed 600/700 | 页面 h1、hero 主题行与引导行、空态大标题（2026-10-08 笨重标题整改：面板/弹窗/卡头/区头/页脚宣言标题降档 body，hero 引导行当日纠偏恢复 display）；`font-size: var(--display-title)`（clamp 30–44px），`letter-spacing: var(--display-tracking)` |
+| display | `--font-display` | Saira Condensed 600/700 | 页面 h1、hero 主题行与引导行、空态大标题（笨重标题整改：面板/弹窗/卡头/区头/页脚宣言标题降档 body，hero 引导行恢复 display）；`font-size: var(--display-title)`（clamp 30–44px），`letter-spacing: var(--display-tracking)` |
 | body | `--font-body` = `font-sans` | IBM Plex Sans 400/500/600/700 | 正文、导航、按钮、表头、面板/区头/弹窗标题 |
 | data | `--font-data` = `font-mono` | IBM Plex Mono + `tabular-nums` | 仅数字/地址/hash/时间戳，通过 `data-numeric` 或 `.num` |
-| 中文 | `--font-noto-sc` | Noto Sans SC 400/500/600/700 | 作为三者的回退链；字重覆盖须含 600（2026-10-08 补档裁定：缺档会让全站 600 中文升档渲染 700 粗块、与 en 侧不一致）；900 零消费死档同日移除（决议 028） |
+| 中文 | `--font-noto-sc`→家族名 `'Noto Sans SC'` | Noto Sans SC 子集变体（100–900 单文件） | 作为三者的回退链；供给源=自托管子集（决议 029 补充 2，`scripts/build-cjk-font.mjs` 产物 public/fonts/noto-sc-subset.*.woff2，`font-preload.tsx` 内联 @font-face+zh 路由预载，覆盖对账 `pnpm check:cjk-font`——**文案变更后必须 `pnpm build:cjk-font`**，新字不重切会退系统字体）；字重全档由变体轴覆盖（原「须含 600」约束随之消解）；900 零消费不预载（决议 028） |
 
-加载链路：`next/font` 在 `components/design-system/fonts.ts` 声明（`--font-d1-display` Saira Condensed、`--font-d1-body` IBM Plex Sans、`--font-plex-mono`、`--font-noto-sc`），`app/layout.tsx` 挂到 `<html>`；`tokens.css` 第 137–139 行把它们组合成 `--font-display/--font-body/--font-data`。**不要在别处再次声明这些字体**。Stage-01 审阅工具（`components/direction-choice/fonts.ts`）只负责 D2/D3 候选字体，并从设计系统文件 re-export D1，保证生产字体单一来源。
+加载链路：拉丁三家族 `next/font` 在 `components/design-system/fonts.ts` 声明（`--font-d1-display` Saira Condensed、`--font-d1-body` IBM Plex Sans、`--font-plex-mono`），`app/layout.tsx` 挂到 `<html>`；中文不进 next/font（决议 029 补充 2：452 分片不可预载是刷新闪变主源，改为自托管子集变体，见 §2 表中文行）；`tokens.css` 第 61–63 行组合成 `--font-display/--font-body/--font-data`。**不要在别处再次声明这些字体**。Stage-01 审阅工具（`components/direction-choice/fonts.ts`）只负责 D2/D3 候选字体，并从设计系统文件 re-export D1，保证生产字体单一来源。装载策略：拉丁 `display: 'swap'` 为基线、display 值历属裁定敏感区（`optional` 消闪实验已被实见否决——开发态/绕缓存刷新下整页锁死后备字体，已回撤，勿再自作主张改值「消闪」）；中文子集 @font-face=`fallback`（决议 029 补充 3：100ms 阻塞期收冷首访竞态，4G 冷访先隐 ≤0.1s 再后备再换装）。刷新闪变两段根治（决议 029 及补充）：拉丁=Next 对动态路由段不下发 preload（差分实证，16.4.0 未修）→ `font-preload.tsx` 读 next-font-manifest 补发；中文=子集变体单文件 + zh 路由预载（public/fonts/ 走 immutable 头，proxy matcher 已排除 fonts/）。
 
 字阶（013 上调后真值）：`--text-xs 12` / `--text-sm 14` / `--text-base 16`（基准） / `--text-md 18` / `--text-lg 20` / `--text-xl 28` / `--text-num-lg 22`（KPI 读数）/ `--text-num-xl 28`（hero 净值读数，017，唯一消费位=组合页头）。
 标签字距：`--label-tracking 0.045em`（大写小标签用）。

@@ -15,6 +15,7 @@
 - 复用顺序：格式化函数 → `components/ui` → `signal-ui` 原子 → `globals.css` 页面 class → 新建。
 - import 路径风格：components↔components 一律相对（同桶 `./x`、跨桶 `../bucket/x`）；到 `ui` 基件与 `lib` 一律别名（`@/components/ui/x`、`@/lib/x`）；`app`→components 一律别名（`@/components/<桶>/x`）。
 - 新 token 先进 `tokens.css` + `token-contract.md`；新组件/模式登记到 `components.md`。
+- 登记条目=现行状态单一版本：更新=改写原条目，不追加重复行、不续写裁定流水；日期/轮数/被否候选编年只进 `decision-log.md`，条目内至多保留一句禁令或 rationale（`pnpm check:design-docs` 拦重复与超长）。
 - 文案两语言同时加；数字全部 `data-numeric`。
 - 不在页面里重复壳层内容（网格、扫描线、状态簇、语言切换、钱包）。
 - CSS 命名 `block__element`，状态 `data-*`；不用 `!important`（`.mobile-filter-toggle` 的 display 是历史特例）。
@@ -29,17 +30,20 @@ pnpm exec tsc --noEmit
 pnpm exec lint        # 本仓已配 ESLint 10 flat config
 pnpm check:design     # 裸值扫描（scripts/check-design-bare-values.mjs，--self-test 自检）
 pnpm check:contrast   # token 对比度双闸门（scripts/check-design-contrast.mjs，--self-test 自检）
+pnpm check:design-docs # 登记文档闸（scripts/check-design-docs.mjs，--self-test 自检）
 ```
+
+登记文档闸：components.md §6 模式名重复 FAIL（防「更新时追加新行不删旧行」事故）、docs/design-system/*.md 单行超 12,000 字符 FAIL（格式改造落地后逐档下调）；叙事日期（YYYY-MM-DD）= FAIL——沿革只进 decision-log，豁免表见脚本文件头（现仅 e2e 时钟钉定值一条）。
 
 裸值扫描（实现、豁免表与排除项见脚本文件头）：产品 `components/`、`app/` 的 `.tsx` 中裸 `#hex`、Tailwind 原始调色板类、`space-x/y-*`、`transition: 'all'`（含内联样式引号形态）；注释先剥离（注释里的 issue 号 `#1178` 不误报）；豁免表唯一条目 = `app/layout.tsx` 的 viewport `themeColor`（meta 无法引用 CSS 变量，品牌锚必要镜像）。排除 Stage-01 内部审阅工具（`components/axis-choice/`、`direction-choice/`、`app/design-review/`）。
 
 对比度闸门：从 `tokens.css` 解析实际 hex 按配对表算 WCAG 比率，双校验——低于下限（正文 4.5 / 大字图形 3.0）= 回归 FAIL；与 `DESIGN.md` §2 登记实测值差 >0.05 = 文档漂移 FAIL。边框装饰对（`--color-border(-strong)`）无 WCAG 下限（min 1.0），doc 按登记 hex 现算、仅承担值锁防漂移——边框渲染面积低于视觉基线 `maxDiffPixelRatio` 阈值，像素闸门不保证拦截，值锁补位。改 token 颜色必须同步 `DESIGN.md` §2 与脚本配对表（色值本身变更走 decision-log 决议）。
 
-基线（2026-09-30）：裸值 0 命中、对比度 14 配对全过、`tsc --noEmit` 通过（2026-10-03 扩入边框值锁对 → 16 配对，含漂移开火双向验证，重跑全过）。
+基线：裸值 0 命中、对比度 14 配对全过、`tsc --noEmit` 通过（扩入边框值锁对 → 16 配对，含漂移开火双向验证，重跑全过）。
 
 ### 3.2 浏览器（自动基线 + 人工抽查）
 
-已入基线的路由跑 Playwright 视觉回归：`pnpm test:e2e`。三档视口（1280×800 / 860×900 / 390×844）、DPR 固定 1、时钟钉 2026-10-01、动效冻结后整页截图比对；axe 无障碍扫描同套路由含 `/zh` 变体页（`e2e/a11y.spec.ts`，新增违规即 FAIL；zh 是不同 DOM——2026-10-08 测试盲区裁决补录）。构建走 `NEXT_DIST_DIR=.next-e2e` 独立产物目录，**不碰 `.next`**，与运行中的 dev/生产预览无冲突（部署纪律见 AGENTS.md 已知坑）。改样式后直接跑，像素 diff 自动报出。
+已入基线的路由跑 Playwright 视觉回归：`pnpm test:e2e`。三档视口（1280×800 / 860×900 / 390×844）、DPR 固定 1、时钟钉 2026-10-01、动效冻结后整页截图比对；axe 无障碍扫描同套路由含 `/zh` 变体页（`e2e/a11y.spec.ts`，新增违规即 FAIL；zh 是不同 DOM——测试盲区裁决补录）。构建走 `NEXT_DIST_DIR=.next-e2e` 独立产物目录，**不碰 `.next`**，与运行中的 dev/生产预览无冲突（部署纪律见 AGENTS.md 已知坑）。改样式后直接跑，像素 diff 自动报出。
 
 整页截图伪影告示：fullPage 走 CDP captureBeyondViewport 单帧采集，`position:fixed` 元素冻结在初始视口位、`sticky` 落回流位——mobile-390/tablet-860 基线里固定底导航悬浮于 y=780/836（视口高−64px）压住中部内容，desktop-1280 基线里 100dvh 侧栏只画首屏 ~800px。真人视口中底栏恒钉视口底缘、内容从其下滚过（`.product-main` ≤54rem 有 88px 底部预留）。看基线图/处理视觉 diff 时，这些是**预期噪音，勿当遮挡 bug 修页面**。
 

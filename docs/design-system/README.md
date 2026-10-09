@@ -70,3 +70,4 @@ public/brand/                              字标与符号成品（禁改色/拉
 - 新增页面级 class：放 `app/globals.css`，命名 `block__element`，状态用 `data-*`（`data-active`、`data-stage`、`data-open`），不用修饰类叠加。
 - 触及品牌方向、色板、字体角色、密度的变更 = 需要新决议，写入 `decision-log.md` 并由人工签署后才可实施。
 - `DESIGN.md` 定稿正文只反映最新状态：变更叙事与时间点注记（「已删/已改 + 日期」式）只进 `decision-log.md` 对应条目，正文禁追注；现行约束连同其 why 直接写正文。
+- 本目录登记文件（components.md 各表、patterns.md 等）同守此则：条目=现行状态**单一版本**，更新=改写原条目、不追加重复行；日期、轮数、被否候选编年只进 `decision-log.md`，条目内至多保留一句禁令或 rationale。`pnpm check:design-docs` 拦截 §6 模式名重复与超长单行（§6 沿革已按此口径清扫）。

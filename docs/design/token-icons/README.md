@@ -84,3 +84,12 @@
 
 - 纯双色，无已知小尺寸塌缩问题（px ladder 验证）
 - 已删变体（级联/渐变/八边形/币安四菱形 BNB）构造可溯 git 历史
+
+## 第三方官方图标登记（2026-10-09，/faucet 领取行接入）
+
+| 资产 | 文件 | 来源 | 备注 |
+|---|---|---|---|
+| sUSDS | `public/tokens/susds.png`（250×250 RGBA） | Sky 官方 CoinGecko 收录资产：assets.coingecko.com/coins/images/52721（sUSDS_Coin） | 绿币白 Sky S（savings 变体色）；沙箱内 trustwallet/Uniswap assets/官方站均不可达，CoinGecko assets 域可达且为项目方提交资产 |
+| aUSDC | `public/tokens/ausdc.svg`（256 viewBox） | Aave 官方 `@aave/aave-ui-kit@0.1.29` 内嵌 base64 组合标（`aIcons.ausdc`） | Aave 自家 aToken 图标=底层资产+Aave 徽标客户端合成（aave-ui 工程口径）；npm 拆包提取，未改一字节 |
+
+同轮：页脚 UUSD 品牌章光学配平（flex 盒心对齐下墨迹中心偏高 1.5px，scoped `translate: 0 -1.5px`，实测配平）。

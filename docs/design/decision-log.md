@@ -1152,6 +1152,52 @@ C1 结算储备金按 spec 窄口径且 UI 不露出 · C2 建池剩余资金不
 - **验证**：tsc --noEmit 全树绿；e2e 三档视口全量实跑 46 passed / 0 failed / 32 skipped（既有跳过口径不变；900/800 全站零消费，删除零视觉 diff 实证）；.next-e2e 产物 CSS `font-weight:900`/`800` 归零、600/700 在位。
 - 签名：approved by Jasonrale（2026-10-08 用户裁定「确认处理」）
 
+## 决议 029 · 刷新样式闪变处理：画皮预水合装载落地；字体 optional 实验被用户否决回撤 swap（2026-10-09）
+
+- **背景**：用户报告刷新时多页面先初始样式再闪成最终样式、字体尤甚。诊断（隔离构建插桩实证）：① `display: 'swap'` 零阻塞期下，字体只要晚于首帧就先画后备再换装；且 **Next 对动态路由段不下发 next/font 的 preload 链接**（归因过程与差分证据链见「遗留」项勘误——本站全部产品路由 `app/[locale]/**` 皆动态段，拉丁字体也退化为惰性拉取；Noto Sans SC 另有 4 字重 × 113 分片 = 452 个 unicode-range face，preload 本就不可行）。② 按钮画皮 Paint Worklet 的 `addModule` 原在 `PaintSkin` useEffect 里跑（等 React 水合），注册前 `paint()` 光栅化为空——按钮裸奔后补描边（headless 实测 600ms+ 未置位）。
+- **落地（保留）**：`app/layout.tsx` body 首子位新增 nonce 内联脚本（nonce 取 `proxy.ts` 注入的 `x-nonce` 请求头；全站本就动态渲染，读 headers 无新增降级），随 HTML 解析同步执行 `--dpr` 初值 + `addModule`，语义与组件一致（`__paintBooted` 先置再注册、resolve/reject 均打 `data-paint-ready`）；`paint-skin.tsx` 以 `window.__paintBooted` 守卫去重（内联被 CSP 拦截时组件兜底原路径），保留 resolution MQ 追踪。实测暖载注册 247ms 抢在首帧 248ms 前（原路径 600ms+）。
+- **否决（同轮回撤）**：字体四家族 `display: 'swap'`→`'optional'` 的消闪实验被用户实见否决——optional 错过 100ms 阻塞期即整页锁死 metric 后备、永不换装；开发态（dev server 静态资源不缓存，每次刷新都冷加载）与任何绕缓存的刷新（Ctrl+Shift+R、新 profile）都常态性错过，用户刷新后看到系统黑体冒充 Noto Sans SC。已全量回撤 swap；e2e 为 optional 加的 shoot() 双载一并回撤。**教训入册：勿再以改 display 值「消闪」**。
+- **遗留（待另行拍板）**：字体刷新闪变未解。**归因勘误（2026-10-09 用户质证「有严谨的证据链吗」后差分补证）**：初版「manifest `[project]/` 前缀 vs 相对路径查找恒不命中」机制**作废**，初版引用的上游 [vercel/next.js#95449](https://github.com/vercel/next.js/issues/95449)（pageExtensions 类）与本缺陷**不对应、撤回**。修正后的证据链（vanilla 最小复现，同 next@16.3.3、同字体、同 fonts.ts 间接层）：① 静态路由 `app/page.tsx` → preload 链接**正常下发**（同 `[project]/` 键运行时匹配成功，机制本身健全）；② fonts.ts 间接层（T1）/ CSP+nonce proxy（T2）单变量引入均不影响下发；③ 单变量引入**动态路由段** `app/[locale]/page.tsx` → 复现消失（200 真页面、无 preload，无 proxy 也复现）；④ 混合路由同构建同服务器：`/`（静态）有、`/en`（动态）无——排除「manifest 未加载」，锁定动态段查找失败；⑤ manifest 自身含动态路由键与字体文件（构建侧有 preload 意图，排除「by design 不预载」）；⑥ next@16.4.0 复测：**未修**（静态有、动态无）；⑦ dev（turbopack）静态/动态**从不下发**字体 preload（dev 固有行为，dev 闪变无 preload 解）。压缩产物内具体错配字符串未拆（`next start` 实际运行 `dist/compiled/next-server/app-page*.runtime.prod.js` 打包副本，源码级 CJS/ESM 文件非运行真身；差分已足归因，不再深挖）。候选路径=运行时读 next-font-manifest 手发 preload 链接（仅惠及拉丁 6 文件，CJK 分片无解）/ 向上游提交动态路由差分复现 / 接受现状。
+
+### 决议 029 补充 · 遗留项第一层落地：FontPreloadLinks 运行时补发字体 preload（2026-10-09，用户质证「不可能没有解决方案」）
+
+- **方案**：新增 `components/design-system/font-preload.tsx`（挂根 layout body 首子位）——运行时读 Next 构建产物 `next-font-manifest.json`（键=路由、值=应预载 woff2；仅拉丁 `.p.` 文件，Noto `preload:false` 本就不在清单），取全路由并集以 `<link rel="preload" as="font" crossorigin="anonymous">` 补发（React 自动提升入 head）。绕过 Next 动态路由段不下发 preload 的缺陷；哈希 URL 全部来自清单、零硬编码；`.next` 为 dev(3000) 与生产预览(4175) 共用，按 `NODE_ENV` 先取 `dev/server/` 或 `server/` 清单（取错会预载到旧构建的 404 哈希——实测踩过）；清单缺失/不可读=静默回退 Next 原生行为。mtime 记忆化，dev 热改字体后清单刷新自动跟。
+- **实测**：dev（webpack）暖刷新 latin 字体 FCP 前就绪（fonts.check@FCP=true，en/zh 两页、零 console 错——此前 dev 从不预载、必输首帧）；隔离生产构建（NEXT_DIST_DIR，未触碰 .next）暖刷新 en 页 latin@FCP=true、zh 页 latin+CJK 双 true（FCP 300-340ms、逐帧采样无回落）、preload 链接随 HTML 下发且 URL 实取 200。e2e 全量本轮被并行会话 faucet 轮打断（e2e/pages.ts 与快照被其中途改写，运行只执行到 1 用例）；本组件对渲染零影响（preload 只提前取回、不改绘制路径），此前两轮 57 passed / 0 failed 已覆盖画皮+swap 基线，待并行轮落定后随其 e2e 一并回归。
+- **边界**：CJK 452 分片 preload 不可行（清单本就无 Noto），本层只保拉丁 6 文件；dev 冷首访仍可能后到（无缓存+dev 中间件慢），但 swap 保证最终真值。
+- **登记**：foundations.md §2 加载链路段同步。
+- 签名：approved by Jasonrale（2026-10-09 用户质证推动）
+
+### 决议 029 补充 2 · 遗留项第二层落地：中文 Noto 子集变体自托管（2026-10-09，用户裁定「继续」）
+
+- **方案**：`fonts.ts` 移除 next/font 的 Noto 声明（452 个 unicode-range 分片=刷新闪变主源、不可预载），改为全站文案子集的**自托管变体单文件**：`scripts/build-cjk-font.mjs` 抽取 copy.ts+fixtures 全部中文字符（849 字含标点/全角/ASCII 保底），pyftsubset 把 NotoSansCJKsc-VF（notofonts 官方，wght 100-900）切为单 woff2（362KB，产物按内容哈希命名 public/fonts/noto-sc-subset.*.woff2 + 覆盖清单 json + `cjk-subset.ts` 单一 href 源）；`font-preload.tsx` 内联 `@font-face`（家族名沿用 'Noto Sans SC'，tokens.css 字体栈零改动）+ **zh 路由才预载**（en 页无 CJK 消费，省 362KB）；`next.config.ts` 给 /fonts/* 加 immutable 头（哈希名保证安全）；proxy matcher 排除 fonts/（否则静态文件被 locale rewrite 吞成 404——与 paint/ 同款坑）。纪律：**文案变更后必须 `pnpm build:cjk-font`**，`pnpm check:cjk-font`（含 --self-test 闸自检）对账「源文案字符 ⊆ 子集覆盖」，漏跑即红；闸已按仓内惯例包进 vitest 契约闸门（`tests/unit/contract-gates.test.ts` 第四项）——`pnpm test` 一条命令即拦，pre-push 与 CI（.github/workflows/ci.yml）自动覆盖，无需手动记得跑。
+- **性能账（实测）**：字体 CSS 377KB→13KB（-96%，405 条 Noto 分片规则清零、render-blocking 直接受益）；zh 首帧字体就绪——dev 暖刷新 latin+CJK 双 true@FCP、隔离生产 zh FCP 204ms 双 true、零 console 错；en 预载维持 6 拉丁文件无 CJK。变体实例化字形与 Google 静态档理论同源（zh e2e 基线 diff 待全量轮确认，见验证）。
+- **边界**：冷首访/绕缓存刷新仍是「362KB 网络下载 vs 首帧」竞态（preload 起跑最早；叠加 display:'fallback' 可消，未拍板维持 swap）；子集=现有文案字符，用户输入生僻字退系统字体（同行混排）——接受（兜底选项=加常用 3500 字表，每档 +~350KB，未采纳）。
+- **token 影响**：无增删（'Noto Sans SC' 家族名与字重档不变；600 中文档位约束随变体轴消解，foundations §2 已注记）。
+- **登记**：foundations.md §2 中文字行+加载链路改写；tokens.css 字体角色注释注记供给源。
+- **验证**：tsc/prettier/check:design 绿；check:cjk-font 常规+自测双绿；vitest 全量 190/190（含新增契约闸门第四项）；dev+隔离生产探针如上；e2e——桌面档全量通过，tablet/mobile 两档首轮被并行 faucet 会话杀服务器（全部失败=ERR_CONNECTION_REFUSED 连接拒绝、零像素 diff，环境互踩非渲染问题），并行轮落定后聚焦补跑 mobile-390 19 passed（**含全部 zh 基线、零重录**——变体字形与既有基线像素兼容）+ tablet-860 12 passed。
+- 签名：approved by Jasonrale（2026-10-09 用户裁定「继续」）
+
+### 决议 029 补充 3 · 中文子集 @font-face display swap→fallback（2026-10-09，用户裁定「改」）
+
+- **裁定**：冷首访竞态收尾——`font-preload.tsx` 内联 CJK `@font-face` 的 `font-display` 由 `swap` 改 `fallback`（100ms 阻塞期 + 3s 换装期）：暖刷新/WiFi·5G 冷访窗口内字体必到，首帧即 Noto 零闪；4G 冷访先隐身 ≤0.1s → 后备 → 3s 内换装（比 swap「立刻错字体再换」晚出场、对的时机更多）。**拉丁侧（fonts.ts next/font）维持 swap 不动**——6 文件 94KB 预载后几乎必进窗口，且 fonts.ts 的 display 值历属裁定敏感区（optional 前科，值域变更一律走裁定）。
+- **验证**：dev 下发 `font-display:fallback` 实证；tsc/prettier 绿；mobile-390 视觉档（含全部 zh 基线）**三连跑 19 passed / 0 failed**（首轮 1 次出现 2 failed，每轮含全新构建+服务器即等价复现该条件三遍全绿，定性为本会话已两见的环境 flake 非渲染非确定性；基线零重录）。
+- **token 影响**：无增删。
+- 签名：approved by Jasonrale（2026-10-09 用户裁定「改」）
+
+### 决议 029 补充 4 · 评审修复轮：抽取范围扩档+双谓词对账+源钉版（2026-10-09，用户裁定「修复所有的问题」）
+
+- **评审发现（全会话改动自审台账）**：① 两处未用导入（eslint 2 errors，会拦 pre-commit）；② 抽字范围盲区——`→ ← ↔ ≈ ≠ ≤ ≥ ⊙` 7 个 Plex 覆盖不到的符号字落在抽取范围外、退系统字体，且旧对账闸与构建共享同一抽取谓词、**结构性抓不到这类漏**（§±·×− 在 Plex latin 覆盖内不受影响；emoji 6 个走系统 emoji 字体属正确行为无回归）；③ 源字体 URL 钉 noto-cjk `main` 分支——重跑时字形随上游漂移、无哈希校验；④ chars.json 误入 immutable 头（URL 无哈希、内容随重切变化）；⑤ AGENTS.md 命令清单缺两条新命令。
+- **修复**：① 删除；② `extractCharset` 扩档 `00A0-00FF`（Latin-1，使谓词二自洽）+`2190-21FF`（箭头）+`2200-22FF`（数学），重切产物 `noto-sc-subset.7c0516a0.woff2`（862 字/363KB），对账闸升**双谓词**——谓词一=抽取字符⊆子集（原），谓词二=**全部非 ASCII ⊆ 子集∪emoji 白名单**（消共谓词盲区），自测注入「瘸」「✓」分别验证两线；③ 源钉版=noto-cjk commit `f8d1575` + `EXPECTED_SOURCE_SHA256` 常量，缓存与全新下载**双验**（按 commit 下载与原缓存实测字节一致），chars.json 登记 sourceCommit/sourceSha256；④ next.config 对 chars.json 单列 `max-age=0, must-revalidate` 头（实测分层生效）；⑤ AGENTS.md 命令块补 `build:cjk-font`/`check:cjk-font` 两行。
+- **基线重录（4 张，人工确认级 diff）**：范围扩档后 `→≈≤≥` 等改由 Noto 渲染、字宽微异引起重排——portfolio 三档 + zh-portfolio（states/state-scenarios/amounts/lifecycle 数据源实证含这些字符，归因闭合），diff 3%/页高 1-6px；`--update-snapshots` 因尺寸变化拒绝覆盖（既有坑），删基线重生成后 mobile-390+desktop-1280 31 passed、tablet-860 12 passed 定案。
+- **不改项**：`FontPreloadLinks` 命名（已入决议/文档多处，纯改名引入文档漂移零行为收益）；Vercel 侧 fs 读 manifest 理论可用未实测（自托管三环境已验，首次 Vercel 部署时留意）。
+- **验证**：eslint 全清、tsc 绿、prettier 绿、vitest 190/190（契约闸含双谓词 CJK 项）、checker 常规+双线自测绿、dev 实测新哈希 200+immutable 与 chars.json 头分层正确。
+- **token 影响**：无增删。
+- 签名：approved by Jasonrale（2026-10-09 用户裁定「修复所有的问题」）
+- **token 影响**：无增删（装载时机变化，字体身份/字重档/display 基线均不动）。
+- **登记**：foundations.md §2 加载链路段登记 swap 基线+optional 否决口径；components.md 按钮画皮行补预水合装载注记。
+- **验证**：tsc --noEmit 全树绿；prettier 绿；vitest 189/189；check:design 0 命中；隔离构建（NEXT_DIST_DIR=.next-fouc，已清理，未触碰 .next/.next-e2e/在跑服务器）插桩：内联脚本带 nonce 随 HTML 下发、无 CSP 错误；optional 轮 e2e 全量 57 passed / 0 failed / 42 skipped 基线零重录；回撤轮复跑见本轮会话执行记录。
+- 签名：approved by Jasonrale（2026-10-09 用户裁定「能优化一下吗」；optional 回撤=用户实见否决「我刷新后字体样式都变了」）
+
 ### 决议 018 补充 9 · ④分区代码词汇 vouchers→participations（2026-10-08 用户裁定「vouchers 这个单词有歧义，换一个」）
 
 - **背景**：补充 3 已把 voucher 词族逐出可见文案（en 页签 `Joined`、区标题 `Participations`、副标题改写——依据=OutrunBook 全库零次使用 voucher、真源词族 participation/join），但代码词汇层残留：`VouchersZone`/`FixtureVoucherRow`/`getFixtureVoucherRows`、CSS `.pf-vouchers`/`.pf-voucher-row`（globals.css 45 处选择器）、分区键 `'vouchers'`、锚点 `#pf-vouchers`、copy 键 `portfolio.vouchers`。用户裁定换词。
@@ -1160,3 +1206,138 @@ C1 结算储备金按 spec 窄口径且 UI 不露出 · C2 建池剩余资金不
 - **token 影响**：无增删（class 改名不附样式变化）。
 - **验证**：tsc --noEmit 全树绿；vitest 183/183；check:design 0 命中；fixture boundary --source OK；prettier 绿；e2e 基线无需重录（class/键名/锚点 id 不进渲染输出，页签 aria-label 与文案值未动）。
 - 签名：approved by Jasonrale（2026-10-08 用户裁定「vouchers 这个单词有歧义，换一个」）
+
+## 决议 014 · 11 路由蓝图作废，产品收敛为现役 5 路由（2026-09-21，用户裁定）
+
+- **裁定**：routes.json（阶段 2 冻结）规划的 11 条路由蓝图**作废**——bridge/account 等页面永远不会实现，该设计是错误的。产品路由收敛为当前现役 5 条：`/`（首页）、`/memeverse`（发现）、`/memeverse/launch`（创建）、`/memeverse/[verseId]`（详情）、`/portfolio`（组合）+ `/referral`（推荐）+ `/design-system`（设计系统，非产品页）。
+- **影响**：①routes.json 及其 fixturePath 映射作为历史冻结记录保留，不再作为实现依据；②场景协议（步骤 5）收缩为纯瞬态截图钩子（loading/empty/error/index-lag），paused/zero-balance 等 19 个数据变体场景随蓝图作废移除（scenario.ts 收缩，states.json 冻结文件保留为历史记录）；③依赖已作废路由的 brief 条目（bridge/account/verse-trade 等）一并失效。
+- **与决议 011 关系**：011 是范围缩减（v0 只做 3 页），014 是路由规划本身作废——现役路由以实际部署为准。
+
+## 2026-10-09 · governance 可领样本越权裁剪全量回滚（用户裁定「这明显是犯错了」）
+
+- **背景**：bfa11c9（017 补充 2 收尾轮）把 12 个 verse（013/014/024/025/026/028–034）的 `lastCycle.myClaimable` 归零并删除 `claimableAssets` 构成（其中 024/025/026/028/030/031 连 `lastCycle.myVotes` 一并清零）。017 补充 2 原文只裁定钱包/储蓄/页脚 reserve 减值（「staking/positions/pol-positions 不动」），从未授权裁 governance 可领——commit message 的「governance fixture trimmed accordingly」属执行层越权引申。后果：①DAO 卡可领按钮按 2026-10-05 降级分支退恒禁用钮（本仓 Button disabled 渲染与 enabled 一致，无视觉提示），可领明细弹窗消失；②组合页①待办区 12 行周期激励行静默消失；③数据自相矛盾——6 个 verse 有票权（myVotes>0）且有未领奖励（unclaimedAssets 在）却 myClaimable=0，违反「可领=票权份额」机制口径（GovernanceCycleIncentivizerUpgradeable.sol:199）。
+- **裁定**：该裁剪是错误，全量回滚。逐字段恢复至 bfa11c9^ 数值（字段级 diff 证实其余全等，整文件 revert 即精确回填）；`myClaimable`/`claimableAssets`/`myVotes` 三字段同复，恢复后 20/20 verse「票>0 ⇔ 可领>0 ⇔ 构成在位、usdValue 之和锚 myClaimable」全自洽。manifest 确定性重建；按部署纪律 kill-by-PID 重启 3000/4175 预览。
+- **量级说明**：恢复后可领回到裁剪前量级（弹窗总额 $9K–$92K/verse）。不与 017 补充 2 冲突——hero 口径=钱包+储蓄+金库待领，governance 可领不在其中；如日后要治理奖励也做人级量级，须另立保留自洽性的等比缩尺决议（禁止再以归零/删构成为手段）。
+- **验证**：tsc / vitest 188/188 / fixture boundary --source 全绿；实测 verse 26/13/33/2 弹窗（$91,786/$57,535/$52,777/$28,500）、组合页待办 17 行激励行回归（20 verse−3 窗口已过）；e2e 41 passed，portfolio 基线 7 文件 `=all` 重录（desktop 5528→5926px；disconnected 漂移=顶栏场景切换芯片，属并行进行中的 scenario 工作、同树不可避免，其落地轮复验），explore 基线红=scenario 工作所属、非本轮范围。
+- **残留（未裁定）**：Button disabled 与 enabled 渲染一致的观感坑——降级禁用钮无任何视觉提示，本次仅回数据未改渲染；是否灰显另议。
+- 签名：approved by Jasonrale（2026-10-09 用户裁定「这明显是犯错了」）
+
+## 2026-10-09 · POL 凭证 myPt 样本参差修订 + Max 零值禁用（用户裁定「零太多」「Max 按钮是坏的」）
+
+- **背景**：审阅 NRDR（verse-027）Tokenization 页 Merge to POL 弹窗时用户指出 PT Balance 全站皆 0、YT 输入框旁 Max 点击无反应。双根因：①决议 016 补充 9 的样本参差化把 `myPt` 非零收缩到仅 verse-003/verse-010——locked 10 verse 中 9 个 PT=0，而 Merge 弹窗只在 locked 态渲染，等于演示面全死（verse-003 是 unlocked 根本不出 Merge）；②可填额为 0 时 `amountToInputString(0)` 按口径返回空串（amount-input.ts），点击 Max 零可见效果=死按钮观感，`.swap-panel__max` 无任何 disabled 样式规则。
+- **裁定（两项，用户原话「零太多」「Max 按钮是坏的，你看 YT 输入框上的按钮是不生效的」）**：
+  1. **fixture 参差修订**（修订决议 016 补充 9 的 myPt 分布，机制口径不变——标准参与不被动发放 PT，非零=账户在该 verse 拆分过 POL）：非零 2 → 13/20。新增 locked 7（verse-002/009/011/023/025/026/027）+ unlocked 4（verse-012/014/030/033），值全部 < 各自 `myYt`（拆分量 ≤ YT 持有的自然样本：split 1:1 出 PT+YT、创世只出 YT）；零保留 7（locked 024/028、unlocked 013/029/031/032/034）维持参差；verse-010 仍是唯一 PT>YT 样本（演示 Merge Max=min 取 YT 腿）。
+  2. **Max 零值禁用**：POL 凭证三弹窗（Split/Merge 三钮=`myPol`/`min(myPt,myYt)`/`min(myPt,myYt)`、Redeem PT/YT=销毁币余额）可填额 ≤0 时 `disabled`——对齐 §22 pool-add 既有 `null/≤0` 禁用先例；globals.css 补 `.swap-panel__max:disabled`（`--color-text-secondary`+default cursor），连带修正 pool-add 禁用态仍青色可点观感（共享类此前无 disabled 规则的空档）。
+- **效力**：PT>0 的 verse Merge 弹窗 Balance/Max 恢复可用（NRDR=1284.65、Max 填同值）；仍 PT=0 的 7 verse Max 为诚实禁用态；portfolio ④参与凭证构成行（零值省略口径）相应新增 PT 项。component-contract §20/§21 联动/Max 行同步。
+- **验证**：tsc / vitest 188 / check:design 0 / fixture boundary --source / prettier 全绿；e2e 基线于并行 scenario 工作落地后（2026-10-09 用户确认）统一 `=all` 重录：重录前比对轮 8 红全属预期两源（portfolio 三档+zh-portfolio=本轮构成行新 PT 项、faucet 系列 mobile 档=scenario 渲染高度漂移），无意外红；重录后复跑全套 57 passed 定案，像素抽验 faucet 844→932、portfolio-desktop 5528→5919 确认新渲染录入。
+- 签名：approved by Jasonrale（2026-10-09 用户裁定）
+
+## 2026-10-09 · /faucet 测试网水龙头页落地 + 导航 05 Faucet（用户裁定）
+
+- **背景**：用户裁定「导航栏里新增 05 Faucet，APP 导航栏同步增加」，并要求结合合约代码库与文档设计 Faucet 页（参照旧 demo 水龙头按钮组+Get UUSD 弹窗两图，六功能，布局审美与全站一致）。
+- **功能映射（六）**：三 mock 币每日领取（USDC/sUSDS/aUSDC，`Faucet.sol::claim`）+ 一键领取（`batchClaim`，前端只传可领集合——合约按数组原子执行，任一冷却中整笔回滚）+ PSM 面值兑换双向（Get UUSD=USDC→UUSD mint / Back to USDC=UUSD→USDC redeem）。demo 的 sUSDS→UUSD 兑换腿按机制真源弃用（PSM 绑定储备=USDC/USDT，sUSDS 非绑定储备）。
+- **机制真源**：source-map 新增 S10（`test/support/Faucet.sol`：24h 冷却 `ClaimTooSoon`、日限一次性全额 mint）+ S11（deploy 脚本 `_deployMockERC20`：三 mock 均 18-dec、`addToken` 各 1,000,000×1e18）；兑换弹窗口径复用 S8（面值 1:1、tin/tout、mint 受 stockCap headroom、无滑点/deadline→不设设置齿轮）。工作树对基线的漂移已核（仅 `_polendMintingCap` 守卫与 spec 措辞精化，faucet 事实无差异）。
+- **导航**：`navItems` 增 `faucet`（lucide `Droplets`）——侧栏+移动底栏（grid 5→6 格）；marketing 顶栏第 5 项（决议 024 自动序号=05 Faucet）；`copy.common.faucet` 双语（en Faucet / zh 水龙头）。
+- **页面结构**：page-intro → `.fc-claims`（三行台账：图标/二字徽章+日限读数+连接态状态行（Ready=success 绿 / Ready in {t}=warning 琥珀，冷却快照墙钟每秒递减、到 0 转 Ready，vault RedeemCountdown 同口径）+Claim（恒禁用，原型不伪造成交）+ footer 行动条（未连接=Connect Wallet 可点 / 已连接=Batch Claim 禁用））→ `.fc-swap`（导语+Rate/Swap fee/Approval 三事实格+Get UUSD 黄 CTA（页内唯一黄，ax-ghost-cta））。弹窗复用 `global/action-dialogs` 原语（ConvertDialog 同款：方向 chips+AmountField（Balance/Max/余额不足）+Rate/Fee/You receive/headroom 明细+DialogCta 输入门控）。数据=fixtures/data/faucet.json（新域，schema+manifest+单测登记齐）。
+- **验证**：tsc --noEmit 绿；vitest 189/189（app-shell 顶栏断言 4→5 随导航扩项更新）；check:design 0 命中；check:contrast 全过；fixture boundary --source OK；architecture OK。e2e：visual `=all` 全量重录 43 passed（导航扩项波及全部既有基线；8 张 faucet 新基线）+ 对比模式复跑 43 passed；a11y 零新增违规（faucet 无基线条目需求）。visual-judge 两轮：首轮抓出状态行被 `.pf-claim-row__amount span`（0,1,1）基类压灰——选择器提 `.fc-claims .fc-claims__ready/__cooling` 作用域修复，复验 4/4 pass（绿/琥珀像素实测在场）。同树并行 scenario 工作的顶栏芯片随本轮基线一并入图（前例裁定同树不可避免，其落地轮复验）。
+- 签名：approved by Jasonrale（2026-10-09 用户裁定「导航栏里新增 05 Faucet，APP 导航栏同步增加…设计 Faucet 页面」）
+
+## 2026-10-09 · /faucet Get UUSD 机制口径改质押铸造（用户裁定「不是 PSM 啊，aUSDC, sUSDS 是生息资产」）
+
+- **背景**：Faucet 页首版把 Get UUSD 落成 PSM 面值兑换（USDC↔UUSD 双向弹窗，S8 口径），副题写「swap USDC into UUSD」。用户两轮纠偏：①副题「swap USDC into UUSD」有歧义——所有 mock 代币都可转为 UUSD，且动词不是 swap 而是 Stake 铸造；②确认面板机制「不是 PSM，aUSDC/sUSDS 是生息资产」。
+- **机制改判**：Get UUSD=创世质押铸造（OB `outstake/staking-modes.md`：存入生息资产、按面值铸 uAsset——无折价无倍数、无利息、抵押物继续生息、赎回需还回等值 uAsset；v1 质押与创世绑定，铸造的 UUSD 直达 Genesis）。PSM 兑换从本页撤除（机制本身合约真实，仅为本页误配——demo 参照图 2 的 sUSDS→UUSD 兑换腿同轮废弃）。
+- **六功能口径随之更新**：三币每日领取 + 一键领取 + Mint UUSD（质押 sUSDS/aUSDC 按面值铸造）+ Redeem Collateral（还回 UUSD 赎回抵押）。面值 1:1=机制常量（非 fixture），费率/headroom 字段删除（质押无费）。
+- **落面**：fixture `swap` 块→`stake` 块（collaterals 集合 sUSDS/aUSDC + myUAsset；schema/manifest 同步）；组件 `faucet-swap-dialog.tsx`→`faucet-mint-dialog.tsx`（Mint/Redeem 模式 chips + Mint 态质押资产第二排 chips + Rate 面值恒等 + 抵押物生息行）；CSS `.fc-swap`→`.fc-mint`；copy 副题两语言改「Claim daily testnet tokens, then stake them to mint UUSD./每天领取测试网代币，再质押铸成 UUSD.」+ faucet 域 swap 键族→mint 键族。登记：component-contract §34、components.md Faucet 行、source-map S8 行 faucet 附注撤销。
+- **验证**：tsc 绿；vitest 189/189；check:design 0；fixture boundary OK；manifest 确定性重建；e2e faucet 8 基线 `=all` 重录 + a11y 复扫（详见本轮交付记录）。
+- 签名：approved by Jasonrale（2026-10-09 用户裁定）
+
+## 2026-10-09 · /faucet Get UUSD 卡二轮重设计：机制流程带+仪器井（用户裁定「这张卡太难看了…确保专业，高级，有质感，优雅」）
+
+- **背景**：质押铸造口径落地后的首版卡面（一段次级灰导语 + 三格裸文案事实 + 右下角小号 CTA）被用户毙——松散、无视觉锚点、CTA 孤悬。
+- **方案**：机制流程做卡面主角——通栏青 tinted 仪器条（dao-fund hero 同解剖：signal 描边+顶缘青光渗）：「STAKE 车道」（sUSDS/aUSDC 代币章，badge+符号 mono、raised 浮出）→ 品红 MoveRight 20px（回声层图形档）→「MINT 车道」（UUSD 品牌章，border-signal 终点描边），右锚 22px 等宽 `1 : 1`+「at face value/按面值」小注；下方双栏（≥54rem）=说明文 ≤66ch + 仪器井行动栏（field-well：两行 hairline 事实台账 Collateral/Redeem + 通栏黄 ax-ghost-cta）。≤54rem 单列纵排。全部由既有质感原语组合（dao-fund hero/s.swap-panel field-well/ref-stats KPI 档/品牌章），零新 token。
+- **登记**：components.md Faucet 行（.fc-mint 结构）、component-contract §34、globals.css `.fc-mint__*`。
+- **验证**：tsc / vitest 189 / check:design 0 / prettier（globals.css）绿；e2e faucet 8 基线 `=all` 重录 + 对比复跑 8 passed + a11y 零新增 + visual-judge 4/4（专业质感维度过检）。中途一轮 e2e 与并行会话互踩 4188（connection refused 假失败），端口空闲后复跑定案。
+- 签名：approved by Jasonrale（2026-10-09 用户裁定）
+
+## 2026-10-09 · /faucet Get UUSD 口径终值回归 PSM（用户自纠「我刚看了合约代码，只能通过 PSM 获得 UUSD」）
+
+- **背景**：同日三轮口径的第二轮（质押铸造）系基于用户口误「不是 PSM，aUSDC/sUSDS 是生息资产」。用户核对合约代码后自纠：**UUSD 只能经 PSM 获得**（USDC 面值兑换，S8）；水龙头领取的其余生息资产（sUSDS/aUSDC）不经 UUSD、**直接走 `stakeForGenesis` 进创世**（router-and-user-flows §4：SP.stakeForGenesis 唯一铸造入口、铸出 uAsset 与 genesis 需求严格绑定）。与首轮实现前的真源核读一致。
+- **方案**：Get UUSD 卡与弹窗回归 PSM 面值兑换（USDC↔UUSD 双向、tin/tout 费率、mint 受 stockCap headroom、无滑点/deadline），保留同日高级卡面结构（兑换流程带=USDC 官方章→品红箭头→UUSD 品牌章+右锚 1:1 at par；仪器井三行=方向/每向费率/一次性授权+通栏黄 CTA）；生息资产去向写进说明文（「sUSDS 与 aUSDC 不经 UUSD，直接质押进入创世」）而非页面功能——stake 参与入口在 Verse 详情页参与面板（既有）。六功能=三币领取+一键领取+PSM 双向。
+- **落面**：fixture `stake` 块撤、`swap` 块回归（feeIn/feeOut/headroom/双余额）；`faucet-mint-dialog.tsx` 删、`faucet-swap-dialog.tsx` 回归（Get/Back 方向 chips）；CSS `.fc-mint__*`→`.fc-swap__*`；copy 副题回归「Claim daily testnet tokens, then swap USDC into UUSD./每天领取测试网代币，再把 USDC 兑成 UUSD.」+ faucet 域 mint 键族→swap 键族（含生息资产去向句）。登记：component-contract §34、components.md Faucet 行、source-map S8（faucet 附注重挂）+ S1（生息资产去向口径）。
+- **验证**：tsc / vitest 189 / check:design 0 / fixture boundary OK / manifest 确定性重建 / prettier+eslint 绿；e2e faucet 8 基线 `=all` 重录 + 对比复跑 8 passed + a11y 零新增 + visual-judge 4/4。
+- 签名：approved by Jasonrale（2026-10-09 用户自纠裁定）
+
+## 2026-10-09 · /faucet 四轮：两卡合并为单一水龙头台账（用户裁定「设计得太难看了…根本不需要那么多废话…这就是个水龙头」）
+
+- **背景**：三轮后的 Get UUSD 独立卡（流程带+说明文+费率/授权事实格）仍被毙——卡面在解释机制，违背水龙头工具页直觉。用户裁定：每日领取卡与 Get UUSD 卡合并、重排布局，要求优雅简洁、清晰可读、交互方便、审美高级有质感。
+- **方案**：页面收敛为 page-intro + **单一台账面板**——铭牌行（Testnet Tokens/测试网代币 · 每 24 小时重置）→ 三领取行（原样）→ hairline 分隔的 **UUSD 兑换行**（台账同构：UUSD 品牌章+「由 USDC 兑换」+`1 : 1` 读数+Get UUSD 黄色幽灵钮 sm）→ footer（一键领取/Connect）。卡面零机制解释——费率/额度/双向细节全部收进弹窗（ConvertDialog 同款明细保留在执行面）；`.fc-swap__*` 全族 CSS 删除、swap 键族瘦身（说明文/流程带/事实格键删除，仅存弹窗键+swapFrom/swapRate 两行键）。机制口径不变（PSM=S8 唯一获取路径；生息资产直接 stakeForGenesis=S1——去向句随合并从卡面撤下，弹窗与 contract 登记 retain）。
+- **登记**：component-contract §34（台账面板行+兑换行）、components.md Faucet 行（.fc-swap 撤、`__row--swap` 入）、globals.css。
+- **验证**：tsc / vitest 189 / check:design 0 / prettier+eslint 绿；e2e faucet 8 基线 `=all` 重录 + 对比 8 passed + a11y 零新增 + visual-judge 5/5（四行对齐、hairline 分隔、黄钮唯一、零机制废话残留、断连态正确）。
+- 签名：approved by Jasonrale（2026-10-09 用户裁定）
+
+## 2026-10-09 · /faucet 五轮：一键领取与 Get UUSD 换位 + 删 1:1 读数（用户裁定）
+
+- **裁定**：「一键领取和获取 UUSD 换一下位置」「1:1 这个文案删掉」。
+- **方案**：一键领推行（全部代币+一笔交易语义）上移进数据组尾（hairline 分隔，断连=Connect/连接=Batch Claim 原口径）；页脚行动条改为 UUSD 兑换入口（品牌章 20px+UUSD+由 USDC 兑换+Get UUSD 黄钮——漏斗出口归页脚）；`1 : 1` 行读数删（swapRate copy 键删；弹窗 Rate 明细行保留——执行面口径）。CSS `__row--swap`→`__batch`+`__uusd`；`__note` 成孤类删除。
+- **验证**：tsc / vitest 189 / check:design 0 / prettier 绿；faucet 8 基线 `=all` 重录 + 对比 8 passed + a11y 零新增 + visual-judge 5/5。
+- 签名：approved by Jasonrale（2026-10-09 用户裁定）
+
+## 2026-10-09 · /faucet 代币图标接入（sUSDS/aUSDC 官方标）+ 页脚品牌章光学配平（用户裁定「找一下 Sky 的 sUSDS 和 AAVE 的 aUSDC 的图标」）
+
+- **裁定**：①页脚 UUSD 图标「有点靠下」；②领取行 sUSDS/aUSDC 换官方图标。
+- **方案**：①实测 seal_center−text_center=+1.5px（flex 盒心 vs 大写/CJK 墨迹中心的 descender 偏置）→ `.fc-claims__uusd img { translate: 0 -1.5px }` 光学配平（participation field-head 基线对齐同族问题）；②sUSDS=Sky 官方 CoinGecko 收录资产（绿币白 S，250px）；aUSDC=Aave 官方 aave-ui-kit 内嵌组合标（256 SVG）——沙箱网络受限下溯源：trustwallet/Uniswap assets/官方站/镜像多路不可达或未收录，最终 CoinGecko assets 域（项目方提交资产）与 Aave npm kit 两路得手；注册进 `TOKEN_ICON`（前缀匹配无撞键，sUSDe/aETH 等不受影响），`hasTokenIcon` 自动点亮领取行，二字徽章保留为无图标品类回落。
+- **登记**：token-icons.tsx 注释、token-icons README 资产表（含来源与提取口径）、component-contract TokenIconMark 行+§34 领取行。
+- **验证**：tsc / vitest 189 / prettier 绿；faucet 8 基线 `=all` 重录 + 对比 8 passed + a11y 零新增 + visual-judge 4/4（三圆标可分辨、无徽章残留、页脚居中）。
+- 签名：approved by Jasonrale（2026-10-09 用户裁定）
+
+## 2026-10-09 · /faucet 页脚：UUSD 章光学过冲 + 「由 USDC 兑换」内联 USDC 章（用户裁定「还是有点靠下」「USDC 前面加上图标」）
+
+- **章位二轮**：-1.5px 修正后像素实测圆心/品红字形心/文字墨迹心三心重合（均 552.0）仍被用户读作偏低——圆形并排平缘文字的排版学过冲错觉（circle overshoot），几何居中的圆视觉偏沉，需再上调 ~1px；终值 translate -2.5px（1.5px 盒心修正 + 1px 光学过冲）。
+- **内联章**：swapFrom 改 `{a}` 占位模板（en 'Swap from {a}' / zh '由 {a} 兑换'），渲染为 `.fc-claims__asset` 原子单元（14px USDC 官方章 + 符号，inline-flex + nowrap + gap space-1 + 0.5px 光学过冲）——首版裸 img 内联在窄容器被折成独行（visual-judge 像素证据抓出），原子单元后桌面/zh 移动同排内联。
+- **验证**：tsc / vitest 189 / prettier 绿；faucet 8 基线 `=all` 重录 + 对比 8 passed + a11y 复跑绿（首轮失败=并行会话 4188 互踩假失败）；页脚验收 visual-judge 撞限额，按协议改人工像素级裁片核验（桌面/zh 双档：内联成立、章居中、黄钮唯一）。
+- 签名：approved by Jasonrale（2026-10-09 用户裁定）
+
+## 2026-10-09 · /faucet 页脚对齐四轮收敛（用户裁定「UUSD 图标又有点靠上了」「USDC 图标太小了，位置怎么跑上面去了」）
+
+- **章位收敛**：-2.5px 实测比 UUSD 粗体墨迹中心高 1.0px（用户读作偏高）→ 终值 **-2px**（高 0.5px 过冲，恰居两轮否决值 0/-1.0px 中点）。
+- **内联章三处修正**：①14px→**16px**（用户嫌小）；②「跑上面」根因=inline-flex 自身 baseline 取自 img 底缘（replaced 元素无文本基线）整单元骑到行基线上方 → 显式 `vertical-align: -4px` 钉回行内；③去掉单元内 img 的 -0.5px 平移（改由 vertical-align 统一承担）。实测终态：USDC 章心=灰字墨迹心+0.5px（与大章同口径）、16×16、与 USDC 文字紧邻同行。
+- **流程检讨**：上轮以 5× 裁片肉眼判「通过」不可靠——本轮起页脚类亚像素对齐一律走像素量化闭环（测偏差→改→重录→复测达标才报），visual-judge 限额期间由量化测量替代目检。
+- **验证**：tsc / vitest 190 / prettier 绿；faucet 8 基线 `=all` 重录 + 对比 8 passed + a11y 绿；量化终态=UUSD 章心 551.5 vs 粗体墨迹 552.0、USDC 章心 551.5 vs 灰字墨迹 552.0（均 +0.5px 过冲）。
+- 签名：approved by Jasonrale（2026-10-09 用户裁定）
+
+## 2026-10-09 · /faucet 页脚双章统一 18px（用户裁定「USDC 标稍微再放大一点，UUSD 标改为和 USDC 标一样的大小，并且对齐」）
+
+- **方案**：USDC 内联章 16→18px；UUSD 品牌章 20→18px（用户裁定统一）；`vertical-align` -4→-5px（随章高加大基线钉位）。
+- **量化终态**：双章同高（检测 18px/16px·DPR1 抗锯齿吃边）、章心互齐（同 551.5）；UUSD 章对粗体墨迹 0.0px、USDC 章对灰字墨迹 +0.5px 过冲——章间对齐达成。
+- **验证**：tsc / vitest 190 / prettier 绿；faucet 8 基线 `=all` 重录 + 对比 8 passed + a11y 绿；桌面+zh 移动裁片亲验（双章同线同大、内联不折行）。
+- 签名：approved by Jasonrale（2026-10-09 用户裁定）
+
+## 2026-10-09 · /faucet 页脚微调八轮（用户裁定「双章同时往下一点点，UUSD 再往右一点点」）
+
+- **方案**：UUSD 章 translate (1px, -1.5px)——y 从 -2 回 0.5px 下移、x +1px 右移收紧与文字间距；USDC 章资产单元 vertical-align 保持 -5px、img 追加 translate 0 0.5px 下移（img 级微调不动行盒——vertical-align 调整会引发整行重排，绝对像素跨轮不可比）。
+- **验证**：tsc / vitest 190 / prettier 绿；faucet 8 基线重录 + 对比 8 passed + a11y 绿；6× 裁片亲验双章齐平。
+- 签名：approved by Jasonrale（2026-10-09 用户裁定）
+
+## 2026-10-09 · /faucet 页脚双章锁线（用户裁定「UUSD 标和 USDC 标没在同一水平线上」）
+
+- **根因**：八轮前每章各自对齐邻文（UUSD↔粗体、USDC↔灰字），但两段邻文光学中心本身相差 ~2px——逐章配平的策略性缺陷，双章互不齐。
+- **修正**：改为互齐锁线——USDC 章 img translate 0.5→-1.5px（上提 2px），实测双章中心同 553.0、互差 0.0px；UUSD 章位（1px, -1.5px）不动。
+- **登记**：contract §34 九轮终稿。
+- **验证**：tsc / vitest 190 / prettier 绿；faucet 8 基线重录 + 对比 8 passed；桌面+zh 移动裁片亲验双章同线。
+- 签名：approved by Jasonrale（2026-10-09 用户裁定）
+
+## 2026-10-09 · 移动底栏导航短标签（用户裁定「资产组合->资产」「推荐返佣->推荐」）
+
+- **决策**：移动端底栏（`mobile-navigation`）两项改短标签：资产组合→**资产**、推荐返佣→**推荐**；桌面侧栏、marketing 顶栏、页面标题保持全称不变。en 单词本短（Portfolio/Referral），短标签与全称同值、英文界面不变。
+- **实现**：`copy.ts` 新增 `common.portfolioShort`/`referralShort`（沿 `connect`/`connectShort` 先例）；`app-shell.tsx` MobileNavigation 以 `shortLabels` 映射取短标签、未列键回退全称。
+- **验证**：tsc / app-shell 单测 5 / `check:cjk-font` 绿（无新增汉字，子集重切对账通过）；移动端 e2e 基线含底栏者待重录。
+- 签名：approved by Jasonrale（2026-10-09 用户裁定）
+
+## 2026-10-09 · verse 统计条 holders 计数格式：整数纪律 + K/M/B 支持（用户裁定）
+
+- **背景**：holders StatChip 两轮裁定收敛——①计数是天然整数：未达单位量级时带小数点不符合常识（旧 compact `formatAmount(…, true)` 在 <1e3 输出「452.00」裸数带小数；当日首轮修复为去 compact 全量数字）；②全量数字仍不达标：人数多时须带 K/M/B 单位。
+- **终态**：`signal-ui.tsx` 新增 `formatCount(value)`：<1e3=纯整数无小数（`maximumFractionDigits: 0`）；≥1e3 复用 `formatMarketCap`（B/M/K 两位小数、不随 locale 换算亿/万——2026-09-23 既有裁定，与统计条市值/流动性/成交量/总供应 chip 同语言）。消费位=verse-trade-desk holders chip（value=`formatCount`、tipValue 保留 `formatAmount` 全量）；现样本 2,004–7,736 渲染为「2.00K」–「7.74K」。
+- **附带登记（不动既有）**：`formatMarketCap` 自身 <1e3 分支输出两位小数——金额语义合法（$452.00 有分位概念），计数语义由 `formatCount` 阈值规避；zh 侧 Intl compact 万/亿路线不采用——统计条单位语言全 locale 统一 K/M/B。CJK 子集不含「亿」（现样本计数触不到 1e8；K/M/B 为拉丁字形无子集覆盖问题）。
+- **登记**：`components.md` 信号原语表 `formatCount` 行。
+- **验证**：tsc / vitest 190 / prettier（改动文件）/ `check:design-docs` 绿；e2e 构建实开 `/memeverse/34`（verse-034 unlocked，holders 5212）DOM 实测 `Holders: 5.21K`，与相邻 `$13.22M`/`$206.00K`/`1.00B` 同单位语言；verse-21 三档基线复跑绿（**覆盖缺口登记**：verse-21=genesis 无统计条，holders chip 无 e2e 基线覆盖——本轮及当日早前 compact 改动均不产生 e2e diff）。
+- 签名：approved by Jasonrale（2026-10-09 用户裁定）

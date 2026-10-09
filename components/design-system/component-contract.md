@@ -235,7 +235,7 @@
 |---|---|
 | 用途 | PT/YT 井组下通栏操作行 locked 态钮 2/3 触发的操作弹窗（`components/verse/pol-split-merge-dialog.tsx`，`mode='split'/'merge'` 单组件两态；2026-09-26 用户裁定：两钮从恒禁用改弹窗做实际操作；2026-09-28 v3 从通栏第二/三枚随操作区统一迁移；壳/原语复用 `.pol-mint` + `.swap-panel__field/__details/__cta`，无新 class） |
 | 机制口径 | Split=1 POL → 1 PT + 1 YT（`IPOLSplitter.sol:102`）、Merge=等额销毁 PT 与 YT 换回同额 POL（`:104`，同一 amount 两侧 burn）——严格 1:1，合约无滑点/无 deadline 参数 → **不设设置齿轮**（与 Mint 弹窗的结构差异=机制差异）；闸门仅 locked（unlocked 态由 §21 Redeem 钮接替，2026-09-27） |
-| 联动/Max | split：单输入 POL、Max=全部 `myPol`；merge：PT/YT 双输入恒等额联动（单状态驱动两框），两框各挂 Max、同填 `min(myPt, myYt)`（Max 语义=最大可合并对数——单侧全额会破另一侧约束；2026-09-26 用户问「为何只有 YT 有 Max」后改双挂） |
+| 联动/Max | split：单输入 POL、Max=全部 `myPol`；merge：PT/YT 双输入恒等额联动（单状态驱动两框），两框各挂 Max、同填 `min(myPt, myYt)`（Max 语义=最大可合并对数——单侧全额会破另一侧约束；2026-09-26 用户问「为何只有 YT 有 Max」后改双挂）；可填额 ≤0（merge=min(PT,YT)、split=`myPol`）→ Max disabled（2026-10-09 用户裁定「Max 按钮是坏的」：`amountToInputString(0)` 返回空串、点击零可见效果=死按钮观感；对齐 §22 pool-add 既有 null/≤0 禁用先例） |
 | 估值 | 无换算行（2026-09-26 用户裁定删 split 输入 ≈$；PT/YT 本就无独立价样本） |
 | 明细 | Rate 行与输出区删（2026-09-26 用户裁定第二轮：1:1 恒等，结果=输入的复述，冗余）——弹窗=输入+CTA |
 | CTA | 同 Mint 弹窗：未连接=Connect Wallet 可点切换模拟连接（`useMockWallet`）；已连接=Split/Merge 禁用（原型不伪造链上成交，无提示文案） |
@@ -249,7 +249,7 @@
 |---|---|
 | 用途 | PT/YT 井组下通栏操作行 unlocked 态两钮触发的操作弹窗（2026-09-28 v3 从井底迁通栏；`components/verse/pol-redeem-pt-yt-dialog.tsx`，`mode='pt'/'yt'` 单组件两态；2026-09-27 用户裁定：unlocked 删 split/merge UI、补燃烧/赎回 PT/YT 功能；壳/原语复用 `.pol-mint` + `.swap-panel__field/__details/__cta`，无新 class） |
 | 机制口径 | Redeem PT=`POLSplitterUpgradeable.sol:365` 销毁 PT 按创世锁仓一次性登记的固定比率兑回 uAsset（`_ptToUAsset:470`，比率=`mainPoolUAssetUsed/mainPoolPOLRawAmount`——`MemeverseLiquidityImpl.sol:239`，即 fixture `uAssetPerPol` 口径，非 1:1——2026-09-25 对账裁定）；Redeem YT=`:387` 销毁 YT 按份额领结算剩余池两币（uAsset+memecoin，每份率=池×份额/流通 YT，`:404-405`）。闸门仅 unlocked（unlock 自动 settle——`MemeverseSettlementImpl.sol:536-537`；locked 态不渲染赎回行）；合约无滑点/deadline → 不设设置齿轮 |
-| 联动/Max | 单输入（PT 框余额=`myPt`、YT 框=`myYt`），Max=各自全额；props `price`/`uAssetUsd`（美元行换算源，同卡片井读数）；打开为空输入（2026-10-08 用户裁定：金额输入默认空 0.00，废除 2026-09-27 打开预填口径；清空/改数照常重算） |
+| 联动/Max | 单输入（PT 框余额=`myPt`、YT 框=`myYt`），Max=各自全额；销毁币余额 ≤0 → Max disabled（2026-10-09 同 §20 裁定：空串填充=死按钮观感）；props `price`/`uAssetUsd`（美元行换算源，同卡片井读数）；打开为空输入（2026-10-08 用户裁定：金额输入默认空 0.00，废除 2026-09-27 打开预填口径；清空/改数照常重算） |
 | 明细 | 2026-09-27 第三轮参照图裁定改双框：输入框（label=burnLabel）+ Receive 独立框（同输入框款式、只读 `output`+代币章；PT=单框 uAsset 章、YT=双腿合一个框（memecoin 主腿在前与井读数同序、行间 hairline=`.swap-panel__field-row ~ .swap-panel__field-row` 仅多 row 时生效——单 Receive 标签管两腿，2026-09-27 第四轮裁定：双框版第二框空标签行观感残缺）；rate 缺样本=随空值 0.00）+ 每框下 ≈$ 美元行（2026-09-27 用户裁定补：uAsset 腿×uAssetUsd、memecoin 腿×主池价×uAssetUsd，样本缺→不渲染）——You receive 明细行随之删除（信息不重复；非 1:1 恒等、与 §20 删输出区裁定不冲突）：PT=`amount × uAssetPerPol {raiseAsset}`；YT=`amount × ytRedeemUAssetPerUnit {raiseAsset} + amount × ytRedeemMemecoinPerUnit {symbol}`（fixture `ytRedeem*PerUnit` 可选样本——仅 unlocked polp 记录携带；双缺=随空值 0.00）；note 行 2026-09-27 用户裁定两轮全删（先 PT 后 YT——等式/You receive 已示比率与产出，冗余；「以链上读值为准」标注 2026-10-05 用户裁定全站废止） |
 | CTA | 同 §20：未连接=Connect Wallet 可点切换模拟连接；已连接=Redeem PT/Redeem YT 禁用（原型不伪造链上成交） |
 | 触发器 data-slot | 同 §17 踩坑：`DialogTrigger` 显式 `data-slot="button"` 钉回 |
@@ -421,6 +421,33 @@
 | 管辖范围 | Portfolio：KPI 带（pf-kpi）+ 净值 hero（pf-hero）+ 四分区 deck（PortfolioZoneTabs 整体，断连时页面只剩页头标题+副题——该页全部为数据卡，裁定后果已明示）；Referral：统计簇（ref-stats）+ 邀请链接（ref-link，用户专属短码随数据同隐）+ 待领（ref-pending）+ 历史（ref-history）。首页/发现/详情/创建页不接闸门 |
 | 登记 | 单测防线 `tests/unit/user-data-gate.test.ts`（SSR 断言卡面类名缺席/机制段与连接 CTA 在场）；e2e `*-disconnected` 基线条目锁默认态（数据泄漏回断连页面即基线红），`connectWallet` 旗标条目保持连接态全量基线覆盖（portfolio/referral/launch 三路由） |
 
+## 34. Faucet 页（/faucet 测试网水龙头 · 已落地 · 2026-10-09）
+
+| 方面 | 契约 |
+|---|---|
+| 用途 | 测试网代币获取页（六功能）：三 mock 币每日领取（USDC/sUSDS/aUSDC）+ 一键领取（batchClaim）+ PSM 面值兑换双向（Get UUSD=USDC→UUSD / Back to USDC=UUSD→USDC）。参照物=旧 demo 水龙头按钮组+Get UUSD 弹窗两图（功能映射，视觉按本站语言）。Get UUSD 机制口径=**PSM（UUSD 唯一获取路径）**——2026-10-09 用户核对合约后自纠终值「只能通过 PSM 获得 UUSD，水龙头领取的其余生息资产直接走 stakeForGenesis」（当日三轮：PSM→质押铸造→回归 PSM，中间轮作废） |
+| 机制口径 | G：claim 每 token 24h 一次（`Faucet.sol:43` `ClaimTooSoon`）、日限一次性全额 mint（deploy 脚本 addToken 1,000,000×1e18/币，三 mock 均 18-dec，source-map S10/S11）；batchClaim 前端只传可领集合（合约按传入数组原子执行，任一冷却中整笔回滚）；PSM=面值 1:1 双向、tin/tout 费率、mint 受 stockCap headroom、redeem 受池储备、无滑点/deadline 参数（S8）；生息资产（sUSDS/aUSDC）不经 UUSD——直接 `stakeForGenesis` 进创世（router-and-user-flows §4：唯一铸造入口 SP.stakeForGenesis、铸出 uAsset 与 genesis 需求严格绑定；卡片说明文案带出此去向）。S：费率展示值（0.10% 每向）/headroom/余额/冷却剩余=fixtures/data/faucet.json 样本 |
+| 实现 | `components/faucet/faucet-page.tsx`（RSC）+ `faucet-claims.tsx`（client，含 UUSD 兑换行）+ `faucet-swap-dialog.tsx`（client）；数据=`getFixtureFaucet()`；样式 `.fc-claims`（globals.css），复用 `.pf-panel`/`.pf-claim-row`/`.ref-nameplate`/`.token-select__badge`/`.ax-ghost-cta` 原语 |
+| 台账面板 | **单一面板**（2026-10-09 四轮：两卡合并——用户裁定「这就是个水龙头」，卡面零机制解释，费率/额度细节收进弹窗）：铭牌行 tokensTitle（Testnet Tokens/测试网代币）+ claimsNote（每 24 小时重置）→ 三领取行（下条）→ hairline 分隔的**一键领推行** `.fc-claims__batch`（全部代币/All tokens 加粗+batchNote 两行 + 右 Batch Claim/Connect outline sm）→ footer=**UUSD 兑换入口** `.fc-claims__foot`（UUSD 品牌章 20px + UUSD + swapFrom 短语（`{a}` 占位=`__asset` 原子单元「14px USDC 章+符号」inline-flex 不可断行，2026-10-09 用户裁定加内联图标；裸 img 首版在窄容器折成独行已废）+ Get UUSD 黄色幽灵钮 sm=页内唯一黄，弹窗触发器）。2026-10-09 五轮：一键领取与 Get UUSD 换位（批量归数据组尾、UUSD 归页脚漏斗出口）、删 `1 : 1` 行读数（swapRate 键删，弹窗内 Rate 行保留）；六轮：UUSD 章光学配平（0=读低、-2.5px=读高，终值 -2px 过冲）；七轮（用户裁定「USDC 再放大、UUSD 与 USDC 同大对齐」）：**双章统一 18px**、USDC 章内联单元 `vertical-align:-5px` 钉位（inline-flex baseline 取自 img 底缘会骑到行上方）+swapFrom `{a}` 占位；八轮微调（各下 0.5px/UUSD 右 1px）；九轮终稿：**双章互齐锁线**（对邻文各自配平会因粗体/灰字光学中心不同而互差 2px——用户抓出；USDC 章 img 上提 2px，实测双章中心同 553.0、互差 0.0） |
+| 领取行 | 图标（TokenIconMark 28px——USDC/sUSDS/aUSDC 三币 2026-10-09 起全有官方图标；`.token-select__badge` 二字徽章保留为无图标品类回落）+ symbol/name + 日限读数（`data-numeric`）+ 连接态冷却行（Ready=success / `Ready in {t}`=warning，t=en `21h 25m`、zh `21 小时 25 分`——小时+分钟档，staticDuration 日粒度不适合 ≤24h 域）+ Claim（outline sm）。行只读：Claim 恒禁用、hover 中和（ref-pending 2026-10-08 同口径）。冷却=fixture `cooldownRemainingMs` 按墙钟每秒递减（vault `RedeemCountdown` 同口径纯展示 tick 非链上写），到 0 转 Ready；未连接不渲染冷却行（无用户归属） |
+| 行动条 | 见「台账面板」行——一键领推行（断连=Connect 可点切 mock/连接=Batch Claim 禁用）+ 页脚 UUSD 入口（恒可点开弹窗，连接态由弹窗 CTA 承接） |
+| 兑换弹窗 | 触发=Get UUSD（ax-ghost-cta **size sm**——四轮合并后落 UUSD 行 actions 列，与 Claim 钮同行高；页内唯一黄）；壳=共享 `ActionDialogShell/AmountField/DetailRows/DialogCta`（`components/global/action-dialogs.tsx`）：方向 chips（Get UUSD / Back to USDC）+ 金额字段（Balance/Max/余额不足 FieldError）+ 明细（Rate 方向化 `1 USDC = 1 UUSD` / Fee（方向对应 tin/tout）/ You receive=输入×(1−费率) / Mint capacity left 仅 Get 方向）+ CTA（未连接=Connect 可点、已连接=仅随输入门控禁用，无 onClick 不伪造成交——ConvertDialog 同款）。模式切换保留输入；打开为空输入（2026-10-08 全站口径）；无滑点/deadline 参数→不设设置齿轮 |
+| aria | 面板 `aria-labelledby`（h2）；chips `role="group"`+`data-selected`；数字全 `data-numeric`；弹窗 base-ui Dialog 内置 focus 圈闭/还原；✕=common.close |
+| 导航 | navItems 增 `faucet`（Droplets 图标）→ 侧栏+移动底栏（底栏 6 格，grid 列数同步 5→6）；marketing 顶栏第 5 项（编号 05，决议 024 自动序号）；copy `common.faucet` 双语 |
+| e2e | `e2e/pages.ts`：faucet/faucet-disconnected（en 三档）+ zh-faucet/zh-faucet-disconnected（zh 移动档）；导航扩项波及全站既有基线→全量重录（`--update-snapshots=all`） |
+
+## 35. ProtectionExitDialog（保护窗 Exit 弹窗 · 已落地 · 2026-10-09）
+
+| 方面 | 契约 |
+|---|---|
+| 用途 | Portfolio ①待办区保护窗卡 Exit 钮触发的页内退出弹窗（`components/portfolio/protection-exit-dialog.tsx`；2026-10-09 用户裁定：卡 CTA 由跳 verse 页改页内弹窗，用户可选 POL 赎回为 LP 或直接拆成 memecoin+uAsset；壳/原语复用 `ActionDialogShell/AmountField/DetailRows/DialogCta`，模式 chips=`.pf-dialog__chips`，无新 class）。上下文由 portfolio-page 预取（`ProtectionExitContext`：verse+pol+主池价+uAssetUsd）；fixture 缺 pol 行的 protection 项不进映射 → 卡片回落跳 verse 页（ActionZone 内旧 Link 保留） |
+| 机制口径 | =`redeemMemecoinLiquidity` 两 overload（`MemeverseLiquidityImpl.sol:851/870`）：**LP 模式**=unwrap=false，POL 1:1 换主池 LP 直转（`_redeemCore:889` `amountInLP=amountInPOL` by main-pool construction；非价格敏感、合约无滑点参数→**无齿轮**，§23 同口径）；**拆币模式**=unwrap=true，LP 现场拆 memecoin+uAsset，6 参强制 amount0Min×2+deadline（3 参 unwrap 直接 `SlippageProtectionRequired`——:852-854；OutrunBook lifecycle.md:103「must set a minimum output amount and a deadline」）→ SwapSettings 齿轮（slippage+deadline）+ Min received/Max slippage 明细行（§24 同款）。闸门 Stage.Unlocked（`:891`）——保护窗卡本身即 unlocked-in-window，卡片可见即可开弹窗。输出腿序=memecoin 主腿在前+uAsset 腿（§21 井读数同序） |
+| 输出推导 | uAsset 腿=量×`uAssetPerPol`；memecoin 腿=量×`uAssetPerPol`÷主池价（candles 末收盘=repository `currentPrice` 同链；池价比 pro-rata 推导，价样本缺→0.00 槽）；≈$ 回声=§21 换算源（uAsset 腿×uAssetUsd、memecoin 腿×价×uAssetUsd，样本缺→行不渲染）；Min received=双腿×(1−slippage)，滑点越界期双值与 Max slippage 行同退 '--'（§25 口径）；slippage 默认 0.5、deadline 默认 10（§24 先例默认） |
+| 输入侧 | 单输入=POL 数量（Balance/Max，余额=`myPol`）；打开为空输入（2026-10-08 全站口径）；余额不足短句由 AmountField 兜（2026-10-04 裁定）；模式切换保留输入（ConvertDialog 同款） |
+| CTA | 未连接=Connect Wallet 可点切换模拟连接；已连接=Exit now 禁用（原型不伪造链上成交）；触发器=卡底 outline 钮同位替换（`DialogTrigger` 显式 `data-slot="button"` 钉回，§17 踩坑） |
+| 文案 | `portfolio.action.exit*` 十键双语（exitTitle/exitModeLp/exitModeSplit(`{m}`+`{u}` 插值)/exitReceive/exitCta/exitMinReceived/exitMaxSlippage/exitSettingsTitle/exitSlippageTip/exitDeadlineTip，2026-10-09 新增）；卡 CTA 仍 `ctaProtection` |
+| e2e | 弹窗关闭态像素=卡底钮同位同款，portfolio 七基线复跑全绿未重录；打开态=基线外交互态，Playwright 截图五态人工核对（en LP/拆币填数、zh 拆币、mobile 390） |
+
 ## 附：组件间通用交互契约
 
 - 弹层（AssetSelector/ChainSelector/交易中心）：Esc 关闭、焦点圈闭（focus trap）、关闭后焦点还原触发器。
@@ -432,10 +459,10 @@
 
 | 方面 | 契约 |
 |---|---|
-| 用途 | 代币资产身份图标：uAsset 族（UUSD/UETH/UBNB，含 Credit 前缀匹配）=品牌章；储备/原生（BNB/ETH/USDC/USDT）=官方**代币**图标（CoinGecko/Trust Wallet 代币资产源，全部落 `public/tokens/`；ETH=蓝圆白菱代币图标，勿用 `public/chains/` 灰阶链徽——链徽归链属语义，2026-10-07 用户纠错；第三方资产不套品牌章）；`components/global/token-icons.tsx`，`hasTokenIcon(symbol)` 谓词供混合列表降级判断 |
+| 用途 | 代币资产身份图标：uAsset 族（UUSD/UETH/UBNB，含 Credit 前缀匹配）=品牌章；储备/原生（BNB/ETH/USDC/USDT）=官方**代币**图标（CoinGecko/Trust Wallet 代币资产源，全部落 `public/tokens/`；ETH=蓝圆白菱代币图标，勿用 `public/chains/` 灰阶链徽——链徽归链属语义，2026-10-07 用户纠错；第三方资产不套品牌章）；`components/global/token-icons.tsx`，`hasTokenIcon(symbol)` 谓词供混合列表降级判断；2026-10-09 扩 sUSDS/aUSDC——sUSDS=Sky 官方 CoinGecko 收录资产（assets.coingecko.com coins/52721，绿币白 S，250px PNG）；aUSDC=Aave 官方 `@aave/aave-ui-kit` 内嵌组合标（USDC+Aave 徽标 256 SVG，Aave 自家 aToken 客户端合成口径） |
 | 制式 | v3.1 印章：黄地圆 `--logo-yellow` #FCEE0A + 品红字 `--logo-magenta-bright` #FF06B5，纯双色平涂、无边框角标渐变；几何=官方标轮廓追踪（ETH/BNB，`script/token-icons/extract-glyphs.py`）+ 对标调轻 $（UUSD 手绘）；构造/审计全记录 `docs/design/token-icons/README.md` |
 | 资产 | `public/tokens/<t>.svg`（512 viewBox 主形）+ `<t>-256.png`（Trust Wallet 上架格式，`script/token-icons/export-png.mjs` 透明底导出）；改几何走 `script/token-icons/build.mjs` 重跑，禁手改 SVG |
-| 接入位 | Portfolio 资产行 tile（20px，替代旧链徽/$ 文本占位——链徽只表达链属，2026-10-07 定稿换装）；Swap 选币器行（28px：uAsset=品牌章、BNB/ETH/USDC/USDT=官方图标，2026-10-07 用户指漏 BNB 后补；memecoin/POL/PT/YT 无图标品类保持二字文本徽章）；链徽仍归链分布行/跨链弹窗/Network 列（链属语义不变） |
+| 接入位 | Portfolio 资产行 tile（20px，替代旧链徽/$ 文本占位——链徽只表达链属，2026-10-07 定稿换装）；Swap 选币器行（28px：uAsset=品牌章、BNB/ETH/USDC/USDT=官方图标，2026-10-07 用户指漏 BNB 后补；memecoin/POL/PT/YT 无图标品类保持二字文本徽章）；链徽仍归链分布行/跨链弹窗/Network 列（链属语义不变）；/faucet 领取行（sUSDS/aUSDC，2026-10-09） |
 | 降级 | 未知 symbol 返回 null（谓词 false 时调用方渲染自身兜底，如选币器文本徽章）；无 alt（装饰性，aria-hidden 用法与 ChainLogoMark 同契约） |
 
 ## CandleChart 懒加载（lightweight-charts，2026-10-08）

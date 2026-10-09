@@ -16,9 +16,9 @@
 - 机制词（SY、PT/YT、PSM、CDP、Genesis、POL）只在必要处出现，首次出现给一句解释或 tooltip；阶段名固定用 `copy.common.stages`。
 - 错误信息 = 原因 + 恢复动作：`Amount exceeds your balance · Use max`。不出现堆栈、错误码作为主文案。
 - 授权类文案用"这会让 X 访问 Y"措辞，不用"approve token"。
-- 文案禁用分号（2026-09-26 用户裁定：分号全是 AI 味）——长句拆成两句或改逗号/破折号，除非该分号有具体必要性。
-- 「以链上读值为准 / On-chain value prevails」类文案**全站禁用**（2026-10-05 用户裁定：此类文案没有任何受众——用户不会看，开发者不需要从 UI 看；数据完整性是数据层职责，不是界面文案）。`onChainSlot` 及同族键（`lockedTimingUnavailable`「解锁时间以链上确认为准」等）全部废止；值缺失时按「null 不渲染」处理，不显示解释句。存量扫除已于 2026-10-08 完成（六键删除、约 38 处渲染点改 null 不渲染，登记 component-contract.md）。
-- 标题（页面/面板/分区/弹窗标题）一律 Title Case：实词首字母大写，冠词/连词/短介词（a/an/the/and/or/to/of/for）非首尾词保持小写，连字符复合词两段都大写（`Cross-Chain`）——2026-10-03 用户裁定全站统一，en 分支 `*Title` 字段已全量对齐；正文、CTA、标签不受此条管辖。
+- 文案禁用分号（分号全是 AI 味）——长句拆成两句或改逗号/破折号，除非该分号有具体必要性。
+- 「以链上读值为准 / On-chain value prevails」类文案**全站禁用**（此类文案没有任何受众——用户不会看，开发者不需要从 UI 看；数据完整性是数据层职责，不是界面文案）。`onChainSlot` 及同族键（`lockedTimingUnavailable`「解锁时间以链上确认为准」等）全部废止；值缺失时按「null 不渲染」处理，不显示解释句。存量已扫除（六键删除、约 38 处渲染点改 null 不渲染，登记 component-contract.md）。
+- 标题（页面/面板/分区/弹窗标题）一律 Title Case：实词首字母大写，冠词/连词/短介词（a/an/the/and/or/to/of/for）非首尾词保持小写，连字符复合词两段都大写（`Cross-Chain`）——全站统一，en 分支 `*Title` 字段已全量对齐；正文、CTA、标签不受此条管辖。
 
 ## 3. 数字、日期、时长
 
