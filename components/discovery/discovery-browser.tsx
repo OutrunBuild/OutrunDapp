@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { ArrowDownWideNarrow, ArrowUp, ArrowUpNarrowWide, Search, SlidersHorizontal } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { degradeToneFor } from '@/lib/prototype/scenario'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import {
@@ -33,6 +34,7 @@ type GenesisMode = 'all' | 'normal' | 'fast'
 
 type DiscoveryBrowserProps = {
   locale: Locale
+  scenario?: string | null,
   verses: FixtureVerse[]
   chains: FixtureChain[]
   initialStage: VerseStage
@@ -48,6 +50,7 @@ type DiscoveryBrowserProps = {
 const GRID_BATCH_SIZE = 6
 
 export function DiscoveryBrowser({
+  scenario,
   locale,
   verses,
   chains,
@@ -80,6 +83,18 @@ export function DiscoveryBrowser({
   function makeHref(changes: Partial<typeof currentParams>) {
     return discoveryHref(pathname, currentParams, changes)
   }
+
+  const view = scenario ? (scenario as never as import('@/lib/prototype/scenario').ScenarioView) : null
+  const tone = view ? degradeToneFor(view) : null
+  const dg = copy.common.degrade
+  const banner = tone
+    ? {
+        tone,
+        title: tone === 'loading' ? dg.loadingTitle : dg.errorTitle,
+        body: tone === 'loading' ? dg.loadingBody : dg.errorBody,
+      }
+    : null
+
 
   function replaceQuery(changes: Partial<typeof currentParams>) {
     setFiltersOpen(false)
@@ -169,6 +184,15 @@ export function DiscoveryBrowser({
 
   return (
     <div className="discovery-browser" aria-busy={pending}>
+      {banner ? (
+        <div className="degrade-banner" data-tone={banner.tone} role={banner.tone === 'error' ? 'alert' : 'status'}>
+          {banner.tone === 'loading' ? <span className="degrade-banner__spinner" aria-hidden="true" /> : null}
+          <div>
+            <strong>{banner.title}</strong>
+            <p>{banner.body}</p>
+          </div>
+        </div>
+      ) : null}
       <nav className="lifecycle-tabs" aria-label={copy.discovery.lifecycleLabel}>
         {stageTabs.map((stage) => (
           <Link
@@ -184,6 +208,74 @@ export function DiscoveryBrowser({
         ))}
       </nav>
 
+      {view === 'loading' ? (
+        /* 骨架镜像 Locked 阶段 EconomyCard 结构（state-matrix D1「骨架保持结构」）：复用 economy-card*
+           类拿到与真实卡零漂移的几何；data-skeleton 关交互并把 stage 变量钉灰阶（不带阶段色，
+           2026-10-09 用户裁定——骨架与错误蒙版同为灰黑降级观感） */
+        <section className="discovery-results">
+          <div className="economy-grid degrade-skeleton" aria-hidden="true">
+            {Array.from({ length: GRID_BATCH_SIZE }).map((_, i) => (
+              <div className="economy-card" data-skeleton key={i}>
+                <div className="economy-card__header">
+                  <div className="economy-card__identity">
+                    <h3>
+                      <span className="degrade-skeleton__line degrade-skeleton__line--ticker" />
+                      <span className="degrade-skeleton__line degrade-skeleton__line--name" />
+                    </h3>
+                  </div>
+                  <div className="economy-card__cap">
+                    <span className="degrade-skeleton__line degrade-skeleton__line--cap-label" />
+                    <span className="degrade-skeleton__line degrade-skeleton__line--cap-value" />
+                  </div>
+                  <div className="economy-card__badges">
+                    <span className="degrade-skeleton__badge" />
+                  </div>
+                </div>
+                <div className="economy-card__media">
+                  <span className="economy-card__media-frame">
+                    <span className="degrade-skeleton__media-fill" />
+                  </span>
+                </div>
+                <div className="economy-card__body">
+                  <p className="economy-card__chains">
+                    <span className="degrade-skeleton__line degrade-skeleton__line--chains-label" />
+                    <span className="economy-card__chain-icons">
+                      {chains.map((chain) => (
+                        <span className="degrade-skeleton__chain" key={chain.chainId} />
+                      ))}
+                    </span>
+                  </p>
+                  <div className="economy-card__signal">
+                    <div className="economy-progress__thresholds">
+                      {Array.from({ length: 3 }).map((_, j) => (
+                        <div className="economy-progress__item" key={j}>
+                          <div>
+                            <span className="degrade-skeleton__line degrade-skeleton__line--stat-label" />
+                            <span className="degrade-skeleton__line degrade-skeleton__line--stat-value" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <dl className="economy-card__facts">
+                  {Array.from({ length: 2 }).map((_, j) => (
+                    <div key={j}>
+                      <dt>
+                        <span className="degrade-skeleton__line degrade-skeleton__line--fact-label" />
+                      </dt>
+                      <dd>
+                        <span className="degrade-skeleton__line degrade-skeleton__line--fact-value" />
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : (
+      <>
       <section className="discovery-tools" aria-label={copy.discovery.filterTitle}>
         <form
           className="discovery-search"
@@ -380,6 +472,8 @@ export function DiscoveryBrowser({
           </Button>
         ) : null}
       </section>
+      </>
+      )}
     </div>
   )
 }

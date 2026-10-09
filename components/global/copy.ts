@@ -23,6 +23,13 @@ const en = {
       live: 'Live data',
       connect: 'Connect wallet',
       connectShort: 'Connect',
+      degrade: {
+        loadingTitle: 'Loading',
+        loadingBody: 'Fetching onchain data…',
+        errorTitle: 'Something went wrong',
+        errorBody: 'The request failed. Retry — no funds are affected.',
+
+      },
       close: 'Close',
       insufficientBalance: 'Insufficient balance.',
       copyAddress: 'Copy address',
@@ -903,6 +910,13 @@ const zh: typeof en = {
       live: '实时数据',
       connect: '连接钱包',
       connectShort: '连接',
+      degrade: {
+        loadingTitle: '加载中',
+        loadingBody: '正在获取链上数据…',
+        errorTitle: '出了点问题',
+        errorBody: '请求失败，可在此重试——资金不受影响。',
+
+      },
       close: '关闭',
       insufficientBalance: '余额不足。',
       copyAddress: '复制地址',

@@ -5,6 +5,8 @@ import {
   type VerseStage,
 } from '@/lib/data/fixture-repository'
 
+import { applyScenarioToVerses, parseScenarioParam } from '@/lib/prototype/scenario'
+
 import { OutrunShell } from '../global/app-shell'
 import { getCopy } from '../global/copy'
 import { DiscoveryBrowser } from './discovery-browser'
@@ -23,7 +25,10 @@ function first(value: QueryValue) {
 }
 
 export function DiscoveryPage({ locale, searchParams }: DiscoveryPageProps) {
-  const snapshot = getFixtureSnapshot()
+  const scenario = parseScenarioParam(first(searchParams.scenario))
+  const rawSnapshot = getFixtureSnapshot()
+  const verses = applyScenarioToVerses(rawSnapshot.verses, scenario)
+  const snapshot = { ...rawSnapshot, verses }
   const mainnetChains = getFixtureChains().filter((chain) => chain.env === 'mainnet')
   const copy = getCopy(locale)
   const stageValue = first(searchParams.stage)
@@ -67,7 +72,8 @@ export function DiscoveryPage({ locale, searchParams }: DiscoveryPageProps) {
         <SourceRef value="docs/page-briefs/memeverse-discovery.md#2" />
       </header>
       <DiscoveryBrowser
-        key={`${stage}-${sort}-${order}-${chain}-${mode}-${query}`}
+        key={`${stage}-${sort}-${order}-${chain}-${mode}-${query}-${scenario ?? ''}`}
+        scenario={scenario}
         locale={locale}
         verses={snapshot.verses}
         chains={mainnetChains}

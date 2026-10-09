@@ -66,6 +66,8 @@ export type FixtureVerse = SourceRecord & {
   name: string;
   symbol: string;
   stage: VerseStage;
+  /** 冻结场景标签（states.json 白名单子集；场景协议按此聚焦演示） */
+  scenario: readonly string[];
   governanceChain: number;
   governanceChainName: string;
   createdAt: string;
@@ -196,6 +198,7 @@ function getSnapshot(): FixtureSnapshot {
     return {
       id: verse.id,
       sourceRef: verse.sourceRef,
+      scenario: verse.scenario,
       name: verse.name,
       symbol: verse.symbol,
       stage: verse.stage as VerseStage,

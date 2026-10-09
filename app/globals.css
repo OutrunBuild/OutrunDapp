@@ -396,6 +396,167 @@ svg {
   color: var(--or-cyan);
 }
 
+/* 场景降级横幅与骨架 */
+.degrade-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  margin-block-end: var(--space-4);
+  border: 1px solid var(--color-border-signal-strong);
+  background: var(--color-surface-inset);
+}
+
+.degrade-banner strong {
+  display: block;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+}
+
+.degrade-banner p {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.degrade-banner[data-tone='error'] {
+  border-color: var(--color-danger);
+}
+
+.degrade-banner[data-tone='error'] strong {
+  color: var(--color-danger);
+}
+
+.degrade-banner[data-tone='lag'] {
+  border-color: var(--color-warning);
+}
+
+.degrade-banner[data-tone='lag'] strong {
+  color: var(--color-warning);
+}
+
+.degrade-banner__spinner {
+  inline-size: var(--space-3);
+  block-size: var(--space-3);
+  margin-block-start: 2px;
+  border: 2px solid var(--or-cyan);
+  border-inline-end-color: transparent;
+  border-radius: 50%;
+  animation: scenario-spin 0.8s linear infinite;
+}
+
+@keyframes scenario-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 加载骨架（state-matrix D1「骨架保持结构」）：卡片复用 economy-card* 类，几何与真实
+   Locked 卡零漂移；容器挂在 .economy-grid 上取同源栅格。data-skeleton 关交互与 hover，
+   并把 stage 变量/卡边框钉灰 token——骨架不带阶段色，与错误蒙版同为灰黑降级观感
+   （2026-10-09 用户裁定）；__line/__badge/__chain/__media-fill 为纯形状占位
+   （scenario-pulse 呼吸），宽高全部走 token */
+.economy-card[data-skeleton] {
+  --stage-color: var(--color-border-strong);
+  --stage-next: var(--color-border);
+  pointer-events: none;
+  cursor: default;
+  border-color: var(--color-border);
+}
+
+.degrade-skeleton__line {
+  display: inline-block;
+  block-size: var(--space-2);
+  background: var(--color-border);
+  animation: scenario-pulse 1.2s ease-in-out infinite;
+}
+
+.degrade-skeleton__line--ticker {
+  inline-size: calc(var(--space-6) + var(--space-5));
+  block-size: var(--space-3);
+}
+
+.degrade-skeleton__line--name {
+  inline-size: calc(var(--space-5) * 3);
+  margin-inline-start: var(--space-2);
+}
+
+.degrade-skeleton__line--cap-label {
+  inline-size: var(--space-8);
+}
+
+.degrade-skeleton__line--cap-value {
+  inline-size: calc(var(--space-8) + var(--space-6));
+  block-size: var(--space-3);
+}
+
+.degrade-skeleton__line--chains-label {
+  inline-size: calc(var(--space-4) * 5);
+}
+
+.degrade-skeleton__line--stat-label {
+  inline-size: calc(var(--space-5) * 4);
+}
+
+.degrade-skeleton__line--stat-value {
+  inline-size: var(--space-8);
+}
+
+.degrade-skeleton__line--fact-label {
+  inline-size: calc(var(--space-5) * 3);
+}
+
+.degrade-skeleton__line--fact-value {
+  inline-size: calc(var(--space-8) + var(--space-5));
+}
+
+/* StageBadge 形状占位：同 min 高与切角 */
+.degrade-skeleton__badge {
+  display: inline-block;
+  inline-size: calc(var(--space-8) + var(--space-3));
+  block-size: calc(var(--space-4) + var(--space-2));
+  clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100% 100%, 0 100%);
+  background: var(--color-border);
+  animation: scenario-pulse 1.2s ease-in-out infinite;
+}
+
+/* 链图标占位：16px 方块（与 ChainLogoMark 同尺寸） */
+.degrade-skeleton__chain {
+  display: inline-block;
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+  background: var(--color-border);
+  animation: scenario-pulse 1.2s ease-in-out infinite;
+}
+
+/* 取景框内容占位（HUD 角括号由 media-frame 伪元素照常渲染） */
+.degrade-skeleton__media-fill {
+  position: absolute;
+  inset: 0;
+  display: block;
+  background: var(--color-border);
+  animation: scenario-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes scenario-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .degrade-banner__spinner,
+  .degrade-skeleton__line,
+  .degrade-skeleton__badge,
+  .degrade-skeleton__chain,
+  .degrade-skeleton__media-fill {
+    animation: none;
+  }
+}
+
 .chain-dialog__option-name {
   display: inline-flex;
   align-items: center;
