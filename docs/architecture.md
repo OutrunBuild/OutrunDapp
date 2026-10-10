@@ -88,7 +88,7 @@ URL 方案：zh 路径带 `/zh` 前缀；en 为无前缀 canonical（`proxy.ts` 
 | React types                          | `@types/react`、`@types/react-dom` | 19.2.18 / 19.2.5                   | React 19 类型声明，Testing Library 必填 peer                                                                                                                     |
 | Node types                           | `@types/node`                      | 24.13.3                            | Node.js 24 类型声明，Next.js/Vitest 构建支持                                                                                                                     |
 | Language                             | TypeScript                         | 7.0.2                              | Go 原生编译器，`typescript7` alias 暴露的 `tsc` CLI 负责类型检查；满足 `wagmi 3.7.7` 的 TypeScript peer `>=5.9.3` 与 `viem 2.55.10` 的 TypeScript peer `>=5.0.4` |
-| Language（lint 侧）                  | `@typescript/typescript6`          | 6.0.2                              | TypeScript 7 过渡期的兼容包；`typescript` alias 指向 `npm:@typescript/typescript6@6.0.2`，仅供 typescript-eslint 使用其 Compiler API，与 TS 7 并行安装           |
+| Language（lint 侧）                  | `vendor/typescript-bridge`（内含 `@typescript/typescript6`） | 6.0.2 | TypeScript 7 过渡期的本地桥包；普通包名 `typescript` 经 `link:` 指向该包：`main` 转发 `@typescript/typescript6` Compiler API 供 typescript-eslint，`bin/tsc` 调用 `typescript7` 的 TS 7 CLI |
 | Lint                                 | ESLint + typescript-eslint         | 10.9.1 / 8.68.0                    | typed linting；`typescript` alias 满足 typescript-eslint peer `typescript >=4.8.4 <6.1.0`                                                                        |
 | Formatting                           | Prettier                           | 3.9.6                              | `format:check` 的唯一格式化实现，配置归仓库                                                                                                                      |
 | Styling                              | Tailwind CSS                       | 4.3.3                              | token 驱动的响应式样式                                                                                                                                           |
@@ -117,9 +117,9 @@ URL 方案：zh 路径带 `/zh` 前缀；en 为无前缀 canonical（`proxy.ts` 
 
 `viem` 固定为 `2.55.10`，因为 `@privy-io/wagmi 4.0.16` 当前将其声明为精确 peer 版本。依赖升级必须先通过 peer 依赖、六链 EIP-7702 和完整交易回归测试。
 
-TypeScript 采用双编译器布局：package manager 中以 `typescript7: npm:typescript@7.0.2` 安装主编译器，其 `tsc` 负责全部类型检查；以 `typescript: npm:@typescript/typescript6@6.0.2` 安装 lint alias，typescript-eslint 通过普通包名 `typescript` 加载 TypeScript 6 API，不能解析主 TS 7 包。`@typescript/typescript6@6.0.2` 内部依赖 `@typescript/old: npm:typescript@^6`，因此根目录 `pnpm-workspace.yaml` 必须以 `overrides` 将 `@typescript/old` 固定为 `npm:typescript@6.0.2`，禁止解析到其他 6.x patch。package manager 必须同时锁定两个 alias 和该 override；运行 `pnpm exec tsc --version` 必须输出 `Version 7.0.2`，typed-lint 自检 `node -p "require('typescript').version"` 必须输出 `6.0.2`。tsconfig 必须清理 TS 6 起废弃的选项（`baseUrl`、`target: es5`、`moduleResolution: node` 等），它们在 TS 7 中是硬错误。TS 7.1 提供稳定程序化 API 且 typescript-eslint 完成适配后，才可提出撤销双编译器的架构变更。
+TypeScript 采用双编译器布局：package manager 以 `typescript7: npm:typescript@7.0.2` 安装主编译器；普通包名 `typescript` 经 `link:./vendor/typescript-bridge` 指向本地桥包（`pnpm-workspace.yaml` 的 `packages` 同时列入根 package 与该桥包目录）。桥包 `main` 转发 `@typescript/typescript6@6.0.2` 的 Compiler API——typescript-eslint 通过普通包名加载的就是这份 TS 6 API，不能解析主 TS 7 包；桥包 `bin/tsc` 经绝对 `file://` 路径调用 `typescript7` 的 TS 7 CLI，`pnpm exec tsc` 与 `next build` 均经它执行类型检查。不得直接修改桥包，也不得用 `typescript` 包的程序化 API 书写 TS 7 语法。`@typescript/typescript6@6.0.2` 内部依赖 `@typescript/old: npm:typescript@^6`，因此根目录 `pnpm-workspace.yaml` 必须以 `overrides` 将 `@typescript/old` 固定为 `npm:typescript@6.0.2`，禁止解析到其他 6.x patch。package manager 必须同时锁定 `typescript7` alias、桥包内两个精确依赖和该 override；运行 `pnpm exec tsc --version` 必须输出 `Version 7.0.2`，typed-lint 自检 `node -p "require('typescript').version"` 必须输出 `6.0.2`。tsconfig 必须清理 TS 6 起废弃的选项（`baseUrl`、`target: es5`、`moduleResolution: node` 等），它们在 TS 7 中是硬错误。TS 7.1 提供稳定程序化 API 且 typescript-eslint 完成适配后，才可提出撤销双编译器的架构变更。
 
-Next.js 16 production build 必须在 `next.config.ts` 显式保持 `experimental.useTypeScriptCli: true`，让 `next build` 调用项目 `.bin/tsc`（即 `typescript7` 的 TS 7 CLI）；禁止设置 `useTypeScriptCli: false` 或 `typescript.ignoreBuildErrors: true`。因此 Next build 与独立 `pnpm exec tsc --noEmit` 使用同一个 TS 7 编译器，普通包名 `typescript` 的 TS 6 API 只供 typescript-eslint typed lint 使用。
+Next.js 16 production build 必须在 `next.config.ts` 显式保持 `experimental.useTypeScriptCli: true`，让 `next build` 调用项目 `.bin/tsc`（`vendor/typescript-bridge` 的 bin，转发 `typescript7` 的 TS 7 CLI）；禁止设置 `useTypeScriptCli: false` 或 `typescript.ignoreBuildErrors: true`。因此 Next build 与独立 `pnpm exec tsc --noEmit` 使用同一个 TS 7 编译器，普通包名 `typescript` 的 TS 6 API 只供 typescript-eslint typed lint 使用。
 
 Node.js `24.20.0` 是 2026-08-26 发布的最新稳定 LTS 版本（代号 Krypton）。本地和 GitHub Actions 必须通过根目录 `.node-version` 精确使用该 patch；Vercel 官方按 `24.x` 选择并自动滚动 patch，因此 Vercel 构建必须记录实际 `process.version`，不能声称其始终运行 `24.20.0`。所有环境仍必须校验 Corepack `0.34.5`，再执行 `corepack enable` 和 `corepack install --global pnpm@11.24.0`；Node.js 25+ 环境必须显式安装 Corepack，不能假设其随 Node 分发。Vercel 必须以 custom Install Command `node scripts/bootstrap-pnpm.mjs` 覆盖平台默认安装：该无依赖脚本在读取 lockfile 前用 npm `--ignore-scripts` 安装/校验 `corepack@0.34.5`，激活 `pnpm@11.24.0`，再执行 frozen install；不得把安装后的 Corepack 检查误当作安装前版本证据。统一检查入口为 `node scripts/check-runtime.mjs --strict`（本地/CI）和 `node scripts/check-runtime.mjs --vercel --require-package`（Vercel）。
 
@@ -141,7 +141,7 @@ fixtures/            原型和测试 fixture，生产构建禁止导入
 tests/               unit、integration、e2e 和 visual
 ```
 
-仓库根目录的运行时控制文件为 `.node-version`、`pnpm-workspace.yaml`、`.prettierrc.json`、`.prettierignore`、`scripts/bootstrap-pnpm.mjs`、`scripts/check-runtime.mjs` 和 `scripts/check-csp-policy.mjs`；它们与 `package.json` 的 `engines`/`packageManager` 字段共同构成可执行的环境与安全策略契约，不属于业务模块目录。`pnpm-workspace.yaml` 必须包含当前根 package（`packages: ['.']`）并将 `@typescript/old` override 固定为 `npm:typescript@6.0.2`。
+仓库根目录的运行时控制文件为 `.node-version`、`pnpm-workspace.yaml`、`.prettierrc.json`、`.prettierignore`、`scripts/bootstrap-pnpm.mjs` 和 `scripts/check-runtime.mjs`；它们与 `package.json` 的 `engines`/`packageManager` 字段共同构成可执行的环境与安全策略契约，不属于业务模块目录。`pnpm-workspace.yaml` 必须包含当前根 package 与双编译器桥包（`packages: ['.', 'vendor/typescript-bridge']`）并将 `@typescript/old` override 固定为 `npm:typescript@6.0.2`。
 
 状态所有权固定如下：
 
@@ -376,7 +376,7 @@ viem 直接读取以下数据：
 
 Memeverse 动态部署的 Memecoin、POL、PT、YT、YieldVault 和 Governor 使用 subgraph data source template。每个实体主键包含 chainId 和链上唯一标识，禁止跨链仅用地址作为主键。
 
-全局列表和跨链聚合通过 Next.js 服务端 repository 查询 Graph，并使用短时缓存和请求去重。浏览器只查询当前用户必须实时读取的数据。页面同时读取 Graph `_meta.block.number` 和 RPC 最新安全块。索引落后时静默降级（聚合历史数据稍旧，不显示用户可见状态）；余额、授权、账户代码和交易最终结果始终以 RPC 为准。（决议 015：原「显示同步状态」的用户可见横幅撤除）
+全局列表和跨链聚合通过 Next.js 服务端 repository 查询 Graph，并使用短时缓存和请求去重。浏览器只查询当前用户必须实时读取的数据。页面同时读取 Graph `_meta.block.number` 和 RPC 最新安全块。索引落后时静默降级（聚合历史数据稍旧，不显示用户可见状态）；余额、授权、账户代码和交易最终结果始终以 RPC 为准。（原「显示同步状态」横幅撤除；曾错引决议 015，已撤，见 §24）
 
 ## 10. UI 与可访问性标准
 
@@ -389,7 +389,7 @@ Memeverse 动态部署的 Memecoin、POL、PT、YT、YieldVault 和 Governor 使
 - 所有 motion 尊重 `prefers-reduced-motion`。
 - 表格数字使用 tabular numerals；地址、hash、symbol 和长文本支持截断及复制。
 - 中文和英文不使用同一固定字符宽度推断布局；两种语言分别进行溢出测试。
-- 页面必须处理零余额、零仓位、未部署、暂停、RPC 故障和用户拒签。（索引延迟为静默降级，决议 015——不再列为用户可见状态）
+- 页面必须处理零余额、零仓位、未部署、暂停、RPC 故障和用户拒签。（索引延迟为静默降级，不列为用户可见状态）
 
 ## 11. 测试体系
 
@@ -437,11 +437,13 @@ GitHub Actions 是唯一 CI。所有 PR 必须通过：
 - Playwright 桌面/移动、中文/英文和视觉测试。
 - ABI/manifest schema、SHA256、地址和 codehash 校验。
 
-运行时和包管理器绑定是机器可执行契约：根目录 `.node-version` 必须为 `24.20.0`；`pnpm-workspace.yaml` 必须包含根 package 并固定 `@typescript/old: npm:typescript@6.0.2` override；前端 `package.json` 必须包含 `engines.node: "24.x"`、`engines.pnpm: "11.24.0"` 和 `packageManager: "pnpm@11.24.0"`。本地与 GitHub Actions 使用 `actions/setup-node@v4` 的 `node-version-file: .node-version`，随后校验 Corepack `0.34.5`、pnpm `11.24.0`，并运行 `node scripts/check-runtime.mjs --strict`。Vercel 项目 Node.js 设置固定为 `24.x`，`vercel.json` 的 `installCommand` 固定为 `node scripts/bootstrap-pnpm.mjs`；该脚本安装并验证 Corepack `0.34.5` 后才允许 `pnpm install --frozen-lockfile`。`ENABLE_EXPERIMENTAL_COREPACK=1` 可保留为平台兼容开关，但不作为 Corepack patch 证据。构建前仍运行 `node scripts/check-runtime.mjs --vercel --require-package` 和 `pnpm --version`；Vercel 自动更新同一 major 的 Node patch，实际版本和 bootstrap 输出必须写入构建证据。
+运行时和包管理器绑定是机器可执行契约：根目录 `.node-version` 必须为 `24.20.0`；`pnpm-workspace.yaml` 必须包含根 package 与 `vendor/typescript-bridge` 并固定 `@typescript/old: npm:typescript@6.0.2` override；前端 `package.json` 必须包含 `engines.node: "24.x"`、`engines.pnpm: "11.24.0"` 和 `packageManager: "pnpm@11.24.0"`。本地与 GitHub Actions 使用 `actions/setup-node@v4` 的 `node-version-file: .node-version`，随后校验 Corepack `0.34.5`、pnpm `11.24.0`，并运行 `node scripts/check-runtime.mjs --strict`。Vercel 项目 Node.js 设置固定为 `24.x`，`vercel.json` 的 `installCommand` 固定为 `node scripts/bootstrap-pnpm.mjs`；该脚本安装并验证 Corepack `0.34.5` 后才允许 `pnpm install --frozen-lockfile`。`ENABLE_EXPERIMENTAL_COREPACK=1` 可保留为平台兼容开关，但不作为 Corepack patch 证据。构建前仍运行 `node scripts/check-runtime.mjs --vercel --require-package` 和 `pnpm --version`；Vercel 自动更新同一 major 的 Node patch，实际版本和 bootstrap 输出必须写入构建证据。
 
 格式门禁固定使用 Prettier `3.9.6` 和仓库根目录 `.prettierrc.json`，命令为 `pnpm exec prettier --check .`；不得以缺少 `format:check` script 或只运行 ESLint 代替格式检查。
 
 涉及 ABI、chain、account、Privy、external wallet、EIP-7702、Kernel、交易或 subgraph 的变更增加 Anvil fork 和真实测试网套件。
+
+机器闸门为 `.githooks` + GitHub Actions 双轨。`.githooks` 已入库（`git config core.hooksPath .githooks` 挂载）：pre-commit 对 staged blob 跑 prettier 与 eslint（staged-blob 语义，`--no-verify` 绕过后须补跑全量）；pre-push 跑全仓 typecheck 与 vitest 全量（vitest 内含 fixture 边界与设计三 checker）。CI 现状（2026-10-10）为上列契约的先导子集：typecheck、format、vitest、冻结清单完整性已接线；lint 因存量债清偿期 `continue-on-error`，清偿完成即移除；生产构建与 Playwright 原型期走本地 `pnpm build` / `pnpm test:e2e`，ABI 校验随冻结轮接线，均未进 CI。
 
 Vercel 环境固定为：
 
@@ -469,7 +471,7 @@ Sentry 记录脱敏后的：
 监控阈值固定为：
 
 - RPC 5 分钟错误率超过 1% 或 p95 超过 2 秒告警。
-- Graph 索引落后时静默降级（聚合数据稍旧），不做用户可见展示。（决议 015）
+- Graph 索引落后时静默降级（聚合数据稍旧），不做用户可见展示。
 - Type-4 transaction Pending 超过 2 分钟提示用户，超过 10 分钟触发运维告警。
 - Privy、Alchemy、Infura、Graph 和 Vercel 用量达到 70% 预警、90% 高优先级告警。
 - Kernel implementation、Memeverse/OutStake 代理实现、peer、暂停和 rate-limit 配置发生未登记变化时立即告警。
@@ -526,7 +528,7 @@ Sentry 中的钱包地址默认哈希化；只有用户主动复制或进入区�
 | 外部钱包不能签 EIP-7702 authorization | provider 不暴露签名能力、返回不支持或连续拒绝                       | wallet RDNS/版本维度的 capability 失败率            | 保留读取功能并提示升级钱包；用户主动选择 Privy embedded EOA 时，单独展示新账户地址和入金流程 |
 | Type-4 simulation 与提交状态漂移      | EOA nonce、authorization、报价、deadline、callData 或 manifest 变化 | 签名交易字段与提交前重算字段不一致、revert 错误上升 | 废弃旧结果，重建 authorization、Type-4 交易并重新 simulation                                 |
 | ABI 或链上实现漂移                    | 代理实现、runtime codehash、ABI hash 与 manifest 不一致             | 构建校验或运行时完整性告警                          | 立即关闭受影响写操作并进入只读；发布匹配的新 manifest 与兼容前端                             |
-| Graph 索引延迟或查询中断              | 安全块落后超过 120 秒或查询错误率超过 1%                            | `_meta.block.number` 差值、Graph 错误率             | 标记数据同步中；余额、授权和交易结果改用 RPC，禁止用陈旧索引判定交易成功                     |
+| Graph 索引延迟或查询中断              | 安全块落后超过 120 秒或查询错误率超过 1%                            | `_meta.block.number` 差值、Graph 错误率             | 静默降级（聚合历史数据稍旧，无用户可见状态）；余额、授权和交易结果改用 RPC，禁止用陈旧索引判定交易成功 |
 | 跨链消息长时间未完成                  | 源链已确认但目标链事件超过协议预期窗口                              | message age、源/目标链事件差异                      | 保留 Message pending，提供源链 hash 与消息标识；禁止重复发起同一业务动作                     |
 | Kernel/Privy/SDK 出现高危漏洞         | 官方安全公告、独立审查发现或依赖漏洞扫描命中                        | 安全订阅、CI advisory、Sentry 异常模式              | 关闭全部相关写操作，维持只读；固定修复版本、重新审查并要求不兼容 delegation 显式替换         |
 
@@ -562,7 +564,7 @@ Sentry 中的钱包地址默认哈希化；只有用户主动复制或进入区�
 - PostCSS `8.5.26` 与 `@tailwindcss/postcss 4.3.3`：[PostCSS npm](https://www.npmjs.com/package/postcss/v/8.5.26)、[Tailwind PostCSS npm](https://www.npmjs.com/package/@tailwindcss/postcss/v/4.3.3)。
 - Next.js `16.3.3`：[release](https://github.com/vercel/next.js/releases/tag/v16.3.3)。
 - React `19.2.8`：[release](https://github.com/facebook/react/releases/tag/v19.2.8)。
-- TypeScript `7.0.2`：[npm](https://www.npmjs.com/package/typescript/v/7.0.2)、[repository](https://github.com/microsoft/TypeScript)、[7.0 公告](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)；主编译器 alias 为 `typescript7: npm:typescript@7.0.2`。lint 侧 alias 为 `typescript: npm:@typescript/typescript6@6.0.2`：[兼容包 npm](https://www.npmjs.com/package/@typescript/typescript6/v/6.0.2)；该包声明 `@typescript/old: npm:typescript@^6`，由 `pnpm-workspace.yaml` override 精确解析为 `typescript@6.0.2`。TypeScript 7 尚无稳定程序化 API，故 typescript-eslint 保持 TypeScript 6 API 进程隔离。
+- TypeScript `7.0.2`：[npm](https://www.npmjs.com/package/typescript/v/7.0.2)、[repository](https://github.com/microsoft/TypeScript)、[7.0 公告](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)；主编译器 alias 为 `typescript7: npm:typescript@7.0.2`。普通包名 `typescript` 经 `link:` 指向本地桥包 `vendor/typescript-bridge`：`main` 转发 [兼容包 npm](https://www.npmjs.com/package/@typescript/typescript6/v/6.0.2) `@typescript/typescript6@6.0.2` 的 API，`bin/tsc` 调用 TS 7 CLI；该兼容包声明 `@typescript/old: npm:typescript@^6`，由 `pnpm-workspace.yaml` override 精确解析为 `typescript@6.0.2`。TypeScript 7 尚无稳定程序化 API，故 typescript-eslint 保持 TypeScript 6 API 进程隔离。
 - Tailwind CSS `4.3.3`：[release](https://github.com/tailwindlabs/tailwindcss/releases/tag/v4.3.3)。
 - shadcn `4.19.0`：[release](https://github.com/shadcn-ui/ui/releases/tag/shadcn%404.19.0)。
 - lucide-react `1.37.0`：[npm](https://www.npmjs.com/package/lucide-react/v/1.37.0)、[repository](https://github.com/lucide-icons/lucide)。
@@ -600,12 +602,10 @@ Sentry 中的钱包地址默认哈希化；只有用户主动复制或进入区�
 
 前端实现以以下本地仓库为产品和合约真相源：
 
-- Memeverse：`/home/azkrale/Web3Project/Memeverse`，基线 commit `3cdb8046380bf1af8ae57a04be5e92c086834567`（`feat(polend): expose marketUAsset getter and cover payer/user separation`）。
-- OutStake：`/home/azkrale/Web3Project/OutStake`，基线 commit `731541109f058e6df1dc042d8fa65b8221e12bcb`（`chore(harness): register drifted rpow weak-prng key in slither baseline`；2026-09-17 自 `73c9b163` 推进，见 §21）。
+- Memeverse：`/home/azkrale/Web3Project/Memeverse`，基线 commit `782a672115c90118c2fccfc2e0c125c655f789a6`（`feat(script): batch-dispatched multi-chain deployment with PoolManager self-deploy`；2026-10-10 自 `3cdb8046` 推进，见 §24）。
+- OutStake：`/home/azkrale/Web3Project/OutStake`，基线 commit `81e53ac670516e4d5f78869d3b5184575b1d475b`（`chore(lint): re-snapshot forge-lint baseline`；2026-10-10 自 `7315411` 推进，见 §24）。
 - 用户产品文档：`/home/azkrale/Web3Project/OutrunBook`。
 - ZeroDev Kernel：外部依赖固定到 `v3.3` tag commit `cd697c7e21715d015e0643af22310a99aa17433b`，证据与逐链复核命令见 `docs/architecture/kernel-v3.3-evidence.md`。
-
-架构 hash 是阶段 handoff 的输入。每个 handoff 的 canonical approval payload 必须包含当前 `docs/architecture.md` 的 SHA256；阶段 1/2/3 边界检查在继续前重新计算并比较该值。架构文件、版本表、路由、CSP、合约基线或运行时契约任一变化都会使已有 handoff 失效；checker 必须报告 `superseded` 并以非零退出，不能改写旧 handoff 或只改 `status` 继续执行。必须从发生变化的阶段重新生成 manifest、hash 和人工签字。
 
 账户 session 的规范事实来自 Memeverse `docs/spec/swap/swap-flow.md`、`docs/spec/swap/swap-integration.md`、`docs/spec/swap/permit2.md`、`docs/spec/swap/yt-flash-swap.md` 和 `src/swap/MemeverseUniswapHookUpgradeable.sol`。合约仓基线变化时，必须同步更新本文档、ABI manifest 和相关测试证据。
 
@@ -646,3 +646,12 @@ x-locale 头伪造面封堵与「rewrite 二次进入」实证修正（P0-1 裁�
 - **rewrite 不二次进入 proxy（实证推翻 §22 原登记）**：生产构建（Next 16.3.3，`NEXT_DIST_DIR` 隔离插桩）实测每次外部请求 proxy 恰调用一次——`/zh` 单次调用即渲染中文，rewrite 修改头经 `x-middleware-request-*` 机制直达渲染，不重跑 middleware。原 `/en` 分支「已设跳过守卫」对内部流程系死代码，已删。
 - **无前缀分支无条件写 `x-locale: en`**：原条件写入把客户端预置头当内部首跳信号，伪造 `x-locale: zh` 直访 canonical URL 渲染中文（实测复现），违反「URL 前缀仍是语言唯一真源」；内部 rewrite 目标恒为 `/en/**` 不会命中该分支，无条件覆写对合法流零影响。
 - **旧 `/en/**` 直达 307 收敛到无前缀**（原「暂保持可达」提前收敛）：该分支只剩外部请求，`/en/**` → 剥前缀 307（query 保真；原型期 307 与 LEGACY_PATHS 同口径防浏览器缓存，上线换 301）。伪造头直达渲染面随入口消失而封死；站内无 `/en` 链接、e2e 无 `/en` 用例，零存量依赖。
+
+## 24. 架构修订记录（2026-10-10）
+
+对账勘误 + 基线同步轮；同轮用户裁定 handoff 机制退役、决策登记转极简口径：
+
+- 双编译器桥：`typescript` 经 `link:` 指向 `vendor/typescript-bridge`（`73f80ce`），§3/§4/§12/§18 按实装改写，`@typescript/old` override 不变。
+- 基线推进：Memeverse `3cdb8046` → `782a6721`、OutStake `7315411` → `81e53ac6`（各 22 commits，均触及 `src/` 与 `docs/spec/`）。OutStake PSM 收敛单实例单储备（USDC↔UUSD、ETH↔UETH、BNB↔UBNB，UUSD 撤 USDT 腿——§20「USDC/USDT↔UUSD」以本条为准）、新增 owner-only `setFeeRecipient`、部署面新增 Arbitrum Sepolia（前端 §5 六链不自动跟随）；Memeverse 所有权基座 never-renounceable、Router 构造 fail-closed 守卫、POL 赎回单源化、spec 新增 POL 名义价值展示推导。swap session 机制与 §19 引用的 spec 文件不变；§2 `/faucet` 的 USDC 兑换口径与新拓扑一致；`source-map.md` 逐文件登记按其自身注记另行重跑复核。
+- 勘误：撤「决议 015」错引（实为品红分层管辖）；§16 Graph 行对齐静默降级；§4 移除未建的 `check-csp-policy.mjs`。
+- handoff 机制退役（用户裁定）；`check-handoff-integrity.mjs` 零接线，物理删除并入下一次 freeze 清单重生成轮（清单另有 2 条已提交漂移待收敛）。
