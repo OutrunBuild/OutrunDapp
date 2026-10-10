@@ -47,7 +47,7 @@ Outrun DApp 提供 Memeverse 与 OutStake 的完整用户功能、全部核心�
 业务逻辑和合约集成开始前，必须先完成覆盖全部页面的高保真 UI 原型并通过产品验收。原型必须满足以下条件：
 
 - 覆盖本文档定义的全部路由和全局交互面。
-- 提供 1440px 桌面视图和 390px 移动视图。
+- 提供 1280×800 桌面、860×900 平板与 390×844 移动视图（三档=已冻结视觉基线口径，2026-10-10 对齐实况，见 §25）。
 - 同时提供中文和英文内容，禁止只验证一种语言后推断另一种语言可用。
 - 覆盖未连接、连接中、错误网络、普通 EOA、智能账户启用中、已启用智能账户、授权、签名、提交、确认、成功、失败、Loading…、Empty 和 Error 状态。
 - 所有主流程可点击完成，禁止静态拼图、空按钮、占位页面和 lorem 文本。
@@ -94,6 +94,7 @@ URL 方案：zh 路径带 `/zh` 前缀；en 为无前缀 canonical（`proxy.ts` 
 | Styling                              | Tailwind CSS                       | 4.3.3                              | token 驱动的响应式样式                                                                                                                                           |
 | CSS build support                    | PostCSS + `@tailwindcss/postcss`   | 8.5.26 / 4.3.3                     | Tailwind CSS 4 的 Next.js/PostCSS 构建支持                                                                                                                       |
 | Components                           | shadcn/ui                          | 4.19.0                             | 可访问性基础组件，源码归仓库                                                                                                                                     |
+| Component primitives runtime         | `@base-ui/react`                   | 1.5.0                              | shadcn base 变体组件的渲染原语（本仓 ui 组件经它渲染，非 radix）                                                                                                 |
 | Icons                                | lucide-react                       | 1.37.0                             | 统一图标系统                                                                                                                                                     |
 | Charting                             | lightweight-charts                 | 5.2.1                              | Verse 详情页 K 线交易台（candle-chart），客户端渲染不进 RSC 树                                                                                                    |
 | Async state                          | TanStack Query                     | 5.102.8                            | RPC、GraphQL、交易和缓存状态                                                                                                                                     |
@@ -114,6 +115,8 @@ URL 方案：zh 路径带 `/zh` 前缀；en 为无前缀 canonical（`proxy.ts` 
 | Accessibility scan                   | `@axe-core/playwright`             | 4.13.0                             | Playwright e2e 内嵌 axe 无障碍扫描（`check:e2e` 门禁组成部分）                                                                                                    |
 | Ethereum Virtual Machine integration | Foundry/Anvil                      | 1.8.1                              | 与合约仓一致的本地链和 fork 测试                                                                                                                                 |
 | Monitoring                           | `@sentry/nextjs`                   | 10.72.0                            | 客户端、服务端、RPC 和交易错误监控                                                                                                                               |
+
+shadcn 组件复制件依赖四个随附样式工具——`class-variance-authority 0.7.1`、`clsx 2.1.1`、`tailwind-merge 3.3.1`、`tw-animate-css 1.4.0`（variant 组合、类名合并与入场动画；版本证据见 §18）。
 
 `viem` 固定为 `2.55.10`，因为 `@privy-io/wagmi 4.0.16` 当前将其声明为精确 peer 版本。依赖升级必须先通过 peer 依赖、六链 EIP-7702 和完整交易回归测试。
 
@@ -403,7 +406,7 @@ Memeverse 动态部署的 Memecoin、POL、PT、YT、YieldVault 和 Governor 使
 
 Playwright 覆盖 Chromium、WebKit 和 Firefox。必测矩阵包含：
 
-- 1440px 桌面与 390px 移动视图。
+- 1280×800 桌面、860×900 平板与 390×844 移动视图（三档=已冻结视觉基线，DPR 固定 1；口径对齐见 §25）。
 - 中文与英文。
 - 主网与测试网模式。
 - 未连接、外部 EOA、embedded EOA、Kernel delegated 和 unsupported delegation。
@@ -443,7 +446,7 @@ GitHub Actions 是唯一 CI。所有 PR 必须通过：
 
 涉及 ABI、chain、account、Privy、external wallet、EIP-7702、Kernel、交易或 subgraph 的变更增加 Anvil fork 和真实测试网套件。
 
-机器闸门为 `.githooks` + GitHub Actions 双轨。`.githooks` 已入库（`git config core.hooksPath .githooks` 挂载）：pre-commit 对 staged blob 跑 prettier 与 eslint（staged-blob 语义，`--no-verify` 绕过后须补跑全量）；pre-push 跑全仓 typecheck 与 vitest 全量（vitest 内含 fixture 边界与设计三 checker）。CI 现状（2026-10-10）为上列契约的先导子集：typecheck、format、vitest、冻结清单完整性已接线；lint 因存量债清偿期 `continue-on-error`，清偿完成即移除；生产构建与 Playwright 原型期走本地 `pnpm build` / `pnpm test:e2e`，ABI 校验随冻结轮接线，均未进 CI。
+机器闸门为 `.githooks` + GitHub Actions 双轨。`.githooks` 已入库（`git config core.hooksPath .githooks` 挂载）：pre-commit 对 staged blob 跑 prettier 与 eslint（staged-blob 语义，`--no-verify` 绕过后须补跑全量）；pre-push 跑全仓 typecheck 与 vitest 全量（vitest 内含 fixture 边界与设计三 checker）。CI 现状（2026-10-10）为上列契约的先导子集：typecheck、lint、format、vitest、冻结清单完整性已接线（lint 存量债已清偿、阻断已恢复，见 §25）；生产构建与 Playwright 原型期走本地 `pnpm build` / `pnpm test:e2e`，ABI 校验随冻结轮接线，均未进 CI。
 
 Vercel 环境固定为：
 
@@ -567,6 +570,8 @@ Sentry 中的钱包地址默认哈希化；只有用户主动复制或进入区�
 - TypeScript `7.0.2`：[npm](https://www.npmjs.com/package/typescript/v/7.0.2)、[repository](https://github.com/microsoft/TypeScript)、[7.0 公告](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)；主编译器 alias 为 `typescript7: npm:typescript@7.0.2`。普通包名 `typescript` 经 `link:` 指向本地桥包 `vendor/typescript-bridge`：`main` 转发 [兼容包 npm](https://www.npmjs.com/package/@typescript/typescript6/v/6.0.2) `@typescript/typescript6@6.0.2` 的 API，`bin/tsc` 调用 TS 7 CLI；该兼容包声明 `@typescript/old: npm:typescript@^6`，由 `pnpm-workspace.yaml` override 精确解析为 `typescript@6.0.2`。TypeScript 7 尚无稳定程序化 API，故 typescript-eslint 保持 TypeScript 6 API 进程隔离。
 - Tailwind CSS `4.3.3`：[release](https://github.com/tailwindlabs/tailwindcss/releases/tag/v4.3.3)。
 - shadcn `4.19.0`：[release](https://github.com/shadcn-ui/ui/releases/tag/shadcn%404.19.0)。
+- `@base-ui/react 1.5.0`：[npm](https://www.npmjs.com/package/@base-ui/react/v/1.5.0)。
+- shadcn 随附样式工具 `class-variance-authority 0.7.1`、`clsx 2.1.1`、`tailwind-merge 3.3.1`、`tw-animate-css 1.4.0`：[cva npm](https://www.npmjs.com/package/class-variance-authority/v/0.7.1)、[clsx npm](https://www.npmjs.com/package/clsx/v/2.1.1)、[tailwind-merge npm](https://www.npmjs.com/package/tailwind-merge/v/3.3.1)、[tw-animate-css npm](https://www.npmjs.com/package/tw-animate-css/v/1.4.0)。
 - lucide-react `1.37.0`：[npm](https://www.npmjs.com/package/lucide-react/v/1.37.0)、[repository](https://github.com/lucide-icons/lucide)。
 - lightweight-charts `5.2.1`：[npm](https://www.npmjs.com/package/lightweight-charts/v/5.2.1)、[repository](https://github.com/tradingview/lightweight-charts)。
 - TanStack Query `5.102.8`：[npm](https://www.npmjs.com/package/@tanstack/react-query/v/5.102.8)、[repository](https://github.com/TanStack/query)。
@@ -603,7 +608,7 @@ Sentry 中的钱包地址默认哈希化；只有用户主动复制或进入区�
 前端实现以以下本地仓库为产品和合约真相源：
 
 - Memeverse：`/home/azkrale/Web3Project/Memeverse`，基线 commit `782a672115c90118c2fccfc2e0c125c655f789a6`（`feat(script): batch-dispatched multi-chain deployment with PoolManager self-deploy`；2026-10-10 自 `3cdb8046` 推进，见 §24）。
-- OutStake：`/home/azkrale/Web3Project/OutStake`，基线 commit `81e53ac670516e4d5f78869d3b5184575b1d475b`（`chore(lint): re-snapshot forge-lint baseline`；2026-10-10 自 `7315411` 推进，见 §24）。
+- OutStake：`/home/azkrale/Web3Project/OutStake`，基线 commit `0ab97820f7f563be94aae7298d7712105f25877f`（`docs(deploy): record mocksy/mocksp batches, idempotent resume semantics, VERIFY opt-in`；2026-10-10 自 `81e53ac6` 推进，见 §25）。
 - 用户产品文档：`/home/azkrale/Web3Project/OutrunBook`。
 - ZeroDev Kernel：外部依赖固定到 `v3.3` tag commit `cd697c7e21715d015e0643af22310a99aa17433b`，证据与逐链复核命令见 `docs/architecture/kernel-v3.3-evidence.md`。
 
@@ -655,3 +660,12 @@ x-locale 头伪造面封堵与「rewrite 二次进入」实证修正（P0-1 裁�
 - 基线推进：Memeverse `3cdb8046` → `782a6721`、OutStake `7315411` → `81e53ac6`（各 22 commits，均触及 `src/` 与 `docs/spec/`）。OutStake PSM 收敛单实例单储备（USDC↔UUSD、ETH↔UETH、BNB↔UBNB，UUSD 撤 USDT 腿——§20「USDC/USDT↔UUSD」以本条为准）、新增 owner-only `setFeeRecipient`、部署面新增 Arbitrum Sepolia（前端 §5 六链不自动跟随）；Memeverse 所有权基座 never-renounceable、Router 构造 fail-closed 守卫、POL 赎回单源化、spec 新增 POL 名义价值展示推导。swap session 机制与 §19 引用的 spec 文件不变；§2 `/faucet` 的 USDC 兑换口径与新拓扑一致；`source-map.md` 逐文件登记按其自身注记另行重跑复核。
 - 勘误：撤「决议 015」错引（实为品红分层管辖）；§16 Graph 行对齐静默降级；§4 移除未建的 `check-csp-policy.mjs`。
 - handoff 机制退役（用户裁定）；`check-handoff-integrity.mjs` 零接线，物理删除并入下一次 freeze 清单重生成轮（清单另有 2 条已提交漂移待收敛）。
+
+## 25. 架构修订记录（2026-10-10，runbook 对账裁决轮）
+
+- OutStake 基线自 `81e53ac6` 推进到 `0ab97820f7f563be94aae7298d7712105f25877f`（用户裁决：取实际 HEAD）。区间 4 commits（`b18e3cd` idempotent CREATE3 部署与 mocksy/mocksp 批次拆分、`9165167` 单点部署日志与 impl-slot 续跑守卫、`e951520` setFeeRecipient 规格化、`0ab9782` 部署批次记录）均为部署面与 docs 变更；`37063aa→0ab9782` 区间内 `src/psm` 的两处语义变更（PSM 收敛 USDC 单腿、owner-only `setFeeRecipient`）已由 §24 先行登记。`source-map.md` 基线行同步推进并按其注记方法重跑复核（变更 × 引用交集 = S1/S4/S8/S11 四文件，锚点零漂移）。
+- 真源仓工作树的未提交修改不作为前端侧登记或管理对象（用户裁定：与前端无关）；阶段 4 起一切合约产物一律自冻结 commit 导出（`git archive` / 独立 worktree），不读取工作树状态。
+- CI lint 门恢复阻断（用户裁决「现在就摘掉」）：存量 11 处 lint 债已随重构清零（2026-10-10 实测 `pnpm lint` 零问题），ci.yml 移除 `continue-on-error`，lint 回归红线拦截；§12 现状句同步改写。
+- e2e/视觉基线视口口径对齐实况（用户裁定「一切以最新代码优先」）：§1/§11.2 的「1440px 桌面 + 390px 移动」改为已冻结的三档 1280×800 / 860×900 / 390×844（DPR 固定 1）；不新增 1440 档。
+- §3/§18 补登记 `@base-ui/react 1.5.0`（shadcn base 变体组件原语运行时，本仓 12 个 `components/ui` 组件的渲染依赖）及四个随附样式工具（cva/clsx/tailwind-merge/tw-animate-css）——既成事实补录，非新增依赖。
+- 冻结清单收敛（用户裁定「清单和文档如果有问题就处理」）：`docs/design/final-artifacts.sha256` 重生成（两条漂移已核为有意改动：decision-log 极简口径清理、`.prettierignore` 增 `test-results/`）；阶段 2 遗留的 `docs/page-briefs/freeze-artifacts.sha256` 及其失修生成脚本 `write-stage02-freeze-manifest.mjs` 废弃删除（防篡改统一由 CI 在用的 final-artifacts 清单承担；brief/fixture 覆盖面如需并入，阶段 8 CI 轮处理）；`check-handoff-integrity.mjs` 按 §24 既定裁定物理删除并移出清单生成范围。

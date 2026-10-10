@@ -6,11 +6,11 @@
 
 | 仓库 | 基线 commit | 提交 subject | 工作树 |
 |---|---|---|---|
-| Memeverse（`/home/azkrale/Web3Project/Memeverse`） | `782a672` | `feat(script): batch-dispatched multi-chain deployment with PoolManager self-deploy` | 干净 |
-| OutStake（`/home/azkrale/Web3Project/OutStake`） | `37063aa` | `feat(deploy): batch-dispatch deploy scripts and add Arbitrum Sepolia testnet` | 干净 |
-| OutrunBook（`/home/azkrale/Web3Project/OutrunBook`） | main `d8f167f`（zh 分支 `9ee861d` 同步） | `docs(memeverse): document post-launch POL supply entries — mintPOLToken from Locked, redeemMemecoinLiquidity from Unlocked` | 干净 |
+| Memeverse（`/home/azkrale/Web3Project/Memeverse`） | `782a672` | `feat(script): batch-dispatched multi-chain deployment with PoolManager self-deploy` | — |
+| OutStake（`/home/azkrale/Web3Project/OutStake`） | `0ab9782` | `docs(deploy): record mocksy/mocksp batches, idempotent resume semantics, VERIFY opt-in` | — |
+| OutrunBook（`/home/azkrale/Web3Project/OutrunBook`） | main `d8f167f`（zh 分支 `9ee861d` 同步） | `docs(memeverse): document post-launch POL supply entries — mintPOLToken from Locked, redeemMemecoinLiquidity from Unlocked` | — |
 
-> **复核注记**：M/S 条目及 brief 内全部带行号引用已按当前基线（Memeverse `782a672`、OutStake `37063aa`、OutrunBook main `d8f167f`——内容与 `87d68d9` 相同，仅叠加重基线时的 GitBook 同步提交）完成行级复核：方法=两仓「登记时点→基线」变更文件清单 × 全部引用求交集，未变文件引用自动成立，变更文件逐锚点打印核对。结果=机制事实零漂移，7 处行号锚点漂移已就地修正（swap-flow 动态费重入、governance-yield 终局/票权基数、interoperation 重试语义、genesis 保护期原句、pol-splitter 拆合门控、yt-flash-swap 预算语义）。此后基线再推进时重跑同一方法。
+> **复核注记**：M/S 条目及 brief 内全部带行号引用已按当前基线（Memeverse `782a672`、OutStake `0ab9782`、OutrunBook main `d8f167f`——内容与 `87d68d9` 相同，仅叠加重基线时的 GitBook 同步提交）完成行级复核：方法=两仓「登记时点→基线」变更文件清单 × 全部引用求交集，未变文件引用自动成立，变更文件逐锚点打印核对。2026-10-10 轮（OutStake `37063aa`→`0ab9782`，用户裁决取实际 HEAD，登记见 architecture §25）：交集 = S1/S4/S8/S11 四文件，diff 仅为 §24 已登记的 PSM 收敛 USDC 单腿与 owner-only `setFeeRecipient` 规格化，S 条目引用的机制锚点（Genesis 双路径门、`stakeForGenesis` 唯一铸造入口、面值 1:1/tin-tout/stockCap/dust、Faucet 三 mock `addToken` 日限 1,000,000×1e18）原文成立，零漂移；Memeverse 基线未动（前轮 7 处行号锚点修正保持有效）。此后基线再推进时重跑同一方法。工作树列停用（2026-10-10 裁定：真源仓工作树状态与前端无关，产物一律自冻结 commit 导出）。
 
 ## 2. Kernel / CSP / 架构证据
 
@@ -18,7 +18,7 @@
 |---|---|---|
 | ZeroDev Kernel V3.3 tag commit | `cd697c7e21715d015e0643af22310a99aa17433b`（`v3.3`） | `docs/architecture/kernel-v3.3-evidence.md`（sha256 `01e0ebc67c9e9662…`） |
 | CSP 机器可读基准 | `docs/security/csp-origins.json` | sha256 `95b1b1d773faa19a…` |
-| 唯一架构真相 | `docs/architecture.md` | sha256 `c5d3838cfc8d0105…` |
+| 唯一架构真相 | `docs/architecture.md` | sha256 `46966b41e3214069…` |
 | pnpm-lock | `pnpm-lock.yaml` | `docs/page-briefs/pnpm-lock.sha256`（`scripts/write-file-hash.mjs` 重出） |
 
 ## 3. 引用规则（brief 强制）

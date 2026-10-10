@@ -10,7 +10,7 @@
 4. **术语唯一真相 = [`glossary.md`](glossary.md)**：zh/en 双列；brief 文案键一律引术语表。
 5. **链上事实唯一入口 = [`source-map.md`](source-map.md)**：brief 只引用表内登记的 commit+文件+章节；不写部署地址、ABI tuple、凭记忆的函数签名。
 6. **fixture 唯一入口 = `fixtures/`**：确定性数据；生产代码禁止导入（`fixture-boundary-contract.md` 强制，三层检查）。
-7. **完整性 = [`freeze-artifacts.sha256`](freeze-artifacts.sha256)**：`pnpm node scripts/write-stage02-freeze-manifest.mjs` 重出（确定性排序，可随时重跑对账磁盘真相）；外部锚点哈希见 `pnpm-lock.sha256`、`outrunbook-hashes.txt`。
+7. **完整性**：外部锚点哈希见 [`pnpm-lock.sha256`](pnpm-lock.sha256)、[`outrunbook-hashes.txt`](outrunbook-hashes.txt)。原 `freeze-artifacts.sha256` 对账表及其生成脚本已于 2026-10-10 废弃删除（防篡改统一由 CI 在用的 `docs/design/final-artifacts.sha256` 承担，见 architecture §25）。
 
 ## 清单速览（详表见 routes.json）
 
@@ -27,7 +27,7 @@
 2. 词汇：[state-catalog.md](state-catalog.md) → [glossary.md](glossary.md)
 3. 事实：[source-map.md](source-map.md)（链上事实唯一登记）→ [product-intent.md](product-intent.md)（产品事实层）
 4. 规格：[brief-template.md](brief-template.md) → 页面 brief（见下表）
-5. 边界与完整性：[fixture-boundary-contract.md](fixture-boundary-contract.md) → [bootstrap-contract.md](bootstrap-contract.md) → freeze-artifacts.sha256
+5. 边界与完整性：[fixture-boundary-contract.md](fixture-boundary-contract.md) → [bootstrap-contract.md](bootstrap-contract.md)
 6. 交叉核对：[state-coverage-matrix.md](state-coverage-matrix.md)
 
 ## 页面 brief 一览
