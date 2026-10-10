@@ -94,8 +94,8 @@
       "sha256": "5862d4d6cede0191102d04dc7ab17c7541a8c19df1546e034a0da6b8cc1cfbd2"
     },
     "fixtures/inspector/index.html": {
-      "bytes": 15533,
-      "sha256": "3af198b4d410b41ffa8840c9b124d317b3515961d6bb6ac7e527df0532d7980b"
+      "bytes": 15542,
+      "sha256": "67744992654b089f63994a9402b02167a9a368743630d0c7f4357d765487c62b"
     },
     "fixtures/invariants/amounts.json": {
       "bytes": 3317,
@@ -110,12 +110,12 @@
       "sha256": "44fb0d1dff848525a3d3f6c1eb151363cfd45ba4a99d2592619300939ab14be5"
     },
     "fixtures/invariants/state-scenarios.json": {
-      "bytes": 3114,
-      "sha256": "f3cacd92b63461ce60d685763a6c6d22671bfb71af5fbb3bc98a192327081cd0"
+      "bytes": 3144,
+      "sha256": "1d6af64d57c95a469d66e61e0f321ee2c20edef39243ccbf33b440121828c1c1"
     },
     "fixtures/scenarios/states.json": {
-      "bytes": 3462,
-      "sha256": "e88f59e2e200092f7ba2be06baf3e355b73e2c82d1981cf98fc6d369454c9d8d"
+      "bytes": 3492,
+      "sha256": "58685ea536525913a525b2700875e38c8365c6d799e9fd9a1d658dbebcde2dc4"
     },
     "fixtures/schema.ts": {
       "bytes": 28659,

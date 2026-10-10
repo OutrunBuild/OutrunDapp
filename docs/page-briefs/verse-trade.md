@@ -31,7 +31,7 @@
 
 ## 3. 数据依赖
 
-报价=RPC（quoter，客户端实时；失效重报）；费率预估=Hook 读链（动态费参数 owner 可调，**不写死默认值**——显示读链值）；池数据/K 线 OHLC/历史=Graph（RSC+B3 降级：K 线隐藏历史段+「同步中」提示，不假造蜡烛）；LP 份额/费用=RPC（实时）；返佣=推荐参数。
+报价=RPC（quoter，客户端实时；失效重报）；费率预估=Hook 读链（动态费参数 owner 可调，**不写死默认值**——显示读链值）；池数据/K 线 OHLC/历史=Graph（RSC+B3 静默降级：K 线隐藏陈旧历史段、不假造蜡烛；粒度「同步中」标记=Q3 裁定的粒度可用性提示，非 B3 状态）；LP 份额/费用=RPC（实时）；返佣=推荐参数。
 
 渲染边界：Swap/流动性表单=Client 岛；池信息 RSC。全部写操作经 Kernel 原子 batch（§6.3 固定顺序：approval→beginAccountSession→swap/swapWithPermit2→endAccountSession）；**会话由前端自动包裹、对用户不可见**（OB:memeverse/hook.md:73）——无显式 session UI，但需呈现「交易以智能账户原子执行」的信任说明。
 

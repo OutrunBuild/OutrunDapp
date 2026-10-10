@@ -27,7 +27,7 @@
 
 ## 3. 数据依赖
 
-列表/计数/进度=Graph（RSC，短缓存+去重；B3 降级标「同步中」）；实时倒计时=客户端时钟对齐链上截止时间（RPC 校准一次）；交易热度（已解锁 tab）=Graph。
+列表/计数/进度=Graph（RSC，短缓存+去重；B3 静默降级——数据稍旧无可见状态）；实时倒计时=客户端时钟对齐链上截止时间（RPC 校准一次）；交易热度（已解锁 tab）=Graph。
 
 ## 4. URL 状态
 
@@ -39,7 +39,7 @@ stage.genesis/locked/unlocked（创世中/锁定中/已解锁）；progress.labe
 
 ## 6. 全状态标注
 
-A1 rendered-here（未连接完全可读）；A2 delegated（钱包选择器）；A3 N/A（本页无写操作——错链语境由目标页承载）；A4–A12 N/A（本页无写操作）→ 链接交易中心/钱包面；A13 rendered-here（列表骨架）；A14 rendered-here（空态：「还没有创世中的 Verse」+去创建 CTA）；A15 rendered-here（Graph 失败重试）；B1 N/A（页面级）；B2 rendered-here（某链未部署→过滤项禁用）；B3 rendered-here（同步中横幅）；B4 N/A。
+A1 rendered-here（未连接完全可读）；A2 delegated（钱包选择器）；A3 N/A（本页无写操作——错链语境由目标页承载）；A4–A12 N/A（本页无写操作）→ 链接交易中心/钱包面；A13 rendered-here（列表骨架）；A14 rendered-here（空态：「还没有创世中的 Verse」+去创建 CTA）；A15 rendered-here（Graph 失败重试）；B1 N/A（页面级）；B2 rendered-here（某链未部署→过滤项禁用）；B3 rendered-here（静默降级——数据路径承载，无横幅）；B4 N/A。
 
 ## 7. 可点击主流程
 

@@ -6,7 +6,7 @@
     { "id": "paused", "label": "暂停", "expectation": "B1 写操作禁用+原因+恢复说明", "affects": ["verse-002", "mkt-002"] },
     { "id": "undeployed", "label": "未部署", "expectation": "B2 入口禁用（结构化 undeployed，禁零地址）", "affects": ["chain-006"] },
     { "id": "rpc-fail", "label": "RPC 故障", "expectation": "A15 区块级错误+重试；单链失败不拖垮他链", "affects": ["chain-006"] },
-    { "id": "index-lag", "label": "索引落后>120s", "expectation": "B3 聚合标同步中；RPC 实时值照常不变", "affects": ["chain-006"] },
+    { "id": "index-lag", "label": "索引落后>120s", "expectation": "B3 静默降级（聚合稍旧、无可见状态）；RPC 实时值照常不变", "affects": ["chain-006"] },
     { "id": "wrong-network", "label": "错误网络", "expectation": "A3 禁写+切换引导；无签名请求", "affects": ["acct-001", "verse-001"] },
     { "id": "external-eoa", "label": "外部 EOA", "expectation": "C1 形态标识+原地址启用说明", "affects": ["acct-001"] },
     { "id": "embedded-eoa", "label": "内置 EOA", "expectation": "C2 形态标识+独立入口说明", "affects": ["acct-002"] },

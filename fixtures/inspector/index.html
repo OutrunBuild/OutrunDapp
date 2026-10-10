@@ -169,7 +169,7 @@ function rows(item, file) {
       }
       return x;
     }
-    case 'chains': return kv('chainId', `${item.chainId}（${item.name}，${item.env === 'mainnet' ? '主网' : '测试网'}，原生代币 ${item.nativeSymbol}）`) + (item.scenario.includes('undeployed') ? '<div class="blocked">该链作为「未部署/RPC 故障/索引落后」场景的载体：相关入口禁用、区块级错误、同步中横幅</div>' : '');
+    case 'chains': return kv('chainId', `${item.chainId}（${item.name}，${item.env === 'mainnet' ? '主网' : '测试网'}，原生代币 ${item.nativeSymbol}）`) + (item.scenario.includes('undeployed') ? '<div class="blocked">该链作为「未部署/RPC 故障/索引落后」场景的载体：相关入口禁用、区块级错误、索引落后静默降级</div>' : '');
     case 'assets': return kv(item.symbol, `${{uasset:'uAsset 锚定代币', reserve:'储备资产', sy:'生息资产', memecoin:'Memecoin', share:'储蓄份额', credit:'创世积分'}[item.kind]}${item.anchorNote ? ' · '+item.anchorNote : ''}`);
     default: return kv(item.kind, item.messageKey + ' · ' + fmtTime(item.at));
   }

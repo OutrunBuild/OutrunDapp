@@ -47,7 +47,7 @@ phase.genesis/locked/unlocked/refund（阶段徽章）；success.dual-threshold�
 
 ## 6. 全状态标注
 
-A1 rendered-here（只读完整；参与面板引导连接）；A2 delegated-to-global-surface（钱包选择器）；A3 rendered-here（错链禁写：参与/领取禁用+说明）；A4 rendered-here（首次写前启用引导；**三分支**：code 为空→启用引导；code 非空但不匹配（C3）→「检测到其他应用的启用，需先替换」行内引导；已启用→直付）；A5–A12 delegated（交易中心；参与/领取交易状态）；A13 rendered-here（阶段/进度骨架）；A14 rendered-here（未参与→统计面板「未参与」文案+入口；退款态无记录→说明）；A15 rendered-here（数据失败重试）；B1 rendered-here（Verse 暂停位/池暂停→写操作禁用）；B2 rendered-here（该 Verse 未在当前查看链部署→引导切换链）；B3 rendered-here（进度标「同步中」，阶段以 RPC）；B4 rendered-here（回面板草稿保留）。
+A1 rendered-here（只读完整；参与面板引导连接）；A2 delegated-to-global-surface（钱包选择器）；A3 rendered-here（错链禁写：参与/领取禁用+说明）；A4 rendered-here（首次写前启用引导；**三分支**：code 为空→启用引导；code 非空但不匹配（C3）→「检测到其他应用的启用，需先替换」行内引导；已启用→直付）；A5–A12 delegated（交易中心；参与/领取交易状态）；A13 rendered-here（阶段/进度骨架）；A14 rendered-here（未参与→统计面板「未参与」文案+入口；退款态无记录→说明）；A15 rendered-here（数据失败重试）；B1 rendered-here（Verse 暂停位/池暂停→写操作禁用）；B2 rendered-here（该 Verse 未在当前查看链部署→引导切换链）；B3 rendered-here（静默降级，阶段以 RPC）；B4 rendered-here（回面板草稿保留）。
 
 ## 7. 可点击主流程（写操作——原型只演示 ViewModel 状态，业务集成待实装）
 

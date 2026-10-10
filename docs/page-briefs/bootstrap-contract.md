@@ -7,12 +7,12 @@
 | 文件/职责 | 规则 |
 |---|---|
 | `package.json`（`outrun-dapp`，private，engines `node 24.x`/`pnpm 11.24.0`，`packageManager: pnpm@11.24.0`） | **只允许增量添加** architecture §3 已锁版本的依赖；发现 §3 之外依赖即停止并报告 |
-| `pnpm-workspace.yaml`（`packages: ['.']`；override `@typescript/old: npm:typescript@6.0.2`） | 不得创建第二套 alias/override 规则 |
+| `pnpm-workspace.yaml`（`packages: ['.', 'vendor/typescript-bridge']`；override `@typescript/old: npm:typescript@6.0.2`；`allowBuilds` 构建脚本白名单） | 不得创建第二套 alias/override 规则 |
 | `pnpm-lock.yaml`（sha256 见 `docs/page-briefs/pnpm-lock.sha256`） | 依赖增量后必须重新运行 `rtk node scripts/write-file-hash.mjs --input pnpm-lock.yaml --output docs/page-briefs/pnpm-lock.sha256`（防篡改守卫会拒绝静默覆盖） |
 | 双编译器断言 | `test "$(rtk pnpm exec tsc --version)" = "Version 7.0.2"`；`test "$(rtk node -p "require('typescript').version")" = "6.0.2"`；任何依赖变更后复跑两条断言 |
 | `.node-version`(24.20.0) / `.prettierrc.json` / `.prettierignore` / `scripts/check-runtime.mjs` / `scripts/bootstrap-pnpm.mjs`（Vercel installCommand，含 `--check-only` 模式） | 不改语义；`check-runtime --strict` 每次变更门复跑 |
 
-## 2. 锁定工具链（全部精确版本，禁 caret/range）
+## 2. 锁定工具链（全部精确版本，禁 caret/range；下列为契约断言对象、非全集——全集以 architecture §3 与 package.json 为准）
 
 devDependencies：`typescript7@npm:typescript@7.0.2`、`typescript@npm:@typescript/typescript6@6.0.2`、`vitest@4.1.11`、`vite@8.2.2`、`prettier@3.9.6`、`@types/node@24.13.3`；dependencies：`zod@4.5.4`。
 

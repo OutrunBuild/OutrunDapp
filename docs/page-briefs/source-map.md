@@ -54,7 +54,7 @@
 | M14 | `src/swap/MemeverseUniswapHookUpgradeable.sol` | Hook 行为（R-04 Liquidity）；referral：`claimRebate`/`pendingRebateOf`/`setReferrerRebateBps`（:895-943、R-06） |
 | M15 | `docs/GLOSSARY.md` | Referral rebate 定义（Rebate in-kind/逐币累积不进国库 :34；referrer=`encodePacked` 前 20 字节打包 :33；R-06） |
 
-### 5.2 OutStake @ `37063aa`
+### 5.2 OutStake @ `0ab9782`
 
 | # | 路径 | 覆盖的 brief 事实 |
 |---|---|---|

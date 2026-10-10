@@ -8,7 +8,7 @@
     { "id": "sc-paused", "check": "对应写操作禁用 + B1 说明（原因与恢复：等待解除）；verse-002/市场保护窗断言" },
     { "id": "sc-undeployed", "check": "B2：选项禁用（结构化 undeployed，不显示零地址）；chain-006 相关入口断言" },
     { "id": "sc-rpc-fail", "check": "A15：区块级错误 + 重试；单链失败不拖垮其他链（Portfolio 分区隔离断言）" },
-    { "id": "sc-index-lag", "check": "B3：聚合/历史标「同步中」；余额/授权/回执（RPC）照常且数值不变；无陈旧索引判成功的路径" },
+    { "id": "sc-index-lag", "check": "B3：静默降级（聚合/历史稍旧，无用户可见状态）；余额/授权/回执（RPC）照常且数值不变；无陈旧索引判成功的路径" },
     { "id": "sc-wrong-network", "check": "A3：写操作禁用 + 原因 + 切换引导；无签名请求发出；acct-001 断言" },
     { "id": "sc-external-eoa", "check": "acct-001：外部钱包形态标识 + 原地址启用说明" },
     { "id": "sc-embedded-eoa", "check": "acct-002：内置账户形态 + 独立入口说明（§6.2）" },

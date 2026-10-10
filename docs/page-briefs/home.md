@@ -55,7 +55,7 @@
 | A14 Empty | rendered-here | 指标零值照常显示（0 也是真实状态） |
 | A15 Error | rendered-here | 指标带「—」+重试；页面其余不受影响 |
 | B1/B2 | N/A | — |
-| B3 Index lag >120s | delegated-to-global-surface | 指标带标「同步中」 |
+| B3 Index lag >120s | N/A（静默降级，无用户可见面——§9/§24） | — |
 | B4 User rejected | N/A（无签名） | — |
 
 ## 7. 可点击主流程
@@ -75,5 +75,5 @@
 
 ## 10. fixture 场景
 
-- `normal`：证据带三数有值；`zero-balance`：冷启动全零；`rpc-fail`：指标 Error 态；`index-lag`：「同步中」
+- `normal`：证据带三数有值；`zero-balance`：冷启动全零；`rpc-fail`：指标 Error 态；`index-lag`：静默（数据稍旧，无可见状态）
 - 数据=fixture snapshot `homeMetrics`（`totalLocked`/`deployedVerseCount`/`participantCount`，经 `lib/data/fixture-repository.ts` 组装）；场景 ID 引 fixtures/scenarios/states.json
