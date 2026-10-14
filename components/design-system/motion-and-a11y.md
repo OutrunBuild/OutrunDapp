@@ -57,7 +57,7 @@
 
 - zh/en 各自布局验证；按钮/徽章/状态标签按最长语言设计（en 通常更长），禁止固定宽度截断文本；溢出测试为阶段 3 Playwright 必测项（§11.2）。
 
-## 3. 验证入口（阶段 3 前手工基线）
+## 3. 验证入口
 
-- token-preview.html：Tab 走查 focus 环唯一性。
-- component-contract-preview.html：本文件契约的黑盒检查页（键盘走查/状态文案/reduced-motion 模拟）。
+- `pnpm test:e2e`：三档视口视觉基线 + axe 无障碍扫描（含键盘走查场景）。
+- 阶段 3 前的手工基线页（token-preview.html / component-contract-preview.html）已随 docs/design 考古清理移除（决议 032）。

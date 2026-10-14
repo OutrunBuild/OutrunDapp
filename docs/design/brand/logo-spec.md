@@ -1,7 +1,7 @@
 # OUTRUN Brand Mark — 生产资产规范
 
-源稿：`docs/design/logo-variants/ai-renders/g10-final-black.png`（G10 final, 4096×2304 raster；`01–03` 字标资产）
-Symbol 源稿：`docs/design/logo-variants/or-monogram/concepts/symbol_logo.png`（OR monogram, 2048×2048；`04–06` 资产，2026-09-04 替换旧 O 字形 symbol）
+源稿：`docs/design/logo-variants/ai-renders/wordmark-master.png`（4096×2304 raster，黑底净化版；`01–03` 字标资产；同目录 `wordmark-master-raw.png` 为未净化原始渲染）
+Symbol 源稿 raster（OR monogram, 2048×2048，2026-09-04 替换旧 O 字形 symbol）已删（2026-10-14 用户裁定；回收=git 历史）；`04–06` 权威形态为本目录矢量资产，母版构造参数见 §6 OR monogram 管线与 §9 验证记录
 交付：`docs/design/brand/`（本目录）· 视觉验收：[preview.html](preview.html)
 
 ---
@@ -116,7 +116,7 @@ primary 三变体；symbol/mono/favicon/图标为无纹理平涂版。
 
 弃用记录：vtracer 彩色整图描摹因区域均值色偏（±6/通道，亮红被均到 #E51B38）被分色法取代。
 
-管线脚本：`script/logo-vectorize/`（preprocess.py → cleanup.py → extract_symbol.py → vtracer/potrace → build_variants.py → export.mjs；依赖见该目录 package.json 与 venv——`npm i potrace svgo @resvg/resvg-js` + `pip install numpy scipy pillow vtracer`）。已端到端复现验证。同目录的 vectorize.py / export_png.py / verify.py 为被本管线取代的 v1（手搓 cv2 多边形方案，存档）。
+管线脚本不在本仓（`script/` 下仅 `token-icons/`；`logo-vectorize/` 从未提交入库，2026-10-14 复核登记）。管线构成与依赖（本节参数表即重建依据）：preprocess.py → cleanup.py → extract_symbol.py → vtracer/potrace → build_variants.py → export.mjs；`npm i potrace svgo @resvg/resvg-js` + `pip install numpy scipy pillow vtracer`。「已端到端复现验证」为脚本尚在本地时的验证记录；同目录 v1 遗件（vectorize.py / export_png.py / verify.py）同不在库。
 
 **OR monogram 管线**（`04–06`，源稿为 2048 平涂矢量渲染，无需分色/去噪）：`or_monogram_v3.py`（HSV 硬阈值分黄/红/前景 → 黄 mask 扩张 1px 补偿提取内收 → 单母版多边形 cv2 approxPolyDP eps=1.5 → 每层 = 同一 d 的黑描边（stroke-width 22，miter）+ 填充，红层平移 `(+64,+26)` 源像素；位移经 brute-force 验证为唯一最优：红外轮廓与平移黄轮廓 3450/3450 点零距离重合；mono 取双层并集单外轮廓）→ `export_or.mjs`（svgo + resvg：color/currentcolor/themed + mono 白黑黄红 128/256/512 透明底；themed 只优化 SVG、无栅格版——变量未定义时回退值与 color 版逐像素一致；favicon-16/32 由 mono-yellow、48 由双色版渲染；图标黑底光学居中合成，maskable/80% 规则同上；favicon.ico 为手写打包：16 mono + 32 mono + 48 dual 三帧 PNG 压缩——Pillow 12 ICO 插件忽略 append_images）。
 

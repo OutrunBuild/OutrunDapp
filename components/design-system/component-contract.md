@@ -14,7 +14,7 @@
 | 结构 | 标签 + 输入框（data-numeric）+ 余额行（`Balance: 12.4 USDC` + `Max` 按钮）+ 法币参考值（可选） |
 | 键盘 | 数字/小数点/退格；粘贴净化（去逗号空格）；↑↓ 步进 0.1；非法字符静默拒绝；多小数点折叠为首个点（共享实现 `sanitizeAmount`，`components/global/amount-input.ts`，2026-10-03 全部金额输入统一）；余额预填/Max 填充一律 `amountToInputString`（6 位精度整串，禁裸 `String()`——小值科学计数法会被清洗错切） |
 | 状态 | default；focus（青环）；disabled（来源资产未选）；error（超出余额/低于最小精度/dust 域）——余额不足错误文案=`Insufficient balance.`/`余额不足。`（`common.insufficientBalance`；2026-10-04 用户裁定：一行短句不带数值插值，废止旧例「Amount exceeds your balance」+`Use max` 恢复链接式），展示=字段行下 `FieldError`（role=alert / text-destructive，复用既有组件零新 CSS）+ 输入 `aria-invalid` 红边与 `aria-describedby` 关联；触发=balance 已知且 parsed>balance（余额 null 槽位态不触发；MAX 填入=余额即自愈清错）；多条约束（如 CDP 赎回 ≤debt+≤balance）错误行只报一条，其余上限保持静默门控 |
-| 校验边界 | dust 域（quote 返 0 不可执行，complexity-map PSM 行）→ 提示「Amount too small to convert」并禁用提交 |
+| 校验边界 | dust 域（PSM quote 返 0 不可执行、粉尘整笔回滚）→ 提示「Amount too small to convert」并禁用提交 |
 | 大数边界 | 输入 `maxLength=40`（共享常量 `AMOUNT_MAX_CHARS`，与 `sanitizeAmount` 同居 `components/global/amount-input.ts`，2026-10-03 全部金额输入统一；float64 有效数字 ~17 位已覆盖）；派生金额/法币值绝对值分层降级——≥1e15 Intl 紧凑记法（`39,226T`/`39,226万亿`；注意 compact 超大值不省略，会退化成全量数字+单位后缀）、≥1e21 科学记法（`4.3585E40`），全展开千分位长串与裸 `toFixed` 科学计数法禁止进卡面；CSS 兜底截断省略仅加于纯数值槽位 `__output`/`__field-usd`（详情行 dd 是文案不许截，靠格式化分层保界）——共享实现 `fmtUsd`/`fmtTokenAmount`（`components/global/amount-format.ts`，2026-10-03 由 swap-panel/pol-mint/pool-add/pool-remove/pol-flash 五处逐份复制收敛为唯一实现）；代币单价（token-strip 价格；蜡烛图图例 OHLC/MA——2026-10-08 决议 019 扩域）走同文件 `fmtPrice` 市场口径——≥1 两位小数、<1 六位有效数字裁尾零、前导零 ≥4 下标记零（0.0000042→`0.0₅42`，下标=前导零总数；决议 019，取代 2026-09-23 固定 6 位小数+尾零灰显——固定小数位在极小价会吃有效位）。2026-09-23 demo 参照页 180 位数字溢出教训 |
 | 图标 | 无（纯输入）；单位随 AssetSelector 联动 |
 | aria | `aria-invalid` 于错误；错误文本 `aria-describedby` 关联。2026-10-04 余额不足校验全站落位：swap 卖出框、flash-swap（卖=超 YT 持仓、买=派生支付腿超 uAsset 余额）、pool-add 两腿、pool-remove LP、redeem-lp、mint 两腿、split-merge（merge 双输入共享 amount → 错误行只挂 YT 框后一处、两输入同标 aria）、redeem-pt-yt、vault stake/redeem、portfolio `AmountField`（bridge/PSM/CDP 赎回/USR 存取共用一处）、participation-panel 主金额+一键预购两字段（该面板有真实提交流，表单 onSubmit 门控同步并入；预购容量/杠杆额度等既有上限类错误优先显示、余额错误仅在其未命中时出，单错误行）；唯一非恒禁用 CTA（PSM Convert）门控并入该谓词。弹窗内余额错误 id 同走 useId（pool-add/pool-remove 每池卡一实例、redeem-pt-yt 每模式一实例，口径=§17 设置层 error id 防相撞；2026-10-08 由静态串统一改 useId；swap-panel/vault-actions/participation-panel 页面级单实例、id 结构唯一，保留语义静态 id） |
@@ -56,7 +56,7 @@
 | 方面 | 契约 |
 |---|---|
 | 用途 | Verse 四阶段状态呈现（Genesis/Locked/Refund/Unlocked；参照 letsbonk 迁移横幅+four.meme 阶段指示器证据 PU-002d/PU-003t） |
-| 结构 | 横向四节点指示器（当前阶段高亮黄）+ 阶段徽章 + 关键量化行（达标进度**双门槛独立**，禁止单进度条合并——complexity-map 附注 4） |
+| 结构 | 横向四节点指示器（当前阶段高亮黄）+ 阶段徽章 + 关键量化行（达标进度**双门槛独立**——普通创世资金/杠杆利息两门槛各自判定、预购资金不计入，三口径不相加、禁止单进度条合并） |
 | 状态 | 每阶段=default；当前=黄高亮+描述文案；可触发阶段推进时显示 `Advance stage` 按钮（需交易触发，lifecycle）+ 倒计时（data-numeric） |
 | 提示 | 阶段切换确认动效=回声确认（唯一品牌 moment）；reduced-motion=静态双描边 |
 | aria | `aria-current="step"`；进度以文本并行输出（非纯视觉） |
@@ -77,7 +77,7 @@
 | 方面 | 契约 |
 |---|---|
 | 用途 | 签名前统一审阅（§7：目标链/账户/合约/函数语义/输入/最小输出/费用/gas/授权变化） |
-| 结构 | 摘要头（动作名+TokenPair）+ 明细行（可展开，Jupiter 范式 PU-005）+ 费率分解区（动态费率四项展开，complexity-map /trade）+ 主/次按钮 |
+| 结构 | 摘要头（动作名+TokenPair）+ 明细行（可展开，Jupiter 范式 PU-005）+ 费率分解区（动态费率四项展开：基础 1%·逆向冲击·波动·短期冲击，硬顶 100%）+ 主/次按钮 |
 | 状态 | default；loading=`Simulating…`（Type-4 模拟中，禁用按钮+行内状态）；simulation 失败=错误块（解码后 custom error 人话+恢复：调整参数/重试/取消）；禁用条件=余额不足 gas/授权缺失/报价过期（`Quote expired → Refresh quote`） |
 | 规则 | 审阅数字全部 data-numeric；价格保护线/滑点/截止必显；授权变化单独区块（`This gives the pool access to …` 措辞） |
 | aria | 审阅区 `aria-live="polite"` 于状态变化 |

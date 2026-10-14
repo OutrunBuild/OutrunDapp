@@ -6,7 +6,7 @@
 
 ## 1. 视觉世界（决议 010 强化版）：暗端信号台 · 复古未来主义全浓度
 
-- **方向**：cyberpunk 主导，synthwave 作光（黄主光 `#FCEE0A` + 品红回声 `#FF06B5` + 青功能 `#00F0FF`，BRAND 错位回声机制为融合桥）。证据链：VS-002/007/004 + BRAND + r10 部署提取（`review/r10-css-extract.css`，部署 `outrun-phi.vercel.app`）。
+- **方向**：cyberpunk 主导，synthwave 作光（黄主光 `#FCEE0A` + 品红回声 `#FF06B5` + 青功能 `#00F0FF`，BRAND 错位回声机制为融合桥）。证据链：VS-002/007/004 + BRAND + v0 r10 部署提取（对账叙事见 decision-log 决议 010）。
 - **气质（决议 001-A 去极客结构保留；决议 010 勘误口径：去极客≠去风格）**：日常消费产品的信息结构（常规无衬线正文/导航/按钮、人话文案、等宽字仅数据字段），但**复古未来主义装饰层全浓度**：
   1. **HUD 网格底纹**：全站青色网格（44px 外层 `rgba(0,240,255,.09)`，主区加密 22px `.06`）+ 主区品红 135° 角部渐隐洗色
   2. **品红错位回声轨**：侧栏右缘 1px 品红线+glow；标题条青线与 -72px 位移品红回声线（`--echo-offset`）——错位回声作为结构元素
@@ -73,15 +73,8 @@
 
 蓝→紫→青 hero 渐变；无依据装饰渐变（渐变禁作背景/按钮默认，D2 日落渐变未采纳）；居中三卡片；默认 Inter；emoji 图标；未定制 shadcn 主题；数据层发光文字；大面积青色块。
 
-## 8. 参考分类
-
-- 视觉审美来源（VS-001~009 + BRAND）与拆解：`references/aesthetic-learning.md` / `aesthetic-principles.md`（borrow/adapt/禁复制 + 须关闭清单）。
-- 交易 UX 来源（PU-000~009 + V0-URLS）：只约束信息结构与流程，禁推导视觉。
-- 复杂度地图（11 路由密度/字段/引源）：`references/complexity-map.md`。
-
-## 9. 依据与产出索引
+## 8. 依据与产出索引
 
 - 决策：`decision-log.md`（001 方向/002 色板/003 密度/004 字标，签名行待用户亲填）
-- Token：`components/design-system/tokens.css` + `token-contract.md` + `docs/design/review/token-preview.html/png`
-- 方向文档：`directions/direction-01.md`（含锁定后修订节）
+- Token：`components/design-system/tokens.css` + `token-contract.md`
 - 依据：architecture.md §1/§2/§3/§10/§14/§18；Skill：frontend-design（SHA256 `1608ea77…b3f45dd`）

@@ -10,12 +10,6 @@ coverage
 .vercel
 playwright-report
 test-results
-docs/design/references/visual
-docs/design/references/product-ux
-docs/design/references/inbox
-docs/design/logo-*
-docs/runbooks/references
-scripts/generate-logo-*.mjs
 # 阶段 2 起补充：证据文档与确定性数据不进格式门禁（字节冻结优先）；代码（scripts/tests/lib）进
 docs
 DESIGN.md
