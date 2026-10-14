@@ -20,8 +20,8 @@
 | CSP 机器可读基准 | `docs/security/csp-origins.json` | sha256 `95b1b1d773faa19a…` |
 | 唯一架构真相 | `docs/architecture.md` | sha256 `46966b41e3214069…` |
 | pnpm-lock | `pnpm-lock.yaml` | `docs/page-briefs/pnpm-lock.sha256`（`scripts/write-file-hash.mjs` 重出） |
-| ABI 冻结 manifest（阶段 4） | `contracts/abi/v1-rc/manifest.json`（37 份 ABI + 三链合约/codehash/Kernel） | sha256 `1967944ffec48b90…`（`scripts/write-file-hash.mjs`；CI=check-abi-manifest.mjs） |
-| deployments 链配置（阶段 4） | `deployments/{421614,84532,97}.json` | sha256 `2e4da872…`(421614)/`da454eb9…`(84532)/`9fb7dc8f…`(97)（`scripts/write-file-hash.mjs`） |
+| ABI 冻结 manifest（阶段 4） | `contracts/abi/v1-rc/manifest.json`（37 份 ABI + 三链合约/codehash/Kernel） | sha256 `869525639ee163c4…`（`scripts/write-file-hash.mjs`；CI=check-abi-manifest.mjs；2026-10-14 YTFlashSwapRouter 三链登记轮重出） |
+| deployments 链配置（阶段 4） | `deployments/{421614,84532,97}.json` | sha256 `3dc22bac…`(421614)/`086e48a6…`(84532)/`e0972a4c…`(97)（`scripts/write-file-hash.mjs`；同轮重出） |
 
 ## 3. 引用规则（brief 强制）
 

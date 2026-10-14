@@ -102,9 +102,11 @@
         },
         "MemeverseYTFlashSwapRouter": {
           "abi": "MemeverseYTFlashSwapRouter",
-          "address": null,
-          "status": "undeployed",
-          "note": "no deploy path in frozen scripts; YT flash swap stays read-only until the contract repo ships a batch"
+          "address": "0x7024B5325E9A84aF01a092C0f3b82aF6bBa722BC",
+          "status": "deployed",
+          "deploymentTx": "0xf858da9c744c838582bf1582193c7236c7a5b0f2d9f98ced34b330d585bbd541",
+          "deploymentBlock": 136726282,
+          "runtimeCodehash": "0x5db7231d5d4bee45931c5ac27ae0ce7b1019f1eaca46b4a649f9b0d9480e9f2d"
         },
         "MemeverseUniswapHookLens": {
           "abi": "MemeverseUniswapHookLens",
@@ -523,9 +525,11 @@
         },
         "MemeverseYTFlashSwapRouter": {
           "abi": "MemeverseYTFlashSwapRouter",
-          "address": null,
-          "status": "undeployed",
-          "note": "no deploy path in frozen scripts; YT flash swap stays read-only until the contract repo ships a batch"
+          "address": "0x7024B5325E9A84aF01a092C0f3b82aF6bBa722BC",
+          "status": "deployed",
+          "deploymentTx": "0xd4e66d8432e867bc7bd81f9895147d5379a25f8babfcdae19fd232349795aa56",
+          "deploymentBlock": 48102821,
+          "runtimeCodehash": "0x5db7231d5d4bee45931c5ac27ae0ce7b1019f1eaca46b4a649f9b0d9480e9f2d"
         },
         "MemeverseUniswapHookLens": {
           "abi": "MemeverseUniswapHookLens",
@@ -906,9 +910,11 @@
         },
         "MemeverseYTFlashSwapRouter": {
           "abi": "MemeverseYTFlashSwapRouter",
-          "address": null,
-          "status": "undeployed",
-          "note": "no deploy path in frozen scripts; YT flash swap stays read-only until the contract repo ships a batch"
+          "address": "0x7024B5325E9A84aF01a092C0f3b82aF6bBa722BC",
+          "status": "deployed",
+          "deploymentTx": "0xefb7140e948e9b63369afa7278f2a032f2873ba3ee94177116eac54fe7195637",
+          "deploymentBlock": 319059915,
+          "runtimeCodehash": "0x5db7231d5d4bee45931c5ac27ae0ce7b1019f1eaca46b4a649f9b0d9480e9f2d"
         },
         "MemeverseUniswapHookLens": {
           "abi": "MemeverseUniswapHookLens",

@@ -48,7 +48,8 @@
     "GenesisCredit.UETH": "0xCd6BEaAfFE62c6Df3cA1F8b63053Bf2C0f61C541",
     "GenesisCredit.UUSD": "0x97B1Fc3ad6547366B2721fc58459dD3e8e8540A3",
     "GenesisCredit.UBNB": "0xAC0ccDB39739c6A3835Be04dd044305D1ed91ef4",
-    "UniswapV4PoolManager": "0xEE88a92d87ed2e037a0C2f1bED6BAb49E375Be0C"
+    "UniswapV4PoolManager": "0xEE88a92d87ed2e037a0C2f1bED6BAb49E375Be0C",
+    "MemeverseYTFlashSwapRouter": "0x7024B5325E9A84aF01a092C0f3b82aF6bBa722BC"
   },
   "deploymentBlock": 136487789,
   "abiVersion": "v1-rc",

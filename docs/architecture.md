@@ -682,3 +682,11 @@ x-locale 头伪造面封堵与「rewrite 二次进入」实证修正（P0-1 裁�
 - 基线推进：Memeverse `782a672` → `e327abbdb682c2a505f2c6a93af02019d08bfd92`、OutStake `0ab97820` → `ecc67c14d91884039a271452f5628fbd66bc4725`（部署机器轮 commit，2026-10-10~13 nonce-4 部署战役期间落入）。区间核对：OutStake `src/` 零变更（仅 `test/support/Faucet.sol` 扩面 + 部署脚本/docs）；Memeverse 仅 `src/swap/MemeverseSwapRouter.sol` 构造器 fail-closed 检查外移至部署脚本（公开函数面不变），`docs/spec/` 两仓零变更。出处锚定：broadcast `run-latest.json` 的 `commit` 字段记录实际构建源=Memeverse `796bcc6`、OutStake `aa1cdb5`；两者至各自 HEAD 的增量（`script/deploy.sh`、`script/ops/*.sh`、docs）不触及 `src/` 与 `test/support/`，即**部署合约源码与冻结基线 HEAD 等同**。source-map §1 同步并按其注记方法复核（交集=S10/S11 的 Faucet 部署面扩面，原锚点成立，补充 `addHeldToken`/`claimHeld`/`batchClaimHeld`/`bootstrapGenesisCredit` credit-pot 面）。
 - 测试网链集变更（撤销 §24「Arbitrum Sepolia 前端不跟随/不部署/不进 manifest」口径）：Ethereum Sepolia(11155111) 撤出、Arbitrum Sepolia(421614) 进入；测试网三链 = 421614/84532/97，主网三链（1/8453/56）不变。§5 表与 Kernel 表注记已同步；421614 的 Kernel runtime codehash 无历史观察值，发布认证轮链上实测回填（实测即基线），实测前该链按 §5 只读门处理。
 - 阶段 4 步骤 7（三测试网部署）由用户在会话外经 `/home/azkrale/Web3Project/deploy-all.sh` 完成（nonce-4，chains=bsc_testnet/base_sepolia/arbitrum_sepolia，2026-10-13）；部署记录权威源=两仓 `broadcast/**/run-latest.json`（地址/tx/块号）、`/home/azkrale/Web3Project/DEPLOYED-ADDRESSES.md`（生成物地址表）与 `deploy-all.log`。
+
+## 27. 架构修订记录（2026-10-14，YTFlashSwapRouter 补部署登记轮）
+
+MemeverseYTFlashSwapRouter 三测试网补部署（阶段 4「未部署」遗留清偿；用户会话外完成）：
+
+- 部署事实（broadcast `MemeverseScript.s.sol/{421614,84532,97}/run-1791973812~4064664.json`）：CREATE3 同址 `0x7024B5325E9A84aF01a092C0f3b82aF6bBa722BC`；tx 421614=`0xefb7140e…95637`/块 319059915、84532=`0xd4e66d84…5aa56`/块 48102821、97=`0xf858da9c…bd541`/块 136726282，三链 receipt status=1。
+- 溯源：broadcast `commit` 字段=`e327abb`（=冻结基线）；批次脚本增量（Memeverse `21ad8b3`/`6b75944`）仅 `script/`、`src/` 零改动——部署合约源码与冻结基线等同，`memeverseCommit` 不动。验证链：主树 `forge inspect bytecode`（源码同基线）= broadcast init code 前缀（构造参数=UniswapV4PoolManager/MemeverseUniswapHook/POLSplitter，逐链登记核对一致）；三链 runtime 链上实测 codehash 全等 `0x5db7231d5d4bee45931c5ac27ae0ce7b1019f1eaca46b4a649f9b0d9480e9f2d`（无链相关 immutable，与 SwapRouter 逐链分码不同）。
+- 登记：manifest `chains.*.contracts.MemeverseYTFlashSwapRouter` undeployed→deployed + `deployments/{421614,84532,97}.json` contracts 表补址；check-abi-manifest 全绿（schema/SHA256/EIP-55/交叉一致）；source-map §2 哈希同步。功能归属既有 `swap` 特性开关，无新增 flag。

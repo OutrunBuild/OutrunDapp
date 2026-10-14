@@ -44,7 +44,8 @@
     "MockOutrunAUSDCSY": "0x85bdd6c8a058BC2f02f038657Eb37e0f1D8913ce",
     "MockOutrunSUSDSSY": "0x8Ea94c65E2915ee0d23267f2c37DfbA3c2D04190",
     "OutrunAaveV3SY": "0x1d7eb951EBb179e811766A1034ca322bAb29eD25",
-    "UniswapV4PoolManager": "0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408"
+    "UniswapV4PoolManager": "0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408",
+    "MemeverseYTFlashSwapRouter": "0x7024B5325E9A84aF01a092C0f3b82aF6bBa722BC"
   },
   "deploymentBlock": 48049098,
   "abiVersion": "v1-rc",
