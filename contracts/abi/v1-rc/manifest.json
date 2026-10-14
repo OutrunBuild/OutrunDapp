@@ -64,7 +64,7 @@
           "abi": "MemeverseRegistrarOmnichain",
           "address": null,
           "status": "undeployed",
-          "note": "center chain (97) uses MemeverseRegistrarAtLocal; user entry there is MemeverseRegistrationCenter (registration-details §2/§8)"
+          "note": "center chain (97) uses MemeverseRegistrarAtLocal; user entry there is MemeverseRegistrationCenter"
         },
         "MemeverseFeePreviewReader": {
           "abi": "MemeverseFeePreviewReader",
@@ -401,13 +401,13 @@
           "abi": "OutrunWstETHSYUpgradeable",
           "address": null,
           "status": "undeployed",
-          "note": "Sepolia-targeted batch; chain not in the §26 testnet set"
+          "note": "Sepolia-targeted batch; chain not in the testnet set (421614/84532/97)"
         },
         "OutrunStakedUSDeSY": {
           "abi": "OutrunStakedUSDeSYUpgradeable",
           "address": null,
           "status": "undeployed",
-          "note": "Sepolia-targeted batch; chain not in the §26 testnet set"
+          "note": "Sepolia-targeted batch; chain not in the testnet set (421614/84532/97)"
         },
         "OutrunSlisBNBSY": {
           "abi": "OutrunSlisBNBSYUpgradeable",
@@ -824,13 +824,13 @@
           "abi": "OutrunWstETHSYUpgradeable",
           "address": null,
           "status": "undeployed",
-          "note": "Sepolia-targeted batch; chain not in the §26 testnet set"
+          "note": "Sepolia-targeted batch; chain not in the testnet set (421614/84532/97)"
         },
         "OutrunStakedUSDeSY": {
           "abi": "OutrunStakedUSDeSYUpgradeable",
           "address": null,
           "status": "undeployed",
-          "note": "Sepolia-targeted batch; chain not in the §26 testnet set"
+          "note": "Sepolia-targeted batch; chain not in the testnet set (421614/84532/97)"
         },
         "OutrunSlisBNBSY": {
           "abi": "OutrunSlisBNBSYUpgradeable",
@@ -1202,13 +1202,13 @@
           "abi": "OutrunWstETHSYUpgradeable",
           "address": null,
           "status": "undeployed",
-          "note": "Sepolia-targeted batch; chain not in the §26 testnet set"
+          "note": "Sepolia-targeted batch; chain not in the testnet set (421614/84532/97)"
         },
         "OutrunStakedUSDeSY": {
           "abi": "OutrunStakedUSDeSYUpgradeable",
           "address": null,
           "status": "undeployed",
-          "note": "Sepolia-targeted batch; chain not in the §26 testnet set"
+          "note": "Sepolia-targeted batch; chain not in the testnet set (421614/84532/97)"
         },
         "OutrunSlisBNBSY": {
           "abi": "OutrunSlisBNBSYUpgradeable",
