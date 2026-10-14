@@ -20,6 +20,8 @@ export const TREES = [
   'scripts/design-freeze-trees.mjs',
   'scripts/write-design-artifact-manifest.mjs',
   'scripts/check-design-freeze.mjs',
+  'scripts/check-runtime.mjs',
+  'scripts/bootstrap-pnpm.mjs',
 ];
 
 const SKIP_FILES = new Set(['.DS_Store']);

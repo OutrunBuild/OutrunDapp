@@ -5,8 +5,6 @@
 //   node scripts/check-design-bare-values.mjs --self-test  built-in canary injection -> all four kinds
 //     killed + comment exemption and URL protection verified -> auto cleanup
 // Scope: *.tsx under components/** and app/**.
-// Excluded: components/axis-choice/, components/direction-choice/, app/design-review/
-// (internal design-review tooling, not product UI).
 // Four violation kinds:
 //   [hex]      bare #hex colors (token single source = components/design-system/tokens.css)
 //   [palette]  raw Tailwind palette classes (bg-blue-500 etc.; only semantic classes such as
@@ -24,7 +22,6 @@ const args = new Set(argv.slice(2));
 const ROOT = cwd();
 
 const SCAN_DIRS = ['components', 'app'];
-const EXCLUDE_RE = /(axis-choice|direction-choice|design-review)[/\\]/;
 const PALETTES =
   'red|blue|green|yellow|purple|pink|cyan|emerald|slate|zinc|gray|orange|rose|indigo|violet|teal|lime|amber|fuchsia|sky|neutral|stone';
 
@@ -178,7 +175,6 @@ if (args.has('--self-test')) {
 for (const dir of SCAN_DIRS) {
   for (const file of walkTsx(join(ROOT, dir))) {
     const rel = relative(ROOT, file).replaceAll('\\', '/');
-    if (EXCLUDE_RE.test(rel)) continue;
     scanSource(rel, readFileSync(file, 'utf8'));
   }
 }

@@ -27,7 +27,6 @@ export default tseslint.config(
       '.impeccable/**',
       '.worktrees/**',
       'vendor/**',
-      'docs/design/review/**',
     ],
   },
   ...tseslint.configs.recommended,
