@@ -78,3 +78,6 @@ playwright-report/
 
 # impeccable 运行时状态（build-phase/pending 等，不得提交；2026-09-30 曾误提交 pending.json 已清）
 .impeccable/
+
+# 会话工具状态（mimosa 插件）
+.mimosa/

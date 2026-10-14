@@ -33,6 +33,8 @@ const ALLOWLIST = {
     postcss: '8.5.26',
     tailwindcss: '4.3.3',
     'typescript-eslint': '8.68.0',
+    // web3 索引 CLI（§3 全集，阶段 4 步骤 10 落地）
+    '@graphprotocol/graph-cli': '0.98.1',
   },
   dependencies: {
     zod: '4.5.4',
@@ -49,6 +51,12 @@ const ALLOWLIST = {
     'tailwind-merge': '3.3.1',
     'tw-animate-css': '1.4.0',
     'lightweight-charts': '5.2.1',
+    // web3 运行时（§3 全集，阶段 4 步骤 10 落地；viem 精确 2.55.10 = @privy-io/wagmi 4.0.16 精确 peer）
+    wagmi: '3.7.7',
+    viem: '2.55.10',
+    '@privy-io/react-auth': '3.38.0',
+    '@privy-io/wagmi': '4.0.16',
+    '@sentry/nextjs': '10.72.0',
   },
 };
 if (existsSync('package.json')) {

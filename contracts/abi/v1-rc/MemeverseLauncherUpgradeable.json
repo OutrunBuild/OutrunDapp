@@ -1,0 +1,2954 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "BPS_BASE",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "UPGRADE_INTERFACE_VERSION",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "auxiliaryLiquidities",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "bootstrapResidualClaims",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "changeStage",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "currentStage",
+        "type": "uint8",
+        "internalType": "enum IMemeverseLauncher.Stage"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "claimNormalFees",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "uAssetAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "ptAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "claimNormalYT",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "claimUnlockedPreorderMemecoin",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "claimablePreorderMemecoin",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "communitiesMap",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "provider",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "fundMetaDatas",
+    "inputs": [
+      {
+        "name": "uAsset",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "genesis",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amountInUAsset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "genesisAndPreorder",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "genesisAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "preorderAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getCanonicalSwapDependencies",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "memeverseUniswapHook",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "polSplitter",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getDebtCapBaseByVerseId",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "debtCapBase",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getGovernorByVerseId",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "governor",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getLauncherContracts",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "contracts",
+        "type": "tuple",
+        "internalType": "struct IMemeverseLauncher.LauncherContracts",
+        "components": [
+          {
+            "name": "localLzEndpoint",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "lzEndpointRegistry",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "yieldDispatcher",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "memeverseRegistrar",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "memeverseProxyDeployer",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "memeverseSwapRouter",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "polSplitter",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "launchImpl",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "memeverseUniswapHook",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "settlementImpl",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "feePreviewReader",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "liquidityImpl",
+            "type": "address",
+            "internalType": "address"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getLauncherParameters",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "parameters",
+        "type": "tuple",
+        "internalType": "struct IMemeverseLauncher.LauncherParameters",
+        "components": [
+          {
+            "name": "executorRewardRate",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "preorderCapRatio",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "preorderVestingDuration",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "oftReceiveGasLimit",
+            "type": "uint128",
+            "internalType": "uint128"
+          },
+          {
+            "name": "yieldDispatcherGasLimit",
+            "type": "uint128",
+            "internalType": "uint128"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getMemeverseByMemecoin",
+    "inputs": [
+      {
+        "name": "memecoin",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "verse",
+        "type": "tuple",
+        "internalType": "struct IMemeverseLauncher.Memeverse",
+        "components": [
+          {
+            "name": "name",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "symbol",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "uri",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "desc",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "uAsset",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "currentStage",
+            "type": "uint8",
+            "internalType": "enum IMemeverseLauncher.Stage"
+          },
+          {
+            "name": "flashGenesis",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "memecoin",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "pol",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "yieldVault",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "governor",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "incentivizer",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "endTime",
+            "type": "uint128",
+            "internalType": "uint128"
+          },
+          {
+            "name": "unlockTime",
+            "type": "uint128",
+            "internalType": "uint128"
+          },
+          {
+            "name": "omnichainIds",
+            "type": "uint32[]",
+            "internalType": "uint32[]"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getMemeverseByVerseId",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "verse",
+        "type": "tuple",
+        "internalType": "struct IMemeverseLauncher.Memeverse",
+        "components": [
+          {
+            "name": "name",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "symbol",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "uri",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "desc",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "uAsset",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "currentStage",
+            "type": "uint8",
+            "internalType": "enum IMemeverseLauncher.Stage"
+          },
+          {
+            "name": "flashGenesis",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "memecoin",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "pol",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "yieldVault",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "governor",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "incentivizer",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "endTime",
+            "type": "uint128",
+            "internalType": "uint128"
+          },
+          {
+            "name": "unlockTime",
+            "type": "uint128",
+            "internalType": "uint128"
+          },
+          {
+            "name": "omnichainIds",
+            "type": "uint32[]",
+            "internalType": "uint32[]"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getStageByMemecoin",
+    "inputs": [
+      {
+        "name": "memecoin",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "stage",
+        "type": "uint8",
+        "internalType": "enum IMemeverseLauncher.Stage"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getStageByVerseId",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "stage",
+        "type": "uint8",
+        "internalType": "enum IMemeverseLauncher.Stage"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getStakingRouteByMemecoin",
+    "inputs": [
+      {
+        "name": "memecoin",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "govChainId",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "yieldVault",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getUAssetByVerseId",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "uAsset",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getVerseIdByMemecoin",
+    "inputs": [
+      {
+        "name": "memecoin",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getYieldVaultByVerseId",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "yieldVault",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "initialize",
+    "inputs": [
+      {
+        "name": "initialOwner",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "localLzEndpoint_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "memeverseRegistrar_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "memeverseProxyDeployer_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "yieldDispatcher_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "lzEndpointRegistry_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "polend_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "polSplitter_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "executorRewardRate_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "oftReceiveGasLimit_",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "yieldDispatcherGasLimit_",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "preorderCapRatio_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "preorderVestingDuration_",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "memecoinToIds",
+    "inputs": [
+      {
+        "name": "memecoin",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "mintPOLToken",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amountInUAssetDesired",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amountInMemecoinDesired",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amountInUAssetMin",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amountInMemecoinMin",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amountOutDesired",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "deadline",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "amountInUAsset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amountInMemecoin",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amountOut",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "normalFeeStates",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "normalYTClaimed",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "owner",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pause",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "paused",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pendingAuxiliaryGovFeeStates",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "polToIds",
+    "inputs": [
+      {
+        "name": "pol",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "polend",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "preorder",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amountInUAsset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "previewPreorderCapacity",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "remaining",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "proxiableUUID",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "redeemAndDistributeFees",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "rewardReceiver",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "govFee",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "memecoinFee",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "polFee",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "executorReward",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "redeemAuxiliaryLiquidity",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "polUAssetLpAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "ptUAssetLpAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "ptPolLpAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "redeemMemecoinLiquidity",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amountInPOL",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "unwrap",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "amountInLP",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "redeemMemecoinLiquidity",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amountInPOL",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "unwrap",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "amount0Min",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amount1Min",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "deadline",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "amountInLP",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "refund",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "genesisFund",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "refundPreorder",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "preorderFund",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "registerMemeverse",
+    "inputs": [
+      {
+        "name": "name",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "symbol",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "uniqueId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "endTime",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "unlockTime",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "omnichainIds",
+        "type": "uint32[]",
+        "internalType": "uint32[]"
+      },
+      {
+        "name": "uAsset",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "flashGenesis",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "remainingGenesisCapacity",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "remaining",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "removeGasDust",
+    "inputs": [
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setExecutorRewardRate",
+    "inputs": [
+      {
+        "name": "_executorRewardRate",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setExternalInfo",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "uri",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "description",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "communities",
+        "type": "string[]",
+        "internalType": "string[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setFeePreviewReader",
+    "inputs": [
+      {
+        "name": "reader",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setFundMetaData",
+    "inputs": [
+      {
+        "name": "_uAsset",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_minTotalFund",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_fundBasedAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setGasLimits",
+    "inputs": [
+      {
+        "name": "_oftReceiveGasLimit",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "_yieldDispatcherGasLimit",
+        "type": "uint128",
+        "internalType": "uint128"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setLaunchImpl",
+    "inputs": [
+      {
+        "name": "impl",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setLiquidityImpl",
+    "inputs": [
+      {
+        "name": "impl",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setMemeverseProxyDeployer",
+    "inputs": [
+      {
+        "name": "_memeverseProxyDeployer",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setMemeverseRegistrar",
+    "inputs": [
+      {
+        "name": "_memeverseRegistrar",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setMemeverseSwapRouter",
+    "inputs": [
+      {
+        "name": "_memeverseSwapRouter",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setMemeverseUniswapHook",
+    "inputs": [
+      {
+        "name": "_memeverseUniswapHook",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setPreorderConfig",
+    "inputs": [
+      {
+        "name": "_preorderCapRatio",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_preorderVestingDuration",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setSettlementImpl",
+    "inputs": [
+      {
+        "name": "impl",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setYieldDispatcher",
+    "inputs": [
+      {
+        "name": "_yieldDispatcher",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "settleLeveragedAuxiliaryLiquidity",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "polAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "ptAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "uAssetAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "totalNormalClaimableYT",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "totalNormalFunds",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "transferOwnership",
+    "inputs": [
+      {
+        "name": "newOwner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "unpause",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "upgradeToAndCall",
+    "inputs": [
+      {
+        "name": "newImplementation",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "data",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "userGenesisData",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "userNormalFeeClaims",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "userPreorderData",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "BootstrapUnusedAssetsHandled",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "uAsset",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "memecoin",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "unusedUAsset",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "creditedSettlementDustReserve",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "treasuryExcess",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "burnedMemecoin",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ChangeStage",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "currentStage",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum IMemeverseLauncher.Stage"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ClaimNormalFees",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "uAssetAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "ptAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ClaimNormalYT",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "claimedAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ClaimPreorderMemecoin",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Genesis",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "payer",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "depositer",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Initialized",
+    "inputs": [
+      {
+        "name": "version",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MintPOLToken",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "memecoin",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "pol",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OwnershipTransferred",
+    "inputs": [
+      {
+        "name": "previousOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "newOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Paused",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Preorder",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "caller",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amountInUAsset",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RedeemAndDistributeFees",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "govFee",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "memecoinFee",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "polFee",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "executorReward",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RedeemAuxiliaryLiquidity",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "polUAssetLpAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "ptUAssetLpAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "ptPolLpAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RedeemMemecoinLiquidity",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "memecoinLiquidity",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Refund",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "refundAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RefundPreorder",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "receiver",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "refundAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RegisterMemeverse",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "verse",
+        "type": "tuple",
+        "indexed": false,
+        "internalType": "struct IMemeverseLauncher.Memeverse",
+        "components": [
+          {
+            "name": "name",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "symbol",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "uri",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "desc",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "uAsset",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "currentStage",
+            "type": "uint8",
+            "internalType": "enum IMemeverseLauncher.Stage"
+          },
+          {
+            "name": "flashGenesis",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "memecoin",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "pol",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "yieldVault",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "governor",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "incentivizer",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "endTime",
+            "type": "uint128",
+            "internalType": "uint128"
+          },
+          {
+            "name": "unlockTime",
+            "type": "uint128",
+            "internalType": "uint128"
+          },
+          {
+            "name": "omnichainIds",
+            "type": "uint32[]",
+            "internalType": "uint32[]"
+          }
+        ]
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RemoveGasDust",
+    "inputs": [
+      {
+        "name": "receiver",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "dust",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetExecutorRewardRate",
+    "inputs": [
+      {
+        "name": "executorRewardRate",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetExternalInfo",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "uri",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "description",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "community",
+        "type": "string[]",
+        "indexed": false,
+        "internalType": "string[]"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetFeePreviewReader",
+    "inputs": [
+      {
+        "name": "feePreviewReader",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetFundMetaData",
+    "inputs": [
+      {
+        "name": "uAsset",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "minTotalFund",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "fundBasedAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetGasLimits",
+    "inputs": [
+      {
+        "name": "oftReceiveGasLimit",
+        "type": "uint128",
+        "indexed": false,
+        "internalType": "uint128"
+      },
+      {
+        "name": "yieldDispatcherGasLimit",
+        "type": "uint128",
+        "indexed": false,
+        "internalType": "uint128"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetLaunchImpl",
+    "inputs": [
+      {
+        "name": "launchImpl",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetLiquidityImpl",
+    "inputs": [
+      {
+        "name": "liquidityImpl",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetMemeverseProxyDeployer",
+    "inputs": [
+      {
+        "name": "memeverseProxyDeployer",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetMemeverseRegistrar",
+    "inputs": [
+      {
+        "name": "memeverseRegistrar",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetMemeverseSwapRouter",
+    "inputs": [
+      {
+        "name": "memeverseSwapRouter",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetMemeverseUniswapHook",
+    "inputs": [
+      {
+        "name": "memeverseHook",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetPreorderConfig",
+    "inputs": [
+      {
+        "name": "preorderCapRatio",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "preorderVestingDuration",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetSettlementImpl",
+    "inputs": [
+      {
+        "name": "settlementImpl",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SetYieldDispatcher",
+    "inputs": [
+      {
+        "name": "yieldDispatcher",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Unpaused",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Upgraded",
+    "inputs": [
+      {
+        "name": "implementation",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "AddressEmptyCode",
+    "inputs": [
+      {
+        "name": "target",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "DustAmount",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ERC1967InvalidImplementation",
+    "inputs": [
+      {
+        "name": "implementation",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ERC1967NonPayable",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "EnforcedPause",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ExpectedPause",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FailedCall",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FeeRateOverFlow",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FundBasedAmountTooHigh",
+    "inputs": [
+      {
+        "name": "fundBasedAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxSupportedFundBasedAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "HookAlreadyConfigured",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientLPBalance",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidClaim",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidInitialization",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidLength",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidLzFee",
+    "inputs": [
+      {
+        "name": "expected",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "actual",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidOmnichainId",
+    "inputs": [
+      {
+        "name": "omnichainId",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidPreorderSettlementConfig",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidVerseId",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "LaunchImplNotSet",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "LiquidityImplNotSet",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NativeTransferFailed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NativeTransferToZeroAddress",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NativeValueMismatch",
+    "inputs": [
+      {
+        "name": "expected",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "actual",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "NoPOLAvailable",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotGenesisStage",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotInitializing",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotReachedLockedStage",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotRefundStage",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotUnlockedStage",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "OwnableInvalidOwner",
+    "inputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "OwnableUnauthorizedAccount",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "PermissionDenied",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ReachedFinalStage",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ReentrancyGuardReentrantCall",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "RegistrationExpired",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SafeApproveFailed",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "spender",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "value",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "SafeERC20FailedOperation",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "SettlementImplNotSet",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SlippageProtectionRequired",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "StillInGenesisStage",
+    "inputs": [
+      {
+        "name": "endTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "TotalGenesisFundsTooHigh",
+    "inputs": [
+      {
+        "name": "totalGenesisFunds",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxSupportedTotalGenesisFunds",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "TransferFromNotCaller",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UUPSUnauthorizedCallContext",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "UUPSUnsupportedProxiableUUID",
+    "inputs": [
+      {
+        "name": "slot",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "VirtualAssetsTooLow",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ZeroInput",
+    "inputs": []
+  }
+]

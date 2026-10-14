@@ -1,0 +1,327 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [
+      {
+        "name": "manager_",
+        "type": "address",
+        "internalType": "contract IPoolManager"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "claimableFees",
+    "inputs": [
+      {
+        "name": "hook",
+        "type": "address",
+        "internalType": "contract IMemeverseUniswapHook"
+      },
+      {
+        "name": "key",
+        "type": "tuple",
+        "internalType": "struct PoolKey",
+        "components": [
+          {
+            "name": "currency0",
+            "type": "address",
+            "internalType": "Currency"
+          },
+          {
+            "name": "currency1",
+            "type": "address",
+            "internalType": "Currency"
+          },
+          {
+            "name": "fee",
+            "type": "uint24",
+            "internalType": "uint24"
+          },
+          {
+            "name": "tickSpacing",
+            "type": "int24",
+            "internalType": "int24"
+          },
+          {
+            "name": "hooks",
+            "type": "address",
+            "internalType": "contract IHooks"
+          }
+        ]
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "fee0Amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "fee1Amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "poolDynamicFeeState",
+    "inputs": [
+      {
+        "name": "hook",
+        "type": "address",
+        "internalType": "contract IMemeverseUniswapHook"
+      },
+      {
+        "name": "poolId",
+        "type": "bytes32",
+        "internalType": "PoolId"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "weightedVolume0",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "weightedPriceVolume0",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "ewVWAPX18",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "volAnchorSqrtPriceX96",
+        "type": "uint160",
+        "internalType": "uint160"
+      },
+      {
+        "name": "volLastMoveTs",
+        "type": "uint40",
+        "internalType": "uint40"
+      },
+      {
+        "name": "volDeviationAccumulator",
+        "type": "uint24",
+        "internalType": "uint24"
+      },
+      {
+        "name": "volCarryAccumulator",
+        "type": "uint24",
+        "internalType": "uint24"
+      },
+      {
+        "name": "shortImpactPpm",
+        "type": "uint24",
+        "internalType": "uint24"
+      },
+      {
+        "name": "shortLastTs",
+        "type": "uint40",
+        "internalType": "uint40"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "poolManager",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract IPoolManager"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "quoteSwap",
+    "inputs": [
+      {
+        "name": "hook",
+        "type": "address",
+        "internalType": "contract IMemeverseUniswapHook"
+      },
+      {
+        "name": "key",
+        "type": "tuple",
+        "internalType": "struct PoolKey",
+        "components": [
+          {
+            "name": "currency0",
+            "type": "address",
+            "internalType": "Currency"
+          },
+          {
+            "name": "currency1",
+            "type": "address",
+            "internalType": "Currency"
+          },
+          {
+            "name": "fee",
+            "type": "uint24",
+            "internalType": "uint24"
+          },
+          {
+            "name": "tickSpacing",
+            "type": "int24",
+            "internalType": "int24"
+          },
+          {
+            "name": "hooks",
+            "type": "address",
+            "internalType": "contract IHooks"
+          }
+        ]
+      },
+      {
+        "name": "params",
+        "type": "tuple",
+        "internalType": "struct SwapParams",
+        "components": [
+          {
+            "name": "zeroForOne",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "amountSpecified",
+            "type": "int256",
+            "internalType": "int256"
+          },
+          {
+            "name": "sqrtPriceLimitX96",
+            "type": "uint160",
+            "internalType": "uint160"
+          }
+        ]
+      },
+      {
+        "name": "trader",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "quote",
+        "type": "tuple",
+        "internalType": "struct IMemeverseUniswapHook.SwapQuote",
+        "components": [
+          {
+            "name": "feeBps",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "estimatedUserInputAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "estimatedUserOutputAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "estimatedProtocolFeeAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "estimatedLpFeeAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "protocolFeeOnInput",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "error",
+    "name": "AddressEmptyCode",
+    "inputs": [
+      {
+        "name": "target",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "AmountNotRepresentable",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ExactOutputAtFullFee",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FailedCall",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FinalTargetNotMet",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "HookAddressMismatch",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidFeeBps",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NativeCurrencyUnsupported",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NoActiveLiquidityShares",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PublicSwapDisabled",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ZeroAddress",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ZeroCoreInput",
+    "inputs": []
+  }
+]

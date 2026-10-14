@@ -6,11 +6,11 @@
 
 | 仓库 | 基线 commit | 提交 subject | 工作树 |
 |---|---|---|---|
-| Memeverse（`/home/azkrale/Web3Project/Memeverse`） | `782a672` | `feat(script): batch-dispatched multi-chain deployment with PoolManager self-deploy` | — |
-| OutStake（`/home/azkrale/Web3Project/OutStake`） | `0ab9782` | `docs(deploy): record mocksy/mocksp batches, idempotent resume semantics, VERIFY opt-in` | — |
+| Memeverse（`/home/azkrale/Web3Project/Memeverse`） | `e327abb` | `snapshot: select build-info by the batch's tier — cache-hit batches freeze stale files` | — |
+| OutStake（`/home/azkrale/Web3Project/OutStake`） | `ecc67c1` | `docs(deployment): wrapper tier mechanism is FOUNDRY_PROFILE=tN profiles (not --optimizer-runs CLI)`（部署机器轮收尾） | — |
 | OutrunBook（`/home/azkrale/Web3Project/OutrunBook`） | main `d8f167f`（zh 分支 `9ee861d` 同步） | `docs(memeverse): document post-launch POL supply entries — mintPOLToken from Locked, redeemMemecoinLiquidity from Unlocked` | — |
 
-> **复核注记**：M/S 条目及 brief 内全部带行号引用已按当前基线（Memeverse `782a672`、OutStake `0ab9782`、OutrunBook main `d8f167f`——内容与 `87d68d9` 相同，仅叠加重基线时的 GitBook 同步提交）完成行级复核：方法=两仓「登记时点→基线」变更文件清单 × 全部引用求交集，未变文件引用自动成立，变更文件逐锚点打印核对。2026-10-10 轮（OutStake `37063aa`→`0ab9782`，用户裁决取实际 HEAD，登记见 architecture §25）：交集 = S1/S4/S8/S11 四文件，diff 仅为 §24 已登记的 PSM 收敛 USDC 单腿与 owner-only `setFeeRecipient` 规格化，S 条目引用的机制锚点（Genesis 双路径门、`stakeForGenesis` 唯一铸造入口、面值 1:1/tin-tout/stockCap/dust、Faucet 三 mock `addToken` 日限 1,000,000×1e18）原文成立，零漂移；Memeverse 基线未动（前轮 7 处行号锚点修正保持有效）。此后基线再推进时重跑同一方法。工作树列停用（2026-10-10 裁定：真源仓工作树状态与前端无关，产物一律自冻结 commit 导出）。
+> **复核注记**：M/S 条目及 brief 内全部带行号引用已按当前基线（Memeverse `782a672`、OutStake `0ab9782`、OutrunBook main `d8f167f`——内容与 `87d68d9` 相同，仅叠加重基线时的 GitBook 同步提交）完成行级复核：方法=两仓「登记时点→基线」变更文件清单 × 全部引用求交集，未变文件引用自动成立，变更文件逐锚点打印核对。2026-10-10 轮（OutStake `37063aa`→`0ab9782`，用户裁决取实际 HEAD，登记见 architecture §25）：交集 = S1/S4/S8/S11 四文件，diff 仅为 §24 已登记的 PSM 收敛 USDC 单腿与 owner-only `setFeeRecipient` 规格化，S 条目引用的机制锚点（Genesis 双路径门、`stakeForGenesis` 唯一铸造入口、面值 1:1/tin-tout/stockCap/dust、Faucet 三 mock `addToken` 日限 1,000,000×1e18）原文成立，零漂移；Memeverse 基线未动（前轮 7 处行号锚点修正保持有效）。2026-10-13 轮（Memeverse `782a672`→`e327abb`、OutStake `0ab9782`→`ecc67c1`，用户裁定以 nonce-4 部署实况为准，登记见 architecture §26）：同法交集 = S10 `test/support/Faucet.sol` 与 S11 `script/deploy/OutstakeScript.s.sol`——Faucet 新增 credit-pot 面（`addHeldToken`/`claimHeld`/`batchClaimHeld`/`bootstrapGenesisCredit` 及 `InsufficientFaucetBalance`/`BootstrapAlreadyDone`/`HeldTokenTransferFailed`），S10 原 `claim`/`batchClaim`/`addToken`/`ClaimTooSoon`/`UnsupportedToken`/`InvalidDailyLimit` 锚点原文成立；S11 的 `_deployMockERC20` 部署 Faucet+三 mock 并 `addToken` 各登记 1,000,000×1e18 不变（credit 注池由部署编排层 `deploy-all.sh` 阶段 13 完成，非仓内脚本）；Memeverse 侧 M1–M15 零交集（区间未触及 `docs/spec/`，`src/` 仅 SwapRouter 构造器检查外移，无 M 条目直接引用该文件）。此后基线再推进时重跑同一方法。工作树列停用（2026-10-10 裁定：真源仓工作树状态与前端无关，产物一律自冻结 commit 导出）。
 
 ## 2. Kernel / CSP / 架构证据
 
@@ -20,6 +20,8 @@
 | CSP 机器可读基准 | `docs/security/csp-origins.json` | sha256 `95b1b1d773faa19a…` |
 | 唯一架构真相 | `docs/architecture.md` | sha256 `46966b41e3214069…` |
 | pnpm-lock | `pnpm-lock.yaml` | `docs/page-briefs/pnpm-lock.sha256`（`scripts/write-file-hash.mjs` 重出） |
+| ABI 冻结 manifest（阶段 4） | `contracts/abi/v1-rc/manifest.json`（37 份 ABI + 三链合约/codehash/Kernel） | sha256 `1967944ffec48b90…`（`scripts/write-file-hash.mjs`；CI=check-abi-manifest.mjs） |
+| deployments 链配置（阶段 4） | `deployments/{421614,84532,97}.json` | sha256 `2e4da872…`(421614)/`da454eb9…`(84532)/`9fb7dc8f…`(97)（`scripts/write-file-hash.mjs`） |
 
 ## 3. 引用规则（brief 强制）
 

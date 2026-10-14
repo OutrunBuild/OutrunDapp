@@ -28,3 +28,6 @@ pnpm-lock.yaml
 # Next 生成物（next-env.d.ts 由 next build 自动生成，不入格式域）
 next-env.d.ts
 test-results/
+
+# 会话工具状态文件（mimosa 插件运行时产物，非项目文件）
+.mimosa/

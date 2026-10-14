@@ -164,9 +164,11 @@ tests/               unit、integration、e2e 和 visual
 | Mainnet | Ethereum                |        1 |
 | Mainnet | Base                    |     8453 |
 | Mainnet | BNB Smart Chain         |       56 |
-| Testnet | Ethereum Sepolia        | 11155111 |
+| Testnet | Arbitrum Sepolia        |   421614 |
 | Testnet | Base Sepolia            |    84532 |
 | Testnet | BNB Smart Chain Testnet |       97 |
+
+（测试网链集 2026-10-13 变更：Ethereum Sepolia(11155111) 撤出、Arbitrum Sepolia(421614) 进入，与 nonce-4 部署实况对齐，见 §26。）
 
 每条链只有一个受 Zod 校验的配置对象，至少包含：
 
@@ -210,7 +212,10 @@ RPC 使用 Alchemy 主端点和 Infura fallback。公共 RPC 只用于本地开�
 |       56 | `0xcad500ade34248a6e7e84f6594cbbe31391fa26910527c9d131e39e42e75cc63` | 118,803,721 |
 | 11155111 | `0x1cacd781072bcb657a6306afd074049f35d0a9d7f50eccda9b12bdd00c636995` |  11,593,138 |
 |    84532 | `0x0b7b78a4c39a523ebfc23394a547dffd0b9eb0276740e8ce59b6b87287ded3af` |  46,127,248 |
+|   421614 | `0xbf56eb9abfca858cf7aef8c86b97b93fe776547de7793b0dc25d801ae26fc9ac` | 318,790,661 |
 |       97 | `0x5143969744cb305cedc9748f191ce11fb77fab00ae1e08f8d3beeeb0219239bd` | 127,947,409 |
+
+（421614 行为 2026-10-13 发布认证轮公共 RPC 实测值（runtime 24,469 bytes 与其余链一致；84532/97 当轮复核逐字节一致）；11155111 行随 2026-10-13 链集变更转为历史存档，见 §26。）
 
 Kernel 地址和 ABI 的外部来源固定为 `docs/architecture/kernel-v3.3-evidence.md` 登记的 ZeroDev `v3.3` tag commit `cd697c7e21715d015e0643af22310a99aa17433b`；该文件是 §19 两个业务合约仓之外的唯一外部合约来源。表中 codehash 是 2026-08-30 的本地链上观察值，不声称由上游源码发布；阶段 4/发布认证必须按该文件的 `cast chain-id`、`cast code`、`cast codehash` 命令逐链重读并写入 manifest，未重读或不匹配时保持只读。
 
@@ -607,8 +612,8 @@ Sentry 中的钱包地址默认哈希化；只有用户主动复制或进入区�
 
 前端实现以以下本地仓库为产品和合约真相源：
 
-- Memeverse：`/home/azkrale/Web3Project/Memeverse`，基线 commit `782a672115c90118c2fccfc2e0c125c655f789a6`（`feat(script): batch-dispatched multi-chain deployment with PoolManager self-deploy`；2026-10-10 自 `3cdb8046` 推进，见 §24）。
-- OutStake：`/home/azkrale/Web3Project/OutStake`，基线 commit `0ab97820f7f563be94aae7298d7712105f25877f`（`docs(deploy): record mocksy/mocksp batches, idempotent resume semantics, VERIFY opt-in`；2026-10-10 自 `81e53ac6` 推进，见 §25）。
+- Memeverse：`/home/azkrale/Web3Project/Memeverse`，基线 commit `e327abbdb682c2a505f2c6a93af02019d08bfd92`（部署机器轮：tier 快照选择/VERIFY 默认关/hook 批次；2026-10-13 自 `782a672` 推进，见 §26）。
+- OutStake：`/home/azkrale/Web3Project/OutStake`，基线 commit `ecc67c14d91884039a271452f5628fbd66bc4725`（部署机器轮：tier profile 机制/Faucet merkle credit pot（`709a2cb`）；2026-10-13 自 `0ab97820` 推进，见 §26）。
 - 用户产品文档：`/home/azkrale/Web3Project/OutrunBook`。
 - ZeroDev Kernel：外部依赖固定到 `v3.3` tag commit `cd697c7e21715d015e0643af22310a99aa17433b`，证据与逐链复核命令见 `docs/architecture/kernel-v3.3-evidence.md`。
 
@@ -657,7 +662,7 @@ x-locale 头伪造面封堵与「rewrite 二次进入」实证修正（P0-1 裁�
 对账勘误 + 基线同步轮；同轮用户裁定 handoff 机制退役、决策登记转极简口径：
 
 - 双编译器桥：`typescript` 经 `link:` 指向 `vendor/typescript-bridge`（`73f80ce`），§3/§4/§12/§18 按实装改写，`@typescript/old` override 不变。
-- 基线推进：Memeverse `3cdb8046` → `782a6721`、OutStake `7315411` → `81e53ac6`（各 22 commits，均触及 `src/` 与 `docs/spec/`）。OutStake PSM 收敛单实例单储备（USDC↔UUSD、ETH↔UETH、BNB↔UBNB，UUSD 撤 USDT 腿——§20「USDC/USDT↔UUSD」以本条为准）、新增 owner-only `setFeeRecipient`、部署面新增 Arbitrum Sepolia（前端 §5 六链不自动跟随）；Memeverse 所有权基座 never-renounceable、Router 构造 fail-closed 守卫、POL 赎回单源化、spec 新增 POL 名义价值展示推导。swap session 机制与 §19 引用的 spec 文件不变；§2 `/faucet` 的 USDC 兑换口径与新拓扑一致；`source-map.md` 逐文件登记按其自身注记另行重跑复核。
+- 基线推进：Memeverse `3cdb8046` → `782a6721`、OutStake `7315411` → `81e53ac6`（各 22 commits，均触及 `src/` 与 `docs/spec/`）。OutStake PSM 收敛单实例单储备（USDC↔UUSD、ETH↔UETH、BNB↔UBNB，UUSD 撤 USDT 腿——§20「USDC/USDT↔UUSD」以本条为准）、新增 owner-only `setFeeRecipient`、部署面新增 Arbitrum Sepolia（前端 §5 六链不自动跟随——该口径 2026-10-13 撤销，见 §26）；Memeverse 所有权基座 never-renounceable、Router 构造 fail-closed 守卫、POL 赎回单源化、spec 新增 POL 名义价值展示推导。swap session 机制与 §19 引用的 spec 文件不变；§2 `/faucet` 的 USDC 兑换口径与新拓扑一致；`source-map.md` 逐文件登记按其自身注记另行重跑复核。
 - 勘误：撤「决议 015」错引（实为品红分层管辖）；§16 Graph 行对齐静默降级；§4 移除未建的 `check-csp-policy.mjs`。
 - handoff 机制退役（用户裁定）；`check-handoff-integrity.mjs` 零接线，物理删除并入下一次 freeze 清单重生成轮（清单另有 2 条已提交漂移待收敛）。
 
@@ -669,3 +674,11 @@ x-locale 头伪造面封堵与「rewrite 二次进入」实证修正（P0-1 裁�
 - e2e/视觉基线视口口径对齐实况（用户裁定「一切以最新代码优先」）：§1/§11.2 的「1440px 桌面 + 390px 移动」改为已冻结的三档 1280×800 / 860×900 / 390×844（DPR 固定 1）；不新增 1440 档。
 - §3/§18 补登记 `@base-ui/react 1.5.0`（shadcn base 变体组件原语运行时，本仓 12 个 `components/ui` 组件的渲染依赖）及四个随附样式工具（cva/clsx/tailwind-merge/tw-animate-css）——既成事实补录，非新增依赖。
 - 冻结清单收敛（用户裁定「清单和文档如果有问题就处理」）：`docs/design/final-artifacts.sha256` 重生成（两条漂移已核为有意改动：decision-log 极简口径清理、`.prettierignore` 增 `test-results/`）；阶段 2 遗留的 `docs/page-briefs/freeze-artifacts.sha256` 及其失修生成脚本 `write-stage02-freeze-manifest.mjs` 废弃删除（防篡改统一由 CI 在用的 final-artifacts 清单承担；brief/fixture 覆盖面如需并入，阶段 8 CI 轮处理）；`check-handoff-integrity.mjs` 按 §24 既定裁定物理删除并移出清单生成范围。
+
+## 26. 架构修订记录（2026-10-13，nonce-4 部署实况对齐轮）
+
+用户裁定（会话内两条）：冻结基线取实际部署构建源（最新 HEAD）、测试网链集与部署实况对齐。事实面：
+
+- 基线推进：Memeverse `782a672` → `e327abbdb682c2a505f2c6a93af02019d08bfd92`、OutStake `0ab97820` → `ecc67c14d91884039a271452f5628fbd66bc4725`（部署机器轮 commit，2026-10-10~13 nonce-4 部署战役期间落入）。区间核对：OutStake `src/` 零变更（仅 `test/support/Faucet.sol` 扩面 + 部署脚本/docs）；Memeverse 仅 `src/swap/MemeverseSwapRouter.sol` 构造器 fail-closed 检查外移至部署脚本（公开函数面不变），`docs/spec/` 两仓零变更。出处锚定：broadcast `run-latest.json` 的 `commit` 字段记录实际构建源=Memeverse `796bcc6`、OutStake `aa1cdb5`；两者至各自 HEAD 的增量（`script/deploy.sh`、`script/ops/*.sh`、docs）不触及 `src/` 与 `test/support/`，即**部署合约源码与冻结基线 HEAD 等同**。source-map §1 同步并按其注记方法复核（交集=S10/S11 的 Faucet 部署面扩面，原锚点成立，补充 `addHeldToken`/`claimHeld`/`batchClaimHeld`/`bootstrapGenesisCredit` credit-pot 面）。
+- 测试网链集变更（撤销 §24「Arbitrum Sepolia 前端不跟随/不部署/不进 manifest」口径）：Ethereum Sepolia(11155111) 撤出、Arbitrum Sepolia(421614) 进入；测试网三链 = 421614/84532/97，主网三链（1/8453/56）不变。§5 表与 Kernel 表注记已同步；421614 的 Kernel runtime codehash 无历史观察值，发布认证轮链上实测回填（实测即基线），实测前该链按 §5 只读门处理。
+- 阶段 4 步骤 7（三测试网部署）由用户在会话外经 `/home/azkrale/Web3Project/deploy-all.sh` 完成（nonce-4，chains=bsc_testnet/base_sepolia/arbitrum_sepolia，2026-10-13）；部署记录权威源=两仓 `broadcast/**/run-latest.json`（地址/tx/块号）、`/home/azkrale/Web3Project/DEPLOYED-ADDRESSES.md`（生成物地址表）与 `deploy-all.log`。
