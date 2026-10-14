@@ -3,9 +3,10 @@
 import * as React from "react"
 import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip"
 
-// base-ui Tooltip 只有两条打开路径：鼠标悬停（悬停交互 mouseOnly，touch 被过滤）
-// 与键盘 :focus-visible 聚焦（触屏点按永不匹配）。触屏点按需受控 open 才能开关气泡；
-// 气泡外点按关闭走 Root 内建 outsidePress，无需另写。
+// base-ui Tooltip has only two open paths: mouse hover (the hover interaction is mouseOnly, touch
+// is filtered) and keyboard :focus-visible focus (touch taps never match). A touch tap needs a
+// controlled open to toggle the bubble; tapping outside the bubble closes via Root's built-in
+// outsidePress, no extra code needed.
 type TouchTooltipApi = {
   rememberPointerType: (pointerType: string) => void
   handleTriggerClick: () => void
@@ -13,8 +14,9 @@ type TouchTooltipApi = {
 
 const TouchTooltipContext = React.createContext<TouchTooltipApi | null>(null)
 
-// 触屏点按开启后的护栏窗口：Chromium 触屏点按结束后会把合成 hover 归还原位，
-// 在触发器上补发 mouseout/mouseleave，若不否决会在开启后 ~20ms 内被当悬停离开关掉
+// Guard window after a touch-tap open: when a Chromium touch tap ends it returns the synthetic
+// hover to its origin, emitting mouseout/mouseleave on the trigger; without a veto the bubble
+// would be closed as a hover-leave within ~20ms of opening
 const TOUCH_OPEN_GUARD_MS = 350
 
 function Tooltip({
@@ -34,7 +36,8 @@ function Tooltip({
         pointerTypeRef.current = pointerType
       },
       handleTriggerClick() {
-        // 消费即清空：键盘 Enter/Space 合成的 click 无前置 pointerdown，不得复用上次判定
+        // Consume-and-clear: the click synthesized by keyboard Enter/Space has no preceding
+        // pointerdown, so the last verdict must not be reused
         const pointerType = pointerTypeRef.current
         pointerTypeRef.current = undefined
         if (isControlled) {
@@ -48,7 +51,7 @@ function Tooltip({
             return !open
           })
         } else if (pointerType !== undefined) {
-          // 鼠标/触控笔点击触发器=关闭，沿用 base-ui closeOnClick 原语义
+          // Mouse/pen click on the trigger = close, keeping base-ui's original closeOnClick semantics
           setUncontrolledOpen(false)
         }
       },
@@ -67,7 +70,7 @@ function Tooltip({
               eventDetails.reason === "trigger-hover" &&
               Date.now() < touchOpenGuardRef.current
             ) {
-              // cancel 后 store 不落关闭状态，气泡保持打开
+              // After cancel the store never records the closed state, so the bubble stays open
               eventDetails.cancel()
               return
             }
@@ -90,8 +93,9 @@ function TooltipTrigger({
   ...props
 }: TooltipPrimitive.Trigger.Props) {
   const touchTooltip = React.useContext(TouchTooltipContext)
-  // closeOnClick 固定 false：同一次触屏点按若保持 base-ui 默认 true，会被
-  // useDismiss 的 referencePress 在 pointerdown 先关、我们的 click 再开，永远关不掉
+  // closeOnClick is pinned to false: with base-ui's default true, the same touch tap gets closed
+  // first by useDismiss's referencePress on pointerdown and reopened by our click, so it could
+  // never be closed
   return (
     <TooltipPrimitive.Trigger
       data-slot="tooltip-trigger"

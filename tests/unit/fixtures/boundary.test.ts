@@ -1,4 +1,5 @@
-// 边界检查器单测（阶段 2 步骤 10）：三种模式在本仓必须通过；self-test 六杀必须通过
+// Boundary checker unit tests: all three modes must pass on this repo;
+// the six-shot self-test must pass
 import { describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -7,32 +8,34 @@ import { cpSync, existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } fro
 import { tmpdir } from 'node:os';
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
-const run = (args: string[]) => execFileSync(process.argv[0], [join(repo, 'scripts/check-fixture-boundary.mjs'), ...args], { encoding: 'utf8' });
+const run = (args: string[]) => execFileSync(process.execPath, [join(repo, 'scripts/check-fixture-boundary.mjs'), ...args], { encoding: 'utf8' });
 
 describe('check-fixture-boundary', () => {
-  it('--source：本仓无违规（退出 0）', () => {
+  it('--source: no violations in this repo (exit 0)', () => {
     expect(run(['--source'])).toContain('fixture boundary OK');
   });
-  it('--graph production：生产 import 图不可达 fixtures（退出 0）', () => {
+  it('--graph production: the production import graph cannot reach fixtures (exit 0)', () => {
     expect(run(['--graph', 'production'])).toContain('fixture boundary OK');
   });
-  // 真实产物扫描依赖本地 .next 构建产物；CI runner 无构建（ci.yml 生产构建按 §12 合规轮延后）
+  // Real bundle scanning depends on the local .next build output; CI runners
+  // build nothing (ci.yml defers the production build to the compliance round)
   it.skipIf(!existsSync(join(repo, '.next')))(
-    '--bundle：真实产物扫描通过且无 fixture 哨兵（阶段 3 构建已落地）',
+    '--bundle: real artifact scan passes with no fixture sentinel (stage 3 build present)',
     () => {
       const out = run(['--bundle', '.next']);
       expect(out).toContain('fixture boundary OK');
-      expect(out).toContain('bundle 扫描已执行');
+      expect(out).toContain('bundle scan executed');
     },
   );
-  it('--bundle <不存在目录>：明示接口语义，汇总行如实标注未执行', () => {
+  it('--bundle <missing directory>: states the interface semantics, summary line truthfully marks not-executed', () => {
     const out = run(['--bundle', '.next-nonexistent-probe']);
-    expect(out).toContain('目录不存在');
-    expect(out).toContain('bundle 扫描未执行');
-    expect(out).not.toContain('bundle 扫描已执行');
+    expect(out).toContain('directory does not exist');
+    expect(out).toContain('bundle scan not executed');
+    expect(out).not.toContain('bundle scan executed');
   });
-  it('--bundle：dev 缓存（.next/dev）含哨兵不触发假警，生产子目录含哨兵仍拦截', () => {
-    // 复现 2026-09-23 假警形态：dev server 无 tree-shake，合法消费方把哨兵留在 .next/dev SSR chunk
+  it('--bundle: a sentinel in the dev cache (.next/dev) does not false-alarm; a sentinel in a production subdir is still blocked', () => {
+    // False-positive shape: the dev server does no
+    // tree-shaking, so legal consumers leave the sentinel in .next/dev SSR chunks
     const base = mkdtempSync(join(tmpdir(), 'fx-bundle-'));
     try {
       const fakeNext = join(base, '.next');
@@ -44,7 +47,8 @@ describe('check-fixture-boundary', () => {
       mkdirSync(join(fakeNext, 'static/chunks'), { recursive: true });
       writeFileSync(join(fakeNext, 'static/chunks/app.js'), 'console.log("clean");');
       expect(run(['--bundle', fakeNext])).toContain('fixture boundary OK');
-      // 正向对照：同一目录生产子目录出现哨兵必须仍以非零退出拦截
+      // Positive control: a sentinel in the same directory's production
+      // subdirectory must still be blocked with a non-zero exit
       writeFileSync(
         join(fakeNext, 'static/chunks/leak.js'),
         'export const OUTRUN_FIXTURE_ONLY_v1 = 1;',
@@ -54,8 +58,10 @@ describe('check-fixture-boundary', () => {
       rmSync(base, { recursive: true, force: true });
     }
   });
-  it('--source：@/ 别名桥消费方与别名直连 fixtures 必须被拦截（2026-10-08 别名盲区回归）', () => {
-    // 修复前：'@/' 别名原样透传，桥消费方判定按解析后路径全等比较——别名形态静默逃逸
+  it('--source: @/ alias bridge consumers and alias-direct fixture imports must be intercepted (alias blind-spot regression)', () => {
+    // Before the fix: '@/' aliases were passed through verbatim and the
+    // bridge-consumer check compared fully-resolved paths for equality —
+    // the alias form silently escaped
     const base = mkdtempSync(join(tmpdir(), 'fx-alias-'));
     try {
       cpSync(join(repo, 'scripts'), join(base, 'scripts'), { recursive: true });
@@ -85,9 +91,11 @@ describe('check-fixture-boundary', () => {
       rmSync(base, { recursive: true, force: true });
     }
   });
-  it('--source：tsconfig 多目标 @/* 形态落 unresolved 注记（兜底不得短路 fail-closed）', () => {
-    // 场景须用可解析目标（components/foo.ts 存在）：兜底若未被抑制会把 @/components/foo 解析成
-    // 真实文件→exit 0；fail-closed 生效则 @/ 命中 UNSUPPORTED_ALIAS → unresolved 注记
+  it('--source: the multi-target @/* tsconfig shape lands an unresolved note (the fallback must not short-circuit fail-closed)', () => {
+    // The scenario needs a resolvable target (components/foo.ts exists): if the
+    // fallback were not suppressed, @/components/foo would resolve to the real
+    // file → exit 0; with fail-closed in effect, @/ hits UNSUPPORTED_ALIAS →
+    // unresolved annotation
     const base = mkdtempSync(join(tmpdir(), 'fx-atfallback-'));
     try {
       writeFileSync(
@@ -109,7 +117,7 @@ describe('check-fixture-boundary', () => {
       rmSync(base, { recursive: true, force: true });
     }
   });
-  it('--source：require 两参形态首字面量捕获为 spec（指向 fixture 必须拦截，与 import() 对称）', () => {
+  it('--source: the two-arg require form captures the first literal as a spec (a fixture target must be intercepted, symmetric with import())', () => {
     const base = mkdtempSync(join(tmpdir(), 'fx-req2-'));
     try {
       mkdirSync(join(base, 'fixtures'), { recursive: true });
@@ -130,7 +138,7 @@ describe('check-fixture-boundary', () => {
       rmSync(base, { recursive: true, force: true });
     }
   });
-  it('--source：两参 import attributes 形态静态可解析不误拦', () => {
+  it('--source: the two-arg import attributes form is statically resolvable and not falsely blocked', () => {
     const base = mkdtempSync(join(tmpdir(), 'fx-importattrs-'));
     try {
       mkdirSync(join(base, 'app'), { recursive: true });
@@ -144,9 +152,11 @@ describe('check-fixture-boundary', () => {
       rmSync(base, { recursive: true, force: true });
     }
   });
-  it('--source：别名解析采用 tsconfig paths 映射而非硬编码兜底（映射 ≠ 兜底可区分）', () => {
-    // @x/* 故意映射进 fixtures/ 并偏离兜底 @/：走 tsconfig 映射则解析出 fixtures 目标并拦下；
-    // 兜底路径下 @x/ 非别名 → external 静默放行 → 本断言失败
+  it('--source: alias resolution uses the tsconfig paths mapping rather than the hardcoded fallback (mapping distinguishable from fallback)', () => {
+    // @x/* is deliberately mapped into fixtures/ and differs from the fallback
+    // @/: via the tsconfig mapping it resolves to a fixtures target and gets
+    // blocked; on the fallback path @x/ is not an alias → external silently
+    // passes → this assertion fails
     const base = mkdtempSync(join(tmpdir(), 'fx-tsmapping-'));
     try {
       writeFileSync(
@@ -168,14 +178,14 @@ describe('check-fixture-boundary', () => {
       rmSync(base, { recursive: true, force: true });
     }
   });
-  it('--self-test：直接导入/路径别名/re-export/动态 resolver/引号拼接动态/别名桥消费方六类注入全部以非零退出被拦截并指出文件行号', () => {
+  it('--self-test: all six injected kinds (direct import / path alias / re-export / dynamic resolver / quote-concatenated dynamic / alias bridge consumer) are intercepted with a non-zero exit and file:line reported', () => {
     const out = run(['--self-test']);
-    expect(out).toContain('direct: 已拦截');
-    expect(out).toContain('alias: 已拦截');
-    expect(out).toContain('reexport: 已拦截');
-    expect(out).toContain('dynamic: 已拦截');
-    expect(out).toContain('dynamic-concat: 已拦截');
-    expect(out).toContain('alias-bridge: 已拦截');
-    expect(out).toContain('临时副本已清理');
+    expect(out).toContain('direct: intercepted');
+    expect(out).toContain('alias: intercepted');
+    expect(out).toContain('reexport: intercepted');
+    expect(out).toContain('dynamic: intercepted');
+    expect(out).toContain('dynamic-concat: intercepted');
+    expect(out).toContain('alias-bridge: intercepted');
+    expect(out).toContain('temp copy cleaned up');
   });
 });

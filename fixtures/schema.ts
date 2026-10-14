@@ -1,58 +1,57 @@
-// Fixture schema — 分域 Zod schema（阶段 2 步骤 9）
-// 规则源：architecture §1/§4/§5/§9/§10/§15；runbook 步骤 9 数值域约定。
-// 本文件只描述原型/测试数据形状；生产代码禁止导入（见 fixture-boundary-contract）。
+// Fixture schema -- per-domain Zod schemas.
+// This file describes prototype/test data shapes only; production code must not import it.
 import { z } from 'zod';
 
-/** 六链白名单（architecture §5）——主网 3 + 测试网 3 */
+/** Six-chain whitelist -- 3 mainnets + 3 testnets */
 export const chainIdSchema = z.union([
   z.literal(1), z.literal(8453), z.literal(56),
   z.literal(11155111), z.literal(84532), z.literal(97),
 ]);
 export const CHAIN_IDS = [1, 8453, 56, 11155111, 84532, 97] as const;
 
-/** 无符号十进制字符串（金额 raw / nonce / blockNumber 共用形状，语义由包装域区分） */
+/** Unsigned decimal string (shared shape for amount raw / nonce / blockNumber; semantics distinguished by the wrapping domain) */
 const decimalString = z.string().regex(/^\d+(\.\d+)?$/, 'decimal-string: ^\\d+(\\.\\d+)?$');
 const uintString = z.string().regex(/^\d+$/, 'non-negative integer string');
 
-/** 金额域：raw + decimals（禁止裸 number 金额） */
+/** Amount domain: raw + decimals (bare number amounts forbidden) */
 export const amountSchema = z.object({
   raw: decimalString,
   decimals: z.number().int().min(0).max(18),
 });
 
-/** 比率域：raw + unit + scale（bps=1e-4, ppm=1e-6, ratio=原生） */
+/** Rate domain: raw + unit + scale (bps=1e-4, ppm=1e-6, ratio=native) */
 export const rateSchema = z.object({
   raw: decimalString,
   unit: z.enum(['bps', 'ppm', 'ratio']),
   scale: z.number().int().min(0).max(18),
 });
 
-/** nonce / blockNumber 域：仅非负整数字符串，无 decimals */
+/** nonce / blockNumber domain: non-negative integer strings only, no decimals */
 export const nonceSchema = uintString;
 export const blockNumberSchema = uintString;
 
-/** 固定 UTC ISO 时间（禁相对时间/运行时钟） */
+/** Fixed UTC ISO time (relative times / running clocks forbidden) */
 export const isoTimeSchema = z.string().regex(
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/,
   'fixed UTC ISO string with Z',
 );
 
-/** 稳定 ID：前缀-整数（禁止运行时随机 UUID） */
+/** Stable ID: prefix-integer (runtime random UUIDs forbidden) */
 export const idSchema = z.string().regex(/^[a-z][a-z0-9-]*-\d{3,}$/, 'stable id: prefix-NNN');
 
-/** fixture 专用地址：0x40hex 且必须带 fixtureOnly 标记 */
+/** fixture-only address: 0x40hex and must carry the fixtureOnly flag */
 export const fixtureAddressSchema = z.object({
   value: z.string().regex(/^0x[0-9a-fA-F]{40}$/, 'EVM address'),
   fixtureOnly: z.literal(true),
 });
 
-/** fixture 专用交易哈希：0x64hex 且必须带 fixtureOnly 标记 */
+/** fixture-only tx hash: 0x64hex and must carry the fixtureOnly flag */
 const fixtureTxHashSchema = z.object({
   value: z.string().regex(/^0x[0-9a-fA-F]{64}$/, 'EVM tx hash'),
   fixtureOnly: z.literal(true),
 });
 
-/** sourceRef：仓库相对路径 + 章节/commit 锚（禁绝对路径/禁 /home） */
+/** sourceRef: repo-relative path + section/commit anchor (absolute paths forbidden / /home forbidden) */
 export const sourceRefSchema = z.string().refine(
   (s) =>
     !s.startsWith('/') &&
@@ -62,7 +61,7 @@ export const sourceRefSchema = z.string().refine(
   'sourceRef: repo-relative path + section anchor (#…/§…/@commit)',
 );
 
-/** 场景 ID（runbook 步骤 9 必含 + 基线新增面） */
+/** Scenario IDs (allowed scenario vocabulary) */
 export const scenarioIdSchema = z.enum([
   'normal', 'zero-balance', 'zero-position', 'paused', 'undeployed', 'rpc-fail',
   'index-lag', 'wrong-network', 'external-eoa', 'embedded-eoa', 'user-rejected',
@@ -73,7 +72,7 @@ export const scenarioIdSchema = z.enum([
 ]);
 export type ScenarioId = z.infer<typeof scenarioIdSchema>;
 
-/** 通用记录外壳 */
+/** Generic record shell */
 export const recordSchema = z.object({
   id: idSchema,
   scenario: z.array(scenarioIdSchema).min(1),
@@ -91,18 +90,18 @@ export const chainSchema = recordSchema.extend({
 /** assets.json */
 export const assetSchema = recordSchema.extend({
   symbol: z.string(),
-  name: z.string().optional(), // 代币本名（储备=真实代币 canonical 名 Ethereum/USD Coin 等；缺失=组件回退 symbol，2026-09-27 Swap 选择弹窗行名）
+  name: z.string().optional(), // Token proper name (reserve=real token canonical name Ethereum/USD Coin etc.; missing=components fall back to symbol)
   kind: z.enum(['uasset', 'reserve', 'sy', 'memecoin', 'share', 'credit']),
   decimals: z.number().int().min(0).max(18),
-  anchorNote: z.string().optional(), // uAsset 锚定限定语（glossary A）
-  pairedUAssetId: z.string().optional(), // credit 专用：配对 uAsset id（一对一，不得跨用——OB:memeverse/genesis-credit.md:17；合约 creditOf(uAsset)）
-  usdSample: z.number().positive().optional(), // uAsset 美元样本价（fixture 假数据，生产以预言机/链上为准）
-  anchorValue: z.number().positive().optional(), // sy 资产按实时价值折算锚资产样本率（1 枚 sy ≈ N 锚资产→N uAsset，OB:outstake/uasset.md:21；wstETH≈1.05 样本 :48；样本缺失=组件兜底面值 1，不显槽位——用户裁定 2026-09-25）
+  anchorNote: z.string().optional(), // uAsset anchor qualifier (glossary A)
+  pairedUAssetId: z.string().optional(), // credit-only: paired uAsset id (one-to-one, must not be cross-used; credit maps 1:1 to its uAsset via creditOf(uAsset))
+  usdSample: z.number().positive().optional(), // uAsset USD sample price (fixture dummy data; production defers to oracle/on-chain reads)
+  anchorValue: z.number().positive().optional(), // sy/reserve to anchor-asset conversion sample rate at real-time value (1 sy ≈ N anchor assets -> N uAsset; samples: sy wstETH≈1.05, sy stETH=1, reserve ETH=1; sample missing=components fall back to face value 1, no slot shown)
   address: fixtureAddressSchema.optional(),
 });
 
-/** verses.json（阶段枚举=SPEC-M9 状态机的用户可见面） */
-/** verse 社交链接（注册期元数据；kind→UI 图标映射在展示层：website=Globe/x=AtSign/telegram=Send/discord=MessageCircle；展示顺序=website,x,discord,telegram） */
+/** verses.json (stage enum = user-visible face of the on-chain verse state machine) */
+/** Verse social links (registration-phase metadata; kind->UI icon mapping lives in the presentation layer: website=Globe/x=AtSign/telegram=Send/discord=MessageCircle; display order=website,x,discord,telegram) */
 export const verseSocialSchema = z.object({
   kind: z.enum(['website', 'x', 'telegram', 'discord']),
   url: z.string().url(),
@@ -113,45 +112,45 @@ export const verseSchema = recordSchema.extend({
   symbol: z.string(),
   stage: z.enum(['genesis', 'locked', 'unlocked', 'refund']),
   governanceChain: chainIdSchema,
-  createdAt: isoTimeSchema, // 创世池创建时间（固定 UTC；Explore 排序/展示用）
-  participants: z.number().int().positive(), // 参与地址数快照（Explore 排序/详情页展示用）
-  description: z.string().optional(), // 一句话描述（注册期元数据；缺失=UI 不渲染）
-  socials: z.array(verseSocialSchema).optional(), // 社交链接（注册期元数据；缺失=UI 不渲染）
-  projectedMarketCap: amountSchema.optional(), // 预计市值快照（uAsset 计；注册参数——读链参数，缺失=UI 不渲染）
+  createdAt: isoTimeSchema, // Genesis pool creation time (fixed UTC; used for Explore sorting/display)
+  participants: z.number().int().positive(), // Participating-address count snapshot (used for Explore sorting/detail page display)
+  description: z.string().optional(), // One-line description (registration-phase metadata; missing=UI does not render)
+  socials: z.array(verseSocialSchema).optional(), // Social links (registration-phase metadata; missing=UI does not render)
+  projectedMarketCap: amountSchema.optional(), // Projected market cap snapshot (in uAsset; registration parameter -- on-chain read parameter, missing=UI does not render)
   genesis: z.object({
     minSuccessThreshold: amountSchema,
     normalRaised: amountSchema,
-    leverageInterest: amountSchema, // 双口径独立判定（lifecycle.md:35-49）
+    leverageInterest: amountSchema, // Independent dual-metric success check (normal funds and leverage interest are each compared against the threshold)
     preorderRaised: amountSchema,
     endsAt: isoTimeSchema,
-    preorderCapacityRatio: rateSchema.optional(), // 预购容量比例快照（容量=(普通资金+杠杆债务本金)×70%×容量比例——glossary；读链参数，缺失→该区不渲染、提交禁用）
-    leverageInterestRate: rateSchema.optional(), // 杠杆一次性利率快照（注册时锁定、非年化；债务额度=利息÷利率——polend.md；读链参数，缺失→该区不渲染、提交禁用）
-    leverageDebtCap: amountSchema.optional(), // 杠杆债务上限快照（uAsset 计；现债务=已收利息÷利率——POLend LeveragedDebtInfo；读链参数，缺失→该区不渲染、提交禁用）
-    fastGenesis: z.boolean().optional(), // Fast Mode：任一门槛达标即提前结束创世（memeverse-create.md §2；默认关闭）
+    preorderCapacityRatio: rateSchema.optional(), // Preorder capacity ratio snapshot (capacity=(normal funds + leverage debt principal)×70%×capacity ratio; on-chain read parameter, missing -> section not rendered, submit disabled)
+    leverageInterestRate: rateSchema.optional(), // Leverage one-time interest rate snapshot (locked at registration, not annualized; debt allowance=interest÷rate; on-chain read parameter, missing -> section not rendered, submit disabled)
+    leverageDebtCap: amountSchema.optional(), // Leverage debt cap snapshot (in uAsset; current debt=interest collected÷rate; on-chain read parameter, missing -> section not rendered, submit disabled)
+    fastGenesis: z.boolean().optional(), // Fast Mode: genesis ends early once any threshold is met (off by default)
   }),
   unlock: z.object({
-    unlockedAtTx: isoTimeSchema.optional(), // 实际解锁交易时间=保护期起点（genesis.md:52）
+    unlockedAtTx: isoTimeSchema.optional(), // Actual unlock transaction time = protection-period start
   }).optional(),
-  // 上线后市场活跃快照（发现页锁定中/已解锁卡共用同一字段集，2026-09-23 用户裁定两阶段卡内容一致；
-  // 读链参数——机制口径 OB:memeverse/memecoin-staking.md（质押收益与国库入账均来自交易费分成）、
-  // OB:memeverse/dao-governance.md（uAsset 计费用入 DAO 国库）；解锁时间不入快照——由
-  // endTime+FIXED_LOCKUP_DURATION 推导（合约常量）；缺失=解锁时间行不渲染——unavailable 槽位键已随 2026-10-05 裁定废止）
+  // Post-launch market activity snapshot (shared by the discovery page's locked/unlocked cards, same field set;
+  // on-chain read parameters -- staking yield and treasury accounting both come from trading-fee sharing, fees in
+  // uAsset go into the DAO treasury; unlock time is not in the snapshot -- derived from
+  // endTime+FIXED_LOCKUP_DURATION (contract constant); missing=unlock-time row not rendered)
   livePhase: z.object({
-    volume24h: amountSchema, // 24h 四池交易量快照（uAsset 计）
-    stakingApy: rateSchema, // 质押年化快照（ratio：5.688=568.8%）
-    treasuryFundUsd: amountSchema, // DAO 国库余额快照（美元计——卡头市值美元口径先例 2026-09-23）
+    volume24h: amountSchema, // 24h four-pool volume snapshot (in uAsset)
+    stakingApy: rateSchema, // Staking APY snapshot (ratio: 5.688=568.8%)
+    treasuryFundUsd: amountSchema, // DAO treasury balance snapshot (in USD; same USD display convention as the card-header market cap)
   }).optional(),
 });
 
-/** positions.json（open-term CDP；redeem 唯一减借——SPEC-S2 L50） */
+/** positions.json (open-term CDP; redeem is the only debt reducer) */
 export const positionSchema = recordSchema.extend({
   chainId: chainIdSchema,
   owner: fixtureAddressSchema,
   collateral: z.object({ assetId: idSchema, amount: amountSchema }),
-  debt: amountSchema, // 未偿 uAsset 债务
-  yieldSource: z.string(), // 生息来源品牌（质押参与副文案）
-  noMaturity: z.literal(true), // 大白话口径数据锚（PD-09）
-  openedFor: idSchema.optional(), // 仓位来源 Verse（质押参与同笔交易原子开仓——PD-01/PD-03；缺失=独立 Genesis Staking 铸造，2026-10-02 用户裁定展示来源）
+  debt: amountSchema, // Outstanding uAsset debt
+  yieldSource: z.string(), // Yield-source brand (staking participation secondary copy)
+  noMaturity: z.literal(true), // Plain-language convention data anchor
+  openedFor: idSchema.optional(), // Position's origin Verse (staking participation opens the position atomically in the same tx; missing=minted as standalone Genesis Staking)
 });
 
 /** psm.json */
@@ -162,7 +161,7 @@ export const psmSchema = recordSchema.extend({
   tin: rateSchema,
   tout: rateSchema,
   stockCap: amountSchema,
-  netMinted: amountSchema, // headroom = stockCap − netMinted（SPEC-S8 §3）
+  netMinted: amountSchema, // headroom = stockCap − netMinted
   reserveAvailable: amountSchema,
 });
 
@@ -170,57 +169,58 @@ export const psmSchema = recordSchema.extend({
 export const usrVaultSchema = recordSchema.extend({
   chainId: chainIdSchema,
   assetId: idSchema, // suETH/suUSD/suBNB
-  usrRate: rateSchema, // 0 = 未激活（SPEC-S9：18-dec 点值，此处按 rate 域记）
-  accrualIndexRaw: decimalString, // 1e18 域
+  usrRate: rateSchema, // 0 = inactive (18-dec point value, recorded here per the rate domain)
+  accrualIndexRaw: decimalString, // 1e18 domain
   lastSettledAt: isoTimeSchema,
-  capped: z.boolean(), // 封顶钳制域标记
-  myShares: amountSchema.optional(), // 样本账户份额（2026-10-02 用户裁定造样本；缺失=0→Portfolio 空态）
+  capped: z.boolean(), // Cap clamp domain flag
+  myShares: amountSchema.optional(), // Sample account shares (missing=0 -> Portfolio empty state)
 });
 
-/** bridge-messages.json（三阶段各自成败——OB omnichain.md:31-43） */
+/** bridge-messages.json (per-stage success/failure samples) */
 export const bridgeMessageSchema = recordSchema.extend({
   fromChain: chainIdSchema,
   toChain: chainIdSchema,
   assetId: idSchema,
   amount: amountSchema,
   sentAt: isoTimeSchema,
-  stage: z.enum(['sent', 'delivered', 'settled', 'stranded']), // stranded=已发出未落位，可手动恢复
-  remainderOnSource: amountSchema.optional(), // 6 位小数余数留源链
+  stage: z.enum(['sent', 'delivered', 'settled', 'stranded']), // stranded=sent but not yet landed, manually recoverable
+  remainderOnSource: amountSchema.optional(), // 6-decimal remainder left on the source chain
 });
 
-/** markets.json（四池与费率状态——SPEC-M5/M14） */
+/** markets.json (four pools and fee-rate states) */
 const candleSchema = z.object({
   t: isoTimeSchema, o: decimalString, h: decimalString, l: decimalString, c: decimalString,
-  v: decimalString.optional(), // 蜡烛成交量（uAsset 计价样本；缺失=展示层按 0 处理）
+  v: decimalString.optional(), // Candle volume (uAsset-denominated sample; missing=presentation layer treats as 0)
 });
 export const marketSchema = recordSchema.extend({
   verseId: idSchema,
   pool: z.enum(['main', 'pol-uasset', 'pt-uasset', 'pt-pol']),
   tvl: amountSchema,
   feeState: z.enum(['normal', 'opening-decay', 'dynamic-applied', 'paused-protection']),
-  // 池动态费率样本（dynamic fee hook——OB:memeverse/hook.md 基础费率下限 1%+动态项、合约 FEE_BASE_BPS=100/FEE_MAX_BPS=10000——DynamicFeeMath.sol:41-42；bps 计，稳态池样本带宽 100–800 bps（1%–8%）——gen-market-fee.mjs；
-  // 2026-09-28 用户裁定造数看原型效果（Flash Swap 费率行数值源）；缺失=槽位 '--'
+  // Pool dynamic fee-rate sample (dynamic fee hook: base-rate floor 1% + dynamic term; contract constants
+  // FEE_BASE_BPS=100/FEE_MAX_BPS=10000; in bps, steady-state pool sample bandwidth 100-800 bps
+  // (1%-8%); value source for the Flash Swap fee row); missing=slot '--'
   feeRate: z.object({ raw: decimalString, unit: z.literal('bps'), scale: z.number().int().min(0).max(4) }).optional(),
   lpShareSample: z.object({ poolShare: rateSchema, pendingFees: amountSchema }).optional(),
-  candles: z.array(candleSchema).max(500).optional(), // 主池 K 线样本（1h 原始粒度；4h/1d/1w 由展示层聚合）
+  candles: z.array(candleSchema).max(500).optional(), // Main-pool candle sample (1h raw granularity; 4h/1d/1w aggregated by the presentation layer)
   candlesFine: z
     .object({
       '1m': z.array(candleSchema).max(500),
       '5m': z.array(candleSchema).max(500),
       '15m': z.array(candleSchema).max(500),
     })
-    .optional(), // 细粒度蜡烛样本（2026-09-23 用户裁定：全部粒度可选、假数据看效果）
-  volume24h: amountSchema.optional(), // 24h 成交量快照（池维度；缺失→UI 不渲染）
-  apr7d: rateSchema.optional(), // 近 7 日费率年化样本（展示推导值；缺失→该 APR 区不渲染）
-  lpPerQuote: rateSchema.optional(), // LP 铸得率样本：每供给 1 quote 侧资产铸得 LP 数量（totalSupply/R_quote v2 式口径；Add Liquidity 弹窗输出推导，2026-09-27；缺失→弹窗输出随空值 0.00）
-  tokenStats: z.object({ // 仅主池条目携带（代币统计条——R-06）
-    totalSupply: amountSchema, // Memecoin 总供应快照
-    holders: z.number().int().positive(), // 持有人数快照
-    tokenAddress: fixtureAddressSchema, // Memecoin CA（fixture 样本，不冒充部署地址）
+    .optional(), // Fine-granularity candle samples (all granularities selectable, dummy data for preview)
+  volume24h: amountSchema.optional(), // 24h volume snapshot (pool dimension; missing -> UI does not render)
+  apr7d: rateSchema.optional(), // Trailing 7-day fee APR sample (display-derived value; missing -> this APR section not rendered)
+  lpPerQuote: rateSchema.optional(), // LP mint-rate sample: LP amount minted per 1 quote-side asset supplied (totalSupply/R_quote formula convention; drives the Add Liquidity dialog output; missing -> dialog output falls back to 0.00 on empty)
+  tokenStats: z.object({ // Carried by main-pool entries only (token stats bar)
+    totalSupply: amountSchema, // Memecoin total-supply snapshot
+    holders: z.number().int().positive(), // Holder count snapshot
+    tokenAddress: fixtureAddressSchema, // Memecoin CA (fixture sample, not impersonating a deployed address)
   }).optional(),
 });
 
-/** transactions.json（A7–A12 + Type-4/跨链类型） */
+/** transactions.json (kernel batch, Type-4 first-delegation, cross-chain and plain transaction samples) */
 export const transactionSchema = recordSchema.extend({
   chainId: chainIdSchema,
   kind: z.enum(['kernel-batch', 'type4-first-delegation', 'cross-chain-send', 'plain']),
@@ -228,106 +228,107 @@ export const transactionSchema = recordSchema.extend({
   nonce: nonceSchema,
   blockNumber: blockNumberSchema.optional(),
   submittedAt: isoTimeSchema.optional(),
-  errorMsg: z.string().optional(), // failure 场景：解码后错误+恢复动作文案键
+  errorMsg: z.string().optional(), // failure scenario: decoded error + recovery-action copy key
 });
 
 /** governance.json */
-/** 资金明细构成行（2026-09-26 参照 demo.outrun.build/memeverse/26：国库/未领取奖励多资产
- *  构成弹窗；具体构成无真源=S 级样本，总额锚 treasuryUAsset/remainingRewards 口径） */
+/** Treasury breakdown composition rows (treasury/unclaimed-reward multi-asset composition dialogs; the concrete
+ *  composition is sample data, totals anchored to the treasuryUAsset/remainingRewards convention) */
 const governanceAssetSchema = z.object({
   symbol: z.string(),
   name: z.string(),
-  amount: amountSchema, // 数量样本（按 unitPrice 样本换算）
-  usdValue: amountSchema, // 美元值样本
+  amount: amountSchema, // Quantity sample (converted at the unitPrice sample)
+  usdValue: amountSchema, // USD value sample
 });
 
 export const governanceSchema = recordSchema.extend({
   verseId: idSchema,
   cycleNumber: uintString,
-  cycleDurationDays: z.number().int().positive(), // 读链显示（PD-09/C4——非固定 90）
+  cycleDurationDays: z.number().int().positive(), // On-chain read display (not a fixed 90)
   cycleEndsAt: isoTimeSchema,
   finalized: z.boolean(),
   claimWindowEndsAt: isoTimeSchema.optional(),
-  // —— 以下为 DAO 标签周期激励面（2026-09-23 四标签详情页）；全部可选：无治理数据的 verse 仅显 DAO 标题（null 不渲染，2026-10-05 裁定）——
-  governorAddress: fixtureAddressSchema.optional(), // Governor 合约地址（fixture 样本）
-  incentivizerAddress: fixtureAddressSchema.optional(), // 周期激励合约地址（fixture 样本）
-  delegates: z.number().int().positive().optional(), // 已委托地址数快照
-  totalVotingPower: amountSchema.optional(), // 总票权（sMemecoin 计）
-  myVotes: amountSchema.optional(), // 样本账户当前票权
-  treasuryUAsset: amountSchema.optional(), // 国库 uAsset 余额快照（Governor 托管）
-  rewardRatio: rateSchema.optional(), // 划拨比例（初始 2500bps=25%，治理可改——M10:332-333）
-  cumulativeIncentivePool: amountSchema.optional(), // 累计激励池（reward ledger 余额）
-  treasuryAssets: z.array(governanceAssetSchema).optional(), // 当期国库构成样本（资金明细弹窗）
+  // -- Everything below is the DAO tab's cycle-incentive surface; all optional:
+  // verses without governance data show only the DAO heading (null-not-rendered) --
+  governorAddress: fixtureAddressSchema.optional(), // Governor contract address (fixture sample)
+  incentivizerAddress: fixtureAddressSchema.optional(), // Cycle incentive contract address (fixture sample)
+  delegates: z.number().int().positive().optional(), // Delegated-address count snapshot
+  totalVotingPower: amountSchema.optional(), // Total voting power (in sMemecoin)
+  myVotes: amountSchema.optional(), // Sample account's current voting power
+  treasuryUAsset: amountSchema.optional(), // Treasury uAsset balance snapshot (Governor custody)
+  rewardRatio: rateSchema.optional(), // Allocation ratio (initial 2500bps=25%, governance-changeable)
+  cumulativeIncentivePool: amountSchema.optional(), // Cumulative incentive pool (reward ledger balance)
+  treasuryAssets: z.array(governanceAssetSchema).optional(), // Current-cycle treasury composition sample (treasury breakdown dialog)
   currentCycleVotes: z.object({
-    total: amountSchema, // 当期总票数（cast 时刻记入当前周期——M10:337）
-    mine: amountSchema, // 样本账户当期票数
+    total: amountSchema, // Current-cycle total votes (recorded into the current cycle at cast time)
+    mine: amountSchema, // Sample account's current-cycle votes
   }).optional(),
   lastCycle: z.object({
     number: uintString,
-    treasuryUAsset: amountSchema, // 上期期末国库
-    treasuryAssets: z.array(governanceAssetSchema).optional(), // 上期期末国库构成样本（资金明细弹窗）
-    remainingRewards: amountSchema, // 未领取奖励（窗口过后并入国库不补发——dao-governance.md:51）
-    unclaimedAssets: z.array(governanceAssetSchema).optional(), // 未领取奖励构成样本（资金明细弹窗）
+    treasuryUAsset: amountSchema, // Previous cycle's end-of-cycle treasury
+    treasuryAssets: z.array(governanceAssetSchema).optional(), // Previous cycle's end-of-cycle treasury composition sample (treasury breakdown dialog)
+    remainingRewards: amountSchema, // Unclaimed rewards (after the window passes, merged into the treasury without reissue)
+    unclaimedAssets: z.array(governanceAssetSchema).optional(), // Unclaimed-reward composition sample (treasury breakdown dialog)
     totalVotes: amountSchema,
     myVotes: amountSchema,
-    myClaimable: amountSchema, // 样本账户上期可领（窗口内）
-    claimableAssets: z.array(governanceAssetSchema).optional(), // 可领奖励构成样本（多 token 按票权份额——GovernanceCycleIncentivizerUpgradeable.sol:199；可领明细弹窗）
+    myClaimable: amountSchema, // Sample account's previous-cycle claimable (within window)
+    claimableAssets: z.array(governanceAssetSchema).optional(), // Claimable-reward composition sample (multiple tokens by voting-power share; claimable breakdown dialog)
   }).optional(),
   proposals: z.array(z.object({
     id: idSchema,
     title: z.string(),
     state: z.enum(['active', 'passed', 'defeated', 'queued', 'executed']),
-    governanceTarget: z.boolean(), // true=需超级多数
+    governanceTarget: z.boolean(), // true=requires supermajority
     quorumProgress: rateSchema,
     votingEndsAt: isoTimeSchema,
   })),
 });
 
-/** staking.json（Memecoin 质押收益库 YieldVault——SPEC-M10 §6 + OB memecoin-staking.md；2026-09-23 四标签详情页） */
+/** staking.json (Memecoin staking yield vault YieldVault samples) */
 export const stakingSchema = recordSchema.extend({
   verseId: idSchema,
-  vaultAddress: fixtureAddressSchema, // YieldVault 合约地址（fixture 样本，部署在治理链）
-  totalStaked: amountSchema, // 总质押 Memecoin（快照）
-  assetsPerShare: rateSchema, // 1 份额 ≈ N Memecoin（convertToAssets 含 virtualAssets 缓冲）
-  apy7d: rateSchema, // 近 7 日实绩年化（份额价涨幅年化，链下推导展示值）
-  myShares: amountSchema, // 样本账户份额
-  delegatee: fixtureAddressSchema, // 当前委托对象（Q9：质押时选定，默认自己）
+  vaultAddress: fixtureAddressSchema, // YieldVault contract address (fixture sample, deployed on the governance chain)
+  totalStaked: amountSchema, // Total staked Memecoin (snapshot)
+  assetsPerShare: rateSchema, // 1 share ≈ N Memecoin (convertToAssets includes the virtualAssets buffer)
+  apy7d: rateSchema, // Trailing 7-day realized APY (share-price appreciation annualized, off-chain derived display value)
+  myShares: amountSchema, // Sample account shares
+  delegatee: fixtureAddressSchema, // Current delegatee (chosen at staking time, defaults to self)
   pendingRedeems: z.array(z.object({
-    lockedAssets: amountSchema, // 申请时锁定的 Memecoin（申请即固定价值、停增值、票权消失）
+    lockedAssets: amountSchema, // Memecoin locked at request time (value fixed at request, stops accruing, voting power lost)
     requestedAt: isoTimeSchema,
-    maturesAt: isoTimeSchema, // REDEEM_DELAY ≈ 1 天；≤ anchor=可提取，> anchor=等待中
-  })), // ≤5 笔（MAX_REDEEM_REQUESTS）；空数组=无待执行
+    maturesAt: isoTimeSchema, // REDEEM_DELAY ≈ 1 day; ≤ anchor=withdrawable, > anchor=waiting
+  })), // ≤5 entries (MAX_REDEEM_REQUESTS); empty array=nothing pending
 });
 
-/** pol-positions.json（POL 持仓与估值样本——SPEC-M14 + polend/pt-yt-splitter.md §4 名义价值；2026-09-23） */
+/** pol-positions.json (POL position and valuation sample) */
 export const polPositionSchema = recordSchema.extend({
   verseId: idSchema,
-  polAddress: fixtureAddressSchema, // POL 合约地址（fixture 样本）
-  polSupply: amountSchema, // POL 总供应
-  uAssetPerPol: rateSchema, // 每 1 POL 对应主池 uAsset 侧数量（名义价值 = 2× 此值——全范围简化）
-  marketPricePerPol: rateSchema, // POL/uAsset 池市场价（相对名义价值溢价/折价皆可——pol-splitter.md；样本口径取典型折价 5–16%，2026-09-24 用户裁定）
-  flashUserFeeRate: rateSchema, // Flash Swap 用户手续费率样本（相对用户支付额——池动态费按 PT 全腿名义收取、用户只付差额，杠杆换算后谱系可 <1% 也可远超常量级；带宽 0.3%–85% 覆盖极小到极高——gen-pol-flash-fee.mjs，2026-09-28 用户裁定：费率=用户付的手续费、假数据不做推导；过高时合约 InvalidBuyCost/MaxPOLInExceeded 回滚无法成交）
-  ptPricePerPol: rateSchema, // 每 1 PT 的 PT/POL 池市场价（PT 折价交易——pol-splitter.md:44；样本锚=yt-flash-swap.md 示例 PT≈0.9 POL，YT 隐含价=1−此值——yt-flash-swap.md「1 POL=1 PT+1 YT」；2026-09-27 Swap 代币选择）
-  myPol: amountSchema, // 样本账户 POL 余额
-  myPt: amountSchema, // 样本账户 PT 余额（POL 拆分所得，PT-<symbol>——POLSplitterUpgradeable.sol:225）
-  myYt: amountSchema, // 样本账户 YT 余额（拆分所得 + 创世领取，YT-<symbol>——POLSplitterUpgradeable.sol:226）
-  myMemecoin: amountSchema, // 样本账户本 verse memecoin 余额（Mint POL 供给侧样本，2026-09-24 用户裁定造样本使 Max 可用）
-  myUAsset: amountSchema, // 样本账户 uAsset 余额（钱包级资产，各 verse 同值；Mint POL 供给侧样本）
-  myReserve: amountSchema, // 样本账户本 verse PSM 配对储备余额（钱包级；Swap 储备侧供给样本——2026-09-28 用户裁定造数，gen-pol-my-reserve.mjs；单储备口径简化：本仓 market verse 每族仅一配对储备）
+  polAddress: fixtureAddressSchema, // POL contract address (fixture sample)
+  polSupply: amountSchema, // POL total supply
+  uAssetPerPol: rateSchema, // Main-pool uAsset-side amount per 1 POL (nominal value = 2× this value -- full-range simplification)
+  marketPricePerPol: rateSchema, // POL/uAsset pool market price (premium or discount vs nominal value both possible; sample convention takes a typical 5-16% discount, one legacy sample at 19.8%)
+  flashUserFeeRate: rateSchema, // Flash Swap user fee-rate sample (relative to the user's payment -- the pool dynamic fee is charged on the PT leg's full nominal value while the user pays only the difference, so after leverage conversion the spectrum can be <1% or far above constant magnitude; design band 0.3%-85% covering tiny to very high (realized samples 0.9%-64%); the rate = the fee the user pays, dummy data does no derivation; when too high the contract reverts with InvalidBuyCost/MaxPOLInExceeded and the trade cannot execute)
+  ptPricePerPol: rateSchema, // PT/POL pool market price per 1 PT (PT trades at a discount; sample anchor PT≈0.9 POL, YT implied price=1−this value, from the "1 POL=1 PT+1 YT" identity)
+  myPol: amountSchema, // Sample account's POL balance
+  myPt: amountSchema, // Sample account's PT balance (from the POL split, PT-<symbol>)
+  myYt: amountSchema, // Sample account's YT balance (from the split + genesis claim, YT-<symbol>)
+  myMemecoin: amountSchema, // Sample account's memecoin balance in this verse (Mint POL supply-side sample, so Max works)
+  myUAsset: amountSchema, // Sample account's uAsset balance (wallet-level asset, same value across verses; Mint POL supply-side sample)
+  myReserve: amountSchema, // Sample account's PSM-paired reserve balance in this verse (wallet-level; Swap reserve-side supply sample; single-reserve convention simplification: each family has only one paired reserve per market verse in this repo's data)
   myLp: z.object({
-    // 四池 LP 代币余额样本（Remove Liquidity 弹窗供给侧，2026-09-27；键=池标识同 marketSchema.pool；
-    // 量级锚=各侧持仓 × 供给比例 × lpPerQuote——gen-pol-my-lp.mjs 幂等生成）
+    // Four-pool LP token balance samples (Remove Liquidity dialog supply side; key=pool identifier matching marketSchema.pool;
+    // magnitude anchor = each side's holding × supply ratio × lpPerQuote)
     main: amountSchema,
     'pol-uasset': amountSchema,
     'pt-uasset': amountSchema,
     'pt-pol': amountSchema,
   }),
-  claimableYt: amountSchema, // 创世结束后可领 YT（claimNormalYT：Stage≥Locked 一次性按创世出资比例——MemeverseSettlementImpl.sol:88；2026-09-23 用户裁定 Claim POL 不存在，删除该字段）
-  ytRedeemUAssetPerUnit: rateSchema.optional(), // 每 1 YT 赎回摊得 uAsset（结算回收剩余池派生——POLSplitterUpgradeable.sol:404；locked 记录=结算预估样本（2026-09-28 用户裁定造数看原型效果，gen-pol-yt-uasset-leg.mjs 锚 unlocked 量级 ≈uAssetPerPol 3–5%），unlocked=结算后剩余池派生样本；缺失→UI 不渲染）
-  ytRedeemMemecoinPerUnit: rateSchema.optional(), // 每 1 YT 赎回摊得 memecoin（redeemYT：settlementMemecoin×份额/流通 YT——POLSplitterUpgradeable.sol:405；同上）
+  claimableYt: amountSchema, // YT claimable after genesis ends (claimNormalYT: one-time pro rata by genesis contribution once the verse stage ≥ Locked)
+  ytRedeemUAssetPerUnit: rateSchema.optional(), // uAsset redeemed per 1 YT (derived from the remaining pool recovered at settlement; locked records=pre-settlement estimate sample anchored to the unlocked magnitude ≈3-5% of uAssetPerPol, unlocked=derived sample from the remaining pool after settlement; missing -> UI does not render)
+  ytRedeemMemecoinPerUnit: rateSchema.optional(), // Memecoin redeemed per 1 YT (redeemYT: settlementMemecoin × share / circulating YT; same as above)
 });
 
-/** accounts.json（§6.2 九态 + §11.2 形态） */
+/** accounts.json (per-chain wallet states + wallet-kind forms) */
 export const accountRecordSchema = recordSchema.extend({
   address: fixtureAddressSchema,
   walletKind: z.enum(['external-eoa', 'embedded-eoa']),
@@ -342,7 +343,7 @@ export const accountRecordSchema = recordSchema.extend({
   })),
 });
 
-/** notifications.json（v1=toast 队列样本；通知中心延后——决议 007） */
+/** notifications.json (toast queue sample only; no notification center) */
 export const notificationSchema = recordSchema.extend({
   kind: z.enum(['toast']),
   messageKey: z.string(),
@@ -353,11 +354,11 @@ export const notificationSchema = recordSchema.extend({
 export const scenarioSchema = z.object({
   id: scenarioIdSchema,
   label: z.string(),
-  expectation: z.string(), // 可观察期望（验收动作→结果）
+  expectation: z.string(), // Observable expectation (acceptance action -> result)
   affects: z.array(idSchema),
 });
 
-/** 文件容器 */
+/** File container */
 export const fixtureFile = <T extends z.ZodTypeAny>(item: T) =>
   z.object({ seed: z.string(), generatedFrom: z.literal('fixtures/data/seed.json'), items: z.array(item) });
 
@@ -365,19 +366,19 @@ export const chainsFile = fixtureFile(chainSchema);
 export const assetsFile = fixtureFile(assetSchema);
 export const versesFile = fixtureFile(verseSchema);
 
-/** participations.json（样本账户的创世参与记录；Portfolio 退款区块/排序用） */
+/** participations.json (sample account's genesis participation records; used by the Portfolio refund block/sorting) */
 export const participationSchema = recordSchema.extend({
   verseId: idSchema,
   owner: fixtureAddressSchema,
   kind: z.enum(['normal', 'leverage', 'preorder']),
-  route: z.enum(['direct', 'stake']).optional(), // 参与路径（仅 kind=normal：PD-01 直接/质押两门；质押=同笔交易开出 OutStake 仓位；杠杆/预购面板各自独立路径无此维）
+  route: z.enum(['direct', 'stake']).optional(), // Participation route (only meaningful for kind=normal: direct/stake two paths; stake=opens a staking position in the same tx; other kinds should omit it -- not schema-enforced, the sample data carries a route on a leverage row; the leverage/preorder panels each have independent routes without this dimension)
   amount: amountSchema,
 });
 export const participationsFile = fixtureFile(participationSchema);
 export const positionsFile = fixtureFile(positionSchema);
 
-/** balances.json（样本账户钱包余额——链×资产快照，2026-10-02 用户裁定造样本；
- *  Portfolio ②区资产与跨链数据源；数值为样本，生产读链上值） */
+/** balances.json (sample account's wallet balances -- chain × asset snapshot;
+ *  data source for Portfolio section (2) assets & cross-chain; values are samples, production reads on-chain values) */
 export const balanceSchema = recordSchema.extend({
   chainId: chainIdSchema,
   assetId: idSchema,
@@ -396,44 +397,43 @@ export const accountsFile = fixtureFile(accountRecordSchema);
 export const notificationsFile = fixtureFile(notificationSchema);
 export const scenariosFile = z.object({ items: z.array(scenarioSchema) });
 
-/** yield-sources.json（质押参与来源 registry：来源→可参与资产组；样本口径=OutrunBook vision.md 协议清单 + 用户裁定 2026-09-22 映射） */
+/** yield-sources.json (staking participation source registry: source -> participable asset group) */
 export const yieldSourceSchema = recordSchema.extend({
   name: z.string(),
-  /** 来源锚定族：uAsset 符号去掉 U 前缀（UETH/UUSD/UBNB→ETH/USD/BNB）；只对本族 Verse 开放（用户裁定 2026-09-22：UETH verse 不可能出现 sUSDe 类 USD 来源） */
+  /** Anchor family of the source: uAsset symbol minus the U prefix (UETH/UUSD/UBNB -> ETH/USD/BNB); open only to same-family verses (a UETH verse can never offer sUSDe-like USD sources) */
   anchor: z.enum(['ETH', 'USD', 'BNB']),
   assetIds: z.array(idSchema).min(1),
 });
 export const yieldSourcesFile = fixtureFile(yieldSourceSchema);
 
-/** create-config.json（创建表单读链参数快照——R-04；区间/费用为注册中心读值样本） */
+/** create-config.json (create-form on-chain parameter snapshot; ranges/fees are registration-center read-value samples) */
 export const createConfigSchema = recordSchema
   .extend({
-    /** 创世时长允许区间（center min/maxDurationDays 读值样本；demo 先例 1–3 天） */
+    /** Allowed genesis duration range (registration-center min/maxDurationDays read-value sample) */
     minDurationDays: z.number().int().positive(),
     maxDurationDays: z.number().int().positive(),
-    /** 固定锁定期：FIXED_LOCKUP_DURATION=365 days，合约常量非参数（config-matrix §3:83） */
+    /** Fixed lockup: FIXED_LOCKUP_DURATION=365 days, a contract constant not a parameter */
     lockupDays: z.literal(365),
-    /** 每条异链跨链 fan-out 费样本（LayerZero quote；中心链目标 fee=0——SPEC-M8 §9）；无注册费 */
+    /** Cross-chain fan-out fee sample per remote chain (LayerZero quote; fee=0 for hub-chain targets); no registration fee */
     remoteDeployFee: amountSchema,
-    /** 异链发起注册时 发起链→注册中心链 的 LayerZero 发送费样本（RegistrarOmnichain quoteRegister；
-     *  同链发起=0）。治理链=注册中心链为样本场景假设（deployment.md §8 中心链归属[未知]） */
+    /** LayerZero send fee sample for origin-chain -> registration-hub-chain when registering from a remote chain (quoteRegister;
+     *  same-chain origin=0). Governance chain = registration hub chain is a sample-scenario assumption */
     remoteSendFee: amountSchema,
   })
   .refine((config) => config.minDurationDays < config.maxDurationDays, 'minDurationDays < maxDurationDays');
 export const createConfigFile = fixtureFile(createConfigSchema);
 
-/** referral.json（样本账户推荐返佣快照——/referral，R-12；机制=Memeverse hook swap 返佣
- *  source-map M5/M14/M15：默认 rate=1000bps 即总手续费 10%、in-kind 逐币 pending/claim。
- *  链上事件 ReferralRebateAccrued 只记 referrer+币种+金额——friends 明细为索引器口径
- *  样本（2026-10-07 用户裁定保留）；referralCode=UI 短码样式位（demo 样式，链上无
- *  code→地址注册表，生产映射方案待定，同日用户裁定）。）
- *  交易行口径：rebate = trade × 费率样本 0.8%（markets feeRate 样本）× 10%。 */
+/** referral.json (sample account's referral rebate snapshot -- /referral page; mechanism=Memeverse hook swap rebate:
+ *  default rate=1000bps i.e. 10% of total fees, in-kind per-token pending/claim.
+ *  The on-chain event ReferralRebateAccrued records only referrer+token+amount -- the friends detail is an indexer-convention
+ *  sample; referralCode=UI short-code style slot (on-chain has no code->address registry, production mapping TBD).)
+ *  Transaction-row convention: rebate = trade × fee-rate sample 0.8% (markets feeRate sample) × 10%. */
 const referralAssetAmountSchema = z.object({
   assetId: idSchema,
   chainId: chainIdSchema,
   amount: amountSchema,
 });
-/** 交易行内资产腿（币种+数量；链在交易行上） */
+/** Asset leg within a transaction row (token + amount; chain lives on the transaction row) */
 const referralTxAmtSchema = z.object({
   assetId: idSchema,
   amount: amountSchema,
@@ -441,9 +441,9 @@ const referralTxAmtSchema = z.object({
 const referralTransactionSchema = z.object({
   verseId: idSchema,
   chainId: chainIdSchema,
-  /** 交易哈希（界面缩略显示；2026-10-07 用户裁定参照重设计） */
+  /** Tx hash (abbreviated display in the UI) */
   txId: fixtureTxHashSchema,
-  /** 该笔交易的被推荐人（与 friends 列表同址，样本内部自洽） */
+  /** The referee of this transaction (same address as the friends list, internally consistent within the sample) */
   friend: fixtureAddressSchema,
   trade: referralTxAmtSchema,
   rebate: referralTxAmtSchema,
@@ -457,7 +457,7 @@ const referralFriendSchema = z.object({
 });
 export const referralSchema = recordSchema.extend({
   referralCode: z.string().regex(/^[0-9A-Z]{6}$/, 'demo-style 6-char short code'),
-  /** 返佣率（占总手续费 bps；生产读 hook referrerRebateBps()，0–3500 可配） */
+  /** Rebate rate (bps of total fees; production reads hook referrerRebateBps(), configurable 0-3500) */
   rate: rateSchema,
   friendsCount: z.number().int().positive(),
   earned: z.array(referralAssetAmountSchema).min(1),
@@ -467,35 +467,36 @@ export const referralSchema = recordSchema.extend({
 });
 export const referralFile = fixtureFile(referralSchema);
 
-/** faucet.json（测试网水龙头快照——/faucet；机制=OutStake Faucet.sol source-map S10/S11：
- *  claim/batchClaim 每注册代币 24h 一次冷却领取，测试网 mock 三币（USDC/sUSDS/aUSDC，
- *  18-dec）各登记日限 1,000,000×1e18。swap=同链 USDC-PSM 面值兑换 UUSD（机制
- *  source-map S8：双向 1:1 par、tin/tout 费率、mint 受 stockCap）——UUSD 唯一获取路径
- *  （2026-10-09 用户两轮口径修正终值）；生息资产（sUSDS/aUSDC）不经 UUSD，直接
- *  stakeForGenesis 进创世。余额/冷却剩余/headroom 为样本值（冷却快照 remainingMs
- *  同 vault pendingRedeems 口径，墙钟递减）。） */
+/** faucet.json (testnet faucet snapshot -- /faucet page; mechanism:
+ *  claim/batchClaim has a 24h cooldown per registered token, testnet mocks three tokens (USDC/sUSDS/aUSDC,
+ *  18-dec) each registered with a daily limit of 1,000,000×1e18. swap=same-chain USDC-PSM face-value conversion
+ *  to UUSD (two-way 1:1 par, tin/tout rates, mint capped by stockCap) -- UUSD's only
+ *  acquisition path; yield-bearing assets (sUSDS/aUSDC) do
+ *  not pass through UUSD and go straight to stakeForGenesis into genesis. Balance/cooldown-remaining/headroom
+ *  are sample values (cooldown snapshot remainingMs follows the vault pendingRedeems convention, wall-clock
+ *  decreasing).) */
 const faucetTokenSchema = z.object({
   symbol: z.string().min(2),
   name: z.string().min(3),
   decimals: z.number().int().min(0).max(18),
-  /** 每日领取额度（合约 dailyLimit，一次性全额 mint 给领取人） */
+  /** Daily claim allowance (contract dailyLimit, one-time full mint to the claimer) */
   dailyLimit: amountSchema,
   address: fixtureAddressSchema,
-  /** 冷却剩余毫秒样本（0=可领；>0=ClaimTooSoon 域，UI 倒计时） */
+  /** Cooldown remaining milliseconds sample (0=claimable; >0=ClaimTooSoon error domain, UI countdown) */
   cooldownRemainingMs: z.number().int().nonnegative(),
 });
 const faucetSwapSchema = z.object({
   uAssetSymbol: z.string().min(2),
   reserveSymbol: z.string().min(2),
-  /** mint 费率（PSM tin，bps） */
+  /** mint fee rate (PSM tin, bps) */
   feeIn: rateSchema,
-  /** redeem 费率（PSM tout，bps） */
+  /** redeem fee rate (PSM tout, bps) */
   feeOut: rateSchema,
-  /** 铸造额度余量样本（stockCap−netMinted；null=无样本→明细行槽位） */
+  /** Mint allowance headroom sample (stockCap−netMinted; null=no sample -> breakdown row slot) */
   headroom: amountSchema.nullable(),
-  /** 样本账户 UUSD 余额（Back to USDC 方向 Max 源） */
+  /** Sample account's UUSD balance (Max source for the Back to USDC direction) */
   myUAsset: amountSchema,
-  /** 样本账户储备余额（Get UUSD 方向 Max 源） */
+  /** Sample account's reserve balance (Max source for the Get UUSD direction) */
   myReserve: amountSchema,
 });
 export const faucetSchema = recordSchema.extend({

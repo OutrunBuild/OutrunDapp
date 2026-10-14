@@ -45,7 +45,7 @@ function ToggleGroup({
         "group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] rounded-lg data-[size=sm]:rounded-[min(var(--radius-md),10px)] data-vertical:flex-col data-vertical:items-stretch",
         className
       )}
-      // Base UI 的 CompositeRoot 会给 role="group" 输出 aria-orientation（ARIA 不允许该角色携带），置 undefined 剥除；在 {...props} 前留调用方覆写余地
+      // Base UI's CompositeRoot emits aria-orientation for role="group" (ARIA forbids it on that role); set to undefined to strip it, placed before {...props} to leave room for caller overrides
       aria-orientation={undefined}
       {...props}
     >

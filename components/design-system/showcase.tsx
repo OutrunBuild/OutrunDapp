@@ -89,7 +89,6 @@ export function DesignSystemShowcase({ locale }: { locale: Locale }) {
 
   return (
     <OutrunShell locale={locale} accountAddress="">
-      {/* v0 Design System Showcase Page */}
       <div className="page-intro">
         <div>
           <h1>{t.title}</h1>

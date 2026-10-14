@@ -41,12 +41,12 @@ type DiscoveryBrowserProps = {
   initialSort: string
   initialOrder: 'asc' | 'desc'
   initialChain: string
-  /** 'fast' = 仅看 Fast Genesis 创世卡；'normal' = 仅看普通模式（无 fastGenesis 标记） */
+  /** 'fast' = show only Fast Genesis cards; 'normal' = show only normal mode (no fastGenesis flag) */
   initialMode: GenesisMode
   initialQuery: string
 }
 
-/** 无限滚动：每批加载体量（=3 列 × 2 行） */
+/** Infinite scroll: per-batch load size (= 3 columns × 2 rows) */
 const GRID_BATCH_SIZE = 6
 
 export function DiscoveryBrowser({
@@ -104,7 +104,8 @@ export function DiscoveryBrowser({
   }
 
   const normalizedQuery = initialQuery.trim().toLowerCase()
-  // 搜索跨全部阶段（退款社区仅搜索可达：徽章可见、可进详情）；无搜索词按阶段浏览（Refund 非公共浏览态）
+  // Search spans all stages (refund verses are reachable only via search: badge visible, detail
+  // accessible); without a search term, browse by stage (Refund is not a public browsing state)
   const visibleVerses = sortVerses(
     verses
       .filter((verse) => (normalizedQuery ? true : verse.stage === initialStage))
@@ -151,7 +152,8 @@ export function DiscoveryBrowser({
   }, [])
 
   const stageTabs: VerseStage[] = ['genesis', 'locked', 'unlocked']
-  // 排序项值集由 SORT_OPTIONS_BY_STAGE 派生（解析端/发射端/下拉三端单源防漂移），标签按 copy 配对
+  // The sort option value set is derived from SORT_OPTIONS_BY_STAGE (single source for parser /
+  // emitter / dropdown to prevent drift); labels are paired via copy
   const sortLabels: Record<string, string> = {
     createtime: copy.discovery.sortCreatetime,
     endtime: copy.discovery.sortEndtime,
@@ -209,9 +211,10 @@ export function DiscoveryBrowser({
       </nav>
 
       {view === 'loading' ? (
-        /* 骨架镜像 Locked 阶段 EconomyCard 结构（state-matrix D1「骨架保持结构」）：复用 economy-card*
-           类拿到与真实卡零漂移的几何；data-skeleton 关交互并把 stage 变量钉灰阶（不带阶段色，
-           2026-10-09 用户裁定——骨架与错误蒙版同为灰黑降级观感） */
+        /* The skeleton mirrors the Locked-stage EconomyCard structure: reusing the economy-card*
+           classes yields geometry with zero drift from real cards; data-skeleton disables
+           interaction and pins stage variables to grayscale (no stage colors — skeleton and error
+           mask share the same gray-black degraded look) */
         <section className="discovery-results">
           <div className="economy-grid degrade-skeleton" aria-hidden="true">
             {Array.from({ length: GRID_BATCH_SIZE }).map((_, i) => (

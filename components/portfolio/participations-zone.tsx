@@ -1,11 +1,14 @@
 /**
- * ④已参与区：阶段分组面板 + 行式清单（2026-10-05 用户裁定重做：
- * 字母表头数字矩阵「不是产品 UI」——行改资产行同款 ledger 节奏：tile 视觉锚 / 身份 +
- * 构成行（单位行内嵌「15.25K POL」、零值省略）/ 右缘主数字 + 日期副行 / 行尾动作；
- * 可领绿数=持仓行主数字，锁定行副行=预计解锁日（创世截止+365d 固定锁期，
- * MemeverseRegistrationLib.sol:14 合约常量）。可领筛选=组件内客户端态按钮（2026-10-08
- * 用户裁定：?claimable=1 URL 导航整页刷新被否，同仓位链筛选先例 positions-zone）；
- * 操作出口深链 verse 详情（PD-02 出口规则：跨 Verse 领取类深链对应 Verse）。
+ * (4) Participations zone: stage-grouped panels + row-style list —
+ * rows follow the same ledger
+ * rhythm as asset rows: tile visual anchor / identity + breakdown line (unit inline "15.25K POL",
+ * zeros omitted) / right-edge main number + date subline / end-of-row action; the claimable
+ * green number = the holdings row's main number, the locked row's subline = projected unlock
+ * date (genesis deadline + 365d fixed lockup, a contract
+ * constant). The claimable filter = in-component client-state buttons
+ * (URL navigation would cause a full page refresh, same precedent as the
+ * positions-zone chain filter); actions deep-link to the verse detail:
+ * claim actions deep-link to each row's own verse.
  */
 'use client'
 import Link from 'next/link'
@@ -20,7 +23,8 @@ import { Button } from '@/components/ui/button'
 
 const GROUP_ORDER: VerseStage[] = ['genesis', 'locked', 'unlocked']
 
-/** 构成行：单位行内嵌、零值省略（LP=四池合计不展示——2026-10-05 用户裁定）；全零返回 null */
+/** Breakdown line: unit inline, zeros omitted (LP = four-pool total not shown);
+ *  returns null when all zero */
 function MakeupLine({
   locale,
   holdings,
@@ -41,7 +45,8 @@ function ParticipationRow({ locale, row }: { locale: Locale; row: FixturePartici
   const href = verseHref(locale, row.verse.id)
   const claimable = row.holdings?.claimableYt ?? 0
 
-  // 右缘主数字：创世=参与金额；持仓=可领 YT（success 绿）；无可领=--（与持仓零值同语）
+  // Right-edge main number: genesis = participation amount; holdings = claimable YT (success
+  // green); nothing claimable = -- (same language as a zero holdings value)
   const state =
     row.genesis != null ? (
       <span className="pf-participation-row__amount">
@@ -61,7 +66,8 @@ function ParticipationRow({ locale, row }: { locale: Locale; row: FixturePartici
       </span>
     )
 
-  // 日期副行：锁定=预计解锁日（截止+365d）；创世与已解锁行无
+  // Date subline: locked = projected unlock date (deadline + 365d); none for genesis and
+  // unlocked rows
   const dateLine =
     row.verse.stage === 'locked' ? (
       <span className="pf-participation-row__date">
@@ -69,7 +75,7 @@ function ParticipationRow({ locale, row }: { locale: Locale; row: FixturePartici
       </span>
     ) : null
 
-  // 构成行：创世=截止日；持仓=POL/PT/YT 构成
+  // Breakdown line: genesis = deadline date; holdings = POL/PT/YT breakdown
   const makeup =
     row.holdings != null ? (
       <MakeupLine locale={locale} holdings={row.holdings} />
@@ -174,7 +180,8 @@ export function ParticipationsZone({ locale, rows }: { locale: Locale; rows: Fix
           if (group.length === 0) return null
           return (
             <div key={stage} className="pf-participations__group" data-stage={stage}>
-              {/* 017 面板化：材质/投影随 .pf-panel 原语；阶段主线=面板首 child 元素 */}
+              {/* Panelization: material/shadow follow the .pf-panel primitive; the stage line =
+                  the panel's first child element */}
               <div className="pf-panel">
                 <i className="pf-participations__stage-line" aria-hidden="true" />
                 <header className="pf-participations__group-head">

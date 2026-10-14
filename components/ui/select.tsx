@@ -77,7 +77,7 @@ function SelectContent({
           align={align}
           alignOffset={alignOffset}
           alignItemWithTrigger={alignItemWithTrigger}
-          /* 始终向下展开：禁用碰撞翻面（下方空间不足时收缩+内部滚动，不翻到上方） */
+          /* Always open downward: collision flip disabled (when space below is insufficient it shrinks + scrolls internally instead of flipping upward) */
           collisionAvoidance={{ side: "none" }}
           className="isolate z-50"
         >

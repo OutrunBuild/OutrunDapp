@@ -7,12 +7,14 @@ import { fmtTokenAmount } from '../global/amount-format'
 import { VaultActions } from './vault-actions'
 
 /**
- * Yield Vault 标签（OB memecoin-staking.md：Memecoin 质押收益库；APY=7D 实绩年化 Q7 口径；
- * 两步异步赎回状态列表 Q8 口径——2026-09-26 用户裁定参照 demo：列表收进操作卡标签内
- * （Redeem=仅等待中走秒倒计时 / Withdraw=仅已成熟逐笔），见 VaultActions；链感知跨链质押 Q10）。
- * 标题行（2026-09-24 用户裁定）：标题左、合约地址居中（无 VAULT 前缀文案）、
- * Live on {治理链} 右对齐——恒同一行。头部间距节奏（2026-09-27 用户裁定）：head+stats 收进
- * .vault-overview（gap-3）+ 面板顶距 space-4，与 DAO 面板头行一致。
+ * Yield Vault tab: Memecoin staking yield vault; APY=7D actual annualized.
+ * Redemption is two-step async with per-entry status lists living inside the action card's
+ * tabs (Redeem=waiting entries only with seconds countdown / Withdraw=matured entries only),
+ * see VaultActions; staking is chain-aware (operations target the verse's governance chain).
+ * Title row: title left, contract address centered (no VAULT prefix copy),
+ * Live on {governance chain} right-aligned — always on one line. Header spacing rhythm:
+ * head+stats tucked into .vault-overview (gap-3) + panel row gap space-4,
+ * consistent with the DAO panel's head row.
  */
 export function VaultPanel({
   locale,
@@ -24,9 +26,9 @@ export function VaultPanel({
   locale: Locale
   verse: FixtureVerse
   staking: FixtureStaking | null
-  /** 样本账户本 verse memecoin 余额（pol-positions 样本；Stake 档 Balance/Max，null=槽位态） */
+  /** Sample account's this-verse memecoin balance (pol-positions sample; Stake card Balance/Max, null=slot state) */
   myMemecoin: number | null
-  /** ?action=withdraw 深链：操作卡直接停在 Withdraw 子页签（redeem 是默认态，无需 prop 预设） */
+  /** ?action=withdraw deep link: the action card lands directly on the Withdraw sub-tab (redeem is the default state, no prop preset needed) */
   initialView?: 'withdraw'
 }) {
   const copy = getCopy(locale).verseDesk

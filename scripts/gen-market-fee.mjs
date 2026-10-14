@@ -1,9 +1,11 @@
-// 一次性数据扩展脚本（2026-09-28 用户裁定造数看原型效果）：为 markets.json 全部池记录写
-// feeRate——动态费率样本。锚=Memeverse 动态费 hook 真源：基础费率下限 1%
-// （`DynamicFeeMath.sol:41 FEE_BASE_BPS=100`；OB:memeverse/hook.md「Base fee: a floor of 1%」）
-// + 不利冲击/波动/短期冲击三项动态加成（EWVWAP 豁免方向仅付基础费；开池 50% 衰减窗口早已过去
-// ——本仓 market verse 均为锁定一年期的稳态池）。样本带宽=100–800 bps（1%–8%），
-// 25 bps 步进；mulberry32 种子取记录 id+':fee'，重跑全量覆写幂等。
+// One-off data extension script (fabricated samples for prototype visuals): writes
+// feeRate for every pool row in markets.json -- dynamic fee rate samples. Anchor = the Memeverse
+// dynamic fee hook source of truth: base fee floor of 1%
+// (the hook's fee math sets FEE_BASE_BPS = 100, i.e. a 1% base fee floor)
+// plus three dynamic add-ons: adverse impact/volatility/short-term impact (the EWVWAP-exempt direction
+// pays only the base fee; the 50% decay window after pool opening is long past -- all market verses in
+// this repo are steady-state pools locked for one year). Sample band = 100-800 bps (1%-8%), 25 bps
+// steps; mulberry32 seed = record id + ':fee'; full overwrite on re-run, idempotent.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -26,8 +28,8 @@ function mulberry32(text) {
   };
 }
 
-const MIN_BPS = 100; // 基础费率下限（FEE_BASE_BPS）
-const MAX_BPS = 800; // 稳态池含动态项的典型上限样本
+const MIN_BPS = 100; // base fee floor (FEE_BASE_BPS)
+const MAX_BPS = 800; // typical upper-bound sample for steady-state pools including dynamic terms
 const STEP_BPS = 25;
 
 const data = JSON.parse(readFileSync(marketsPath, 'utf8'));

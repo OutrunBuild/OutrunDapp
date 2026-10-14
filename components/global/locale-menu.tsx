@@ -15,7 +15,8 @@ import type { Locale } from '@/lib/data/fixture-repository'
 import { getCopy } from './copy'
 import { localePath } from './routes'
 
-/** 回访偏好（proxy 读它决定 '/' 是否 302 到 /zh）；语言状态本身仍在 URL */
+/** Returning-visitor preference (the proxy reads it to decide whether '/' 307-redirects
+ *  to /zh); the language state itself still lives in the URL */
 const LOCALE_COOKIE = 'OUTRUN_LOCALE'
 
 function setLocaleCookie(locale: Locale) {
@@ -33,21 +34,26 @@ function LocaleMenuInner({ locale }: { locale: Locale }) {
   const router = useRouter()
   const pathname = usePathname()
   const search = useSearchParams().toString()
-  // 菜单常驻顶栏：挂载即预取对端语言链接。下拉项打开菜单才挂载、
-  // 预取始于彼时——初开即点会因预取未就绪回退整页刷新，清空全部会话状态
-  //（2026-09-26 语言切换零副作用：提前预取消除该竞速窗口）。
+  // The menu is permanent in the top bar: prefetch the other-language link on mount.
+  // Dropdown items only mount once the menu opens, and prefetching starts then —
+  // clicking immediately on first open would fall back to a full page load because the
+  // prefetch is not ready, wiping all session state — prefetching early removes this
+  // race window.
   useEffect(() => {
     const other: Locale = locale === 'zh' ? 'en' : 'zh'
     const href = hrefForLocale(other, pathname, search)
-    // 首页对端 href（'/' 或 '/zh'）不预取：'/' 依 cookie 307，预取跟随重定向
-    // 会把偏移载荷挂进缓存；首页切换走整页跳转，无需预取
+    // Do not prefetch the home counterpart href ('/' or '/zh'): '/' follows the cookie
+    // 307, and a prefetch following the redirect would cache the mis-targeted payload;
+    // home switching uses a full page jump, so no prefetch is needed
     if (href === '/' || href === '/zh') return
     router.prefetch(href)
   }, [router, locale, pathname, search])
 
-  // 返回/前进对账：切换语言后按返回键，popstate 恢复的是共享段缓存（= 切换后
-  // 的语言），会出现 URL 前缀与渲染语言不一致——比对 URL 口径与壳层 lang 属性，
-  // 不一致则 refresh 重取正确语言载荷（refresh 保留组件状态）。
+  // Back/forward reconciliation: after a language switch, pressing back restores the
+  // shared-segment cache via popstate (= the post-switch language), so the URL prefix
+  // and the rendered language can disagree — compare the URL against the shell's lang
+  // attribute and refresh to re-fetch the correct language payload on mismatch
+  // (refresh preserves component state).
   useEffect(() => {
     function reconcile() {
       window.setTimeout(() => {
@@ -62,13 +68,17 @@ function LocaleMenuInner({ locale }: { locale: Locale }) {
     return () => window.removeEventListener('popstate', reconcile)
   }, [router])
 
-  // 语言切换导航（2026-09-26 零副作用）：/zh/** 与无前缀形态在 proxy 内共用
-  // /en/** 路由树（软导航不重挂载、组件状态全保），代价是客户端路由树两侧
-  // 无差异时 push 拿不到新语言载荷——紧跟 refresh 强制重取当前路由并应用，
-  // refresh 本身保留 React state，两者叠加 = 仅换语言、零状态影响。
-  // 例外：首页整页跳转。proxy 对 '/' 依 cookie 307 到 /zh，push+refresh 与
-  // 预取缓存交错时落点会漂到内部 canonical /en；首页无会话内状态可保，
-  // 整页跳转换确定性。
+  // Language-switch navigation: /zh/** and the
+  // prefix-less form share the /en/** route tree inside the proxy (soft navigation does
+  // not remount, component state fully preserved); the cost is that when the client
+  // route tree sees no difference between the two sides, push cannot obtain the new
+  // language payload — a follow-up refresh force-refetches the current route and
+  // applies it. refresh itself keeps React state, so the combination = a language-only
+  // change with zero state impact.
+  // Exception: the home page does a full page jump. The proxy 307s '/' to /zh by
+  // cookie; when push+refresh interleaves with the prefetch cache, the landing can
+  // drift to the internal canonical /en; the home page has no in-session state to
+  // keep, so a full page jump buys determinism.
   function switchLocale(next: Locale, href: string) {
     return (event: React.MouseEvent<HTMLAnchorElement>) => {
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return
@@ -117,8 +127,10 @@ function LocaleMenuInner({ locale }: { locale: Locale }) {
   )
 }
 
-/** 语言切换下拉（保留当前路径与查询参数）。语言状态仍在 URL（GS-7）；
- *  cookie 只记回访偏好供 proxy 在 '/' 做重定向（2026-09-22 方案 C 用户裁定） */
+/** Language-switch dropdown (keeps the current path and query params). Language state
+ *  still lives in the URL;
+ *  the cookie only records the returning-visitor preference for the proxy's '/'
+ *  redirect */
 export function LocaleMenu({ locale }: { locale: Locale }) {
   return (
     <Suspense

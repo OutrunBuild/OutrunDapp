@@ -1,6 +1,6 @@
-# 最小 CI：docs/architecture.md §12 裁定范围的先导子集（typecheck/lint/format/vitest 全量，
-# vitest 内含 fixture-boundary 与设计裸值/对比度/架构合规三 checker）+ ABI/manifest 完整性校验
-# （阶段 4 冻结轮接线）；生产构建、Playwright 随完整 §12 合规轮补齐。闸门口径与 .githooks/pre-push 保持一致。
+# Minimal CI: a precursor subset of the scope ruled in docs/architecture.md §12 (typecheck/lint/format/full vitest,
+# with the fixture-boundary and design-raw-value/contrast/architecture-compliance checkers bundled in vitest) + ABI/manifest integrity check
+# (wired in the stage 4 freeze round); production build and Playwright follow with the full §12 compliance round. Gate policy stays consistent with .githooks/pre-push.
 name: ci
 on:
   push:
@@ -16,18 +16,18 @@ jobs:
         with:
           node-version-file: .node-version
       - run: corepack enable
-      # §12 机器契约钉 Corepack 0.34.5；ubuntu-latest 的 Node 24.20.0 自带 0.35.0——
-      # runner 侧对齐契约版本，契约本身的重钉（0.35.0 化）留待冻结链重签轮
+      # The §12 machine contract pins Corepack 0.34.5; ubuntu-latest's Node 24.20.0 ships 0.35.0 —
+      # align the runner to the contract version; re-pinning the contract itself (to 0.35.0) waits for the frozen-chain re-sign round
       - run: npm install -g corepack@0.34.5
       - run: node scripts/check-runtime.mjs --strict
-      # docs/design 冻结清单工作树完整性（纯 node、无依赖；2026-10-09 接线防静默漂移——
-      # v0-input 树删除后 manifest 失修 147 条即前车之鉴）
+      # docs/design frozen-manifest working-tree integrity (pure node, no dependencies; wired 2026-10-09 to prevent silent drift —
+      # the 147 stale manifest entries left after the v0-input tree deletion are the cautionary tale)
       - run: node scripts/check-design-freeze.mjs
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm test
-      # ABI/manifest 完整性（schema/SHA256/EIP-55/交叉一致/明文 key 扫描，离线不触网；
-      # 链上活体 codehash 复核=发布认证（stage-04 步骤 9/12），不进 CI）
+      # ABI/manifest integrity (schema/SHA256/EIP-55/cross-consistency/plaintext key scan, offline, no network;
+      # on-chain live codehash verification = release certification (stage-04 step 9/12), not in CI)
       - run: pnpm node scripts/check-abi-manifest.mjs

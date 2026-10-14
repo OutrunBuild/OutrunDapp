@@ -1,8 +1,8 @@
 /**
- * Cactus（原 Tally，2026 更名「Tally is now Cactus」）官方完整 logo——
- * tally.xyz/brand/CACTUS-black.svg 整体内联（仙人掌 mark + CACTUS 字标并排），
- * 填充改 currentColor（深色面按按钮文色随动，不引裸 hex）。
- * DAO 标签外链按钮用；标题为纯文本，不挂此 logo。
+ * Cactus (formerly Tally, renamed "Tally is now Cactus" in 2026) official full logo —
+ * tally.xyz/brand/CACTUS-black.svg inlined as a whole (cactus mark + CACTUS wordmark side by side),
+ * fill switched to currentColor (dark face follows the button text color, no raw hex).
+ * Used by the DAO label external-link button; the title is plain text, not this logo.
  */
 export function CactusLogo({ className }: { className?: string }) {
   return (

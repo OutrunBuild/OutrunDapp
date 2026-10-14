@@ -3,7 +3,7 @@ import { headers } from 'next/headers';
 import { ReferralPage } from '@/components/referral/referral-page';
 import { getDisplayLocale } from '@/lib/locale';
 
-/** /referral（R-12）：host 头只用于拼邀请链接 URL（SSR 定值，无水合闪变） */
+/** /referral: the host header is only used to assemble the invite-link URL (SSR-determined value, no hydration flicker) */
 export default async function LocalizedReferral() {
   const locale = await getDisplayLocale();
   const host = (await headers()).get('host');

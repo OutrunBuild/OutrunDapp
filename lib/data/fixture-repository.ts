@@ -1,7 +1,8 @@
-// fixture repository —— fixtures 的唯一合法消费方（阶段 2 步骤 10建立；2026-10-02 按域分桶时由
-// prototype-repository 改名）。允许的 import 图：fixtures/** → 本文件 → components/**（ui/design-system
-// 通用层除外）或 fixtures/inspector/**。生产代码（app/features/entities/lib(非本文件) 及通用层）禁止
-// 直接或间接导入：由 scripts/check-fixture-boundary.mjs --source / --graph production 强制。
+// fixture repository -- the sole legal consumer of fixtures. Allowed import graph:
+// fixtures/** -> this file -> components/** (except the ui/design-system generic layer), tests/**
+// or fixtures/inspector/**. Production code (the app/, features/, entities/, components/ and lib/
+// trees, except this file and the ui/design-system generic layer) must not import it directly or
+// indirectly: enforced by scripts/check-fixture-boundary.mjs --source / --graph production.
 import { OUTRUN_FIXTURE_ONLY_v1, fixtureData } from '../../fixtures/index';
 
 import type { VerseStage } from './types';
@@ -29,12 +30,12 @@ export const fixtureRepository = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// ViewModel 层（v0 迁移 2026-09-19：决议 011 三代表页产出并入；数据仍全部
-// 来自上方 fixture 读取，禁止自造领域数值；价格/涨跌由 candles 推导）。
+// ViewModel layer (data comes entirely from the fixture reads above; inventing domain values is
+// forbidden; price/change is derived from candles).
 // ---------------------------------------------------------------------------
 
-// FixtureChain/Locale/VerseStage 是三层共用基础类型，已下沉 lib/data/types.ts（2026-10-08）；
-// 此处 re-export 维持既有消费方（components 域组件等）不动。
+// FixtureChain/Locale/VerseStage live in lib/data/types.ts; this re-export keeps existing
+// consumers (components domain components etc.) untouched.
 export type { FixtureChain, Locale, VerseStage } from './types';
 
 export type SourceRecord = { id: string; sourceRef: string };
@@ -44,13 +45,13 @@ export type FixtureMarket = SourceRecord & {
   pool: 'main' | 'pol-uasset' | 'pt-uasset' | 'pt-pol';
   tvl: number;
   feeState: string;
-  /** 池动态费率（markets feeRate bps→比率，如 0.008=0.8%——OB:memeverse/hook.md 动态费样本）；null=槽位 */
+  /** Pool dynamic fee rate (markets feeRate bps -> ratio, e.g. 0.008=0.8%); null=slot */
   feeRate: number | null;
-  /** 24h 成交量快照；null=fixture 缺失→UI 不渲染 */
+  /** 24h volume snapshot; null=fixture missing -> UI does not render */
   volume24h: number | null;
-  /** 近 7 日费率年化样本（展示推导值）；null=该 APR 区不渲染 */
+  /** Trailing 7-day fee APR sample (display-derived value); null=this APR slot is not rendered */
   apr7d: number | null;
-  /** LP 铸得率样本：每供给 1 quote 侧铸得 LP 数量（Add Liquidity 弹窗输出推导）；null=弹窗输出随空值 0.00 */
+  /** LP mint rate sample: LP amount minted per 1 quote-side supplied (derived from Add Liquidity dialog output); null=dialog output falls back to 0.00 on empty */
   lpPerQuote: number | null;
 };
 
@@ -59,24 +60,24 @@ export type FixtureSocial = {
   url: string;
 };
 
-/** 社交展示顺序（用户裁定 2026-09-22：website, x, discord, telegram） */
+/** Fixed display order for social links (rows are sorted to this) */
 const SOCIAL_ORDER: FixtureSocial['kind'][] = ['website', 'x', 'discord', 'telegram'];
 
 export type FixtureVerse = SourceRecord & {
   name: string;
   symbol: string;
   stage: VerseStage;
-  /** 冻结场景标签（states.json 白名单子集；场景协议按此聚焦演示） */
+  /** Scenario tags (frozen whitelist subset of states.json; the scenario protocol focuses demos on these) */
   scenario: readonly string[];
   governanceChain: number;
   governanceChainName: string;
   createdAt: string;
   participantCount: number;
-  /** 一句话描述（注册期元数据）；fixture 缺失=null→UI 不渲染 */
+  /** One-line description (registration-phase metadata); fixture missing=null -> UI does not render */
   description: string | null;
-  /** 社交链接（注册期元数据）；fixture 缺失=空数组→UI 不渲染 */
+  /** Social links (registration-phase metadata); fixture missing=empty array -> UI does not render */
   socials: FixtureSocial[];
-  /** 预计市值快照（uAsset 计，注册参数）；fixture 缺失=null→UI 不渲染 */
+  /** Projected market cap snapshot (in uAsset, registration parameter); fixture missing=null -> UI does not render */
   projectedMarketCap: number | null;
   minSuccessThreshold: number;
   normalRaised: number;
@@ -88,36 +89,36 @@ export type FixtureVerse = SourceRecord & {
   leverageProgress: number;
   preorderProgress: number;
   endsAt: string;
-  /** 预购容量比例快照（容量=(普通资金+杠杆债务本金)×70%×容量比例）；fixture 缺失=null→UI 不渲染 */
+  /** Preorder capacity ratio snapshot (capacity=(normal funds + leverage debt principal)×70%×capacity ratio); fixture missing=null -> UI does not render */
   preorderCapacityRatio: number | null;
-  /** 杠杆一次性利率快照（注册时锁定、非年化；债务额度=利息÷利率）；fixture 缺失=null→UI 不渲染 */
+  /** Leverage one-time interest rate snapshot (locked at registration, not annualized; debt allowance=interest÷rate); fixture missing=null -> UI does not render */
   leverageInterestRate: number | null;
-  /** 杠杆债务上限快照（uAsset 计）；fixture 缺失=null→UI 不渲染 */
+  /** Leverage debt cap snapshot (in uAsset); fixture missing=null -> UI does not render */
   leverageDebtCap: number | null;
-  /** Fast Mode：任一门槛达标即提前结束创世（fixture 未标记时为 false） */
+  /** Fast Mode: genesis ends early once any threshold is met (false when the fixture does not mark it) */
   fastGenesis: boolean;
-  /** 解锁时间 = 创世截止 + FIXED_LOCKUP_DURATION(365d)（MemeverseRegistrationLib.sol:14、RegistrationCenter.sol:191）；锁定中/已解锁卡片展示 */
+  /** Unlock time = genesis deadline + FIXED_LOCKUP_DURATION(365d); shown on locked/unlocked cards */
   unlockTimeAt: string;
-  /** 24h 四池交易量快照（uAsset 计）；fixture 缺失=null→UI 显 unavailable 槽位 */
+  /** 24h four-pool volume snapshot (in uAsset); fixture missing=null -> UI shows an unavailable slot */
   volume24h: number | null;
-  /** 质押年化快照（百分比数值，5.688 ratio→568.8）；fixture 缺失=null→UI 显 unavailable 槽位 */
+  /** Staking APY snapshot (percentage value, 5.688 ratio -> 568.8); fixture missing=null -> UI shows an unavailable slot */
   stakingApy: number | null;
-  /** DAO 国库余额快照（美元计）；fixture 缺失=null→UI 显 unavailable 槽位 */
+  /** DAO treasury balance snapshot (in USD); fixture missing=null -> UI shows an unavailable slot */
   treasuryFundUsd: number | null;
   unlockedAt: string | null;
   currentPrice: number | null;
   change24h: number | null;
-  /** Memecoin CA（markets 主池 tokenStats 样本）；null=未部署/无样本 → 地址搜索不命中（创世成功后才部署） */
+  /** Memecoin CA (markets main-pool tokenStats sample); null=undeployed/no sample -> address search does not match (deployed only after genesis succeeds) */
   memecoinAddress: string | null;
   markets: FixtureMarket[];
 };
 
 export type FixtureAsset = SourceRecord & {
   symbol: string;
-  /** 代币本名（assets.json name；缺失=组件回退 symbol） */
+  /** Token proper name (assets.json name; missing=components fall back to symbol) */
   name?: string;
   anchorNote?: string;
-  /** sy 资产折算锚资产样本率（1 枚 sy ≈ N 锚资产→N uAsset，实时变动；缺失=null 语义——审阅屏显槽位） */
+  /** sy asset to anchor-asset conversion sample rate (1 sy ≈ N anchor assets -> N uAsset, changes in real time; missing=falls back to face value 1, no slot) */
   anchorValue?: number;
 };
 
@@ -128,7 +129,7 @@ export type FixtureSnapshot = {
   homeMetrics: {
     totalLocked: number;
     verseCount: number;
-    /** 已部署 Memecoin 数（锁定中+已解锁；创世中/退款不计） */
+    /** Deployed Memecoin count (locked + unlocked; genesis/refund not counted) */
     deployedVerseCount: number;
     participantCount: number;
     sourceRefs: string[];
@@ -141,7 +142,7 @@ export type FixtureSnapshot = {
 
 const FIXTURE_TIME_ANCHOR = '2026-09-16T12:00:00Z';
 
-/** 固定锁定期：FIXED_LOCKUP_DURATION = 365 days（MemeverseRegistrationLib.sol:14，合约常量非注册参数） */
+/** Fixed lockup: FIXED_LOCKUP_DURATION = 365 days, a contract constant, not a registration parameter */
 const FIXED_LOCKUP_MS = 365 * 24 * 60 * 60 * 1000;
 
 function amount(raw: string) {
@@ -187,7 +188,7 @@ function getSnapshot(): FixtureSnapshot {
     const firstCandle = candles?.[0];
     const lastCandle = candles?.at(-1);
     const currentPrice = lastCandle ? Number(lastCandle.c) : null;
-    // 24h 涨跌：优先取最后 24 根蜡烛窗口（蜡烛充足时）；不足则退回全窗口
+    // 24h change: prefer the trailing 24-candle window (when enough candles); otherwise fall back to the full window
     const windowStart =
       candles && candles.length >= 25 ? candles[candles.length - 24] : firstCandle;
     const change24h =
@@ -210,13 +211,14 @@ function getSnapshot(): FixtureSnapshot {
       description: verse.description ?? null,
       socials: (verse.socials ?? [])
         .map((social) => ({
-          // kind 联合类型由 fixture schema（verseSocialSchema）校验兜底
+          // The kind union type is validated as a backstop by the fixture schema (verseSocialSchema)
           kind: social.kind as FixtureSocial['kind'],
           url: social.url,
         }))
         .sort((a, b) => SOCIAL_ORDER.indexOf(a.kind) - SOCIAL_ORDER.indexOf(b.kind)),
       projectedMarketCap: verse.projectedMarketCap ? amount(verse.projectedMarketCap.raw) : null,
-      // 募集计价单位：治理链原生符号 → uAsset 族（ETH→UETH、BNB→UBNB，均在 assets 白名单内）
+      // Raise denomination: governance chain native symbol -> uAsset family (ETH->UETH, BNB->UBNB, both in the assets whitelist;
+      // mainnet native symbols -- the testnet tBNB has no whitelist entry)
       raiseAsset: `U${chainMeta.get(verse.governanceChain)?.nativeSymbol ?? 'Asset'}`,
       minSuccessThreshold: threshold,
       normalRaised,
@@ -256,8 +258,10 @@ function getSnapshot(): FixtureSnapshot {
     .filter((verse) => verse.stage === 'locked')
     .flatMap((verse) => verse.markets)
     .reduce((sum, market) => sum + market.tvl, 0);
-  // 累计参与地址样本：各 verse participants（地址级去重样本）求和；跨 verse 重叠未扣减，
-  // 量级样本、生产读链上值。勿用 accounts.items 计数——那是组合页 persona 钱包，非全网样本。
+  // Cumulative participating-address sample: sum of each verse's participants (address-level dedup
+  // sample); cross-verse overlap is not deducted -- an order-of-magnitude sample; production reads
+  // on-chain values. Do not count accounts.items -- those are the portfolio page's persona wallets,
+  // not a network-wide sample.
   const participantTotal = verses.reduce((sum, verse) => sum + verse.participantCount, 0);
   const sampleAccount = fixtureData.accounts.items[0];
 
@@ -298,7 +302,7 @@ export function getFixtureSnapshot() {
   return getSnapshot();
 }
 
-/** 详情页 URL 段解析：接受数字（/memeverse/21，= 链上 uint256 verseId 口径）与旧版 verse-021 形态 */
+/** Detail page URL segment parsing: accepts numeric form (/memeverse/21, = on-chain uint256 verseId convention) and the legacy verse-021 form */
 export function getFixtureVerse(verseId: string) {
   const match = /^(?:verse-)?(\d+)$/i.exec(verseId);
   if (!match) return null;
@@ -313,34 +317,34 @@ export type FixtureParticipation = {
   verseId: string;
   owner: string;
   kind: 'normal' | 'leverage' | 'preorder';
-  /** 参与路径（仅 kind=normal；null=杠杆/预购等无路径维记录） */
+  /** Participation route (only meaningful for kind=normal; other kinds should omit it, not schema-enforced; null=absent from the record) */
   route: 'direct' | 'stake' | null;
   amount: number;
   sourceRef: string;
 };
 
 export type FixtureYieldSource = {
-  /** 来源 id（fixtures yield-sources.json，ysrc 前缀） */
+  /** Source id (fixtures yield-sources.json, ysrc prefix) */
   id: string;
   sourceRef: string;
-  /** 来源名（Lido/Aave…；OutrunBook vision.md 协议清单口径） */
+  /** Source name (Lido/Aave...) */
   name: string;
-  /** 该来源下可参与的资产组（选来源后才确定，用户裁定 2026-09-22） */
+  /** Asset group participable under this source (determined only after choosing the source) */
   assets: FixtureAsset[];
 };
 
 export type FixtureParticipationOptions = {
-  /** 本 Verse 募集 uAsset（创建时指定，直付/预购唯一计价资产；null=fixture 白名单缺失） */
+  /** uAsset raised by this verse (specified at creation, the sole denomination asset for direct pay/preorder; null=missing from fixture whitelist) */
   raiseAsset: FixtureAsset | null;
-  /** 面值直兑路径可付储备资产（PSM 配对读 fixture，不预设项目关联） */
+  /** Reserve assets payable on the face-value direct-swap path (PSM pairs read from fixture, no project affiliation assumed) */
   reserves: FixtureAsset[];
-  /** 质押路径来源 registry（来源→资产组，读 fixture，不预设项目关联） */
+  /** Staking-path source registry (source -> asset group, read from fixture, no project affiliation assumed) */
   yieldSourceRegistry: FixtureYieldSource[];
-  /** 杠杆利息 Credit 直付资产（kind=credit 且 pairedUAssetId=本 Verse 募集 uAsset；null=无配对 Credit） */
+  /** Leverage-interest Credit direct-pay asset (kind=credit and pairedUAssetId=this verse's raised uAsset; null=no paired Credit) */
   creditAsset: FixtureAsset | null;
 };
 
-/** 参与路径 → 支付资产选项解析（asset-flows §0：路径决定支付资产；直付限本 Verse 募集 uAsset） */
+/** Participation route -> payment-asset option resolution (the route determines the payment asset; direct pay is limited to this verse's raised uAsset) */
 export function getFixtureParticipationOptions(
   raiseAssetSymbol: string,
 ): FixtureParticipationOptions {
@@ -362,8 +366,9 @@ export function getFixtureParticipationOptions(
     name: asset.name,
     anchorValue: asset.anchorValue,
   });
-  // uAsset 符号约定 = 'U' + 底层族符号（UETH/UUSD/UBNB——glossary A）；来源只对本族 Verse 开放
-  // （用户裁定 2026-09-22：UETH verse 不可能出现 sUSDe 类 USD 来源）
+  // uAsset symbol convention = 'U' + underlying family symbol (UETH/UUSD/UBNB); sources
+  // open only to same-family verses
+  // (a UETH verse can never offer sUSDe-like USD sources)
   const family = raiseAssetSymbol.slice(1);
   return {
     raiseAsset: raiseAsset
@@ -387,8 +392,8 @@ export function getFixtureParticipationOptions(
         }),
       })),
     creditAsset: (() => {
-      // Credit 与 uAsset 一对一（OB:genesis-credit.md:17；合约 creditOf(uAsset)）：
-      // 只取配对本 Verse 募集 uAsset 的 Credit，其余 Credit 不能代付本 Verse 利息
+      // Credit is one-to-one with uAsset (contract creditOf(uAsset)):
+      // take only the Credit paired with this verse's raised uAsset; other Credits cannot pay this verse's interest
       const credit = fixtureData.assets.items.find(
         (asset) => asset.kind === 'credit' && raiseAsset && asset.pairedUAssetId === raiseAsset.id,
       );
@@ -397,7 +402,7 @@ export function getFixtureParticipationOptions(
   };
 }
 
-/** 样本账户的创世参与记录（Portfolio 退款/凭证区数据源；金额换算同 ViewModel 口径） */
+/** Sample account's genesis participation records (data source for the Portfolio refund/voucher section; amount conversion same as the ViewModel convention) */
 export function getFixtureParticipations(): FixtureParticipation[] {
   return fixtureRepository.participations().map((p) => ({
     verseId: p.verseId,
@@ -410,20 +415,20 @@ export function getFixtureParticipations(): FixtureParticipation[] {
 }
 
 export type FixtureCreateConfig = {
-  /** 创世时长允许区间（center min/maxDurationDays 读值样本） */
+  /** Allowed genesis duration range (center min/maxDurationDays read-value sample) */
   minDurationDays: number;
   maxDurationDays: number;
-  /** 固定锁定期：unlockTime = endTime + 365 days（FIXED_LOCKUP_DURATION 合约常量，非注册参数） */
+  /** Fixed lockup: unlockTime = endTime + 365 days (FIXED_LOCKUP_DURATION contract constant, not a registration parameter) */
   lockupDays: number;
-  /** 每条异链跨链 fan-out 费样本（治理链原生资产计；中心链目标 fee=0——SPEC-M8 §9）；无注册费 */
+  /** Cross-chain fan-out fee sample per remote chain (in governance-chain native asset; fee=0 for hub-chain targets); no registration fee */
   remoteDeployFee: number;
-  /** 异链发起注册时 发起链→注册中心链 的 LayerZero 发送费样本（RegistrarOmnichain quoteRegister；
-   *  同链发起=0）；样本场景假设=治理链即注册中心链（deployment.md §8 中心链归属[未知]） */
+  /** LayerZero send fee sample for origin-chain -> registration-hub-chain when registering from a remote chain (quoteRegister;
+   *  same-chain origin=0); sample scenario assumption = governance chain is the registration hub chain */
   remoteSendFee: number;
   sourceRef: string;
 };
 
-/** 创建表单读链参数快照（R-04 表单机制主源=SPEC-M8；缺省文件时返回 null→UI null 不渲染） */
+/** Create-form on-chain parameter snapshot; returns null when the create-config fixture has no records -> UI null-not-rendered */
 export function getFixtureCreateConfig(): FixtureCreateConfig | null {
   const config = fixtureData.createConfig.items[0];
   if (!config) return null;
@@ -437,11 +442,11 @@ export function getFixtureCreateConfig(): FixtureCreateConfig | null {
   };
 }
 
-/** Symbol 占用检测样本：同 symbol 的上一 verse 创世窗口未结束即不可复用
- *  （MemeverseRegistrationCenterUpgradeable.sol:178 SymbolNotUnlock；endTime=注册+durationDays×DAY
- *  :186=创世截止——MemeverseLaunchImpl.sol:311-322；创世结束 nonce+1→新 uniqueId 即可复用 :189-195）。
- *  样本口径：快照 stage='genesis' 的 verse=创世窗口内=锁定中。合约映射键为原始字节串——
- *  匹配必须大小写敏感、不 trim。生产=previewRegistration+symbolRegistry 链上读值 */
+/** Symbol occupation detection sample: a symbol cannot be reused while the previous verse's genesis window is unfinished
+ *  (registration reverts with SymbolNotUnlock; endTime=registration+durationDays×DAY is the genesis deadline; at genesis
+ *  end nonce+1 -> new uniqueId makes the symbol reusable).
+ *  Sample convention: a verse with snapshot stage='genesis' = inside the genesis window = locked. The contract maps by raw byte string --
+ *  matching must be case-sensitive and not trimmed. Production=previewRegistration+symbolRegistry on-chain reads */
 export function getFixtureOccupiedSymbols(): string[] {
   return fixtureRepository
     .verses()
@@ -449,7 +454,7 @@ export function getFixtureOccupiedSymbols(): string[] {
     .map((verse) => verse.symbol);
 }
 
-/** 壳层链选择器数据（GS-2）：六链视图，函数式出口避免 sentinel 对象进入生产 bundle */
+/** Shell chain-selector data: six-chain view; functional exports keep the sentinel object out of the production bundle */
 export function getFixtureChains() {
   return fixtureRepository.chains().map((c) => ({
     chainId: c.chainId,
@@ -461,10 +466,10 @@ export function getFixtureChains() {
 }
 
 // ---------------------------------------------------------------------------
-// 四标签详情页 ViewModel（2026-09-23 用户裁定：Locked/Unlocked 详情页 = 头卡 + 统计条/K线/Swap
-// 持久区 + Liquidity/POL/Yield Vault/DAO 四标签；数值口径：四池=four-pools.md、POL 名义价值=
-// Memeverse spec polend/pt-yt-splitter.md §4（全范围 2×uAsset 侧）、质押=governance-yield §6、
-// 周期激励=M10:332-337。样本数值全部来自 fixtures，缺失字段→null→UI 不渲染。
+// Four-tab detail page ViewModel (Locked/Unlocked detail page = header card
+// + stats bar/candles/Swap persistent section + Liquidity/POL/Yield Vault/DAO four tabs; POL
+// nominal value = 2×uAsset side (full-range convention). All sample values come from fixtures;
+// missing fields -> null -> UI does not render.
 // ---------------------------------------------------------------------------
 
 export type FixtureCandle = { t: string; o: number; h: number; l: number; c: number; v: number };
@@ -476,40 +481,40 @@ export type FixtureFineCandles = {
 };
 
 export type FixtureVerseTrade = {
-  /** 主池蜡烛（1h 原始粒度）；空=无样本（B3 降级提示） */
+  /** Main-pool candles (1h raw granularity); empty=no sample (degradation notice) */
   candles: FixtureCandle[];
-  /** 细粒度蜡烛样本（2026-09-23 用户裁定：全部粒度可选）；null=fixture 缺失 */
+  /** Fine-granularity candle samples (all granularities selectable); null=fixture missing */
   fineCandles: FixtureFineCandles | null;
   tokenStats: {
     price: number | null;
     change24h: number | null;
-    /** 市值 = 现价 × 总供应（推导值）；null=任一输入缺失 */
+    /** Market cap = current price × total supply (derived); null=any input missing */
     marketCap: number | null;
-    /** 主池 TVL（统计条口径 2026-09-23 用户裁定；四池合计由 Liquidity 标签自算） */
+    /** Main-pool TVL (stats-bar convention; the four-pool total is computed by the Liquidity tab itself) */
     liquidity: number;
-    /** 主池 24h 量；null=主池量缺失 */
+    /** Main-pool 24h volume; null=main-pool volume missing */
     volume24h: number | null;
     holders: number | null;
     totalSupply: number | null;
-    /** Memecoin CA（fixture 样本）；null=无样本 */
+    /** Memecoin CA (fixture sample); null=no sample */
     tokenAddress: string | null;
   };
   pools: Array<
     FixtureMarket & {
-      /** 池内双边资产符号（展示序：MEME 在前）；uAsset 侧 = verse 募集资产 */
+      /** Both-side asset symbols of the pool (display order: MEME first); uAsset side = the verse's raise asset */
       baseSymbol: string;
       quoteSymbol: string;
     }
   >;
 };
 
-/** 无限左滑历史总量（1h 根数 ≈ 1 年；2026-09-23 用户裁定配套） */
+/** Infinite left-scroll history total (1h bars ≈ 1 year) */
 const HISTORY_TOTAL_HOURLY = 8760;
 
-/** K 线历史回溯（派生样本）：fixture 只存 168h 真样本，这里锚定接缝（k=1 的 close
- *  === fixture 首根 open）向远古确定性随机游走补齐到 ~1 年——漂移累积在无接缝的远端，
- *  接缝处零跳变（2026-09-23 修复：旧版锚错在最老端，接缝曾现 47% 断崖）；
- *  同 verseId 结果恒定；生产以数据源分页为准 */
+/** Candle history backfill (derived sample): the fixture stores only 168h of real data; anchored at the seam (k=1's close
+ *  === fixture first candle's open), a deterministic random walk toward the past extends it to ~1 year -- drift accumulates
+ *  only in the seam-less far end, with zero jump at the seam (anchor at the newest end so the seam stays continuous);
+ *  results are constant for a given verseId; production defers to data-source pagination */
 function extendHourlyHistory(candles: FixtureCandle[], seedKey: string): FixtureCandle[] {
   if (candles.length === 0 || candles.length >= HISTORY_TOTAL_HOURLY) return candles;
   let seed = 2166136261;
@@ -524,7 +529,7 @@ function extendHourlyHistory(candles: FixtureCandle[], seedKey: string): Fixture
   const first = candles[0];
   const firstT = Date.parse(first.t);
   const older: FixtureCandle[] = [];
-  let price = first.o; // 接缝锚点：k=1 的 close === fixture 首根 open，向远古游走
+  let price = first.o; // Seam anchor: k=1's close === fixture first candle's open; walk toward the past from here
   for (let k = 1; k <= HISTORY_TOTAL_HOURLY - candles.length; k++) {
     const open = price * (1 + (rnd() - 0.5) * 0.011);
     const high = Math.max(open, price) * (1 + rnd() * 0.004);
@@ -559,7 +564,7 @@ export function getFixtureVerseTrade(verseId: string): FixtureVerseTrade | null 
           v: candle.v != null ? Number(candle.v) : 0,
         }))
       : [];
-  // 回溯派生历史（无限左滑数据池；尾部 fixture 样本不变，统计口径不受影响）
+  // Backfilled derived history (infinite left-scroll data pool; trailing fixture samples unchanged, stats unaffected)
   const historyCandles = extendHourlyHistory(candles, `${verseId}:history`);
   const toCandles = (
     rows: Array<{ t: string; o: string; h: string; l: string; c: string; v?: string }>,
@@ -583,7 +588,7 @@ export function getFixtureVerseTrade(verseId: string): FixtureVerseTrade | null 
       : null;
   const stats = mainRaw && 'tokenStats' in mainRaw ? mainRaw.tokenStats : undefined;
   const pools = verse.markets.map((market) => {
-    // POL/PT 是品类而非独立 symbol：POL-<MEME>（MemeverseLaunchImpl.sol:117-119）、PT-<MEME>（POLSplitterUpgradeable.sol:225）
+    // POL/PT are categories, not standalone symbols: POL-<MEME>, PT-<MEME>
     const polSymbol = `POL-${verse.symbol}`;
     const ptSymbol = `PT-${verse.symbol}`;
     const pair: Record<FixtureMarket['pool'], [string, string]> = {
@@ -594,7 +599,7 @@ export function getFixtureVerseTrade(verseId: string): FixtureVerseTrade | null 
     };
     return { ...market, baseSymbol: pair[market.pool][0], quoteSymbol: pair[market.pool][1] };
   });
-  // 统计条口径（2026-09-23 用户裁定）：Liq/Vol=主池数据（交易对该池），非四池合计
+  // Stats-bar convention: Liq/Vol = main-pool data (trades route to that pool), not the four-pool total
   const mainPool = pools.find((pool) => pool.pool === 'main');
   const liquidity = mainPool?.tvl ?? 0;
   const totalSupply = stats ? amount(stats.totalSupply.raw) : null;
@@ -619,34 +624,34 @@ export function getFixtureVerseTrade(verseId: string): FixtureVerseTrade | null 
 export type FixtureStaking = {
   vaultAddress: string;
   totalStaked: number;
-  /** 1 份额 ≈ N Memecoin（含 virtualAssets 缓冲） */
+  /** 1 share ≈ N Memecoin (including the virtualAssets buffer) */
   assetsPerShare: number;
-  /** 近 7 日实绩年化（Q7 口径：链下推导展示值） */
+  /** Trailing 7-day realized APY (off-chain derived display value) */
   apy7d: number;
   myShares: number;
-  /** 份额价值 = myShares × assetsPerShare（推导值） */
+  /** Share value = myShares × assetsPerShare (derived) */
   myShareValue: number;
   delegatee: string;
   pendingRedeems: Array<{
     lockedAssets: number;
     requestedAt: string;
     maturesAt: string;
-    /** maturesAt ≤ 快照锚点 → 已成熟可提取（REDEEM_DELAY≈1 天） */
+    /** maturesAt ≤ snapshot anchor -> matured and withdrawable (REDEEM_DELAY≈1 day) */
     ready: boolean;
-    /** 快照锚点时刻距成熟的剩余毫秒（展示走秒起点；0=已成熟） */
+    /** Milliseconds remaining from the snapshot anchor to maturity (countdown display start; 0=matured) */
     remainingMs: number;
   }>;
-  /** 已成熟合计（Withdraw 子标签 Total Available） */
+  /** Matured total (Withdraw sub-tab Total Available) */
   claimableTotal: number;
 };
 
-/** uAsset 美元样本价（fixture 假数据；缺失返回 null → UI 隐藏美元换算行） */
+/** uAsset USD sample price (fixture dummy data; missing returns null -> UI hides the USD conversion row) */
 export function getFixtureAssetUsdSample(symbol: string): number | null {
   const asset = fixtureData.assets.items.find((item) => item.symbol === symbol);
   return asset?.usdSample ?? null;
 }
 
-/** Memecoin 质押收益库样本（locked/unlocked verse；null=该 verse 无样本→面板整体不渲染，null 不渲染，2026-10-05 裁定） */
+/** Memecoin staking yield vault sample (locked/unlocked verse; null=no sample for this verse -> the whole panel is not rendered) */
 export function getFixtureStaking(verseId: string): FixtureStaking | null {
   const record = fixtureData.staking.items.find((item) => item.verseId === verseId);
   if (!record) return null;
@@ -678,36 +683,36 @@ export function getFixtureStaking(verseId: string): FixtureStaking | null {
 export type FixturePolPosition = {
   polAddress: string;
   polSupply: number;
-  /** 每 1 POL 对应主池 uAsset 侧数量 */
+  /** uAsset-side amount of the main pool per 1 POL */
   uAssetPerPol: number;
-  /** 名义价值 = 2 × uAssetPerPol（全范围简化——pt-yt-splitter.md §4；推导值） */
+  /** Nominal value = 2 × uAssetPerPol (full-range simplification; derived) */
   nominalValuePerPol: number;
-  /** POL/uAsset 池市场价 */
+  /** POL/uAsset pool market price */
   marketPricePerPol: number;
-  /** 每 1 PT 的 PT/POL 池市场价（YT 隐含价=1−此值——yt-flash-swap.md「1 POL=1 PT+1 YT」） */
+  /** PT/POL pool market price per 1 PT (YT implied price=1−this value, from the "1 POL=1 PT+1 YT" identity) */
   ptPricePerPol: number;
-  /** Flash Swap 用户手续费率样本（相对支付额，谱系 <1%–极高——见 fixture 注释）；null=槽位 */
+  /** Flash Swap user fee-rate sample (sample band 0.3%-85% of the user's payment; spectrum <1% to very high) */
   flashUserFeeRate: number;
   myPol: number;
   myPt: number;
   myYt: number;
-  /** 样本账户本 verse memecoin 余额（Mint POL 供给侧样本） */
+  /** Sample account's memecoin balance in this verse (Mint POL supply-side sample) */
   myMemecoin: number;
-  /** 样本账户 uAsset 余额（钱包级资产；Mint POL 供给侧样本） */
+  /** Sample account's uAsset balance (wallet-level asset; Mint POL supply-side sample) */
   myUAsset: number;
-  /** 样本账户本 verse PSM 配对储备余额（钱包级；Swap 储备侧供给样本） */
+  /** Sample account's PSM-paired reserve balance in this verse (wallet-level; Swap reserve-side supply sample) */
   myReserve: number;
-  /** 四池 LP 代币余额样本（Remove Liquidity 供给侧；键=池标识） */
+  /** Four-pool LP token balance samples (Remove Liquidity supply side; key=pool identifier) */
   myLp: { main: number; 'pol-uasset': number; 'pt-uasset': number; 'pt-pol': number };
-  /** 创世结束后可领 YT（claimNormalYT 一次性按出资比例——MemeverseSettlementImpl.sol:88） */
+  /** YT claimable after genesis ends (claimNormalYT, one-time pro rata by contribution) */
   claimableYt: number;
-  /** 每 1 YT 赎回摊得 uAsset（结算后剩余池×份额/流通 YT——POLSplitterUpgradeable.sol:404；null=井腿 '--'、弹窗输出随空值 0.00） */
+  /** uAsset redeemed per 1 YT (remaining pool after settlement × share / circulating YT; null=leg value unavailable, dialog Receive box falls back to 0.00) */
   ytRedeemUAssetPerUnit: number | null;
-  /** 每 1 YT 赎回摊得 memecoin（settlementMemecoin×份额/流通 YT——POLSplitterUpgradeable.sol:405；null=井腿 '--'、弹窗输出随空值 0.00） */
+  /** Memecoin redeemed per 1 YT (settlementMemecoin × share / circulating YT; null=leg value unavailable, dialog Receive box falls back to 0.00) */
   ytRedeemMemecoinPerUnit: number | null;
 };
 
-/** POL/PT/YT 持仓与估值样本（locked/unlocked verse；null=该面板不渲染） */
+/** POL/PT/YT positions and valuation sample (locked/unlocked verse; null=this panel is not rendered) */
 export function getFixturePolPosition(verseId: string): FixturePolPosition | null {
   const record = fixtureData.polPositions.items.find((item) => item.verseId === verseId);
   if (!record) return null;
@@ -742,7 +747,7 @@ export function getFixturePolPosition(verseId: string): FixturePolPosition | nul
   };
 }
 
-/** 资金明细构成行（governance.json treasuryAssets/unclaimedAssets 样本） */
+/** Treasury breakdown composition rows (governance.json treasuryAssets/unclaimedAssets samples) */
 export type FixtureGovernanceAsset = {
   symbol: string;
   name: string;
@@ -762,32 +767,32 @@ export type FixtureGovernanceState = {
   totalVotingPower: number | null;
   myVotes: number | null;
   treasuryUAsset: number | null;
-  /** 划拨比例（bps；初始 2500=25%，治理可改——M10:332-333） */
+  /** Allocation ratio (bps; initial 2500=25%, governance-changeable) */
   rewardRatioBps: number | null;
   cumulativeIncentivePool: number | null;
-  /** 当期国库构成样本（null=无样本→明细入口不渲染） */
+  /** Current-cycle treasury composition sample (null=no sample -> breakdown entry not rendered) */
   treasuryAssets: FixtureGovernanceAsset[] | null;
   currentCycleVotes: { total: number; mine: number } | null;
-  /** 若当前已投票，按票占比推算的本期可领估计（推导值；Q7/H7 口径） */
+  /** If already voted this cycle, the estimated claimable for this cycle by vote share (derived) */
   estimatedClaimable: number | null;
   lastCycle: {
     number: string;
     treasuryUAsset: number;
-    /** 上期期末国库构成样本（null=无样本→明细入口不渲染） */
+    /** Previous cycle's end-of-cycle treasury composition sample (null=no sample -> breakdown entry not rendered) */
     treasuryAssets: FixtureGovernanceAsset[] | null;
     remainingRewards: number;
     totalVotes: number;
     myVotes: number;
     myClaimable: number;
-    /** 可领奖励构成样本（多 token 按票权份额；null=无样本→明细入口不渲染） */
+    /** Claimable-reward composition sample (multiple tokens by voting-power share; null=no sample -> breakdown entry not rendered) */
     claimableAssets: FixtureGovernanceAsset[] | null;
-    /** 未领取奖励构成样本（null=无样本→明细入口不渲染） */
+    /** Unclaimed-reward composition sample (null=no sample -> breakdown entry not rendered) */
     unclaimedAssets: FixtureGovernanceAsset[] | null;
   } | null;
-  proposalCount: { total: number; active: number } | null;
+  proposalCount: { total: number; active: number };
 };
 
-/** DAO 治理周期状态样本（locked/unlocked verse；null=该 verse 无治理样本→DAO 标签仅标题） */
+/** DAO governance cycle state sample (locked/unlocked verse; null=no governance sample for this verse -> DAO tab shows only the heading) */
 export function getFixtureGovernanceState(verseId: string): FixtureGovernanceState | null {
   const record = fixtureData.governance.items.find((item) => item.verseId === verseId);
   if (!record) return null;
@@ -855,28 +860,33 @@ export function getFixtureGovernanceState(verseId: string): FixtureGovernanceSta
 }
 
 // ---------------------------------------------------------------------------
-// Portfolio 页 ViewModel（2026-10-02 用户裁定四分区：①待办 ②资产与跨链 ③仓位与储蓄
-// ④参与凭证）。口径与裁定：跨链功能并入本页（v1 无 /bridge 独立页）、「1:1 转换」=PSM
-// par swap 用户面命名（不与交易台「兑换/Swap」撞词）、待办区只收「逾期有后果」项且同类
-// 跨 Verse 聚合（无截止的可领收益沉到④区筛选）。时间全部锚定 FIXTURE_TIME_ANCHOR。
+// Portfolio page ViewModel (four sections: (1) to-dos (2) assets & cross-chain
+// (3) positions & savings (4) participation vouchers). Conventions: cross-chain lives on this page
+// (there is no standalone /bridge page); "1:1 Convert" = user-facing name for PSM par
+// swap (avoiding collision with the trade desk's "Swap"); the to-do section only collects
+// "overdue-with-consequences" items (undated claimable yields sink into section (4)'s filter --
+// vault-ready is the one undated claimable elevated into to-dos; same-kind aggregation applies to
+// the vault card only, per-verse kinds get one card each). All times anchored to FIXTURE_TIME_ANCHOR.
 // ---------------------------------------------------------------------------
 
 const ANCHOR_MS = Date.parse(FIXTURE_TIME_ANCHOR);
 
-/** 24 小时流动性保护窗（genesis.md:43——锚定实际解锁交易时刻非 unlockTime） */
+/** 24-hour liquidity protection window (anchored to the actual unlock transaction time, not unlockTime) */
 export const PROTECTION_WINDOW_MS = 24 * 60 * 60 * 1000;
 
-/** 样本账户钱包余额视图（②区资产行）：资产 → 链分布聚合（产品资产=uAsset 族+创世积分；
- *  储备/原生余额与本产品无关，不出表——2026-10-02 用户裁定） */
+/** Sample account's wallet balance view (section (2) asset rows): asset -> per-chain distribution aggregation (product assets = uAsset family + genesis credits;
+ *  reserve/native balances are unrelated to this product and stay out of the table; only
+ *  kind==='reserve' is skipped, the rest cast to uasset|credit -- current data contains only
+ *  uasset/reserve/credit kinds) */
 export type FixtureWalletAsset = {
   assetId: string;
   symbol: string;
   kind: 'uasset' | 'credit';
-  /** uAsset 美元样本价（fixture 样本）；null=隐藏换算 */
+  /** uAsset USD sample price (fixture sample); null=hide conversion */
   usdSample: number | null;
   total: number;
   chains: Array<{ chainId: number; chainName: string; amount: number }>;
-  /** 可经协议 OFT 跨链（uAsset 族 + GenesisCredit——genesis-credit.md；储备/原生只读） */
+  /** Bridgeable via the protocol OFT (uAsset family + GenesisCredit; reserve/native are read-only) */
   bridgeable: boolean;
 };
 
@@ -897,8 +907,8 @@ export function getFixtureWalletAssets(): FixtureWalletAsset[] {
       assetId,
       symbol: asset.symbol,
       kind: asset.kind as FixtureWalletAsset['kind'],
-      // Credit 无独立报价：与配对 uAsset 1:1 同份额兑换（OB:genesis-credit.md:19），
-      // 美元样本价=配对 uAsset 样本价；无配对=隐藏换算
+      // Credit has no independent quote: redeemable 1:1 at the same share as its paired uAsset,
+      // so the USD sample price = the paired uAsset's sample price; no pairing = hide conversion
       usdSample:
         asset.usdSample ??
         (asset.kind === 'credit' && asset.pairedUAssetId
@@ -913,7 +923,7 @@ export function getFixtureWalletAssets(): FixtureWalletAsset[] {
       bridgeable: asset.kind === 'uasset' || asset.kind === 'credit',
     });
   }
-  // uAsset 族在前（参与货币），其后创世积分；族内按符号排序
+  // uAsset family first (participation currencies), then genesis credits; sorted by symbol within family
   const kindOrder: Record<FixtureWalletAsset['kind'], number> = {
     uasset: 0,
     credit: 1,
@@ -923,7 +933,7 @@ export function getFixtureWalletAssets(): FixtureWalletAsset[] {
   );
 }
 
-/** 储备资产余额表（PSM Convert 弹窗 Redeem 侧 Max 来源；储备不作为资产出表） */
+/** Reserve asset balance table (Max source for the Redeem side of the PSM Convert dialog; reserves are not listed as assets) */
 export function getFixtureReserveBalances(): Record<string, number> {
   const assetMeta = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
   const balances: Record<string, number> = {};
@@ -936,8 +946,8 @@ export function getFixtureReserveBalances(): Record<string, number> {
   return balances;
 }
 
-/** 全币种钱包余额表（按符号跨链合计；创世参与表单 Balance/Max 来源）。
- *  快照无行的符号不出现在表内（→槽位态 -- + Max 禁用，swap-panel 同款） */
+/** All-symbol wallet balance table (aggregated across chains by symbol; Balance/Max source for the genesis participation form).
+ *  Symbols with no snapshot row are absent from the table (-> slot state -- + Max disabled, same as swap-panel) */
 export function getFixtureWalletBalances(): Record<string, number> {
   const assetMeta = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
   const balances: Record<string, number> = {};
@@ -950,16 +960,16 @@ export function getFixtureWalletBalances(): Record<string, number> {
   return balances;
 }
 
-/** PSM 1:1 转换对（②区转换弹窗）：按 uAsset 符号取配对 */
+/** PSM 1:1 convert pair (section (2) convert dialog): looked up by uAsset symbol */
 export type FixturePsmPair = {
   chainId: number;
   reserveSymbol: string;
-  /** mint 费 / redeem 费（bps→比率） */
+  /** mint fee / redeem fee (bps -> ratio) */
   feeIn: number;
   feeOut: number;
-  /** 剩余可铸额度 = stockCap − netMinted（SPEC-S8 §3 headroom） */
+  /** Remaining mint allowance = stockCap − netMinted */
   headroom: number;
-  /** 储备可兑余量 */
+  /** Remaining redeemable reserve */
   reserveAvailable: number;
 };
 
@@ -981,7 +991,7 @@ export function getFixturePsmPair(uAssetSymbol: string): FixturePsmPair | null {
   };
 }
 
-/** 跨链消息视图（②区在途/滞留；历史不展示——PD-02 删跨链历史 + M4 否决持久历史） */
+/** Cross-chain message view (section (2) in-transit/stranded; no cross-chain history is shown) */
 export type FixtureBridgeMessageView = {
   id: string;
   fromChainId: number;
@@ -992,7 +1002,7 @@ export type FixtureBridgeMessageView = {
   amount: number;
   sentAt: string;
   stage: 'sent' | 'delivered' | 'settled' | 'stranded';
-  /** 6 位小数余数留源链（OutrunOFTInit.sol:70）；null=无余数 */
+  /** 6-decimal remainder left on the source chain; null=no remainder */
   remainder: number | null;
 };
 
@@ -1013,14 +1023,14 @@ export function getFixtureBridgeMessages(): FixtureBridgeMessageView[] {
   }));
 }
 
-/** CDP 仓位视图（③区）：债务单位经 yield-sources registry 锚族推导（Lido→ETH→UETH） */
+/** CDP position view (section (3)): debt unit derived via the yield-sources registry anchor family (Lido->ETH->UETH) */
 export type FixtureCdpPosition = {
   id: string;
   chainId: number;
   chainName: string;
   collateralSymbol: string;
   collateralAmount: number;
-  /** 未偿 uAsset 债务（v1 面值平价 = 抵押数值） */
+  /** Outstanding uAsset debt (v1 face-value parity = the collateral amount) */
   debt: number;
   uAssetSymbol: string;
   yieldSource: string;
@@ -1048,24 +1058,24 @@ export function getFixtureCdpPositions(): FixtureCdpPosition[] {
   });
 }
 
-/** USR 储蓄视图（③区）：suETH→UETH 族映射；存款价值 = 份额 × accrualIndex/1e18 */
+/** USR savings view (section (3)): suETH->UETH family mapping; deposit value = shares × accrualIndex/1e18 */
 export type FixtureUsrSavings = {
   id: string;
-  /** 份额符号（suETH/suUSD/suBNB） */
+  /** Share symbol (suETH/suUSD/suBNB) */
   shareSymbol: string;
-  /** 底层 uAsset 符号（UETH/UUSD/UBNB） */
+  /** Underlying uAsset symbol (UETH/UUSD/UBNB) */
   uAssetSymbol: string;
   chainId: number;
   chainName: string;
-  /** 利率（ratio→百分比由展示层处理）；0=未激活（PD-04 未激活态照常显示） */
+  /** Rate (ratio -> percentage handled by the presentation layer); 0=inactive (inactive state still shown) */
   rate: number;
   rateActive: boolean;
-  /** 封顶钳制标记（SPEC-S9 capped） */
+  /** Cap clamp flag */
   capped: boolean;
   myShares: number;
-  /** 存款价值（推导值） */
+  /** Deposit value (derived) */
   myAssets: number;
-  /** uAsset 美元样本价（fixture 假数据；缺失为 null → UI 隐藏美元换算） */
+  /** uAsset USD sample price (fixture dummy data; missing=null -> UI hides USD conversion) */
   usdSample: number | null;
   lastSettledAt: string;
 };
@@ -1073,7 +1083,7 @@ export type FixtureUsrSavings = {
 export function getFixtureUsrSavings(): FixtureUsrSavings[] {
   const chainMeta = new Map(fixtureData.chains.items.map((chain) => [chain.chainId, chain]));
   const assetMeta = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
-  // 美元样本价挂在底层 uAsset 上（su* 份额代币无价），按符号反查
+  // USD sample price hangs on the underlying uAsset (su* share tokens have no price), reverse-looked-up by symbol
   const assetBySymbol = new Map(fixtureData.assets.items.map((asset) => [asset.symbol, asset]));
   return fixtureData.usrVaults.items
     .map((row) => {
@@ -1100,17 +1110,17 @@ export function getFixtureUsrSavings(): FixtureUsrSavings[] {
     .filter((row): row is FixtureUsrSavings => row !== null);
 }
 
-/** 收益库存单行（③区紧凑表）：staking + governance 按 verse 联结 */
+/** Yield vault statement row (section (3) compact table): staking + governance joined per verse */
 export type FixtureVaultRow = {
   verse: { id: string; symbol: string; name: string };
   shareSymbol: string;
   myShares: number;
   apy7d: number;
-  /** 等待中赎回锁定的代币合计（requestRedeem→REDEEM_DELAY，MemecoinYieldVault.sol:334） */
+  /** Total tokens locked in pending redeems (requestRedeem -> REDEEM_DELAY) */
   waitingTotal: number;
-  /** 已成熟可取出合计（claimableRedeemRequest 口径——MemecoinYieldVault.sol:500） */
+  /** Total matured and withdrawable (claimableRedeemRequest convention) */
   readyTotal: number;
-  /** 待领美元折算（017 组合页净值 hero：readyTotal × verse.currentPrice；无样本价=null） */
+  /** Claimable USD conversion (portfolio net-value hero: readyTotal × verse.currentPrice; no sample price=null) */
   readyUsd: number | null;
 };
 
@@ -1140,36 +1150,36 @@ export function getFixtureVaultRows(): FixtureVaultRow[] {
         verse.currentPrice != null ? (staking?.claimableTotal ?? 0) * verse.currentPrice : null,
     });
   }
-  // 库存单只列实际持仓：myShares=0 的 verse 不进组合（金库样本仍服务 verse 页签，
-  // 2026-10-04 用户裁定：组合假数据减量——持仓集中到 10 个 verse，其余 myShares=0）
+  // Statement lists actual holdings only: verses with myShares=0 stay out of the portfolio (vault samples still serve the
+  // verse tab; portfolio dummy data concentrates holdings into 10 verses, the rest have myShares=0)
   return rows
     .filter((row) => row.myShares > 0)
     .sort((a, b) => a.verse.id.localeCompare(b.verse.id));
 }
 
-/** ①待办区聚合（2026-10-02 裁定：只收「逾期有后果」项；同类跨 Verse 聚合、聚合卡显最近截止；
- *  窗口已过的激励不展示——逾期已并入国库、无动作可做（dao-governance.md:51）；
- *  跨链滞留项已删（2026-10-05 用户裁定）——stranded 消息不再进待办与页级信号） */
+/** Section (1) to-do aggregation (only "overdue-with-consequences" items; same-kind aggregation across verses, aggregate card shows the nearest deadline;
+ *  incentives whose window has passed are not shown -- overdue ones merged into the treasury, nothing actionable left;
+ *  no cross-chain stranded items -- stranded messages never enter to-dos or page-level signals) */
 export type PortfolioActionKind = 'protection' | 'incentive' | 'vault-ready' | 'refund';
 
 export type FixturePortfolioAction = {
   kind: PortfolioActionKind;
-  /** 单 verse 目标（聚合卡=null） */
+  /** Single-verse target (aggregate card=null) */
   verse: { id: string; symbol: string; name: string; raiseAsset: string } | null;
-  /** 聚合卡的焦点 verse（如激励聚合卡=最近截止的 verse，深链落点）；null=无 */
+  /** Deep-link target for the action row; null when the action has no single-verse destination (currently unconsumed -- incentive rows carry their own verse) */
   focusVerseId: string | null;
-  /** 聚合计数（null=单卡） */
+  /** Aggregate count (null=single card) */
   count: number | null;
-  /** 截止 ISO（null=无截止；聚合卡=最近截止） */
+  /** Deadline ISO (null=no deadline; aggregate card=nearest deadline) */
   deadline: string | null;
-  /** 快照锚点距截止剩余毫秒（null=无截止；剩余 ms 有值=限时窗项，null=随时可办项） */
+  /** Milliseconds remaining from the snapshot anchor to the deadline (null=no deadline; non-null remaining ms=limited-window item, null=do-anytime item) */
   remainingMs: number | null;
   /**
-   * 金额锚（样本口径）：refund=合计参与额（uAsset）；protection=创世本金
-   * （myPt + myPol×uAssetPerPol，genesis.md 本位权利构成）；incentive=native myClaimable
+   * Amount anchor (sample convention): refund=total participation (uAsset); protection=genesis principal
+   * (myPt + myPol×uAssetPerPol); incentive=native myClaimable
    */
   amount: number | null;
-  /** 美元样本折算（激励=myClaimable×verse 样本价；金库=Σ readyUsd；null=无样本价） */
+  /** USD sample conversion (incentive=myClaimable × verse sample price; vault=Σ readyUsd; null=no sample price) */
   amountUsd: number | null;
   bridgeMessageId: string | null;
 };
@@ -1185,8 +1195,8 @@ export function getFixturePortfolioActions(): FixturePortfolioAction[] {
   const snapshot = getSnapshot();
   const actions: FixturePortfolioAction[] = [];
 
-  // 24h 保护窗（解锁后未满 24h——锚定 unlockedAtTx，genesis.md:43）；金额=创世本金
-  // （PT 1:1 本位 + POL 按 uAssetPerPol 折 uAsset 侧，genesis.md:58-65 全额退出权利构成）
+  // 24h protection window (unlocked less than 24h ago -- anchored to unlockedAtTx); amount=genesis principal
+  // (PT 1:1 at par + POL converted to the uAsset side at uAssetPerPol -- full-exit rights composition)
   for (const verse of snapshot.verses) {
     if (verse.stage !== 'unlocked' || !verse.unlockedAt) continue;
     const remainingMs = Date.parse(verse.unlockedAt) + PROTECTION_WINDOW_MS - ANCHOR_MS;
@@ -1211,8 +1221,8 @@ export function getFixturePortfolioActions(): FixturePortfolioAction[] {
     });
   }
 
-  // 周期激励可领（窗口未过；2026-10-05 用户裁定弃聚合卡——逐 verse 行进领取面板，
-  // 行动跳 verse 页；金额=native myClaimable + 样本价美元折算，017 hero readyUsd 同口径）
+  // Cycle incentive claimable (window not passed; per-verse rows open the claim panel, the action navigates to the verse
+  // page; amount=native myClaimable + USD conversion at sample price, same convention as the portfolio hero readyUsd)
   for (const gov of fixtureData.governance.items) {
     const verse = snapshot.verses.find((candidate) => candidate.id === gov.verseId);
     const claimable = gov.lastCycle ? amount(gov.lastCycle.myClaimable.raw) : 0;
@@ -1237,8 +1247,8 @@ export function getFixturePortfolioActions(): FixturePortfolioAction[] {
     });
   }
 
-  // 收益库待执行赎回（已成熟第二步；2026-10-05 用户裁定升独立卡——CTA 页内锚点 #pf-vault，
-  // 跨 verse 币种不同不求和，美元样本价折算合计）
+  // Yield vault pending redemption (matured second step of the redeem flow; own card -- CTA anchors in-page #pf-vault,
+  // no cross-verse summing since tokens differ, USD sample-price conversion for the total)
   const readyVerses = getFixtureVaultRows().filter((row) => row.readyTotal > 0);
   if (readyVerses.length > 0) {
     actions.push({
@@ -1256,7 +1266,7 @@ export function getFixturePortfolioActions(): FixturePortfolioAction[] {
     });
   }
 
-  // 创世退款（每地址一次；无截止——refund 态随时可领）
+  // Genesis refund (once per address; no deadline -- refund-stage is claimable anytime)
   const refundRows = [...new Set(getFixtureParticipations().map((p) => p.verseId))]
     .map((verseId) => {
       const verse = snapshot.verses.find((candidate) => candidate.id === verseId);
@@ -1295,7 +1305,7 @@ export function getFixturePortfolioActions(): FixturePortfolioAction[] {
     });
   }
 
-  // 排序：有截止者按剩余时间升序（最紧急置顶）；无截止者按类别序殿后
+  // Sort: items with deadlines ascending by remaining time (most urgent on top); no-deadline items trail by kind order
   return actions.sort((a, b) => {
     if (a.remainingMs != null && b.remainingMs != null) return a.remainingMs - b.remainingMs;
     if (a.remainingMs != null) return -1;
@@ -1304,7 +1314,7 @@ export function getFixturePortfolioActions(): FixturePortfolioAction[] {
   });
 }
 
-/** ④参与凭证行：创世中=参与记录（未来凭证）；锁定/已解锁=POL/PT/YT/LP 持仓 */
+/** Section (4) participation voucher rows: genesis-stage=participation records (future vouchers); locked/unlocked=POL/PT/YT/LP holdings */
 export type FixtureParticipationRow = {
   verse: {
     id: string;
@@ -1313,25 +1323,25 @@ export type FixtureParticipationRow = {
     stage: VerseStage;
     raiseAsset: string;
     endsAt: string;
-    /** 创世截止 + 365d 固定锁期（MemeverseRegistrationLib.sol:14 合约常量）= 锁定行预计解锁日 */
+    /** Genesis deadline + 365d fixed lockup (contract constant) = expected unlock date for locked rows */
     unlockAt: string;
     unlockedAt: string | null;
   };
-  /** 创世中参与合计（按 kind 分列）+ 质押参与路径标记（PD-01） */
+  /** Genesis-stage participation total (split by kind) + staking participation route flag */
   genesis: {
     total: number;
     normal: number;
     leverage: number;
     preorder: number;
-    /** 存在质押参与的普通创世记录=true → 显示「质押参与」徽章 + ③区仓位互链 */
+    /** true when any normal participation used the stake route -> shows the "Stake participation" badge + section (3) position cross-link */
     stakeRoute: boolean;
   } | null;
-  /** POL/PT/YT/LP 持仓（锁定中/已解锁）；null=创世中无凭证 */
+  /** POL/PT/YT/LP holdings (locked/unlocked); null=genesis stage has no vouchers */
   holdings: {
     pol: number;
     pt: number;
     yt: number;
-    /** 可领 YT（Stage≥Locked 一次性按出资比例） */
+    /** Claimable YT (one-time pro rata by contribution once Stage≥Locked) */
     claimableYt: number;
   } | null;
 };
@@ -1386,7 +1396,7 @@ export function getFixtureParticipationRows(): FixtureParticipationRow[] {
     }
   }
 
-  // 分组序 = 生命周期方向（创世中 → 锁定中 → 已解锁；refund 由①待办承接）
+  // Group order = lifecycle direction (genesis -> locked -> unlocked; refund handled by section (1) to-dos)
   const stageOrder: Record<VerseStage, number> = { genesis: 0, locked: 1, unlocked: 2, refund: 3 };
   return rows.sort(
     (a, b) =>
@@ -1394,7 +1404,7 @@ export function getFixtureParticipationRows(): FixtureParticipationRow[] {
   );
 }
 
-/** ①待办区/状态行共用：页级信号计数（待办/可领/滞留） */
+/** Shared by section (1) to-dos / status rows: page-level signal counts (to-dos / claimable) */
 export function getFixturePortfolioSignals() {
   const actions = getFixturePortfolioActions();
   const claimableVerses = getFixtureParticipationRows().filter(
@@ -1406,19 +1416,20 @@ export function getFixturePortfolioSignals() {
   };
 }
 
-/** /referral（R-12，2026-10-07 用户裁定四项）：Memeverse swap 返佣样本视图。
- *  机制 G 源 = source-map M5/M14/M15：返佣从协议 35% 份额切出（默认 rate=1000bps
- *  即总手续费 10%，owner 可调 0–3500）、in-kind 逐币 pending/claim（无批量）、
- *  单层无绑定自推荐合法、按链独立（pending 行=链×币种）。
- *  friends 明细与 referralCode 短码为 S 级样本（链上事件不含被推荐人、无 code
- *  注册表）；≈$ 折算沿用 assets usdSample 样本价。 */
+/** /referral (four page blocks): Memeverse swap rebate sample view.
+ *  Mechanism: the rebate is carved out of the protocol's 35% share
+ *  (default rate=1000bps i.e. 10% of total fees, owner-adjustable 0-3500), in-kind per-token
+ *  pending/claim (no batching), single-level with unbound self-referral legal, independent per chain
+ *  (pending rows=chain × token).
+ *  Friends detail and the referralCode short code are samples (on-chain events exclude the
+ *  referee, no code registry); ≈$ conversion reuses the assets usdSample sample prices. */
 export type FixtureReferralAssetAmount = {
   assetId: string;
   symbol: string;
   chainId: number;
   chainName: string;
   amount: number;
-  /** 样本价折算；无样本价=null（不渲染 ≈$ 行） */
+  /** Sample-price conversion; no sample price=null (the ≈$ row is not rendered) */
   usd: number | null;
 };
 
@@ -1439,14 +1450,14 @@ export type FixtureReferralFriend = {
 };
 
 export type FixtureReferral = {
-  /** 链接属主=样本账户（owner 不入 referral.json，从 accounts 派生防两处漂移） */
+  /** Link owner=sample account (owner is not in referral.json, derived from accounts to prevent drift between the two) */
   owner: string;
   referralCode: string;
-  /** 返佣率（占总手续费百分比；生产读 hook referrerRebateBps()） */
+  /** Rebate rate (percentage of total fees; production reads hook referrerRebateBps()) */
   ratePercent: number;
-  /** 累计已赚 USD（earned × usdSample 求和，无样本价行计 0） */
+  /** Cumulative earned USD (sum of earned × usdSample; rows without a sample price count as 0) */
   totalEarnedUsd: number;
-  /** 待领 USD（同口径） */
+  /** Claimable USD (same convention) */
   pendingUsd: number;
   friendsCount: number;
   earned: FixtureReferralAssetAmount[];
@@ -1511,16 +1522,16 @@ export function getFixtureReferral(): FixtureReferral | null {
 }
 
 // ---------------------------------------------------------------------------
-// /faucet（测试网水龙头 + PSM 面值兑换 UUSD；机制 source-map S10/S11/S8——UUSD 唯一
-// 获取路径=PSM，生息资产不经 UUSD 直接 stakeForGenesis，2026-10-09 用户两轮口径终值）
+// /faucet (testnet faucet + PSM face-value conversion to UUSD; UUSD's only acquisition path=PSM,
+// yield-bearing assets stakeForGenesis directly without passing through UUSD)
 // ---------------------------------------------------------------------------
 
 export type FixtureFaucetToken = {
   symbol: string;
   name: string;
-  /** 每日领取额度（合约 dailyLimit 一次性全额 mint） */
+  /** Daily claim allowance (contract dailyLimit, one-time full mint) */
   dailyLimit: number;
-  /** 冷却剩余毫秒样本（0=可领；>0=ClaimTooSoon 域） */
+  /** Cooldown remaining milliseconds sample (0=claimable; >0=ClaimTooSoon error domain) */
   cooldownRemainingMs: number;
 };
 
@@ -1531,15 +1542,15 @@ export type FixtureFaucet = {
   swap: {
     uAssetSymbol: string;
     reserveSymbol: string;
-    /** mint 费率（比率，10bps→0.001）；null=无配对样本→费率行槽位 */
-    feeIn: number | null;
-    /** redeem 费率（比率） */
+    /** mint fee rate (ratio, 10bps->0.001) */
+    feeIn: number;
+    /** redeem fee rate (ratio) */
     feeOut: number;
-    /** 铸造额度余量（stockCap−netMinted 样本）；null=槽位 */
+    /** Mint allowance headroom (stockCap−netMinted sample); null=slot */
     headroom: number | null;
-    /** 样本账户 UUSD 余额（Back to USDC 方向 Max 源） */
+    /** Sample account's UUSD balance (Max source for the Back to USDC direction) */
     myUAsset: number;
-    /** 样本账户储备余额（Get UUSD 方向 Max 源） */
+    /** Sample account's reserve balance (Max source for the Get UUSD direction) */
     myReserve: number;
   };
 };

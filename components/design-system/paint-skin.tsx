@@ -3,10 +3,12 @@
 import { useEffect } from 'react'
 
 /**
- * Paint Worklet 画皮装载器（2026-09-26 用户裁定，实验室 F 区验收通过）：
- * - 注册 public/paint/chamfer-border.js（按钮家族描边+切角绘制，机制见该文件头注释）；
- * - 同步 --dpr 到 :root（worklet 量化网格用；缩放/页面 zoom 变化时重建 resolution MQ 监听）。
- * 挂在根 layout，全站（产品页/showcase/弹窗）生效。
+ * Paint Worklet skin loader:
+ * - registers public/paint/chamfer-border.js (button-family border + chamfer painting;
+ *   mechanics documented in that file's header comment);
+ * - syncs --dpr to :root (used by the worklet's quantized grid; rebuilds the resolution MQ
+ *   listener on display scaling / page zoom changes).
+ * Mounted in the root layout; site-wide (product pages / showcase / dialogs).
  */
 export function PaintSkin() {
   useEffect(() => {
@@ -26,23 +28,25 @@ export function PaintSkin() {
     const paintCss = window.CSS as unknown as {
       paintWorklet?: { addModule(url: string): Promise<void> }
     }
-    // 注册完成打标记：paint() 在 worklet 就位前光栅化为空（按钮只剩文字），
-    // e2e 视觉基线的 stabilize() 等此标记避免把「无描边」竞态写进基线（2026-10-07）；
-    // 不支持 worklet 的浏览器走 @supports CSS 回落，无需等待、直接标记
+    // Flag when registration completes: paint() rasterizes to empty before the worklet is in
+    // place (buttons keep only their text), so the e2e visual baseline's stabilize() waits on
+    // this flag to avoid baking the "no border" race into the baseline; browsers
+    // without worklet support take the @supports CSS fallback — no waiting, flag immediately
     if (!paintCss.paintWorklet) {
       root.dataset.paintReady = '1'
       return () => mq.removeEventListener('change', onChange)
     }
-    // 预水合内联装载（app/layout.tsx 的 nonce 内联脚本）已抢跑 addModule 时不再
-    // 重复注册——本组件只保留 --dpr / resolution MQ 追踪；内联脚本被 CSP 拦截
-    // （nonce 缺失等）时 __paintBooted 不在，本组件兜底走原注册路径
+    // If the pre-hydration inline loader (app/layout.tsx's nonce inline script) already raced
+    // ahead with addModule, don't register again — this component keeps only --dpr / resolution
+    // MQ tracking; if the inline script was blocked by CSP (missing nonce etc.), __paintBooted
+    // is absent and this component falls back to the original registration path
     if (!(window as unknown as { __paintBooted?: boolean }).__paintBooted) {
       paintCss.paintWorklet.addModule('/paint/chamfer-border.js').then(
         () => {
           root.dataset.paintReady = '1'
         },
         (error: unknown) => {
-          console.error('[paint-skin] worklet 注册失败', error)
+          console.error('[paint-skin] worklet registration failed', error)
           root.dataset.paintReady = '1'
         },
       )

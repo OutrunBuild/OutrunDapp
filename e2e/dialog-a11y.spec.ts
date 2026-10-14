@@ -1,13 +1,18 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
-// 弹窗输出区 aria 关联断言（2026-10-03 用户裁定：e2e 开弹窗）：
-// 末测试另覆盖附则弹层交互契约（Esc/焦点圈闭/焦点还原）于链选择弹窗（2026-10-08 迁 ui/dialog）。
-// 验证 component-contract.md 头部「输出收账框 a11y」通用规则——输出 field 容器 role="group"
-// + aria-labelledby 解析到 head 标签 span；各只读 <output> 的组合 aria-label 含
-// 字段标签文本 + 同行代币章符号。断言取 DOM 自身组词（标签文本+代币章），不钉 copy 字符串，
-// 文案演进不破测试。弹窗路由按 fixture 状态选取：/2=locked（Liquidity 池卡双弹窗 +
-// Tokenization Mint/Flash Swap）、/3=unlocked（Tokenization Mint/Redeem PT/Redeem YT）。
-// 仅桌面档（同 a11y.spec 口径：同一 DOM，断言不随视口变化）。不截屏、不写快照、不耦合 a11y-baseline。
+// Dialog output-area aria wiring assertions (tests open dialogs directly):
+// the last test additionally covers the adjunct popover interaction contract
+// (Esc / focus trap / focus restore) on the chain selector dialog.
+// Verifies the general "output ledger box a11y" rule —
+// the output field container has role="group" and aria-labelledby
+// resolving to the head label span; each read-only <output>'s composite
+// aria-label contains the field label text + same-row token-chip symbol.
+// Assertions use the DOM's own wording (label text + token chip), not pinned
+// copy strings, so copy evolution does not break tests. Dialog routes are
+// picked by fixture state: /2=locked (Liquidity pool-card two dialogs +
+// Tokenization Mint/Flash Swap), /3=unlocked (Tokenization Mint/Redeem PT/Redeem YT).
+// Desktop tier only (same standard as a11y.spec: same DOM, assertions do not
+// vary by viewport). No screenshots, no snapshots, no a11y-baseline coupling.
 
 const VERSE_LOCKED = '/memeverse/2';
 const VERSE_UNLOCKED = '/memeverse/3';
@@ -26,38 +31,48 @@ async function closeDialog(page: Page) {
   await expect(page.locator(DIALOG)).toHaveCount(0);
 }
 
-/** 输出收账框三层接线：output → 同行代币章符号；output → 祖先 group → labelledby → 唯一标签 span；
- *  output 组合 aria-label ⊇ 标签文本 + 代币符号 */
+/** Output ledger box three-layer wiring: output → same-row token-chip symbol;
+ *  output → ancestor group → labelledby → unique label span;
+ *  output composite aria-label ⊇ label text + token symbol */
 async function assertOutputWiring(scope: Locator, name: string) {
   const outputs = scope.locator('output');
   const count = await outputs.count();
-  expect(count, `${name}：应有只读 output`).toBeGreaterThan(0);
+  expect(count, `${name}: should have read-only output(s)`).toBeGreaterThan(0);
   for (let i = 0; i < count; i++) {
     const out = outputs.nth(i);
     const symbol = (
       await out.locator('xpath=..').locator('.swap-panel__token strong').innerText()
     ).trim();
     const group = out.locator('xpath=ancestor::div[@role="group"][1]');
-    await expect(group, `${name} output#${i}：应归属 role="group" 输出框`).toHaveCount(1);
+    await expect(
+      group,
+      `${name} output#${i}: should belong to a role="group" output box`,
+    ).toHaveCount(1);
     const labelledBy = await group.getAttribute('aria-labelledby');
-    expect(labelledBy, `${name} output#${i}：group 应有 aria-labelledby`).toBeTruthy();
+    expect(labelledBy, `${name} output#${i}: group should have aria-labelledby`).toBeTruthy();
     const labelSpan = scope.locator(`[id="${labelledBy}"]`);
     await expect(
       labelSpan,
-      `${name} output#${i}：aria-labelledby 应解析到唯一标签 span`,
+      `${name} output#${i}: aria-labelledby should resolve to a unique label span`,
     ).toHaveCount(1);
     const ariaLabel = (await out.getAttribute('aria-label')) ?? '';
-    expect(ariaLabel, `${name} output#${i}：output 应有组合 aria-label`).toContain(
+    expect(ariaLabel, `${name} output#${i}: output should have a composite aria-label`).toContain(
       (await labelSpan.innerText()).trim(),
     );
-    expect(ariaLabel, `${name} output#${i}：aria-label 应含同行代币符号 ${symbol}`).toContain(
-      symbol,
-    );
+    expect(
+      ariaLabel,
+      `${name} output#${i}: aria-label should contain same-row token symbol ${symbol}`,
+    ).toContain(symbol);
   }
 }
 
-test('弹窗 aria：Liquidity 池卡 Add=单腿 / Remove=双腿', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop-1280', '弹窗断言仅桌面档');
+test('dialog aria: Liquidity pool card Add = one output / Remove = two outputs', async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.name !== 'desktop-1280',
+    'dialog assertions run on the desktop tier only',
+  );
   await page.goto(VERSE_LOCKED, { waitUntil: 'networkidle' });
   const card = page.locator('.pool-card').first();
 
@@ -71,8 +86,11 @@ test('弹窗 aria：Liquidity 池卡 Add=单腿 / Remove=双腿', async ({ page 
   await assertOutputWiring(remove, 'Remove Liquidity');
 });
 
-test('弹窗 aria：Tokenization(locked) Mint / Flash Swap', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop-1280', '弹窗断言仅桌面档');
+test('dialog aria: Tokenization(locked) Mint / Flash Swap', async ({ page }, testInfo) => {
+  test.skip(
+    testInfo.project.name !== 'desktop-1280',
+    'dialog assertions run on the desktop tier only',
+  );
   await page.goto(VERSE_LOCKED, { waitUntil: 'networkidle' });
   await page.getByRole('button', { name: 'Tokenization' }).click();
 
@@ -89,10 +107,13 @@ test('弹窗 aria：Tokenization(locked) Mint / Flash Swap', async ({ page }, te
   await assertOutputWiring(flash, 'Flash Swap');
 });
 
-test('弹窗 aria：Tokenization(unlocked) Mint / Redeem PT=单腿 / Redeem YT=双腿', async ({
+test('dialog aria: Tokenization(unlocked) Mint / Redeem PT = one output / Redeem YT = two outputs', async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop-1280', '弹窗断言仅桌面档');
+  test.skip(
+    testInfo.project.name !== 'desktop-1280',
+    'dialog assertions run on the desktop tier only',
+  );
   await page.goto(VERSE_UNLOCKED, { waitUntil: 'networkidle' });
   await page.getByRole('button', { name: 'Tokenization' }).click();
 
@@ -117,57 +138,73 @@ test('弹窗 aria：Tokenization(unlocked) Mint / Redeem PT=单腿 / Redeem YT=�
   await assertOutputWiring(redeemYt, 'Redeem YT');
 });
 
-test('swap 卡 buy 输出 aria 关联（页面级，无弹窗）', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop-1280', '弹窗断言仅桌面档');
+test('swap card buy output aria wiring (page-level, no dialog)', async ({ page }, testInfo) => {
+  test.skip(
+    testInfo.project.name !== 'desktop-1280',
+    'page-level output wiring runs on the desktop tier only',
+  );
   await page.goto(VERSE_LOCKED, { waitUntil: 'networkidle' });
   const desk = page.locator('.swap-panel').first();
   await expect(desk.locator('output').first()).toBeVisible();
   expect(await desk.locator('output').count()).toBe(1);
-  await assertOutputWiring(desk, 'Swap 卡 buy');
+  await assertOutputWiring(desk, 'Swap card buy');
 });
 
-test('链选择弹窗：DialogTitle 接线 + 焦点圈闭 + Esc 关闭还原触发器', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop-1280', '弹窗断言仅桌面档');
+test('chain selector dialog: DialogTitle wiring + focus trap + Esc close restores trigger', async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.name !== 'desktop-1280',
+    'dialog assertions run on the desktop tier only',
+  );
   await page.goto('/', { waitUntil: 'networkidle' });
   const trigger = page.locator('.chain-dialog__trigger');
   await trigger.click();
   const dialog = page.locator(DIALOG);
   await expect(dialog).toBeVisible();
 
-  // DialogTitle 接线：弹窗可达名锚点解析到面板内标题（ui/dialog.tsx「必须有才过 a11y」）
+  // DialogTitle wiring: the dialog accessible-name anchor resolves to the
+  // in-panel title (ui/dialog.tsx "required to pass a11y")
   const labelledBy = await dialog.getAttribute('aria-labelledby');
-  expect(labelledBy, 'DialogContent 应有 aria-labelledby（DialogTitle 锚点）').toBeTruthy();
+  expect(labelledBy, 'DialogContent should have aria-labelledby (DialogTitle anchor)').toBeTruthy();
   await expect(page.locator(`[id="${labelledBy}"]`)).toBeAttached();
 
-  // 打开后焦点进入弹窗（模态契约；base-ui initialFocus 异步落位，先等再 Tab）
+  // Focus enters the dialog after open (modal contract; base-ui initialFocus
+  // settles asynchronously, wait before Tab)
   await expect
     .poll(
       () => page.evaluate(() => !!document.activeElement?.closest('[data-slot="dialog-content"]')),
       {
-        message: '打开后焦点应进入弹窗',
+        message: 'focus should enter the dialog after open',
       },
     )
     .toBe(true);
 
-  // 焦点圈闭（附则弹层契约）：连按 Tab 越过弹窗末元素——base-ui 圈闭为 focusout 异步回笼
-  // （非同步拦截，全仓 ui/dialog 弹窗同款原语行为），断言稳态：焦点回笼弹窗内且弹窗不关
+  // Focus trap (adjunct popover contract): repeated Tab past the dialog's last
+  // element — base-ui trapping is an asynchronous focusout re-round-trip
+  // (not a synchronous interception; the same primitive behavior for all
+  // ui/dialog dialogs in the repo), so assert the steady state: focus is back
+  // inside the dialog and the dialog did not close
   for (let i = 0; i < 8; i += 1) await page.keyboard.press('Tab');
   await expect
     .poll(
       () => page.evaluate(() => !!document.activeElement?.closest('[data-slot="dialog-content"]')),
       {
-        message: 'Tab 出界后焦点应回笼弹窗（圈闭稳态）',
+        message:
+          'focus should return inside the dialog after Tab past the edge (trap steady state)',
       },
     )
     .toBe(true);
   await expect(page.locator(DIALOG)).toBeVisible();
 
-  // Esc 关闭 + 焦点还原触发器（附则弹层契约）
+  // Esc closes + focus restored to trigger (adjunct popover contract)
   await page.keyboard.press('Escape');
   await expect(page.locator(DIALOG)).toHaveCount(0);
   await expect(trigger).toBeFocused();
 
-  // select 语义保留（2026-09-24 裁定链切换唯一入口）：选非首链写 ?chain=、再选回首链删参
+  // select semantics preserved (the chain dialog is the sole entry point for
+  // chain switching): picking a non-first chain writes ?chain=, picking the first
+  // chain again removes the param
   await trigger.click();
   await expect(dialog).toBeVisible();
   await dialog.locator('.chain-dialog__option').nth(1).click();

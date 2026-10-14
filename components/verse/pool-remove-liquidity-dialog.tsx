@@ -19,15 +19,17 @@ import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 
 /**
- * Remove Liquidity 弹窗（2026-09-27 用户裁定：池卡新增 Remove 钮）。
- * 机制（真源）：四池统一=router removeLiquidity——burn LP 代币（uint128 liquidity）
- * 按池配比双侧取回、amount0Min/amount1Min + deadline（IMemeverseSwapRouter.sol:292-300
- * "LP liquidity to burn"；双侧 min 即滑点保护 → 保留设置齿轮，同 §22 Add 弹窗）。
- * 输出推导=Add 反向：quote = burnLP ÷ lpPerQuote、base = quote ÷ ratio；
- * PT 两池配比=锚定汇率推导样本（见下 ptAnchorRatio 注，2026-09-27 用户裁定造样本出数）。
- * LP 余额=pol-positions myLp 四池样本（gen-pol-my-lp.mjs 生成）；
- * 原型纪律同 Add：报价为线性推导样本；CTA 未连接=Connect Wallet 可点切换模拟连接、
- * 已连接=Remove 禁用，不伪造链上成交。
+ * Remove Liquidity dialog (the pool card's Remove button).
+ * Mechanism: all four pools unified=router removeLiquidity — burn LP tokens
+ * (uint128 liquidity), withdraw both sides at the pool ratio, amount0Min/amount1Min + deadline;
+ * the two-sided min is the slippage protection → settings gear kept,
+ * same as the Add dialog.
+ * Output derivation=reverse of Add: quote = burnLP ÷ lpPerQuote, base = quote ÷ ratio;
+ * the two PT pools' ratio=anchor-rate derivation sample (see the ptAnchorRatio note below).
+ * LP balance=pol-positions myLp four-pool sample;
+ * same discipline as Add: the quote is a linear-derivation sample; CTA disconnected=
+ * Connect Wallet clickable to toggle mock connection,
+ * connected=Remove disabled, no faked on-chain execution.
  */
 export function PoolRemoveLiquidityDialog({
   locale,
@@ -37,13 +39,13 @@ export function PoolRemoveLiquidityDialog({
   uAssetUsd,
 }: {
   locale: Locale
-  /** 池卡行数据（pool 标识 + 双侧符号） */
+  /** Pool card row data (pool identifier + both sides' symbols) */
   pool: FixtureVerseTrade['pools'][number]
-  /** POL/PT 持仓样本（LP 余额/配比来源）；null=槽位态（余额 '--'） */
+  /** POL/PT position sample (source of LP balance/ratios); null=slot state (balance '--') */
   pol: FixturePolPosition | null
-  /** 主池价：1 memecoin = price uAsset（仅主池联动用）；null=无样本 */
+  /** Main-pool price: 1 memecoin = price uAsset (used only for main-pool linkage); null=no sample */
   price: number | null
-  /** uAsset 美元样本价；null=隐藏美元换算行 */
+  /** uAsset USD sample price; null=hide the USD conversion row */
   uAssetUsd: number | null
 }) {
   const copy = getCopy(locale).verseDesk
@@ -52,21 +54,22 @@ export function PoolRemoveLiquidityDialog({
   const [lpAmount, setLpAmount] = useState('')
   const receiveLabelId = useId()
   const lpBalanceErrorId = useId()
-  // 设置层受控值存 string 原样展示（§25 拍板 A：留点不吞、非整分钟就地报错），
-  // 数值推导经 slippageToNumber（2026-10-08 P1-1 修）
+  // The settings-layer controlled value is stored as a string and shown verbatim
+  // (keep the trailing dot instead of swallowing it, inline error for non-whole minutes),
+  // numeric derivation goes through slippageToNumber
   const [slippageText, setSlippageText] = useState('0.5')
   const [deadlineText, setDeadlineText] = useState('10')
   const [rateInverted, setRateInverted] = useState(false)
 
   const lpBalance = pol == null ? null : pol.myLp[pool.pool]
-  // Max 填入值（null/≤0 → 空）；提前算好避免闭包内丢窄化
+  // Max fill value (null/≤0 → empty); computed upfront to avoid losing narrowing inside the closure
   const maxLp = amountToInputString(lpBalance ?? 0)
-  // POL/uAsset 池市场价样本（POL 计价侧 ≈$ 换算用）
+  // POL/uAsset pool market price sample (for the POL-denominated side's ≈$ conversion)
   const polPrice = pol?.marketPricePerPol ?? null
   const lpSymbol = `${pool.baseSymbol}/${pool.quoteSymbol} LP`
-  // 池配比 1 base = ratio quote。PT 两池=锚定汇率推导样本（2026-09-27 用户裁定
-  // 造样本出数，不留 '--'/槽位）：1 PT = uAssetPerPol uAsset（MemeverseLiquidityImpl.sol:239
-  // 固定兑付）；PT/POL 池再按 POL/uAsset 市场价折算 1 PT = uAssetPerPol÷marketPricePerPol POL
+  // Pool ratio 1 base = ratio quote. The two PT pools use anchor-rate derived samples
+  // (no '--'/slots): 1 PT = uAssetPerPol uAsset (fixed redemption rate); the PT/POL pool then
+  // converts via the POL/uAsset market price: 1 PT = uAssetPerPol÷marketPricePerPol POL
   const ptAnchorRatio =
     pol != null && pol.marketPricePerPol > 0
       ? pool.pool === 'pt-uasset'
@@ -79,11 +82,13 @@ export function PoolRemoveLiquidityDialog({
   const lpVal = Number(lpAmount)
   const valid = Number.isFinite(lpVal) && lpVal > 0
   const lpOver = lpBalance != null && lpVal > lpBalance
-  // 取回推导=铸得反向：quote = LP ÷ lpPerQuote；base 再按配比折算（缺样本侧走槽位）
+  // Withdrawal derivation=reverse of minting: quote = LP ÷ lpPerQuote; base then converted at
+  // the ratio (missing-sample side falls to the slot)
   const quoteOut =
     valid && pool.lpPerQuote != null && pool.lpPerQuote > 0 ? lpVal / pool.lpPerQuote : null
   const baseOut = quoteOut != null && ratio != null && ratio > 0 ? quoteOut / ratio : null
-  // 滑点校验=§25 口径（slippage-input.ts）：越界期间保护值推导退 '--' 槽位
+  // Slippage validation (see getSlippageIssue/slippageToNumber in global/slippage-input):
+  // while out of bounds, protected-value derivation falls back to the '--' slot
   const slippage = slippageToNumber(slippageText)
   const slippageIssue = getSlippageIssue(slippage)
   const minQuote =
@@ -91,9 +96,11 @@ export function PoolRemoveLiquidityDialog({
   const minBase =
     baseOut != null && slippageIssue == null ? baseOut * (1 - slippage / 100) : null
 
-  // 大数分层口径=global/amount-format（fmtUsd/fmtTokenAmount）
-  // ≈$ 换算价（uAsset 计）：base 侧主池/POL 池有市场价样本、PT 侧=锚定汇率 uAssetPerPol；
-  // quote 侧 uAsset=1、PT/POL 池=polPrice
+  // display formatting goes through global/amount-format (fmtUsd/fmtTokenAmount) — raw float
+  // products carry precision noise;
+  // ≈$ conversion prices (in uAsset): base side main pool/POL pool have market price samples,
+  // PT side=anchor rate uAssetPerPol;
+  // quote side uAsset=1, PT/POL pool=polPrice
   const baseUsdPrice =
     pool.pool === 'main' ? price : pool.pool === 'pol-uasset' ? polPrice : pol?.uAssetPerPol ?? null
   const quoteUsdPrice = pool.pool === 'pt-pol' ? polPrice : 1
@@ -108,8 +115,9 @@ export function PoolRemoveLiquidityDialog({
 
   return (
     <Dialog>
-      {/* data-slot 钉回 button：同 PolMintDialog——主题桥按 [data-slot='button'] 匹配皮肤；
-          .pool-card [data-slot='button'] 池卡行样式继续命中 */}
+      {/* data-slot pinned back to button: same as PolMintDialog — the theme bridge matches skins
+          on [data-slot='button'];
+          .pool-card [data-slot='button'] pool card row styling keeps matching */}
       <DialogTrigger data-slot="button" render={<Button variant="outline" size="sm" />}>
         {copy.removeLiquidity}
       </DialogTrigger>
@@ -178,8 +186,9 @@ export function PoolRemoveLiquidityDialog({
             <ArrowDown size={16} />
           </span>
 
-          {/* 输出框：base/quote 两腿合一个框、单「预计获得」标签管两腿（§21 2026-09-27 参照图
-              裁定模式，2026-10-03 对齐；行间 hairline 由 ~ 兄弟选择器提供） */}
+          {/* Output box: base/quote both legs merged into one box, a single "You receive" label
+              covers both legs;
+              the hairline between rows comes from the ~ sibling selector */}
           <div className="swap-panel__field" role="group" aria-labelledby={receiveLabelId}>
             <div className="swap-panel__field-head">
               <span id={receiveLabelId}>{copy.mintYouReceive}</span>

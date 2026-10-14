@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-// architecture §7 统一交易状态序列（原型裁剪见 FLOW_STATE_GROUPS）
+// Unified transaction state sequence (the display projection onto TxStatus's three-segment bar
+// lives in displayGroupOf; the prototype never drives the 'replaced' state)
 export const FLOW_STATES = [
   'preparing',
   'preflighting',
@@ -19,13 +20,13 @@ export const FLOW_STATES = [
 
 export type FlowState = (typeof FLOW_STATES)[number];
 
-/** 原型展示分组（TxStatus 三段条）：signing=T4 等签名+之前准备段、confirming=T5、confirmed=T6 */
+/** Prototype display groups (TxStatus three-segment bar): signing=awaiting-signature and earlier prep, confirming=submitted/confirming, confirmed=confirmed */
 export type FlowDisplayGroup =
   'idle' | 'signing' | 'confirming' | 'confirmed' | 'reverted' | 'cancelled';
 
 export type FlowOutcome = 'confirmed' | 'reverted' | 'user-rejected';
 
-/** 各状态的展示分组映射（消费方 TxStatus 按 group 高亮三段条） */
+/** Display-group mapping per state (consumer TxStatus highlights the three-segment bar by group) */
 export function displayGroupOf(state: FlowState): FlowDisplayGroup {
   if (state === 'confirmed') return 'confirmed';
   if (state === 'reverted') return 'reverted';
@@ -34,12 +35,12 @@ export function displayGroupOf(state: FlowState): FlowDisplayGroup {
   return 'signing';
 }
 
-/** 非终态集合（终态=confirmed/reverted/cancelled） */
+/** Terminal-state check (terminal = confirmed/reverted/cancelled) */
 function isTerminal(state: FlowState): boolean {
   return state === 'confirmed' || state === 'reverted' || state === 'cancelled';
 }
 
-/** 原型演示的推进节奏（ms）：真实钱包接入后由事件驱动替换 */
+/** Advancement cadence for the prototype demo (ms); replaced by event drivers once a real wallet is wired in */
 const STAGE_MS: Partial<Record<FlowState, number>> = {
   preparing: 500,
   preflighting: 500,
@@ -51,18 +52,20 @@ const STAGE_MS: Partial<Record<FlowState, number>> = {
 };
 
 /**
- * 统一流程状态机（步骤 6；architecture §7 序列的原型驱动）。
- * 原型无钱包：begin() 后按 STAGE_MS 定时推进；outcome 决定终态
- * （confirmed=成功 / reverted=链上回退 / user-rejected=拒签）。
- * 纯函数核心 advance(state, outcome) 导出供单测；卸载清挂起定时器。
+ * Unified flow state machine (prototype driver for the FLOW_STATES sequence).
+ * Prototype has no wallet: after begin(), advances on STAGE_MS timers; outcome decides the
+ * terminal state (confirmed=success / reverted=on-chain revert / user-rejected=signature refused).
+ * Pure-function core advance(state, outcome) is exported for unit tests; pending timers are
+ * cleared on unmount.
  */
 export function advance(state: FlowState, outcome: FlowOutcome): FlowState | null {
   if (isTerminal(state)) return null;
-  // 拒签只发生在等待签名阶段
+  // Signature refusal only occurs while awaiting signature
   if (outcome === 'user-rejected') {
     return state === 'awaiting-signature' ? 'cancelled' : null;
   }
-  // 回退最早发生在提交后（签名前 reverted 无意义——尚未上链，照常推进）
+  // Revert can happen earliest after submission (reverted before signing is meaningless -- not yet
+  // on-chain, so keep advancing normally)
   if (outcome === 'reverted' && state === 'submitted') return 'reverted';
   return nextProgress(state);
 }

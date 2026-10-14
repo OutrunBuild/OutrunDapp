@@ -17,21 +17,23 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 
-/** 可选代币行模型（SwapPanel 组装——价格/路由在面板算，弹窗只管选择） */
+/** Selectable token row model (assembled by SwapPanel — price/route computed in the panel, the dialog only handles selection) */
 export type SwapTokenOption = {
   id: string
   symbol: string
   name: string
-  /** 行内余额样本；null=fixture 缺失→'--' 槽位 */
+  /** Row balance sample; null=fixture missing → '--' slot */
   balance: number | null
 }
 
 /**
- * Swap 代币选择弹窗（2026-09-27：输入/输出侧代币可点开选择，参照图=标题+✕+搜索+行列表，
- * 皮肤走本仓设计系统不照抄配色）。可选集用户裁定：稳定侧=uAsset+其 PSM 配对储备、
- * Meme 侧=memecoin/POL/PT/YT——集合由 SwapPanel 按侧注入，弹窗本身不限。
- * 壳复用 .pol-mint（同 4 个 POL/Liquidity 弹窗）；键盘契约 §2 AssetSelector：
- * Enter/Space 选中（button 原生）、Esc 关闭（Dialog 原生）、↑↓ 在行间移动焦点。
+ * Swap token select dialog: input/output side tokens open a selection; shell=title+✕+search+row
+ * list, skin follows this repo's design system. Selectable set: stable side=uAsset + its
+ * PSM-paired reserves,
+ * Meme side=memecoin/POL/PT (YT excluded — use the Flash Swap dialog) — the set is injected
+ * per side by SwapPanel; the dialog itself is not limited.
+ * Shell reuses .pol-mint (same shell as the other POL/Liquidity dialogs); keyboard behavior:
+ * Enter/Space select (native button), Esc closes (native Dialog), ↑↓ move focus between rows.
  */
 export function SwapTokenSelectDialog({
   locale,
@@ -40,7 +42,7 @@ export function SwapTokenSelectDialog({
   onSelect,
 }: {
   locale: Locale
-  /** 当前选中代币 id（行 data-selected 高亮 + aria-selected） */
+  /** Currently selected token id (row data-selected highlight + aria-selected) */
   selectedId: string
   options: SwapTokenOption[]
   onSelect: (id: string) => void
@@ -57,7 +59,7 @@ export function SwapTokenSelectDialog({
       option.name.toLowerCase().includes(normalized),
   )
   const selected = options.find((option) => option.id === selectedId)
-  // 品类前缀符号取段（POL-MOON→POL），裸符号取前两位（UETH→UE）
+  // Category-prefixed symbols take the segment (POL-MOON→POL); bare symbols take the first two letters (UETH→UE)
   const badgeOf = (symbol: string) =>
     symbol.includes('-') ? symbol.split('-')[0] : symbol.slice(0, 2).toUpperCase()
 
@@ -85,8 +87,9 @@ export function SwapTokenSelectDialog({
               </DialogClose>
             </div>
           </header>
-          {/* 搜索行走全局 input 桥皮肤（[data-slot='input'] 带 !important，外框叠加会双框打架），
-              左图标=覆盖式绝对定位（同 .create-suffix 先例） */}
+          {/* The search row uses the global input bridge skin ([data-slot='input'] carries
+              !important; an outer box overlay would clash as a double box),
+              left icon=overlay absolute positioning (same technique as .create-suffix) */}
           <div className="token-select__search">
             <Input
               value={query}
@@ -97,7 +100,7 @@ export function SwapTokenSelectDialog({
             />
             <Search aria-hidden="true" size={14} />
           </div>
-          {/* ↑↓ 焦点在行钮间循环（契约 §2）；option 的 aria-selected 跟选中态 */}
+          {/* ↑↓ focus cycles between row buttons; the option's aria-selected follows the selected state */}
           <ul
             className="token-select__list"
             role="listbox"

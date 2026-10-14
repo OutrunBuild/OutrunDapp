@@ -1,6 +1,8 @@
-// 细粒度蜡烛生成（2026-09-23 用户裁定：1m/5m/15m 全部可选——假数据看效果）。
-// 对每个带 1h 蜡烛的主池：以最后收盘价为锚，确定性生成 96 根 1m / 5m / 15m 蜡烛。
-// 确定性：mulberry32(seed + marketId + 粒度)；幂等：已有 candlesFine 跳过。
+// Fine-grained candle generation (1m/5m/15m all selectable -- fake data for visuals).
+// For every main pool with 1h candles: anchored at the last close, deterministically generates 96
+// candles each at 1m / 5m / 15m.
+// Determinism: mulberry32(seed + marketId + granularity); idempotent: pools that already have
+// candlesFine are skipped.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -27,7 +29,7 @@ function mulberry32(text) {
 
 const ANCHOR = Date.parse('2026-09-16T12:00:00Z');
 const COUNT = 96;
-/** 各细粒度的单根时长（分钟）与整体波幅（越细越小） */
+/** Per-granularity single-candle duration (minutes) and overall volatility (finer = smaller) */
 const FINE = {
   '1m': { span: 1, vol: 0.0012 },
   '5m': { span: 5, vol: 0.003 },
@@ -44,7 +46,8 @@ for (const market of data.items) {
       const rnd = mulberry32(`${seed}:${market.id}:${gran}`);
       const stepMs = cfg.span * 60_000;
       const firstT = ANCHOR - COUNT * stepMs;
-      // 乘性随机游走（永不为负）：从首价出发，末根收盘收敛回锚定价
+      // Multiplicative random walk (never negative): starts from the first price, last close converges
+      // back to the anchored price
       const first = lastClose * (1 + (rnd() - 0.5) * cfg.vol * 6);
       const perStep = Math.pow(lastClose / first, 1 / (COUNT - 1));
       const prices = [first];

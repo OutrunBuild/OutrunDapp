@@ -1,10 +1,12 @@
-// 一次性数据扩展脚本（2026-09-28 用户裁定）：为 pol-positions.json 全部记录补
-// flashUserFeeRate——Flash Swap 用户手续费率样本（相对用户支付额）。口径：池动态费
-// （DynamicFeeMath：FEE_BASE_BPS=100 下限、FEE_MAX_BPS=10000 顶）按 PT 全腿名义收取、
-// 用户只付差额（MemeverseYTFlashSwapRouter._executeBuy），换算到支付额基数后被杠杆放大，
-// 谱系横跨 <1%（PT 深折价+EWVWAP 豁免）到极高（PT 近平价/高波动，费率高到成本非正时
-// InvalidBuyCost 回滚无法成交）。样本带宽 0.3%–85% 直接覆盖全谱；假数据不做链式推导
-// （用户裁定）。mulberry32 种子取记录 id，重跑幂等。
+// One-off data extension script: backfills flashUserFeeRate for every record
+// in pol-positions.json -- Flash Swap user fee rate samples (relative to the user's payment amount).
+// Basis: the pool dynamic fee (DynamicFeeMath: FEE_BASE_BPS=100 floor, FEE_MAX_BPS=10000 cap) is
+// charged on the PT full-leg notional while the user pays only the difference
+// (MemeverseYTFlashSwapRouter._executeBuy); converted onto the payment base it is amplified by
+// leverage, with a spectrum from <1% (deep PT discount + EWVWAP exemption) to extremely high (PT near
+// parity / high volatility -- when the fee pushes cost non-positive, InvalidBuyCost reverts and the
+// trade cannot execute). Sample band 0.3%-85% directly covers the full spectrum; the fake data does
+// no chained derivation. mulberry32 seed = record id + ':flash-fee'; idempotent on re-run.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -27,14 +29,15 @@ function mulberry32(text) {
   };
 }
 
-const MIN = 0.003; // 0.3% —— 谱系下端（<1% 可达）
-const MAX = 0.85; // 85% —— 谱系上端（更高时基本无法成交）
+const MIN = 0.003; // 0.3% -- lower end of the spectrum (<1% reachable)
+const MAX = 0.85; // 85% -- upper end of the spectrum (higher mostly cannot execute)
 
 const data = JSON.parse(readFileSync(positionsPath, 'utf8'));
 for (const record of data.items) {
   if (record.flashUserFeeRate) continue;
   const rnd = mulberry32(`${record.id}:flash-fee`);
-  // 平方根取样——低费率端更密（多数交易费率不高），高费率端稀疏但存在
+  // Square-root sampling -- denser at the low-fee end (most trades have modest fees), sparse but
+  // present at the high end
   const minSqrt = Math.sqrt(MIN);
   const rate = Math.pow(minSqrt + rnd() * (Math.sqrt(MAX) - minSqrt), 2);
   record.flashUserFeeRate = { raw: rate.toFixed(4), unit: 'ratio', scale: 18 };

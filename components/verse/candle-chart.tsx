@@ -18,18 +18,20 @@ import { formatAmount, formatPercent } from '../global/signal-ui'
 import { fmtPrice } from '../global/amount-format'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
-/** 粒度集（Q3 用户裁定：粒度式学币安；全部可选——细粒度走 fixture 样本，粗粒度由 1h 聚合） */
+/** Granularity set (granularity modeled on Binance; all selectable — fine
+ *  granularity uses fixture samples, coarse granularity is aggregated from 1h) */
 const GRANULARITIES = ['1m', '5m', '15m', '1h', '4h', '1d', '1w'] as const
 type Granularity = (typeof GRANULARITIES)[number]
-/** 粗粒度每根聚合蜡烛吸收的 1h 蜡烛数 */
+/** Number of 1h candles absorbed per aggregated coarse-granularity candle */
 const AGGREGATE: Partial<Record<Granularity, number>> = { '1h': 1, '4h': 4, '1d': 24, '1w': 168 }
-/** 初始喂给图表的蜡烛数；无限左滑：视口逼近左缘时按 LOAD_CHUNK 增量再喂（交易所标准做法） */
+/** Initial candles fed to the chart; infinite left-scroll: feed more in LOAD_CHUNK increments
+ *  as the viewport nears the left edge (standard exchange practice) */
 const INITIAL_BARS = 96
 const LOAD_CHUNK = 240
 const EDGE_BARS = 10
-/** 均线窗口（2026-09-23 用户裁定：MA7/MA30/MA60 三线） */
+/** MA windows: three lines MA7/MA30/MA60 */
 const MA_WINDOWS = [7, 30, 60] as const
-/** 均线配色：快=青 / 中=品红回声 / 慢=次级灰（token 运行时读取） */
+/** MA colors: fast=cyan / mid=magenta echo / slow=secondary gray (tokens read at runtime) */
 const MA_COLOR_VARS = ['--or-cyan', '--accent-echo', '--color-text-secondary'] as const
 const MA_ALPHAS = [0.55, 0.45, 0.9] as const
 
@@ -49,7 +51,7 @@ function aggregate(candles: FixtureCandle[], size: number): FixtureCandle[] {
   return out
 }
 
-/** 简单移动平均；前 window-1 根为 null */
+/** Simple moving average; the first window-1 entries are null */
 function movingAverage(values: number[], window: number): Array<number | null> {
   return values.map((_, i) => {
     if (i < window - 1) return null
@@ -59,7 +61,7 @@ function movingAverage(values: number[], window: number): Array<number | null> {
   })
 }
 
-/** 渲染层不自造颜色——token 十六进制运行时读取并加透明度 */
+/** The render layer never invents colors — token hex values are read at runtime with alpha added */
 function cssVar(name: string): string {
   if (typeof window === 'undefined') return 'transparent'
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || 'transparent'
@@ -74,8 +76,9 @@ function withAlpha(hex: string, alpha: number): string {
 
 const toTime = (iso: string) => (Date.parse(iso) / 1000) as UTCTimestamp
 
-/** 主池蜡烛图（Lightweight Charts；2026-09-23 用户裁定：对齐 DexScreener 观感——量能柱+OHLC/Vol 悬浮读数+MA 快慢线；
-   header=价格+CA 由 RSC 传入，与粒度钮同行） */
+/** Main-pool candlestick chart (Lightweight Charts; match the
+ *  DexScreener look — volume bars + OHLC/Vol hover readout + MA fast/slow lines;
+ *  header=price+CA passed in from RSC, on the same row as the granularity buttons) */
 export function CandleChart({
   candles,
   fineCandles,
@@ -93,10 +96,11 @@ export function CandleChart({
   const [granularity, setGranularity] = useState<Granularity>('1h')
   const [limit, setLimit] = useState(INITIAL_BARS)
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
-  /** 库异步就位、图表建好后才 true：把喂入/无限左滑/十字线三个消费 chart refs 的
-   *  effect 重新触发一遍——它们首次运行时图表多半还没建好，?. 静默空转不会自愈 */
+  /** True only once the lib is in place and the chart is built: re-triggers the three effects
+   *  that consume chart refs (feed/infinite left-scroll/crosshair) — on their first run the
+   *  chart is mostly not built yet, and ?. silently no-ops without self-healing */
   const [chartReady, setChartReady] = useState(false)
-  /** 增量喂入后待恢复的视口（防 setData 前插导致画面跳动） */
+  /** Viewport to restore after incremental feeding (prevents visual jump from setData prepending) */
   const restoreRangeRef = useRef<{ from: number; to: number } | null>(null)
   const firstDataRef = useRef(true)
   const prevGranularityRef = useRef(granularity)
@@ -115,7 +119,8 @@ export function CandleChart({
     return aggregate(candles.slice(-limit * size), size)
   }, [candles, fineCandles, granularity, limit])
 
-  /** 当前粒度可载入的总蜡烛数（repo 已回溯派生 ~1 年 1h 历史；细粒度=fixture 样本量） */
+  /** Total candles loadable at the current granularity (the data layer backfills ~1 year of 1h history;
+   *  fine granularity = fixture sample size) */
   const totalBars = useMemo(() => {
     if (granularity === '1m' || granularity === '5m' || granularity === '15m') {
       return fineCandles ? fineCandles[granularity].length : 0
@@ -124,10 +129,11 @@ export function CandleChart({
     return Math.ceil(candles.length / size)
   }, [candles, fineCandles, granularity])
 
-  /** holder 在 DOM 的判据（plot 分支 = series 非空）：数据后到/粒度空态往返经 init effect 依赖重建图表 */
+  /** Criterion for the holder being in the DOM (plot branch = series non-empty): late-arriving
+   *  data / granularity empty-state round trips rebuild the chart via init effect deps */
   const hasData = series.length > 0
 
-  // 粒度切换重置初始视口
+  // Reset the initial viewport on granularity switch
   useEffect(() => {
     setLimit(INITIAL_BARS)
   }, [granularity])
@@ -144,10 +150,12 @@ export function CandleChart({
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
-    // lightweight-charts（~74KB gzip）到 effect 运行时才 import，不进路由 eager chunk，
-    // 水合/交互不被它阻塞（在 RSC import 处做 dynamic 且不带 ssr:false 拆不出：SSR 渲染
-    // 的是真实内容，边界随根一起水合；ssr:false 包裹层则丢 SSR 外壳+占位跳动）。
-    // 重复 import 走模块缓存，locale 重建图表无额外开销
+    // lightweight-charts (~74KB gzip) is imported only when the effect runs, keeping it out of
+    // the route's eager chunk so hydration/interaction is not blocked by it (doing dynamic at
+    // the RSC import site without ssr:false cannot split it out: SSR renders the real content
+    // and the boundary hydrates together with the root; an ssr:false wrapper would lose the SSR
+    // shell and cause placeholder jumping).
+    // Repeat imports hit the module cache; rebuilding the chart on locale change costs nothing extra
     let cancelled = false
     let teardownChart = () => {}
     import('lightweight-charts').then(
@@ -155,7 +163,8 @@ export function CandleChart({
         if (cancelled || containerRef.current !== el) return
         const chart = createChart(el, {
           autoSize: true,
-          // 时间轴刻度随页面 locale（库缺省跟随浏览器 locale，曾致 en 页出现「12日/9月」）
+          // Time axis ticks follow the page locale (the library default follows the browser
+          // locale, which can render zh-formatted date labels on the en page)
           localization: { locale: locale === 'zh' ? 'zh-CN' : 'en-US' },
           layout: {
             background: { type: ColorType.Solid, color: 'transparent' },
@@ -167,7 +176,8 @@ export function CandleChart({
             vertLines: { color: cssVar('--grid-cyan-inner') },
             horzLines: { color: cssVar('--grid-cyan-inner') },
           },
-          // top 0.10：顶部留白给悬浮读数行让位（2026-09-24 用户裁定——读数行离蜡烛太近）
+          // top 0.10: leave headroom at the top for the hover readout row (the readout row sat
+          // too close to the candles)
           rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.1, bottom: 0.22 } },
           timeScale: { borderVisible: false, timeVisible: true, secondsVisible: false },
           crosshair: {
@@ -221,8 +231,9 @@ export function CandleChart({
         }
       },
     ).catch((error) => {
-      // chunk 失效/弱网断流：不留 unhandled rejection；图表区保持空态
-      console.error('candle-chart: lightweight-charts 加载失败', error)
+      // Chunk invalidation / weak-network stream cut: leave no unhandled rejection; the chart
+      // area stays in its empty state
+      console.error('candle-chart: lightweight-charts failed to load', error)
     })
     return () => {
       cancelled = true
@@ -232,8 +243,9 @@ export function CandleChart({
   }, [locale, hasData])
 
   useEffect(() => {
-    // 图表未就位（库异步加载/locale 重建窗口）整跑跳过：firstDataRef/restoreRangeRef 等
-    // 标志的消耗不走 ?.，空转跑会把「首次挂载 fitContent / 视口恢复」提前吃掉
+    // Skip the whole run when the chart is not in place (async lib load / locale rebuild
+    // window): consumption of flags like firstDataRef/restoreRangeRef does not go through ?.;
+    // an idle run would prematurely consume "first-mount fitContent / viewport restore"
     if (!candleSeriesRef.current) return
     candleSeriesRef.current?.setData(
       series.map<CandlestickData<UTCTimestamp>>((candle) => ({
@@ -259,7 +271,8 @@ export function CandleChart({
         .filter((point): point is LineData<UTCTimestamp> => point != null)
     maValues.forEach((values, i) => maRefs.current[i]?.setData(toLine(values)))
     setHoverIdx(null)
-    // 增量前插：恢复原视口（右移 added 根）；粒度切换/首次挂载：fitContent
+    // Incremental prepend: restore the original viewport (shifted right by added bars);
+    // granularity switch / first mount: fitContent
     if (restoreRangeRef.current) {
       chartRef.current?.timeScale().setVisibleLogicalRange(restoreRangeRef.current)
       restoreRangeRef.current = null
@@ -270,7 +283,8 @@ export function CandleChart({
     }
   }, [series, maValues, granularity, chartReady])
 
-  // 无限左滑：视口距左缘 < EDGE_BARS 根时再喂一批，直到 totalBars 全量
+  // Infinite left-scroll: feed another batch when the viewport is within EDGE_BARS bars of the
+  // left edge, until totalBars is fully loaded
   useEffect(() => {
     const chart = chartRef.current
     if (!chart || series.length === 0 || series.length >= totalBars) return

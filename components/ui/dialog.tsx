@@ -16,7 +16,7 @@ function DialogTrigger({ className, ...props }: DialogPrimitive.Trigger.Props) {
   )
 }
 
-/** 遮罩 + 居中弹窗（Esc/外点关闭、焦点圈回触发器由 base-ui Dialog 内置） */
+/** Backdrop + centered popup (Esc/outside-click close and focus return to the trigger are built into base-ui Dialog) */
 function DialogContent({
   className,
   children,
@@ -42,12 +42,12 @@ function DialogContent({
   )
 }
 
-/** 弹窗标题（Popup 的 aria-labelledby 锚点，必须有才过 a11y） */
+/** Dialog title (the Popup's aria-labelledby anchor; required to pass a11y) */
 function DialogTitle({ className, ...props }: DialogPrimitive.Title.Props) {
   return <DialogPrimitive.Title data-slot="dialog-title" className={className} {...props} />
 }
 
-/** 关闭钮（自定义触发器用 render；Esc/外点关闭由 Popup 内置） */
+/** Close button (custom trigger via render; Esc/outside-click close built into Popup) */
 function DialogClose({ className, ...props }: DialogPrimitive.Close.Props) {
   return <DialogPrimitive.Close data-slot="dialog-close" className={className} {...props} />
 }

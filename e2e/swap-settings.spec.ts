@@ -1,17 +1,21 @@
 import { expect, test } from '@playwright/test';
 
-// 设置层自定义输入回归（P1-1，2026-10-08 收敛 components/global/swap-settings.tsx）：
-// 受控值存 string 原样展示——逐键输入的小数点不被吞。旧 number 状态把 '0.' 静默
-// 回写 '0'（0.25 键成 25、1.5 键成 15），§25 拍板 A「非整分钟就地报错」仅粘贴可达。
-// 断言取语义 selector 不钉 copy；仅桌面档（同 dialog-a11y.spec 口径）、不截屏不写快照。
+// Settings-layer custom-input regression (covers
+// components/global/swap-settings.tsx): the controlled value is stored as a
+// string and displayed verbatim — per-keystroke decimal points are not
+// swallowed. The old number state silently rewrote '0.' back to '0' (typing
+// 0.25 produced 25, 1.5 produced 15), making the "non-whole-minute
+// inline error" reachable only via paste.
+// Assertions use semantic selectors, not pinned copy; desktop tier only (same
+// standard as dialog-a11y.spec); no screenshots, no snapshots.
 
 const VERSE_LOCKED = '/memeverse/2';
 const DIALOG = '[data-slot="dialog-content"]';
 
-test('swap 卡设置层：逐键 0.25 点不吞、预设回写、1.5 非整分钟就地报错', async ({
+test('swap card settings layer: per-keystroke 0.25 keeps the dot, preset writes back, 1.5 non-whole-minute inline error', async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop-1280', '弹窗断言仅桌面档');
+  test.skip(testInfo.project.name !== 'desktop-1280', 'runs on the desktop tier only');
   await page.goto(VERSE_LOCKED, { waitUntil: 'networkidle' });
 
   await page.locator('.swap-panel .swap-panel__settings-toggle').click();
@@ -19,21 +23,23 @@ test('swap 卡设置层：逐键 0.25 点不吞、预设回写、1.5 非整分�
   const deadline = page.locator('.swap-settings input').nth(1);
   await expect(slippage).toBeVisible();
 
-  // P1-1 核心：显示 0 时敲 '.'，受控值必须仍是 '0.'（number 状态会被回写 '0'）
+  // Core regression: with 0 displayed, pressing '.' must keep the controlled
+  // value '0.' (number state would rewrite it back to '0')
   await slippage.fill('0');
   await slippage.press('.');
   await expect(slippage).toHaveValue('0.');
   await slippage.press('2');
   await slippage.press('5');
   await expect(slippage).toHaveValue('0.25');
-  // 推导行同步（slippageToNumber 链路）：最大滑点行读 0.25%
+  // Derived row stays in sync (slippageToNumber chain): max slippage row reads 0.25%
   await expect(page.locator('.swap-panel__details')).toContainText('0.25%');
 
-  // 预设点击回写 String(preset)
+  // Preset click writes back String(preset)
   await page.getByRole('button', { name: '0.5%', exact: true }).click();
   await expect(slippage).toHaveValue('0.5');
 
-  // deadline：1 → '.'（留点）→ '1.5' 触发 deadlineWholeMinutes 就地报错（键盘路径可达）
+  // deadline: 1 → '.' (keep the point) → '1.5' triggers the deadlineWholeMinutes
+  // inline error (reachable via keyboard path)
   await deadline.fill('1');
   await deadline.press('.');
   await expect(deadline).toHaveValue('1.');
@@ -43,22 +49,28 @@ test('swap 卡设置层：逐键 0.25 点不吞、预设回写、1.5 非整分�
   await expect(page.locator('.swap-settings [role="alert"]')).toBeVisible();
 });
 
-test('swap CTA 门控：未连接=Connect 可点、连接后=动作钮禁用（原型不伪造成交）', async ({
+test('swap CTA gating: disconnected = Connect clickable, connected = action button disabled (prototype does not fake execution)', async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop-1280', '弹窗断言仅桌面档');
+  test.skip(testInfo.project.name !== 'desktop-1280', 'runs on the desktop tier only');
   await page.goto(VERSE_LOCKED, { waitUntil: 'networkidle' });
 
   const cta = page.locator('.swap-panel__cta');
   await expect(cta).toBeEnabled();
-  // 未连接钮=Connect Wallet，点击切换全站模拟连接
+  // Disconnected button = Connect Wallet; clicking toggles the site-wide simulated connection
   await cta.click();
-  // 已连接=动作钮恒禁用（DialogCta disabled 缺省=true，fix-review F1 回归钉）
+  // Connected = action button always disabled (DialogCta disabled defaults to
+  // true; regression pin: the connected action button must never turn clickable)
   await expect(cta).toBeDisabled();
 });
 
-test('Mint POL 弹窗设置层（toolbar 接线）：滑点逐键小数点不吞', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop-1280', '弹窗断言仅桌面档');
+test('Mint POL dialog settings layer (toolbar wiring): slippage per-keystroke decimal point not swallowed', async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.name !== 'desktop-1280',
+    'dialog assertions run on the desktop tier only',
+  );
   await page.goto(VERSE_LOCKED, { waitUntil: 'networkidle' });
   await page.getByRole('button', { name: 'Tokenization' }).click();
   await page.getByRole('button', { name: 'Mint', exact: true }).click();
@@ -66,7 +78,8 @@ test('Mint POL 弹窗设置层（toolbar 接线）：滑点逐键小数点不吞
   await expect(dialog).toBeVisible();
 
   await dialog.locator('.swap-panel__settings-toggle').click();
-  // Popover 弹层 Portal 挂 body（不在 dialog-content 子树），按页面级取（同测试 1）
+  // The Popover layer is portaled to body (not inside the dialog-content
+  // subtree), so locate at page level (same as test 1)
   const slippage = page.locator('.swap-settings input').first();
   await expect(slippage).toBeVisible();
 

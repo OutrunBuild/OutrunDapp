@@ -19,19 +19,25 @@ import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 
 /**
- * Add Liquidity 弹窗（2026-09-27 用户裁定：Liquidity 池卡 Add 钮改弹窗；
- * 功能结构同 Mint POL 弹窗，视觉复用 .pol-mint-* 壳）。机制（真源）：
- * 四池统一=router addLiquidity：双侧按池配比供给、铸 LP 代币给 to
- * （IMemeverseSwapRouter.sol，双侧 desired/min + deadline）——LP 铸得量 = quote 侧 ×
- * lpPerQuote（markets fixture 铸得率样本，totalSupply/R_quote v2 式口径；缺样本池该输出
- * 随空值 0.00——「以链上读值为准」槽位 2026-10-05 用户裁定全站废止；2026-09-27 用户
- * 裁定：造样本出数，不留空槽）。
- * （2026-09-27 用户裁定：Add Liquidity 收 LP 而非 POL——主池按加池量 1:1 铸 POL 的
- * mintPOLToken 入口归 Tokenization 标签 Mint 弹窗（PolMintDialog），两入口机制分立。）
- * 配比联动：主池=主池价（tokenStats.price）、POL/uAsset=fixture marketPricePerPol 样本、
- * PT 两池=锚定汇率推导样本（见下 ptAnchorRatio 注，2026-09-27 用户裁定造样本出数）。
- * 原型纪律同 Mint：报价为线性推导样本；CTA 未连接=Connect Wallet 可点切换模拟连接、
- * 已连接=Add Liquidity 禁用，不伪造链上成交。
+ * Add Liquidity dialog (the Liquidity pool card's Add button; functional structure same as the
+ * Mint POL dialog, visuals reuse the .pol-mint-*
+ * shell). Mechanism:
+ * all four pools unified=router addLiquidity: both sides supplied at the pool ratio, LP tokens
+ * minted honoring both sides' desired/min + deadline —
+ * LP minted amount = quote side × lpPerQuote (markets fixture mint-rate sample,
+ * totalSupply/R_quote — the classic v2-style
+ * formula; all four pools ship a mint-rate sample so the output always derives; a pool missing
+ * the sample would degrade to 0.00 — samples are fabricated to produce numbers,
+ * no empty slots).
+ * Add Liquidity yields LP, not POL — the mintPOLToken entry, which
+ * mints POL 1:1 to the main pool by the added amount, belongs to the Tokenization tab's Mint
+ * dialog (PolMintDialog); the two entries are mechanically separate.
+ * Ratio linkage: main pool=main-pool price (tokenStats.price), POL/uAsset=fixture
+ * marketPricePerPol sample, the two PT pools=anchor-rate derivation sample (see the
+ * ptAnchorRatio note below).
+ * Same discipline as Mint: the quote is a linear-derivation sample; CTA disconnected=
+ * Connect Wallet clickable to toggle mock connection,
+ * connected=Add Liquidity disabled, no faked on-chain execution.
  */
 export function PoolAddLiquidityDialog({
   locale,
@@ -41,13 +47,13 @@ export function PoolAddLiquidityDialog({
   uAssetUsd,
 }: {
   locale: Locale
-  /** 池卡行数据（pool 标识 + 双侧符号） */
+  /** Pool card row data (pool identifier + both sides' symbols) */
   pool: FixtureVerseTrade['pools'][number]
-  /** POL/PT 持仓样本（余额/配比来源）；null=槽位态（余额 '--'） */
+  /** POL/PT position sample (source of balances/ratios); null=slot state (balance '--') */
   pol: FixturePolPosition | null
-  /** 主池价：1 memecoin = price uAsset（仅主池联动用）；null=无样本 */
+  /** Main-pool price: 1 memecoin = price uAsset (used only for main-pool linkage); null=no sample */
   price: number | null
-  /** uAsset 美元样本价；null=隐藏美元换算行 */
+  /** uAsset USD sample price; null=hide the USD conversion row */
   uAssetUsd: number | null
 }) {
   const copy = getCopy(locale).verseDesk
@@ -58,13 +64,14 @@ export function PoolAddLiquidityDialog({
   const baseBalanceErrorId = useId()
   const quoteBalanceErrorId = useId()
   const [quoteAmount, setQuoteAmount] = useState('')
-  // 设置层受控值存 string 原样展示（§25 拍板 A：留点不吞、非整分钟就地报错），
-  // 数值推导经 slippageToNumber（2026-10-08 P1-1 修）
+  // The settings-layer controlled value is stored as a string and shown verbatim
+  // (keep the trailing dot instead of swallowing it, inline error for non-whole minutes),
+  // numeric derivation goes through slippageToNumber
   const [slippageText, setSlippageText] = useState('0.5')
   const [deadlineText, setDeadlineText] = useState('10')
   const [rateInverted, setRateInverted] = useState(false)
 
-  // 供给侧余额：主池=memecoin/uAsset，POL/uAsset=POL/uAsset，PT 池=PT/+（uAsset 或 POL）
+  // Supply-side balances: main pool=memecoin/uAsset, POL/uAsset=POL/uAsset, PT pools=PT/+ (uAsset or POL)
   const baseBalance =
     pol == null
       ? null
@@ -74,14 +81,15 @@ export function PoolAddLiquidityDialog({
           ? pol.myPol
           : pol.myPt
   const quoteBalance = pol == null ? null : pool.pool === 'pt-pol' ? pol.myPol : pol.myUAsset
-  // POL/uAsset 池市场价样本（POL 侧 ≈$ 换算与 PT/POL 池 quote 侧共用）
+  // POL/uAsset pool market price sample (shared by the POL side's ≈$ conversion and the PT/POL pool's quote side)
   const polPrice = pol?.marketPricePerPol ?? null
-  // LP 名 = 池卡同款交易对口径 + LP 后缀（v4 仓位制无 ERC20 LP 命名真源，
-  // 展示层命名同行业惯例；四池各得专名）
+  // LP name = same pair scope as the pool card + LP suffix (the v4 position system has no ERC20
+  // LP naming source of truth;
+  // display-layer naming follows industry convention; each of the four pools gets its own name)
   const lpSymbol = `${pool.baseSymbol}/${pool.quoteSymbol} LP`
-  // 1 base = ratio quote。PT 两池=锚定汇率推导样本（2026-09-27 用户裁定造样本出数，
-  // 不再不联动/'--'）：1 PT = uAssetPerPol uAsset（MemeverseLiquidityImpl.sol:239 固定兑付）；
-  // PT/POL 池再按 POL/uAsset 市场价折算 1 PT = uAssetPerPol÷marketPricePerPol POL
+  // 1 base = ratio quote. The two PT pools use anchor-rate derived samples (never
+  // non-linked/'--'): 1 PT = uAssetPerPol uAsset (fixed redemption rate);
+  // the PT/POL pool then converts via the POL/uAsset market price: 1 PT = uAssetPerPol÷marketPricePerPol POL
   const ptAnchorRatio =
     pol != null && pol.marketPricePerPol > 0
       ? pool.pool === 'pt-uasset'
@@ -95,15 +103,17 @@ export function PoolAddLiquidityDialog({
   const valid = Number.isFinite(baseVal) && baseVal > 0 && Number.isFinite(quoteVal) && quoteVal > 0
   const baseOver = baseBalance != null && baseVal > baseBalance
   const quoteOver = quoteBalance != null && quoteVal > quoteBalance
-  // LP 铸得 = quote 侧 × lpPerQuote（铸得率 fixture 样本，线性推导、生产读链上值）
+  // LP minted = quote side × lpPerQuote (mint rate fixture sample, linear derivation; production reads on-chain values)
   const lpOut = valid && pool.lpPerQuote != null && pool.lpPerQuote > 0 ? quoteVal * pool.lpPerQuote : null
-  // 滑点校验=§25 口径（slippage-input.ts）：越界期间保护值推导退 '--' 槽位
+  // Slippage validation (see getSlippageIssue/slippageToNumber in global/slippage-input):
+  // while out of bounds, protected-value derivation falls back to the '--' slot
   const slippage = slippageToNumber(slippageText)
   const slippageIssue = getSlippageIssue(slippage)
   const minLp = lpOut != null && slippageIssue == null ? lpOut * (1 - slippage / 100) : null
 
-  // 双侧联动：有配比样本的池按 ratio 补算另一侧（同 PolMintDialog，清空同步清另一侧）；
-  // ratio 缺失（pol 记录缺失的 PT 池）→ 两侧独立输入互不干扰
+  // Two-side linkage: pools with a ratio sample back-compute the other side via ratio (same as
+  // PolMintDialog, clearing one side also clears the other);
+  // ratio missing (PT pools without a pol record) → both sides input independently without interference
   const onBaseInput = (raw: string) => {
     setBaseAmount(raw)
     if (ratio == null || ratio <= 0) return
@@ -117,9 +127,11 @@ export function PoolAddLiquidityDialog({
     setBaseAmount(value > 0 ? amountToInputString(value / ratio) : '')
   }
 
-  // 大数分层口径=global/amount-format（fmtUsd/fmtTokenAmount）
-  // ≈$ 换算价（uAsset 计）：base 侧主池/POL 池有市场价样本、PT 侧=锚定汇率 uAssetPerPol；
-  // quote 侧 uAsset=1、PT/POL 池=polPrice
+  // display formatting goes through global/amount-format (fmtUsd/fmtTokenAmount) — raw float
+  // products carry precision noise;
+  // ≈$ conversion prices (in uAsset): base side main pool/POL pool have market price samples,
+  // PT side=anchor rate uAssetPerPol;
+  // quote side uAsset=1, PT/POL pool=polPrice
   const baseUsdPrice =
     pool.pool === 'main' ? price : pool.pool === 'pol-uasset' ? polPrice : pol?.uAssetPerPol ?? null
   const quoteUsdPrice = pool.pool === 'pt-pol' ? polPrice : 1
@@ -134,10 +146,11 @@ export function PoolAddLiquidityDialog({
 
   return (
     <Dialog>
-      {/* data-slot 钉回 button：同 PolMintDialog——主题桥按 [data-slot='button'] 匹配皮肤；
-          .pool-card [data-slot='button'] 池卡行样式继续命中 */}
+      {/* data-slot pinned back to button: same as PolMintDialog — the theme bridge matches skins
+          on [data-slot='button'];
+          .pool-card [data-slot='button'] pool card row styling keeps matching */}
       <DialogTrigger data-slot="button" render={<Button variant="outline" size="sm" />}>
-        {/* 2026-09-27 用户裁定：池卡钮短文案 Add（弹窗标题/CTA 仍全称） */}
+        {/* The pool card button uses the short copy Add (dialog title/CTA keep the full name) */}
         {copy.addLiquidityShort}
       </DialogTrigger>
       <ActionDialogShell

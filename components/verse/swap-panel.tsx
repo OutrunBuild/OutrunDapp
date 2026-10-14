@@ -20,20 +20,25 @@ import { SwapTokenSelectDialog, type SwapTokenOption } from './swap-token-select
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 
-/** Meme 侧候选代币 id（品类而非独立 symbol：POL-/PT- 前缀派生；YT 不入卡——Flash Swap 是
- * POL↔YT 单通道工具，2026-09-27 方案 B 移入 Tokenization 页 YT 井专属弹窗） */
+/** Meme-side candidate token ids (categories, not standalone symbols: derived from the POL-/PT-
+ * prefixes; YT stays off the card — Flash Swap is a single POL↔YT channel tool, living in the
+ * Tokenization page's YT-well dedicated dialog PolFlashSwapDialog) */
 type MemeTokenId = 'meme' | 'pol' | 'pt'
 
 /**
- * 标准 Swap 窗口（2026-09-23 用户修订：右上角设置按钮收滑点/截止；详情行只留
- * 参考价/价格影响/最低到账/路径；静态说明文案删除——demo 同构）。
- * CTA 接模拟连接（2026-09-24 用户裁定：连接钱包可点）：未连接=Connect Wallet 可点、
- * 与头部 WalletControl 共享开关；已连接=Swap 动作禁用（原型不伪造链上成交）。
- * 2026-09-27 输入/输出侧代币可点开选择弹窗（用户裁定）：稳定侧=uAsset+其 PSM 配对储备
- * （面值 1:1 平价），Meme 侧=memecoin/POL/PT；报价按所选对两侧参考价线性换算——
- * meme=主池价、POL=POL/uAsset 池价、PT=PT/POL 池价×POL 价。
- * YT 不入卡（2026-09-27 方案 B 用户裁定）：Flash Swap 是 POL↔YT 单通道工具（买卖均指定
- * YT 数量），移入 Tokenization 页 YT 井专属弹窗（pol-flash-swap-dialog.tsx）。
+ * Standard Swap panel: the top-right settings button holds slippage/deadline;
+ * the details rows keep only reference price/price impact/min received/route; no static explainer copy.
+ * CTA wired to mock connection (the connect-wallet button is clickable):
+ * disconnected=Connect Wallet clickable, sharing the switch with the header's WalletControl;
+ * connected=Swap action disabled (no faked on-chain execution).
+ * The input/output side tokens open a select dialog: stable side=
+ * uAsset + its PSM-paired reserves
+ * (par 1:1), Meme side=memecoin/POL/PT; the quote converts linearly via both sides' reference
+ * prices for the chosen pair —
+ * meme=main-pool price, POL=POL/uAsset pool price, PT=PT/POL pool price×POL price.
+ * YT stays off the card: Flash Swap is a single POL↔YT channel
+ * tool (both buy and sell specify the YT amount), living in the Tokenization page's YT-well
+ * dedicated dialog PolFlashSwapDialog.
  */
 export function SwapPanel({
   locale,
@@ -49,22 +54,23 @@ export function SwapPanel({
   pol,
 }: {
   locale: Locale
-  /** 主池价：1 Memecoin = price uAsset（fixture 蜡烛收盘推导） */
+  /** The verse's memecoin ticker */
   memecoinSymbol: string
-  /** 代币全名（verse.name fixture）——选择弹窗行次级文本 */
+  /** Token full name (verse.name fixture) — secondary text of the select dialog row */
   memecoinName: string
   uAssetSymbol: string
+  /** Main-pool price: 1 Memecoin = price uAsset (derived from the fixture candle close) */
   price: number
-  /** uAsset 美元样本价（fixture；null=隐藏美元换算行） */
+  /** uAsset USD sample price (fixture; null=hide the USD conversion row) */
   uAssetUsd: number | null
-  /** 样本账户 memecoin/uAsset 余额（pol-positions fixture；null=槽位 --，与 Mint POL 弹窗同源） */
+  /** Sample account memecoin/uAsset balance (pol-positions fixture; null=slot --, same source as the Mint POL dialog) */
   memecoinBalance: number | null
   uAssetBalance: number | null
-  /** 面值直兑可付储备（PSM 配对读 fixture——getFixtureParticipationOptions 出口；name=代币本名，缺失回退 symbol） */
+  /** Reserves payable for par direct swap (PSM pairs read from fixture — the getFixtureParticipationOptions export; name=the token's own name, falls back to symbol when missing) */
   reserves: { symbol: string; name?: string }[]
-  /** 储备钱包余额样本（pol-positions myReserve；null=槽位 '--'） */
+  /** Reserve wallet balance sample (pol-positions myReserve; null=slot '--') */
   reserveBalance: number | null
-  /** POL/PT 池价与余额样本（pol-positions fixture；null=报价/余额槽位态） */
+  /** POL/PT pool price and balance sample (pol-positions fixture; null=quote/balance slot state) */
   pol: FixturePolPosition | null
 }) {
   const copy = getCopy(locale).verseDesk
@@ -74,16 +80,17 @@ export function SwapPanel({
   const buyLabelId = useId()
   const [stableId, setStableId] = useState(uAssetSymbol)
   const [memeId, setMemeId] = useState<MemeTokenId>('meme')
-  // 打开为空输入（2026-10-08 用户裁定：金额输入默认空 0.00，废除 2026-09-28
-  // 打开预填余额口径）；翻转/换币保留输入
+  // Opens with empty input (amount input defaults to empty 0.00, not prefilled with balance);
+  // flip/token change preserves input
   const [amount, setAmount] = useState('')
-  // 设置层受控值存 string 原样展示（§25 拍板 A：留点不吞、非整分钟就地报错），
-  // 数值推导经 slippageToNumber（2026-10-08 P1-1 修）
+  // The settings-layer controlled value is stored as a string and shown verbatim
+  // (keep the trailing dot instead of swallowing it, inline error for non-whole minutes),
+  // numeric derivation goes through slippageToNumber
   const [slippageText, setSlippageText] = useState('0.5')
   const [deadlineText, setDeadlineText] = useState('10')
   const [rateInverted, setRateInverted] = useState(false)
 
-  // 稳定侧候选：募集 uAsset + PSM 配对储备（OutStake PSM 面值 1:1；储备余额 fixture 缺→槽位）
+  // Stable-side candidates: raise uAsset + PSM-paired reserves (PSM par 1:1; reserve balance fixture missing → slot)
   const stableOptions: SwapTokenOption[] = [
     {
       id: uAssetSymbol,
@@ -98,8 +105,9 @@ export function SwapPanel({
       balance: reserveBalance,
     })),
   ]
-  // 每 1 代币的 uAsset 计价：储备=面值平价 1；POL=POL/uAsset 池价（fixture 样本）；
-  // PT=PT/POL 池价×POL 池价；YT=隐含价 (1−PT/POL 池价)×POL 池价——yt-flash-swap.md
+  // uAsset price per 1 token: reserves=par 1; POL=POL/uAsset pool price (fixture sample);
+  // PT=PT/POL pool price×POL pool price
+  // (YT not on this card; its implied price lives in pol-flash-swap-dialog)
   const polSymbol = `POL-${memecoinSymbol}`
   const ptSymbol = `PT-${memecoinSymbol}`
   const polPrice = pol ? pol.marketPricePerPol : null
@@ -137,7 +145,8 @@ export function SwapPanel({
   const buyToken = direction === 'stable-to-meme' ? memeSide : stableSide
   const sellBalance = sellToken.balance
   const buyBalance = buyToken.balance
-  // 原型报价：按所选对两侧参考价线性换算（储备腿=PSM 面值 1:1；滑点/动态费以执行读链为准）
+  // Simulated quote: linear conversion via both sides' reference prices for the chosen pair
+  // (reserve leg=PSM par 1:1; slippage/dynamic fee defer to on-chain execution reads)
   const parsed = Number(amount)
   const valid = Number.isFinite(parsed) && parsed > 0
   const overBalance = sellBalance != null && Number.isFinite(parsed) && parsed > sellBalance
@@ -146,12 +155,15 @@ export function SwapPanel({
   const pairRate =
     sellPrice != null && buyPrice != null && buyPrice > 0 ? sellPrice / buyPrice : null
   const quote = valid && pairRate != null ? parsed * pairRate : null
-  // 滑点越界期间不做 (1−s/100) 推导（s>100 得负数代币），最少收到/最大滑点行退槽位
+  // While slippage is out of bounds, no (1−s/100) derivation (s>100 yields negative tokens);
+  // min received/max slippage rows fall back to slots
   const slippage = slippageToNumber(slippageText)
   const slippageIssue = getSlippageIssue(slippage)
   const minReceived = quote != null && slippageIssue == null ? quote * (1 - slippage / 100) : null
-  // 美元换算：两侧各自按 uAsset 计价 × uAssetUsd（储备借 PSM 平价等值 uAsset 价）；
-  // fmtUsd/fmtTokenAmount 及大数分层口径=global/amount-format
+  // USD conversion: each side's uAsset price × uAssetUsd (reserves borrow the PSM
+  // par-equivalent uAsset price);
+  // display formatting goes through global/amount-format (fmtUsd/fmtTokenAmount) — raw float
+  // products carry precision noise
   const sellUsd =
     uAssetUsd == null || !valid || sellPrice == null
       ? null
@@ -160,13 +172,13 @@ export function SwapPanel({
     uAssetUsd == null || quote == null || buyPrice == null
       ? null
       : fmtUsd(quote * buyPrice * uAssetUsd, locale)
-  // 路径行组词：储备腿前缀 PSM；meme 侧按池（YT 已移出卡——见组件头注）
+  // Route row wording: reserve leg prefixed PSM; meme side by pool (YT moved off the card — see the component header note)
   const routeLegs: string[] = []
   if (stableSide.id !== uAssetSymbol) routeLegs.push(copy.routeLegPsm)
   if (memeId === 'pol') routeLegs.push(copy.routePoolPol)
   else if (memeId === 'pt') routeLegs.push(copy.routePoolPt)
   else routeLegs.push(copy.routePoolMain)
-  // 参考价行：1 Meme 侧 ≈ N 稳定侧（可反转；两侧任一价缺→'--' 槽位）
+  // Reference price row: 1 Meme side ≈ N stable side (reversible; either side's price missing → '--' slot)
   const memePriceInUAsset = priceInUAsset.get(memeSide.id) ?? null
   const stablePriceInUAsset = priceInUAsset.get(stableSide.id) ?? null
   const rateReady =
@@ -179,8 +191,9 @@ export function SwapPanel({
     <section className="swap-panel ax-glow-card" aria-labelledby="swap-title">
       <div className="swap-panel__head">
         <h2 id="swap-title">{copy.swapTitle}</h2>
-        {/* 行业惯例：幽灵图标齿轮 + 弹出式设置层（demo 参照；唯一实现=
-            components/global/swap-settings.tsx，Esc/外点关闭、焦点回触发器由 Popover 内置） */}
+        {/* Industry convention: ghost icon gear + popover settings layer (the sole
+            implementation=SwapSettings; Esc/outside-click close and focus
+            return to the trigger are built into Popover) */}
         <SwapSettings
           locale={locale}
           settingsLabel={copy.settingsTitle}

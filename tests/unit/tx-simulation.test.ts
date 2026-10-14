@@ -1,6 +1,7 @@
-// 交易签名模拟驱动单测（component-contract §8：T4 签名 →≈1.6s→ T5 上链确认 →≈1.2s→
-// T6 已确认；卸载清挂起定时器；onConfirmed 承载注册流开弹窗差异）——2026-10-08 两处
-// 内联复制收敛为共享 hook 的配测，先例=amount-format/slippage-input 收敛配测
+// Transaction-signature simulation driver unit tests: T4 signing →≈1.6s→ T5
+// on-chain confirming →≈1.2s→ T6 confirmed; unmount clears pending timers;
+// onConfirmed carries the register-flow dialog-open difference. This is the
+// companion test of the shared hook that replaced two inline copies.
 // @vitest-environment jsdom
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
@@ -16,7 +17,7 @@ describe('useTxSimulation', () => {
     vi.useRealTimers();
   });
 
-  it('T4→T5→T6 按契约时序推进，onConfirmed 抵 T6 恰调一次', () => {
+  it('T4->T5->T6 advance on the contract timing, onConfirmed fires exactly once at T6', () => {
     const onConfirmed = vi.fn();
     const { result } = renderHook(() => useTxSimulation(onConfirmed));
 
@@ -45,7 +46,7 @@ describe('useTxSimulation', () => {
     expect(onConfirmed).toHaveBeenCalledTimes(1);
   });
 
-  it('onConfirmed 可选：参与流（无回调）推进到 T6 不抛', () => {
+  it('onConfirmed optional: participation flow (no callback) advances to T6 without throwing', () => {
     const { result } = renderHook(() => useTxSimulation());
     act(() => {
       result.current.beginSigning();
@@ -56,7 +57,9 @@ describe('useTxSimulation', () => {
     expect(result.current.txState).toBe('confirmed');
   });
 
-  it('resetTx 回 idle 且不清挂起定时器（与收敛前两处内联实现同语义；运行期由「修改钮仅 idle 渲染」护栏兜底）', () => {
+  // Consolidation history: same semantics as the two pre-consolidation inline
+  // copies; runtime guarded by modify-button-rendered-only-at-idle.
+  it('resetTx returns to idle without clearing pending timers (signing timer still fires)', () => {
     const { result } = renderHook(() => useTxSimulation());
     act(() => {
       result.current.beginSigning();
@@ -71,7 +74,7 @@ describe('useTxSimulation', () => {
     expect(result.current.txState).toBe('confirming');
   });
 
-  it('卸载清挂起定时器：无残留计时、定时器回调不再触发', () => {
+  it('unmount clears pending timers: no timers left, timer callbacks never fire', () => {
     const onConfirmed = vi.fn();
     const { result, unmount } = renderHook(() => useTxSimulation(onConfirmed));
     act(() => {

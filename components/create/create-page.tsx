@@ -12,7 +12,8 @@ import {
 
 export function CreatePage({ locale }: { locale: Locale }) {
   const snapshot = getFixtureSnapshot()
-  // 创建页只在主网链上发起（六链白名单的主网 3 条——architecture §5；发现页链筛选同口径）
+  // The create page originates only on mainnet chains (3 mainnets of the six-chain whitelist —
+  // same scope as the discovery page's chain filter)
   const chains = getFixtureChains().filter((chain) => chain.env === 'mainnet')
   const config = getFixtureCreateConfig()
   const occupiedSymbols = getFixtureOccupiedSymbols()
@@ -46,7 +47,8 @@ export function CreatePage({ locale }: { locale: Locale }) {
         locale={locale}
         assets={snapshot.assets}
         chains={chains}
-        /* 全六链名单（含测试网替身）：报价按钱包连接链查发起链原生币种 */
+        /* Full six-chain list (incl. testnet stand-ins): the quote looks up the origin chain's
+           native symbol by the wallet's connected chain */
         walletChains={getFixtureChains()}
         config={config}
         occupiedSymbols={occupiedSymbols}

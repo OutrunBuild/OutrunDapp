@@ -1,6 +1,8 @@
-// 重推导 getter 直接断言（2026-10-08 测试盲区裁决 [C]：24 个 getFixture* 里聚合最重的
-// 四个此前零直接断言——join/filter/sum 推导无闸，仅经 e2e 视觉基线间接锁定）。
-// 底账值取自 fixtures/data/{participations,referral,assets,chains}.json；数字变更须同步本测试。
+// Direct assertions on re-derived getters: of the 24 getFixture* getters, this
+// covers the four heaviest aggregations, whose join/filter/sum derivations
+// would otherwise only be locked indirectly via e2e visual baselines.
+// Ledger values come from fixtures/data/{participations,referral,assets,chains}.json;
+// number changes must update this test in sync.
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -11,17 +13,17 @@ import {
   getFixtureParticipationRows,
 } from '../../lib/data/fixture-repository';
 
-describe('getFixtureVaultRows：③收益库存单（staking×verse 联结）', () => {
+describe('getFixtureVaultRows: yield inventory (staking x verse join)', () => {
   const rows = getFixtureVaultRows();
 
-  it('只列实际持仓（myShares>0，2026-10-04 减量裁定）且按 verseId 升序', () => {
+  it('lists only held positions (myShares>0) in ascending verseId order', () => {
     expect(rows.length).toBeGreaterThan(0);
     expect(rows.every((row) => row.myShares > 0)).toBe(true);
     const ids = rows.map((row) => row.verse.id);
     expect([...ids].sort((a, b) => a.localeCompare(b))).toEqual(ids);
   });
 
-  it('shareSymbol = s+symbol；readyUsd = readyTotal × currentPrice（无样本价=null）', () => {
+  it('shareSymbol = s+symbol; readyUsd = readyTotal x currentPrice (null when no sample price)', () => {
     const verses = new Map(getFixtureSnapshot().verses.map((verse) => [verse.id, verse]));
     for (const row of rows) {
       expect(row.shareSymbol).toBe(`s${row.verse.symbol}`);
@@ -35,10 +37,10 @@ describe('getFixtureVaultRows：③收益库存单（staking×verse 联结）', 
   });
 });
 
-describe('getFixturePortfolioActions：①待办区聚合', () => {
+describe('getFixturePortfolioActions: todo aggregation', () => {
   const actions = getFixturePortfolioActions();
 
-  it('排序：有限时窗者按剩余时间升序置顶，无截止者殿后（类别序）', () => {
+  it('sorting: deadline-bounded actions first ascending by remaining time, open-ended last', () => {
     expect(actions.length).toBeGreaterThan(0);
     const deadlines = actions.flatMap((action) =>
       action.remainingMs != null ? [action.remainingMs] : [],
@@ -50,7 +52,7 @@ describe('getFixturePortfolioActions：①待办区聚合', () => {
     }
   });
 
-  it('refund 卡：金额=该 verse 参与合计（UAsset 本位），无截止', () => {
+  it('refund card: amount = total participation for the verse (in UAsset), no deadline', () => {
     const refunds = actions.filter((action) => action.kind === 'refund');
     expect(refunds.map((action) => action.verse?.id).sort()).toEqual([
       'verse-004',
@@ -58,17 +60,17 @@ describe('getFixturePortfolioActions：①待办区聚合', () => {
       'verse-035',
     ]);
     const byId = new Map(refunds.map((action) => [action.verse?.id ?? '', action.amount]));
-    // part-002..004：15000 normal + 45000 leverage + 8000 preorder
+    // part-002..004: 15000 normal + 45000 leverage + 8000 preorder
     expect(byId.get('verse-004')).toBe(68_000);
     expect(byId.get('verse-015')).toBe(95_000); // part-005
-    // part-006/007：60000 normal + 12000 leverage
+    // part-006/007: 60000 normal + 12000 leverage
     expect(byId.get('verse-035')).toBe(72_000);
     expect(refunds.every((action) => action.deadline == null && action.remainingMs == null)).toBe(
       true,
     );
   });
 
-  it('vault-ready 聚合卡：count=有成熟赎回的 verse 数、amountUsd=readyUsd 合计', () => {
+  it('vault-ready aggregate card: count = verses with matured redemptions, amountUsd = readyUsd sum', () => {
     const ready = getFixtureVaultRows().filter((row) => row.readyTotal > 0);
     expect(ready.length).toBeGreaterThan(0);
     const card = actions.find((action) => action.kind === 'vault-ready');
@@ -84,10 +86,10 @@ describe('getFixturePortfolioActions：①待办区聚合', () => {
   });
 });
 
-describe('getFixtureParticipationRows：④参与凭证行（生命周期分组）', () => {
+describe('getFixtureParticipationRows: participation rows (grouped by lifecycle)', () => {
   const rows = getFixtureParticipationRows();
 
-  it('分组序=创世中→锁定中→已解锁；refund 由①待办承接不进凭证行', () => {
+  it('group order genesis -> locked -> unlocked; refunds handled by the todo aggregation, never in rows', () => {
     expect(rows.length).toBeGreaterThan(0);
     expect(rows.some((row) => row.verse.stage === 'refund')).toBe(false);
     const order: Record<string, number> = { genesis: 0, locked: 1, unlocked: 2 };
@@ -95,7 +97,7 @@ describe('getFixtureParticipationRows：④参与凭证行（生命周期分组�
     expect([...stages].sort((a, b) => a - b)).toEqual(stages);
   });
 
-  it('genesis 行按 kind 分列：MOON=12000 全 normal 且 stake 路径（part-001）', () => {
+  it('genesis rows split by kind: MOON = 12000 all normal on stake path (part-001)', () => {
     const moon = rows.find((row) => row.verse.id === 'verse-001');
     expect(moon?.genesis).toEqual({
       total: 12_000,
@@ -107,23 +109,23 @@ describe('getFixtureParticipationRows：④参与凭证行（生命周期分组�
     expect(moon?.holdings).toBeNull();
   });
 
-  it('refund 态 verse 的参与不进凭证行（FLOP/RRAD/SWHL 缺席）', () => {
+  it('participations in refund-stage verses excluded from rows (FLOP/RRAD/SWHL absent)', () => {
     expect(rows.find((row) => row.verse.id === 'verse-004')).toBeUndefined();
     expect(rows.find((row) => row.verse.id === 'verse-015')).toBeUndefined();
     expect(rows.find((row) => row.verse.id === 'verse-035')).toBeUndefined();
   });
 });
 
-describe('getFixtureReferral：返佣视图（referral.json × assets/chains 元数据联结）', () => {
+describe('getFixtureReferral: rebate view (referral.json x assets/chains metadata join)', () => {
   const view = getFixtureReferral();
 
-  it('头部字段：code / rate 换算 / friendsCount', () => {
+  it('header fields: code / rate conversion / friendsCount', () => {
     expect(view?.referralCode).toBe('R7K4M9');
     expect(view?.ratePercent).toBe(10); // 1000 bps ÷ 100
     expect(view?.friendsCount).toBe(28);
   });
 
-  it('earned 首行联结：UUSD × Ethereum(1)，usd=amount×usdSample(1)', () => {
+  it('earned first row join: UUSD on Ethereum(1), usd = amount x usdSample(1)', () => {
     expect(view?.earned[0]).toMatchObject({
       assetId: 'asset-002',
       symbol: 'UUSD',
@@ -134,13 +136,13 @@ describe('getFixtureReferral：返佣视图（referral.json × assets/chains 元
     });
   });
 
-  it('totalEarnedUsd / pendingUsd = Σ amount×usdSample（跨链逐币求和）', () => {
-    // earned：1062.30×1 + 0.0562×3050.42 + 0.0189×612.8；pending：34.56×1 + 0.0142×3050.42 + 0.24×612.8
+  it('totalEarnedUsd / pendingUsd = sum of amount x usdSample (across chains and tokens)', () => {
+    // earned: 1062.30×1 + 0.0562×3050.42 + 0.0189×612.8; pending: 34.56×1 + 0.0142×3050.42 + 0.24×612.8
     expect(view?.totalEarnedUsd).toBeCloseTo(1245.315524, 6);
     expect(view?.pendingUsd).toBeCloseTo(224.947964, 6);
   });
 
-  it('transactions 保序联结：首笔 rebate=UUSD 14.72（usd 同价）', () => {
+  it('transactions preserve order: first rebate = UUSD 14.72 (usd at same price)', () => {
     const tx = view?.transactions[0];
     expect(tx?.chainName).toBe('Ethereum');
     expect(tx?.rebate).toMatchObject({ symbol: 'UUSD', amount: 14.72, usd: 14.72 });

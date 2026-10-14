@@ -1,7 +1,8 @@
 import type { SVGProps } from 'react'
 
-// 链图标：Trustwallet assets 官方链 logo（PNG，按 chainId 映射；测试网用各自官方 logo，
-// base_sepolia 无独立目录时回落 base 主网 logo）
+// Chain icons: official Trustwallet assets chain logos (PNG, mapped by chainId; testnets
+// use their own official logos; base_sepolia falls back to the base mainnet logo when
+// it has no dedicated directory)
 const CHAIN_LOGO: Record<number, string> = {
   1: '/chains/ethereum.png',
   11155111: '/chains/sepolia.png',

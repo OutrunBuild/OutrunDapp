@@ -1,16 +1,21 @@
 #!/usr/bin/env node
-// check-design-bare-values.mjs — 设计裸值扫描（agent-workflow.md §3.1 的脚本化）
-// 用法：
-//   node scripts/check-design-bare-values.mjs            扫描产品代码（默认）
-//   node scripts/check-design-bare-values.mjs --self-test  内置金丝雀注入→四类全杀+豁免/剥注释生效→自动清理
-// 检查范围：components/** 与 app/** 的 *.tsx（与 agent-workflow §3.1 文档口径一致）。
-// 排除：components/axis-choice/、components/direction-choice/、app/design-review/（Stage-01 内部审阅工具，非产品界面）。
-// 四类违规：
-//   [hex]      裸 #hex 颜色（token 唯一源 = components/design-system/tokens.css）
-//   [palette]  Tailwind 原始调色板类（bg-blue-500 等；只能用语义类 bg-primary/text-muted-foreground）
-//   [space-*]  space-x/space-y 工具类（用 gap，见 components.md §8）
-//   [transition-all] transition: all（点名过渡，避免全局重绘）
-// 说明：注释（// 与 /* */）先剥离再扫，URL 中的 // 不受影响；px 裸值不在自动闸（canvas/图表配置合法使用多，误报率高，人工按 README §3.1 把关）。
+// check-design-bare-values.mjs -- bare design-value scan
+// Usage:
+//   node scripts/check-design-bare-values.mjs            scan product code (default)
+//   node scripts/check-design-bare-values.mjs --self-test  built-in canary injection -> all four kinds
+//     killed + comment exemption and URL protection verified -> auto cleanup
+// Scope: *.tsx under components/** and app/**.
+// Excluded: components/axis-choice/, components/direction-choice/, app/design-review/
+// (internal design-review tooling, not product UI).
+// Four violation kinds:
+//   [hex]      bare #hex colors (token single source = components/design-system/tokens.css)
+//   [palette]  raw Tailwind palette classes (bg-blue-500 etc.; only semantic classes such as
+//              bg-primary/text-muted-foreground are allowed)
+//   [space-*]  space-x/space-y utilities (use gap instead)
+//   [transition-all] transition: all (name the specific properties; avoids global repaint)
+// Note: comments (// and /* */) are stripped before scanning; // inside URLs is unaffected; bare px
+// values are not in this automatic gate (legitimately common in canvas/chart configs, high
+// false-positive rate; gated manually during design review).
 import { readdirSync, readFileSync, existsSync, writeFileSync, rmSync, mkdirSync } from 'node:fs';
 import { join, relative, extname } from 'node:path';
 import { argv, cwd, exit } from 'node:process';
@@ -27,28 +32,33 @@ const PATTERNS = [
   {
     kind: 'hex',
     re: /#[0-9a-fA-F]{3,8}\b/g,
-    detail: '裸 hex 颜色——改用 tokens.css 的 var(--color-*) 或语义类',
+    detail: 'bare hex color -- use tokens.css var(--color-*) or a semantic class instead',
   },
   {
     kind: 'palette',
     re: new RegExp(`\\b(?:bg|text|border)-(?:${PALETTES})-\\d{2,3}\\b`, 'g'),
-    detail: 'Tailwind 原始调色板类——改用语义类（bg-primary / text-muted-foreground 等）',
+    detail:
+      'raw Tailwind palette class -- use a semantic class instead (bg-primary / text-muted-foreground etc.)',
   },
-  { kind: 'space-*', re: /\bspace-[xy]-\d+\b/g, detail: 'space-x/y——改用 flex/grid + gap' },
+  {
+    kind: 'space-*',
+    re: /\bspace-[xy]-\d+\b/g,
+    detail: 'space-x/y -- use flex/grid + gap instead',
+  },
   {
     kind: 'transition-all',
     re: /\btransition[a-zA-Z]*\s*:\s*['"]?all\b/g,
-    detail: "transition: 'all'——点名具体属性（引号内联样式同样违规）",
+    detail: "transition: 'all' -- name the specific properties (quoted inline styles violate too)",
   },
 ];
 
-// 豁免表：合法非样式用途（每条必须带理由；新增需在 PR 说明）
+// Allowlist: legitimate non-style uses (every entry must carry a reason; new entries need PR justification)
 const ALLOWLIST = [
   {
     file: 'app/layout.tsx',
     re: /themeColor:\s*'#0A0A10'/,
     reason:
-      'Next viewport meta 的 themeColor——品牌锚 --site-black 的必要镜像（meta 不识别 CSS 变量）',
+      'themeColor of the Next viewport meta -- required mirror of the brand anchor --site-black (meta cannot read CSS variables)',
   },
 ];
 
@@ -63,7 +73,8 @@ function* walkTsx(dir) {
   }
 }
 
-// 剥离注释但保持行号：/* */ 段替换为等长空白；// 行注释按「行首或空白前缀」切（https:// 不受影响）
+// Strip comments but keep line numbers: /* */ blocks replaced by same-length whitespace; // line
+// comments are cut at "line start or whitespace prefix" (https:// unaffected)
 function stripComments(content) {
   const noBlock = content.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ''));
   return noBlock
@@ -95,10 +106,10 @@ function scanSource(rel, raw) {
 
 function report() {
   if (violations.length === 0) {
-    console.log('裸值扫描：0 命中 ✓（产品代码仅 token 与语义类）');
+    console.log('bare-value scan: 0 hits ✓ (product code uses tokens and semantic classes only)');
     return;
   }
-  console.log(`裸值扫描：${violations.length} 处违规 ✗\n`);
+  console.log(`bare-value scan: ${violations.length} violation(s) ✗\n`);
   for (const v of violations) {
     console.log(`  [${v.kind}] ${v.file}:${v.line}`);
     console.log(`    ${v.snippet}`);
@@ -111,18 +122,20 @@ async function selfTest() {
   const tmp = join(ROOT, 'components', '__selftest__');
   mkdirSync(tmp, { recursive: true });
   try {
-    // 四类违规 + 注释豁免 + URL 保护 + 允许表各一行
+    // four violation kinds + comment exemption + URL protection (a violation placed after the URL
+    // must still be caught -- scanner must not truncate the line at https://)
     const canary = `import React from 'react';
-// 参考 issue #1178 与 https://example.com/a
-/* 旧实现 color: #FF0000; 已删 */
+// ref issue #1178 and https://example.com/a
+/* old implementation color: #FF0000; removed */
 export function Canary({ ok }: { ok: boolean }) {
   return (
     <div
       className="bg-blue-500 space-x-4"
       style={{ transition: 'all 120ms', background: '#00F0FF' }}
       data-url="https://example.com/#frag"
+      data-after-url="bg-red-500"
     >
-      {/* JSX 注释 #ABC123 不算 */}
+      {/* JSX comment #ABC123 not counted */}
       {ok ? 'k' : 'v'}
     </div>
   );
@@ -135,15 +148,18 @@ export function Canary({ ok }: { ok: boolean }) {
 
     const kinds = [...new Set(violations.map((v) => v.kind))].sort();
     const expectKinds = ['hex', 'palette', 'space-*', 'transition-all'].sort();
+    // hex: the #00F0FF in style (the data-url fragment /#frag is not 3-8 hex at a word boundary);
+    // palette x2: bg-blue-500 + bg-red-500 -- the second sits AFTER the https:// URL, so a scanner
+    // that truncates lines at URLs fails here; comments were already stripped
     const pass =
       JSON.stringify(kinds) === JSON.stringify(expectKinds) &&
       violations.every((v) => v.file === 'components/__selftest__/canary.tsx') &&
-      violations.filter((v) => v.kind === 'hex').length === 1 && // style 里的 #00F0FF；data-url 片段/#frag 不是 3-8 hex 词边界、注释已剥
-      violations.filter((v) => v.kind === 'palette').length === 1 &&
+      violations.filter((v) => v.kind === 'hex').length === 1 &&
+      violations.filter((v) => v.kind === 'palette').length === 2 &&
       violations.filter((v) => v.kind === 'space-*').length === 1 &&
       violations.filter((v) => v.kind === 'transition-all').length === 1;
     console.log(
-      `self-test: 四类金丝雀 ${pass ? '全杀 ✓' : '漏杀/误杀 ✗'}（命中 kinds=${kinds.join(',')}）`,
+      `self-test: four canary kinds ${pass ? 'all killed ✓' : 'escaped or falsely killed ✗'} (hit kinds=${kinds.join(',')})`,
     );
     if (!pass) {
       console.log(violations);
@@ -151,7 +167,7 @@ export function Canary({ ok }: { ok: boolean }) {
     }
   } finally {
     rmSync(tmp, { recursive: true, force: true });
-    console.log('self-test 临时文件已清理');
+    console.log('self-test temp file cleaned up');
   }
 }
 

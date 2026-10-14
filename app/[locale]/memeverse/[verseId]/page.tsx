@@ -16,7 +16,7 @@ export default async function LocalizedVerse({
     searchParams,
     getDisplayLocale(),
   ]);
-  // 旧版 verse-021 形态收敛到数字段（canonical = /memeverse/<verseId 数字>；307 避免原型期浏览器缓存）
+  // Legacy verse-021 shape converges to the numeric segment (canonical = /memeverse/<numeric verseId>; 307 so browsers must not cache the redirect while the legacy paths still resolve)
   const legacy = /^verse-(\d+)$/i.exec(verseId);
   if (legacy) {
     const { tab, action } = narrowVerseQuery(search);

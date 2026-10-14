@@ -1,10 +1,12 @@
 "use client"
 
-// 底部动作面板原语（2026-10-05 决议 018 补充：资产行移动端去按钮化）：shadcn 清单内
-// 允许加装的 sheet 的手工内联版（AGENTS 纪律：dlx 组件按现有 ui/*.tsx 内联）。
-// 复用 base-ui Dialog 全套管线（Esc/外点关闭、焦点圈闭、焦点还原、aria 绑定），
-// 仅锚定从居中改底部滑上；遮罩槽位复用 dialog-backdrop 皮肤。产品样式由调用方
-// 类（.pf-asset-sheet*）承担，本层只给锚定与安全区。
+// Bottom action sheet primitive (mobile asset rows carry no inline buttons, so row actions open
+// this sheet instead): hand-inlined copy of the shadcn sheet, consistent with the existing
+// ui/*.tsx files. Reuses the full base-ui Dialog pipeline
+// (Esc/outside-click close, focus trap, focus restore, aria binding); only the anchoring changes,
+// from centered to bottom slide-up; the backdrop slot reuses the dialog-backdrop skin. Product
+// styling is carried by the caller's classes (.pf-asset-sheet*); this layer provides only
+// anchoring and safe-area handling.
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 import { cn } from "@/lib/utils"
 
@@ -20,7 +22,7 @@ function SheetTrigger({ className, ...props }: DialogPrimitive.Trigger.Props) {
   )
 }
 
-/** 底部锚定：遮罩 + 底缘安全区；进出场动画枚举属性（见调用方类） */
+/** Bottom anchored: backdrop + bottom-edge safe area; enter/exit animation enum props (see caller classes) */
 function SheetContent({ className, children, ...props }: DialogPrimitive.Popup.Props) {
   return (
     <DialogPrimitive.Portal>

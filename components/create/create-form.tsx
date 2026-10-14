@@ -49,26 +49,31 @@ import { SourceRef, formatAmount } from '../global/signal-ui'
 import { TxStatus } from '../global/tx-status'
 import { useTxSimulation } from '../global/tx-simulation'
 
-// 注册参数口径=SPEC-M8 registration-details §3（durationDays/name/symbol/uri/desc/uAsset/
-// omnichainIds）；初始定价/最低成功额度非注册参数（2026-09-22 用户裁定移除，OB lifecycle.md:22
-// 张力登记 source-map §6 对账区）；锁定期=FIXED_LOCKUP_DURATION 合约常量，不输入，审阅卡「锁定期」行展示。
-// Symbol 占用=同 symbol 上一 verse 创世窗口未结束即锁定（RegistrationCenter:178 SymbolNotUnlock；
-// endTime=创世截止 :186+LaunchImpl:311-322；窗口结束 nonce+1→新 uniqueId 可复用 :189-195）。
-// 样本=verses 快照 genesis 行派生（repository）；精确字节串匹配（大小写敏感、不 trim）；
-// 占用判定生产走链上读值；错误行不带解锁时刻与条件、不加 ⊙（2026-10-02 用户裁定）。
-// 布局：Fees 卡并入表单卡 Communities 下方（2026-10-04 用户裁定，脱离 demo 双栏——
-// demo.outrun.build/memeverse/create 为右列侧栏旧制）；可见帮助文案仅时长下方一句，
-// 其余说明收进标签旁 ⊙ 悬浮提示（Info）
+// Registration param scope = durationDays/name/symbol/uri/desc/uAsset/
+// omnichainIds; initial pricing / minimum success amount are not registration params;
+// lockup period = FIXED_LOCKUP_DURATION contract constant, not an input, shown in the review card's
+// "Lockup period" row. Symbol occupancy = locked while the previous verse with the same symbol still
+// has an open genesis window (RegistrationCenter SymbolNotUnlock; endTime = the genesis deadline;
+// a window ending advances the nonce → a new uniqueId makes the symbol reusable again).
+// Samples = derived from the verses snapshot genesis rows (repository); exact byte-string match
+// (case-sensitive, no trim); the occupancy check reads on-chain values in production; the error line
+// carries no unlock time or conditions and adds no ⊙. Layout: the Fees card merges into the
+// form card below Communities;
+// visible help copy is only the one line below Duration; all other explanations collapse into the
+// ⊙ hover tooltip beside labels (Info)
 const NAME_SYMBOL_MAX_BYTES = 31
 const DESC_MAX_BYTES = 255
 const LOGO_MAX_BYTES = 3 * 1024 * 1024
 const LOGO_ACCEPTED_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp'])
-// T6 成功弹窗「查看 Verse」跳转目标=S 级样本：新注册 verse 的 verseId 链上注册后才产生，
-// 原型无钱包拿不到回执——跳 fixture 样本 verse（生产=注册事件返回的 verseId）
+// Success dialog "View Verse" target is a fixture sample: the verseId of a newly registered verse
+// only comes into existence after on-chain registration, and the prototype has no wallet to get a
+// receipt — jump to the fixture sample verse (production = verseId returned by the registration event)
 const SAMPLE_VERSE_ID = 'verse-021'
 
-/** 主网 chainId → 钱包测试网替身映射（模拟粘合层非领域数值，vault 卡 GOVERNANCE_TESTNET 同款）：
- *  报价判「发起链是否治理链」用钱包 chainId 比对治理链的测试网对应链 */
+/** Mainnet chainId → wallet testnet stand-in mapping (mock glue layer, not domain values; same
+ *  pattern as the vault card's GOVERNANCE_TESTNET): the quote decides "is the origin chain the
+ *  governance chain" by comparing the wallet chainId against the governance chain's testnet
+ *  counterpart */
 const GOVERNANCE_TESTNET: Record<number, number> = { 1: 11155111, 8453: 84532, 56: 97 }
 
 const encoder = new TextEncoder()
@@ -77,14 +82,16 @@ function byteLength(value: string) {
   return encoder.encode(value).length
 }
 
-/** 帮助文案模板填充：{min}/{max}=创世时长区间、{days}=锁定期、{count}=异链数 */
+/** Help copy template fill: {min}/{max} = genesis duration range, {days} = lockup period,
+ *  {count} = remote chain count */
 function fill(template: string, values: Record<string, string>) {
   return template.replace(/\{(\w+)\}/g, (match, key: string) => values[key] ?? match)
 }
 
-/** demo 式标签旁 ⊙ 信息图标：悬浮显示说明，不在版面上占位。
-    默认渲染可聚焦 button（键盘可达、aria-label 合法）；hoverOnly 用于
-    嵌在另一按钮内部的宿主——嵌套交互元素非法，说明由宿主 sr-only 提供 */
+/** ⊙ info icon beside a label: shows the explanation on hover, takes no layout space.
+    By default renders a focusable button (keyboard accessible, valid aria-label); hoverOnly is for
+    hosts embedded inside another button — nested interactive elements are illegal, so the host's
+    sr-only text provides the explanation */
 function FieldInfo({ text, hoverOnly }: { text: string; hoverOnly?: boolean }) {
   if (hoverOnly) {
     return (
@@ -106,8 +113,9 @@ function FieldInfo({ text, hoverOnly }: { text: string; hoverOnly?: boolean }) {
   )
 }
 
-/** T6 注册成功弹窗（2026-10-01 用户裁定）：T6 抵达自动开、关闭后审阅卡留完成步骤+查看 Verse 兜底；
-    壳复用 .pol-mint（同 DAO/POL 弹窗）——底色/描边光/padding 都在这层 */
+/** Registration success dialog: opens automatically when the flow reaches the success step;
+    after closing, the review card keeps a completed step + View Verse fallback; the shell reuses
+    .pol-mint (same as the DAO/POL dialogs) — background/border glow/padding all live on that layer */
 function CreateSuccessDialog({
   locale,
   open,
@@ -167,7 +175,8 @@ type CreateFormProps = {
   locale: Locale
   assets: FixtureAsset[]
   chains: FixtureChain[]
-  /** 全六链名单（含测试网替身）：按钱包连接链查发起链原生币种 */
+  /** Full six-chain list (incl. testnet stand-ins): look up the origin chain's native symbol by the
+   *  wallet's connected chain */
   walletChains: FixtureChain[]
   config: FixtureCreateConfig | null
   occupiedSymbols: string[]
@@ -183,10 +192,12 @@ export function CreateForm({
 }: CreateFormProps) {
   const copy = getCopy(locale)
   const linksNoteId = useId()
-  // 钱包连接链=报价的「发起链」维度（2026-10-02 用户裁定进创建页；不显示跨链提示——
-  // 跨链是注册常态，提示会造「只有这种情况才跨链」的歧义）
+  // Wallet connected chain = the quote's "origin chain" dimension (no cross-chain notice shown —
+  // cross-chain is the norm for registration,
+  // a notice would imply "cross-chain happens only in this case")
   const { connected, chainId: walletChainId, toggle: toggleWallet } = useMockWallet()
-  // 错误关联：id 只在错误渲染期间被 aria-describedby 条件回指，避免引用不存在的节点
+  // Error association: the id is only referenced back by aria-describedby while the error renders,
+  // avoiding references to non-existent nodes
   const logoErrorId = useId()
   const nameErrorId = useId()
   const symbolErrorId = useId()
@@ -194,7 +205,8 @@ export function CreateForm({
   const descErrorId = useId()
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const logoInputRef = useRef<HTMLInputElement>(null)
-  // 上传必填（用户裁定）：失焦（含取消选择）后报缺，提交失败一并全显——同下方 touched 纪律
+  // Upload required: report missing after blur (incl. canceling the selection); on
+  // submit failure show everything at once — same touched discipline as below
   const [logoTouched, setLogoTouched] = useState(false)
   const [logoReject, setLogoReject] = useState<'type' | 'size' | null>(null)
   const [name, setName] = useState('')
@@ -207,17 +219,21 @@ export function CreateForm({
   const [telegram, setTelegram] = useState('')
   const [fundType, setFundType] = useState(assets[0]?.symbol ?? '')
   const [govChain, setGovChain] = useState(chains[0] ? String(chains[0].chainId) : '')
-  // Spoke chains=治理链之外的部署链；初始空=显「Select Chains」占位（demo 口径）
+  // Spoke chains = deployment chains other than the governance chain; initially empty = show the
+  // "Select Chains" placeholder (intentional: no spoke preselected)
   const [selectedChainIds, setSelectedChainIds] = useState<string[]>([])
   const [duration, setDuration] = useState('')
   const [fast, setFast] = useState(false)
   const [reviewing, setReviewing] = useState(false)
-  // T6 注册成功展示=弹窗（2026-10-01 用户裁定）；关闭后卡片留完成步骤+查看 Verse CTA 兜底
+  // Registration success display = dialog; after closing, the card
+  // keeps a completed step + View Verse CTA fallback
   const [successOpen, setSuccessOpen] = useState(false)
-  // 交易签名模拟（state-matrix T4→T5→T6）：确认后前端定时推进，无钱包；T6 抵达自动开成功弹窗
+  // Tx signing simulation: after confirmation the frontend advances on a
+  // timer, no wallet; reaching the success step auto-opens the success dialog
   const { txState, beginSigning, resetTx } = useTxSimulation(() => setSuccessOpen(true))
-  // object URL 生命周期=组件等长：换图/移除/卸载统一在此回收（cleanup 跑在 DOM 换图之后，
-  // 旧 URL 已无引用），pickLogo/removeLogo 不再散落 revoke
+  // object URL lifetime = component lifetime: replace/remove/unmount all reclaim it here in one
+  // place (cleanup runs after the DOM image swap, so the old URL has no remaining references);
+  // pickLogo/removeLogo no longer scatter revoke calls
   useEffect(
     () => () => {
       if (logoUrl) URL.revokeObjectURL(logoUrl)
@@ -225,8 +241,10 @@ export function CreateForm({
     [logoUrl],
   )
   const [invalid, setInvalid] = useState(false)
-  // 即时校验（2026-10-01 用户裁定：只改报错时机，name/symbol 不加计数器）：超字节上限在输入
-  // 过程中即报（值驱动）；必填缺失失焦后再报，未动过的字段不提前报警；提交失败仍一次性全显
+  // Instant validation (only changes when errors are reported, no counters
+  // added for name/symbol): exceeding the byte limit reports during typing (value-driven); missing
+  // required fields report after blur, untouched fields raise no early alarm; submit failure still
+  // shows everything at once
   const [nameTouched, setNameTouched] = useState(false)
   const [symbolTouched, setSymbolTouched] = useState(false)
   const [durationTouched, setDurationTouched] = useState(false)
@@ -240,8 +258,9 @@ export function CreateForm({
   const logoInvalid = (logoTouched || invalid) && logoUrl == null
   const nameInvalid =
     nameBytes > NAME_SYMBOL_MAX_BYTES || ((nameTouched || invalid) && nameBytes < 1)
-  // 占用按原始值判定：与字节超限同为值驱动，输入过程中即报；提交拦截用 trim 后的
-  // cleanSymbol（与实际注册参数同源），尾部空白在提交时才计为命中
+  // Occupancy is judged on the raw value: value-driven like the byte limit, reported during typing;
+  // submit interception uses the trimmed cleanSymbol (same source as the actual registration param),
+  // so trailing whitespace only counts as a hit at submit time
   const symbolTaken = occupiedSymbols.includes(symbol)
   const symbolInvalid =
     symbolTaken ||
@@ -254,19 +273,25 @@ export function CreateForm({
     Number.isInteger(numericDuration) &&
     numericDuration >= config.minDurationDays &&
     numericDuration <= config.maxDurationDays
-  // config=null 时提交按钮已被禁用，失焦不得把「参数不可得」误报成用户输入错误
+  // With config=null the submit button is already disabled; blur must not misreport "params
+  // unavailable" as a user input error
   const durationInvalid = (durationTouched || invalid) && config != null && !durationRangeOk
 
   const govChainOption = chains.find((chain) => String(chain.chainId) === govChain) ?? null
-  // Spoke chains=治理链之外的部署链（治理链不再出现在下拉里）；每条 spoke 一笔跨链 fan-out 费
+  // Spoke chains = deployment chains other than the governance chain (the governance chain no longer
+  // appears in the dropdown); each spoke costs one cross-chain fan-out fee
   const spokeOptions = chains.filter((chain) => String(chain.chainId) !== govChain)
   const selectedChains = chains.filter((chain) => selectedChainIds.includes(String(chain.chainId)))
-  // 报价口径（三合约核对 2026-10-02）：Total=逐条异链 fan-out（Center quoteSend；SPEC-M8 §9 的
-  // 「本链 fee=0」主语=注册中心链目标，非治理链）+ 异链发起时 发起链→中心链 发送费
-  // （RegistrarOmnichain quoteRegister）。跨链与否由部署目标决定，不由发起地决定——治理链目标
-  // 免费当且仅当它=中心链。「治理链=注册中心链」为样本场景假设（真源 deployment.md §8：中心链
-  // 归属[未知]），故发起费判据=钱包连接链≠治理链；未连接按本链发起处理（vault 卡同款先例）。
-  // 费用以发起链原生资产一笔支付（§9）→ 币种随发起链取
+  // Quote semantics: Total = per-remote-chain
+  // fan-out (hub-chain quoteSend; the "local-chain fee=0" rule applies to the hub-chain target,
+  // not the governance chain) + when originating off-chain, an origin→hub send
+  // fee (RegistrarOmnichain quoteRegister). Whether cross-chain applies is decided by the
+  // deployment target, not the origin — a governance chain target is free iff it equals the hub
+  // chain. "Governance chain = hub chain" is a sample-scenario assumption
+  // (hub chain ownership is unknown); hence the origin-fee test = wallet
+  // connected chain ≠ governance chain; when not connected, treat as originating on the local chain
+  // (same precedent as the vault card). Fees are paid in one payment in the origin chain's native
+  // asset → the fee's native currency (its symbol) follows the origin chain
   const govWalletChainId = govChainOption
     ? (GOVERNANCE_TESTNET[govChainOption.chainId] ?? govChainOption.chainId)
     : undefined
@@ -281,9 +306,11 @@ export function CreateForm({
     : null
   const nativeSymbol =
     (offGovChain ? connectedChain?.nativeSymbol : undefined) ?? govChainOption?.nativeSymbol ?? ''
-  // 0 态（费用真为 0=本链发起且未选 Spoke）跨链费整块不显示，仅留启动按钮（2026-10-02 用户裁定）
+  // Zero state (fee truly 0 = local-chain origin and no Spoke selected): hide the whole cross-chain
+  // fee block, keep only the launch button
   const showFee = config != null && govChainOption != null && crossChainFee > 0
-  // 审阅行按平台成组展示（裸值并排不可读——2026-10-01 用户反馈），图标与表单输入块一致
+  // Review rows grouped by platform (bare values side by side are unreadable); icons match the
+  // form input blocks
   const linkItems = [
     { id: 'website', icon: Globe, label: copy.create.linkWebsite, value: website },
     { id: 'x', icon: XIcon, label: copy.create.linkX, value: xHandle },
@@ -292,7 +319,8 @@ export function CreateForm({
   ].filter((item) => item.value.trim().length > 0)
 
   function pickLogo(file: File | undefined) {
-    // file picker 可绕过 accept 限定：类型/体积在 onChange 二次守卫，坏类型进 <img> 即破图
+    // The file picker can bypass the accept restriction: type/size get a second guard in onChange,
+    // a bad type breaks the <img> immediately
     if (!file) return
     if (!LOGO_ACCEPTED_TYPES.has(file.type)) {
       setLogoReject('type')
@@ -312,7 +340,8 @@ export function CreateForm({
     if (logoInputRef.current) logoInputRef.current.value = ''
   }
 
-  /** 输入法组词期间的 Enter 不触发提交（全站数字输入同一守卫） */
+  /** Enter during IME composition does not trigger submit (same guard for all numeric inputs
+   *  site-wide) */
   function guardImeEnter(event: KeyboardEvent) {
     if (event.key === 'Enter' && (event.nativeEvent.isComposing || event.keyCode === 229))
       event.preventDefault()
@@ -320,7 +349,8 @@ export function CreateForm({
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    // 纯空格不算有效输入：先 trim 再判空，清理值回填 state（审阅页/成功弹窗与校验同源）
+    // Whitespace-only is not valid input: trim first, then test emptiness, write the cleaned value
+    // back to state (review page/success dialog draw from the same source as validation)
     const cleanName = name.trim()
     const cleanSymbol = symbol.trim()
     const cleanDesc = desc.trim()
@@ -345,9 +375,9 @@ export function CreateForm({
     setReviewing(true)
   }
 
-  /** Fees 卡并入表单卡尾部（2026-10-04 用户裁定）：Communities 折叠行下方顺排
-      报价头/总额行/支付说明/Launch CTA；0 态（费用真为 0）头部与报价行一并隐藏，
-      只留启动按钮（2026-10-02 用户裁定沿用） */
+  /** Fees card merged at the tail of the form card: below the Communities
+      disclosure row, in order: quote head / total row / payment note / Launch CTA; in the zero
+      state (fee truly 0) the head and quote row hide together, keeping only the launch button */
   function renderLaunchFoot() {
     return (
       <section
@@ -364,8 +394,9 @@ export function CreateForm({
         ) : null}
         {showFee ? (
           <>
-            {/* quoteRegister 只回跨链费总和（AtLocal:56 / RegistrarOmnichain:59-66），不暴露
-                逐链拆分——界面只呈现一行总额（#69 用户裁定） */}
+            {/* quoteRegister returns only the cross-chain fee total,
+                not a per-chain breakdown — the UI shows a single total
+                row */}
             <dl className="create-quote">
               <div className="create-quote__row create-quote__row--total">
                 <dt>{copy.create.quoteTotal}</dt>
@@ -374,17 +405,19 @@ export function CreateForm({
                 </dd>
               </div>
             </dl>
-            {/* 支付口径=SPEC-M8 §9：随注册交易 msg.value 一笔支付（本链=治理链原生；
-                异链发起=发起链原生），金额=quoteRegister 链上实时报价 */}
+            {/* Payment semantics: paid in one payment with the registration tx's
+                msg.value (local chain = governance chain native; off-chain origin = origin chain
+                native); the amount = quoteRegister's live on-chain quote */}
             <FieldDescription>{copy.create.quotePaidNote}</FieldDescription>
           </>
         ) : !config || !govChainOption ? (
           <p>{copy.create.quoteEmpty}</p>
         ) : null}
-        {/* 无用户参与（2026-10-08 用户裁定）：submit 位整颗换成连接钱包钮——
-            原槽位 ax-ghost-cta 皮原样保留（同日二轮裁定「和 header 钱包钮同款」），
-            点击=头部同一 mock 开关，连接后 Launch 原样回归；表单字段照常可填，
-            连接不重置任何已输入草稿 */}
+        {/* No user involvement: the submit slot is wholly replaced by a
+            connect-wallet button — the slot keeps the ax-ghost-cta skin as-is (same
+            style as the header wallet button); clicking it hits the same mock toggle
+            as the header, and Launch returns unchanged after connecting; form fields stay fillable
+            as usual and connecting resets no entered drafts */}
         {connected ? (
           <Button
             type="submit"
@@ -489,7 +522,8 @@ export function CreateForm({
                 </div>
               ) : null}
             </dl>
-            {/* 支付说明随侧栏并入审阅卡（总额行下方，同侧栏原文案） */}
+            {/* Payment note merged into the review card along with the sidebar (below the total row,
+                same copy as the sidebar) */}
             {showFee ? <FieldDescription>{copy.create.quotePaidNote}</FieldDescription> : null}
             {txState === 'idle' ? (
               <div className="participation-review__actions">
@@ -509,7 +543,8 @@ export function CreateForm({
               </div>
             ) : txState === 'confirmed' ? (
               <>
-                {/* 弹窗已承载成功展示（2026-10-01 用户裁定）；卡片留完成步骤+查看 Verse 兜底 */}
+                {/* The dialog already carries the success display; the
+                    card keeps a completed step + View Verse fallback */}
                 <TxStatus locale={locale} state="confirmed" />
                 <Button
                   className="ax-ghost-cta"
@@ -540,9 +575,11 @@ export function CreateForm({
   return (
     <div className="create-layout">
       <div className="workbench-primary">
-        {/* required 仅承载必填语义供读屏播报；校验走 handleSubmit（noValidate 关闭原生约束） */}
+        {/* required only carries the required-field semantics for screen-reader announcement;
+            validation goes through handleSubmit (noValidate disables native constraints) */}
         <form id="create-form" className="create-form" onSubmit={handleSubmit} noValidate>
-          {/* demo 首项：Flash Genesis（OutrunBook 术语=Fast Genesis）=标签 + ⊙ + 切换开关；默认关闭即天然可选，不挂角标 */}
+          {/* First form item: Fast Genesis = label + ⊙ + toggle switch; off by default so it is
+              naturally optional, no badge attached */}
           <Field>
             <div className="create-fast-row">
               <span className="create-fast__label">{copy.create.fastLabel}</span>
@@ -601,7 +638,8 @@ export function CreateForm({
                     accept="image/png,image/jpeg,image/webp"
                     className="sr-only"
                     required
-                    /* aria-label 定名：压过多 label 拼接，读屏单念字段名不捎带靶位文案 */
+                    /* aria-label pins the name: overrides the multi-label concatenation so screen
+                       readers announce only the field name, without the target box copy */
                     aria-label={copy.create.logoLabel}
                     aria-invalid={logoInvalid || logoReject ? true : undefined}
                     aria-describedby={logoInvalid || logoReject ? logoErrorId : undefined}
@@ -662,7 +700,8 @@ export function CreateForm({
                   ) : null}
                 </Field>
 
-                {/* demo 行位：时长与资金类型并排填入 logo 右侧空位 */}
+                {/* Row placement: Duration and Fund Type sit side by side in the space right
+                    of the logo */}
                 <Field data-invalid={durationInvalid ? true : undefined}>
                   <FieldLabel htmlFor="create-duration">
                     {copy.create.durationLabel}
@@ -691,7 +730,8 @@ export function CreateForm({
                       placeholder={config ? `${config.minDurationDays}–${config.maxDurationDays}` : ''}
                       onChange={(event) => {
                         const digits = event.target.value.replace(/[^\d]/g, '')
-                        // 超界输入强制夹回 [min,max]（用户裁定 2026-09-22）：如输 9 → 夹到 3
+                        // Out-of-range input is force-clamped back to [min,max]:
+                        // e.g. entering 9 → clamped to 3
                         if (config && digits !== '') {
                           const clamped = String(
                             Math.min(Math.max(Number(digits), config.minDurationDays), config.maxDurationDays),
@@ -767,7 +807,8 @@ export function CreateForm({
                     }}
                   >
                     <SelectTrigger id="create-gov-chain">
-                      {/* 触发器同步显示选中链图标（用户裁定 2026-09-22）：children 函数接收选中 value */}
+                      {/* The trigger also shows the selected chain's icon:
+                          the children function receives the selected value */}
                       <SelectValue>
                         {(value: string | null) => {
                           const chain = chains.find((c) => String(c.chainId) === String(value))
@@ -798,7 +839,8 @@ export function CreateForm({
                     <FieldInfo text={copy.create.chainsHint} />
                     <span className="create-optional-tag">{copy.create.optionalTag}</span>
                   </FieldLabel>
-                  {/* demo「Select Chains」多选下拉；选项=治理链之外的 Spoke 链 */}
+                  {/* "Select Chains" multi-select dropdown; options = Spoke chains other than
+                      the governance chain */}
                   <Select
                     name="create-spoke-chains"
                     multiple
@@ -851,7 +893,7 @@ export function CreateForm({
                 ) : null}
               </Field>
 
-              {/* demo 折叠面板：Communities（图标在输入框内，全部选填） */}
+              {/* Disclosure panel: Communities (icons inside the inputs, all optional) */}
               <div className="create-disclosure">
                 <button
                   type="button"
@@ -867,7 +909,8 @@ export function CreateForm({
                   </span>
                   <ChevronDown data-open={linksOpen || undefined} aria-hidden="true" />
                 </button>
-                {/* sr-only 置于按钮外：放内部会被并进按钮可访问名称，说明应由 describedby 单独播报 */}
+                {/* sr-only placed outside the button: inside it would be merged into the button's
+                    accessible name; the description should be announced separately via describedby */}
                 <span id={linksNoteId} className="sr-only">
                   {copy.create.linksInfo}
                 </span>

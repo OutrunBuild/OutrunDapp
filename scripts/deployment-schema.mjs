@@ -1,5 +1,5 @@
 // deployment-schema.mjs — Zod schemas for contracts/abi/v1-rc/manifest.json and
-// deployments/{chainId}.json (architecture.md §5/§8 field lists, direct transcription),
+// deployments/{chainId}.json (deployment-artifact field lists, direct transcription),
 // plus the shared keccak-256/EIP-55 helpers (generator emits, validators check).
 // Shared by the artifact generator (build-time) and scripts/check-abi-manifest.mjs (CI).
 

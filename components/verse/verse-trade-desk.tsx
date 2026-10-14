@@ -13,9 +13,11 @@ import { SwapPanel } from './swap-panel'
 import { formatAmount, formatCount, formatMarketCap, formatPercent } from '../global/signal-ui'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
-/** 统计胶囊：本体走 dl/dt/dd；触发器=dd 内可聚焦 button（Tab 可达——2026-10-03 修键盘不可达，对齐 f50ea4d 触发器契约，
- *  此前 render={<div/>} 整体替换默认 button 不进 Tab 链）；aria-label 含可见值+全称+全量（WCAG 2.5.3 可访问名须含可见
- *  文本，value===tipValue 时去重）；气泡=全称+完整数值（2026-09-23 用户裁定） */
+/** Stat chip: body uses dl/dt/dd; the trigger=a focusable button inside dd (Tab reachable —
+ *  render={<div/>} would replace the default button wholesale and drop out of the Tab chain);
+ *  aria-label carries visible value+full name+full amount (the accessible name must contain
+ *  the visible text; deduplicated when value===tipValue);
+ *  bubble=full name+full amount */
 function StatChip({
   label,
   value,
@@ -49,14 +51,10 @@ function StatChip({
   )
 }
 
-/**
- * 交易台持久区（头卡下方、标签区上方）：代币统计条 + 主池 K 线 + 标准 Swap。
- * 统计口径（Q&A 2026-09-23）：Liq=四池 TVL 合计；Vol=四池 24h 量合计；
- * 市值=现价×总供应（推导）；CA=fixture 样本。缺失字段→该统计胶囊不渲染
- * （null 不渲染，2026-10-05 用户裁定）。
- */
-/** 价格=fmtPrice 市场口径唯一实现（决议 019，取代 2026-09-23 固定 6 位小数+尾零灰显）：
- *  ≥1 两位小数、<1 六位有效数字裁尾零、前导零 ≥4 下标记零——读「价位」不展示精度噪音 */
+/** Splits a formatted price into integer + decimal spans. Price=fmtPrice, the sole
+ *  implementation of the market scope:
+ *  ≥1 → two decimals, <1 → six significant digits with trailing zeros trimmed, ≥4 leading zeros
+ *  marked with a subscript zero — reads the "price level" without precision noise */
 function SplitPrice({ price }: { price: number }) {
   return (
     <>
@@ -66,6 +64,14 @@ function SplitPrice({ price }: { price: number }) {
   )
 }
 
+/**
+ * Trade desk persistent area (below the head card, above the tab area): token stats strip +
+ * main-pool candlestick + standard Swap.
+ * Stat scopes: Liq/Vol = main-pool TVL / 24h volume (stats-bar convention; four-pool totals
+ * live in the Liquidity tab's overview);
+ * market cap=current price×total supply (derived); CA=fixture sample. Missing fields → that
+ * stat chip is not rendered (null renders nothing).
+ */
 export function VerseTradeDesk({
   locale,
   verse,
@@ -77,16 +83,17 @@ export function VerseTradeDesk({
 }) {
   const copy = getCopy(locale).verseDesk
   const stats = trade.tokenStats
-  // Swap/Mint POL 供给侧余额同源（pol-positions fixture；null=槽位）
+  // Swap/Mint POL supply-side balances share the same source (pol-positions fixture; null=slot)
   const pol = getFixturePolPosition(verse.id)
 
   return (
     <section className="verse-desk" aria-label={verse.symbol}>
       <div className="verse-desk__main">
-        {/* 统计条+K线同卡（2026-09-23 用户裁定：不再拆两张卡） */}
+        {/* Stats strip + candlestick on one card */}
         <div className="trade-chart" data-numeric>
-          {/* 排列按参照页（demo.outrun.build）：第一行 代币名+单行胶囊(MC/Liq/Vol/Pop/TS 标签值同行)；
-              第二行 左=大字价格+涨跌、右=CA 胶囊 */}
+          {/* Layout: first row token name + single-row
+              chips (MC/Liq/Vol/Pop/TS label and value on the same line);
+              second row left=large price+change, right=CA chip */}
           <div className="token-strip" data-numeric>
             <div className="token-strip__row">
               <strong className="token-strip__symbol ax-glitch-text">{verse.symbol}</strong>
@@ -138,9 +145,10 @@ export function VerseTradeDesk({
             locale={locale}
             pairLabel={`${verse.symbol}/${verse.raiseAsset}`}
             header={
-              /* 价格+CA 传入图表组件，与粒度钮同行（2026-09-23 用户裁定）；
-                 key：header 经 RSC 分片流式到达 CandleChart 的多子节点数组，无 key 会触发
-                 React 列表 key 告警（react.dev/link/warning-keys：在元素创建处给 key） */
+              /* Price+CA passed into the chart component, on the same row as the granularity
+                 buttons;
+                 key: header arrives via an RSC shard as a multi-child array of CandleChart;
+                 without a key it triggers React's list-key warning */
               <div key="chart-header" className="candle-chart__row">
                 <div className="token-strip__price">
                   {stats.price != null ? (

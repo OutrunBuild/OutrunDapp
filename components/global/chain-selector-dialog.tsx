@@ -13,12 +13,15 @@ import { useMockWallet } from './mock-wallet'
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 
 /**
- * GS-2 查看链选择器（弹窗版）：header 触发器显示当前链，弹窗列六链、背景虚化。
- * 选择写 URL ?chain={chainId}——discovery 页读取该参数过滤数据（真实联动），其余页仅记忆视图链。
- * 2026-09-24 用户裁定：本选择器=链切换唯一入口——当前链状态存 mock 钱包 chainId
- * （Yield Vault 链感知消费；卡内网络芯片已删），弹窗打开时仍从 URL 深链同步。
- * 2026-10-08 迁 ui/dialog（base-ui）：Esc/焦点圈闭/焦点还原触发器由原语内置
- * （component-contract.md 附则弹层契约）；背景虚化走全局 [data-slot='dialog-backdrop'] 皮肤。
+ * Header view-chain selector: the trigger shows the current chain;
+ * the dialog lists the chains passed in (the shell passes only the 3 testnets).
+ * Selection writes URL ?chain={chainId} — the discovery page reads that param to
+ * filter data (real linkage); other pages merely remember the view chain.
+ * This selector is the single entry point for chain switching — the current-chain
+ * state lives in the mock wallet's chainId (consumed by Yield Vault chain awareness),
+ * and opening the dialog still syncs from the URL deep link.
+ * Esc/focus trapping/focus restore to the trigger are built into the ui/dialog
+ * primitive; backdrop blur uses the global [data-slot='dialog-backdrop'] skin.
  */
 export function ChainSelectorDialog({ locale, chains }: { locale: Locale; chains: FixtureChain[] }) {
   const copy = getCopy(locale)

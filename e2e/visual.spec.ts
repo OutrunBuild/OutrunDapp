@@ -1,19 +1,28 @@
 import { expect, test, type Page } from '@playwright/test';
 import { FIXED_NOW, PAGES, ZH_PAGES } from './pages';
 
-// 视觉基线（agent-workflow.md §3.2）：已入基线路由的三档视口整页截图。
-// 时钟钉死在 2026-10-01（晚于 fixtures 已过的静态时间戳），倒计时/相对时间逐像素确定；
-// 动效冻结走 reduced-motion + animation:none 双保险。
-// 首次跑自动写入基线（e2e/*-snapshots/，入库）；更新基线必须人工确认 diff：
+// Visual baselines: full-page screenshots of routes in
+// the baseline across the three viewport tiers.
+// The clock is pinned to FIXED_NOW (later than fixtures' already-past static
+// timestamps), so countdowns/relative times are pixel-deterministic; motion
+// freezing uses reduced-motion + animation:none as a double guard.
+// First run writes the baseline automatically (e2e/*-snapshots/, committed);
+// updating a baseline requires a human-confirmed diff:
 //   pnpm test:e2e -- --update-snapshots
 //
-// 整页截图对 position:fixed/sticky 有已知采集伪影（captureBeyondViewport 单帧采集，fixed 冻结于
-// 初始视口位、sticky 落回流位）：mobile/tablet 基线里固定底导航悬浮在 y=视口高−64（390 档 780、
-// 860 档 836）压住中部内容；desktop 基线里 100dvh 侧栏只画首屏 ~800px。
-// 真人视口不存在这些画面（底栏钉视口底缘、内容滚过其下）——预期噪音，勿据此修页面（§3.2 告示）。
+// Full-page screenshots have known capture artifacts for position:fixed/sticky
+// (captureBeyondViewport collects a single frame: fixed freezes at the initial
+// viewport position, sticky lands at its in-flow position): in the mobile/tablet
+// baselines the fixed bottom nav floats at y = viewport height − 64 (780 on the
+// 390 tier, 836 on the 860 tier), covering mid-page content; in the desktop
+// baseline the 100dvh sidebar only paints the first ~800px.
+// Real viewports never show these frames (the bottom bar pins to the viewport
+// edge, content scrolls beneath it) — expected noise; do not "fix" pages based
+// on it.
 
 test.beforeEach(async ({ page }) => {
-  // install 后 pauseAt：时间冻结不走表，跑测试的几秒内 Date.now() 也恒定
+  // pauseAt after install: time freezing does not advance the clock, so
+  // Date.now() stays constant for the seconds the tests run
   await page.clock.install({ time: FIXED_NOW });
   await page.clock.pauseAt(FIXED_NOW);
 });
@@ -25,16 +34,20 @@ async function stabilize(page: Page) {
       '*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}',
   });
   await page.evaluate(() => document.fonts.ready);
-  // paint worklet 就位闸（2026-10-07）：注册前 paint() 光栅化为空（按钮无描边只剩文字），
-  // 曾把 zh 基线写坏；PaintSkin 注册完成打 html[data-paint-ready]。超时兜底吞掉
-  // （非 Chromium/装载失败走 CSS 回落时标记仍会置位，此闸只防竞态不判错）
+  // Paint worklet readiness gate: before registration, paint()
+  // rasterizes empty (buttons lose their stroke and render text only), which
+  // once corrupted the zh baseline; PaintSkin sets html[data-paint-ready] when
+  // registration completes. Timeout is swallowed as a fallback (when
+  // non-Chromium/load failure takes the CSS fallback path the flag is still
+  // set; this gate only prevents a race, it does not judge errors)
   await page.waitForSelector('html[data-paint-ready]', { timeout: 2000 }).catch(() => {});
-  // K 线 canvas 与字体布局的收敛余量
+  // Settling margin for the candlestick canvas and font layout
   await page.waitForTimeout(300);
 }
 
 async function connectWallet(page: Page) {
-  // 产品壳仅 product-topbar 一处钱包钮（marketing-header 只在 home 壳）
+  // The product shell has exactly one wallet button, in product-topbar
+  // (marketing-header only exists on the home shell)
   const control = page.locator('.wallet-control');
   await control.click();
   await expect(control).toHaveAttribute('aria-pressed', 'true');
@@ -42,7 +55,7 @@ async function connectWallet(page: Page) {
 
 async function shoot(page: Page, name: string, path: string, connect = false) {
   const res = await page.goto(path, { waitUntil: 'networkidle' });
-  expect(res?.status(), `${path} 应为 200`).toBe(200);
+  expect(res?.status(), `${path} should return 200`).toBe(200);
   if (connect) await connectWallet(page);
   await stabilize(page);
   await expect(page).toHaveScreenshot(`${name}.png`, { fullPage: true });
@@ -54,10 +67,10 @@ for (const { name, path, connectWallet } of PAGES) {
   });
 }
 
-// zh 只锁移动端档（与 agent-workflow §3.2「/zh 移动端一张」口径一致）
+// zh locks only the mobile tier (one /zh mobile screenshot standard)
 for (const { name, path, connectWallet } of ZH_PAGES) {
   test(`visual: ${name}`, async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'mobile-390', 'zh 仅移动端档');
+    test.skip(testInfo.project.name !== 'mobile-390', 'zh runs on the mobile tier only');
     await shoot(page, name, path, connectWallet === true);
   });
 }

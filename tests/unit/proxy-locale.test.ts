@@ -1,7 +1,11 @@
-// proxy x-locale 头语义单测（P0-1 修复护栏）：URL 前缀是语言唯一真源，
-// x-locale 只能由 proxy 按 URL 口径写入——无前缀分支必须无条件覆写客户端
-// 预置值（内部 rewrite 目标恒为 /en/**，不会重入该分支）；旧 /en/** 直达
-// 307 收敛到无前缀（入口消失 = 伪造面消失）；LEGACY_PATHS 旧地址 307 收敛。
+// proxy x-locale header semantics unit tests (regression guard: a client-preset
+// x-locale header can never override the URL-derived locale): the URL prefix
+// is the single source of truth for locale; x-locale may only be written by
+// the proxy per the URL — the no-prefix branch must unconditionally overwrite
+// a client-preset value (the internal rewrite target is always /en/**, so it
+// never re-enters that branch); direct /en/** hits are 307-converged to the
+// no-prefix form (entry disappears = forgery surface disappears); LEGACY_PATHS
+// old addresses are 307-converged.
 import { describe, expect, it } from 'vitest';
 import { NextRequest } from 'next/server';
 
@@ -11,51 +15,52 @@ function requestFor(path: string, headers: Record<string, string> = {}): NextReq
   return new NextRequest(new URL(`http://localhost${path}`), { headers });
 }
 
-/** proxy 修改后的请求头经 x-middleware-request-* 暴露在响应上（next/server 桥接语义） */
+/** Headers rewritten by the proxy are exposed on the response as x-middleware-request-* (next/server bridging semantics) */
 function forwardedLocale(res: Response): string | null {
   return res.headers.get('x-middleware-request-x-locale');
 }
 
-describe('proxy x-locale（URL 前缀 = 语言唯一真源）', () => {
-  it('无前缀：客户端预置 x-locale: zh 被覆写为 en（伪造面封死）', () => {
+describe('proxy x-locale (URL prefix is the single source of truth for locale)', () => {
+  it('no prefix: client-preset x-locale: zh is overwritten to en (forgery surface sealed)', () => {
     const res = proxy(requestFor('/', { 'x-locale': 'zh' }));
     expect(res.headers.get('x-middleware-rewrite')).toContain('/en');
     expect(forwardedLocale(res)).toBe('en');
   });
 
-  it('无前缀：无头默认 en', () => {
+  it('no prefix: no header defaults to en', () => {
     const res = proxy(requestFor('/memeverse/explore'));
     expect(res.headers.get('x-middleware-rewrite')).toContain('/en/memeverse/explore');
     expect(forwardedLocale(res)).toBe('en');
   });
 
-  it('/zh：无条件写 zh，预置 en 头不生效', () => {
+  it('/zh: unconditionally writes zh, preset en header has no effect', () => {
     const res = proxy(requestFor('/zh/memeverse/21', { 'x-locale': 'en' }));
     expect(res.headers.get('x-middleware-rewrite')).toContain('/en/memeverse/21');
     expect(forwardedLocale(res)).toBe('zh');
   });
 
-  it('/en 直达：307 收敛到无前缀 canonical，伪造头不再有渲染面', () => {
+  it('/en direct hit: 307-converged to the no-prefix canonical, forged header loses its render surface', () => {
     const res = proxy(requestFor('/en/portfolio', { 'x-locale': 'zh' }));
     expect(res.status).toBe(307);
     expect(res.headers.get('location')).toBe('http://localhost/portfolio');
   });
 
-  it('/en 根路径与 query 收敛保真', () => {
+  it('/en root path and query converge faithfully', () => {
     expect(proxy(requestFor('/en')).headers.get('location')).toBe('http://localhost/');
     expect(proxy(requestFor('/en/memeverse/launch?tab=pol')).headers.get('location')).toBe(
       'http://localhost/memeverse/launch?tab=pol',
     );
   });
 
-  it('旧地址收敛（LEGACY_PATHS）：307 到新域，locale 前缀与 query 保真', () => {
+  it('legacy paths (LEGACY_PATHS): 307 to the new domain, locale prefix and query preserved', () => {
     const res = proxy(requestFor('/launch'));
     expect(res.status).toBe(307);
     expect(res.headers.get('location')).toBe('http://localhost/memeverse/launch');
     expect(proxy(requestFor('/memeverse')).headers.get('location')).toBe(
       'http://localhost/memeverse/explore',
     );
-    // /en/launch 整链第一跳：legacyRedirect 保留 /en 前缀（第二跳由上一用例覆盖）
+    // /en/launch first hop of the whole chain: legacyRedirect keeps the /en
+    // prefix (second hop is covered by the case above)
     expect(proxy(requestFor('/en/launch?tab=pol')).headers.get('location')).toBe(
       'http://localhost/en/memeverse/launch?tab=pol',
     );

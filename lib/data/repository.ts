@@ -1,10 +1,11 @@
-// 生产数据 repository（阶段 2 步骤 10 契约层）。
-// 只返回真实数据来源或结构化 unavailable 状态；永不回退到原型数据（runbook 步骤 10）。
-// 阶段 4–6 在此实现真实 RPC/Graph 装配；禁词清单由 scripts/check-fixture-boundary.mjs 的
-// production-resolver-token 规则以字面量强制（本文件不得出现清单内词汇）。
+// Production data repository (contract layer).
+// Only returns real data sources or structured unavailable states; never falls back to prototype
+// data. Real RPC/Graph data assembly plugs in here; the forbidden-word list is enforced literally
+// by the production-resolver-token rule in scripts/check-fixture-boundary.mjs (none of the listed
+// words may appear in this file).
 
 export type DataUnavailable =
-  | { reason: 'undeployed'; detail: string } // 结构化未部署（禁零地址/占位符，architecture §8）
+  | { reason: 'undeployed'; detail: string } // Structured undeployed (zero addresses/placeholders forbidden)
   | { reason: 'rpc-error'; detail: string }
   | { reason: 'not-configured'; detail: string };
 
@@ -12,9 +13,9 @@ export type DataResult<T> =
   { status: 'ok'; data: T } | ({ status: 'unavailable' } & DataUnavailable);
 
 export interface ProductionRepository {
-  /** 六链实时余额/授权/回执（RPC；索引降级永不覆盖，§9/§16） */
+  /** Six-chain real-time balances/allowances/receipts (RPC; an index (Graph) fallback never overrides the RPC readings) */
   getBalances(address: string, chainId: number): Promise<DataResult<unknown>>;
-  /** Graph 聚合列表（服务端 repository 查询，短缓存+去重，§9） */
+  /** Graph aggregated lists (server-side repository queries, short cache + dedup) */
   getVerseSummaries(chainId: number): Promise<DataResult<unknown>>;
 }
 
@@ -23,14 +24,14 @@ class NotWiredRepository implements ProductionRepository {
     return {
       status: 'unavailable',
       reason: 'not-configured',
-      detail: '阶段 4–6 接入真实 RPC（生产 resolver 永不回退 fixture）',
+      detail: 'Real RPC wiring pending; the production resolver never falls back to fixtures',
     };
   }
   async getVerseSummaries(): Promise<DataResult<unknown>> {
     return {
       status: 'unavailable',
       reason: 'not-configured',
-      detail: '阶段 4–6 接入 Graph（服务端查询+短缓存）',
+      detail: 'Graph wiring pending (server queries + short cache)',
     };
   }
 }

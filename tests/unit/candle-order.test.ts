@@ -1,7 +1,9 @@
-// K线时间戳有序性回归（2026-09-25）：verse-003 main 1h 曾在第 164 根时间倒序
-// （11:00 → 08:00，恰好落进初始 96 根窗口），lightweight-charts setData 断言
-// "data must be asc ordered by time" 直接崩整页；图表组件不做排序，
-// 有序性必须由数据层保证（fixture 快照 + extendHourlyHistory 派生接缝）。
+// Candlestick timestamp ordering regression: verse-003 main 1h once went
+// backwards in time at bar 164 (11:00 → 08:00, landing exactly
+// inside the initial 96-bar window), and lightweight-charts setData crashes
+// the whole page with "data must be asc ordered by time". The chart component
+// does not sort; ordering must be guaranteed at the data layer (fixture
+// snapshot + extendHourlyHistory derivation seam).
 import { describe, expect, it } from 'vitest';
 
 import { getFixtureSnapshot, getFixtureVerseTrade } from '../../lib/data/fixture-repository';
@@ -9,28 +11,29 @@ import { getFixtureSnapshot, getFixtureVerseTrade } from '../../lib/data/fixture
 function assertAscending(label: string, times: number[]) {
   for (let i = 1; i < times.length; i++) {
     if (times[i] <= times[i - 1]) {
-      throw new Error(`${label} 时间戳非严格递增：i=${i} ${times[i - 1]} → ${times[i]}`);
+      throw new Error(
+        `${label} timestamps not strictly increasing: i=${i} ${times[i - 1]} -> ${times[i]}`,
+      );
     }
   }
 }
 
-describe('K线时间戳严格递增（lightweight-charts setData 前置条件）', () => {
+describe('candle timestamps strictly increasing (lightweight-charts setData precondition)', () => {
   const verses = getFixtureSnapshot().verses.filter(
     (verse) => verse.stage === 'locked' || verse.stage === 'unlocked',
   );
+  const versesWithCandles = verses.filter(
+    (verse) => (getFixtureVerseTrade(verse.id)?.candles.length ?? 0) > 0,
+  );
 
-  it('有 K 线样本的 locked/unlocked verse 数量 > 0（防快照掏空导致空转通过）', () => {
-    const withCandles = verses.filter(
-      (verse) => (getFixtureVerseTrade(verse.id)?.candles.length ?? 0) > 0,
-    );
-    expect(withCandles.length).toBeGreaterThan(0);
+  it('count of locked/unlocked verses with candle samples > 0 (guards against an emptied snapshot passing vacuously)', () => {
+    expect(versesWithCandles.length).toBeGreaterThan(0);
   });
 
-  it.each(verses.map((verse) => [verse.id, verse.stage] as const))(
-    '%s（%s）：1h 全量历史 + 细粒度样本严格递增',
+  it.each(versesWithCandles.map((verse) => [verse.id, verse.stage] as const))(
+    '%s (%s): 1h full history + fine-grained samples strictly increasing',
     (verseId) => {
-      const trade = getFixtureVerseTrade(verseId);
-      if (!trade || trade.candles.length === 0) return; // 无样本 verse 跳过（B3 降级口径）
+      const trade = getFixtureVerseTrade(verseId)!;
       assertAscending(
         `${verseId} 1h`,
         trade.candles.map((candle) => Date.parse(candle.t)),

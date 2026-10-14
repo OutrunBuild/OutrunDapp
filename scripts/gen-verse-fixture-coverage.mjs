@@ -1,7 +1,11 @@
-// 全量覆盖生成（2026-09-23 用户裁定：原型阶段不留「以链上读值为准」槽位——所有
-// locked/unlocked verse 补齐四池/代币统计/蜡烛/POL 持仓/质押库/DAO 周期样本数据）。
-// 确定性：mulberry32(seed + verseId)，无时钟无 Math.random；重跑幂等（已有条目跳过）。
-// 机制口径锚：四池 four-pools.md；池量级对齐 hero 样本（verse-002/003）比例。
+// Full coverage generation (no "on-chain read values prevail" slots are left -- all locked/unlocked
+// verses are filled with four-pool/token stats/candle/
+// POL position/staking vault/DAO cycle sample data).
+// Determinism: mulberry32 keyed `${seed}:${key}` — per-verse rows keyed verse id, candle streams
+// keyed `${key}:candles`; no clock and no Math.random; idempotent on re-run
+// (existing entries are skipped).
+// Mechanism basis anchors: four-pool market structure; pool magnitudes aligned to the hero sample
+// (verse-002/003) ratios.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -35,8 +39,9 @@ const rate = (raw, unit = 'ratio', scale = 18) => ({ raw: String(raw), unit, sca
 const addr = (n) => ({ value: '0x' + n.toString(16).padStart(40, '0'), fixtureOnly: true });
 const iso = (t) => new Date(t).toISOString().replace('.000Z', 'Z');
 
-// DAO 资金明细构成样本（2026-09-26 参照 demo.outrun.build/memeverse/26 弹窗；固定权重
-// 拆分、确定性无 rnd；unitPrice 为样本价，usdValue 之和≈总额口径 treasuryUAsset/remainingRewards）
+// DAO treasury composition sample (modeled on the demo.outrun.build/memeverse/26 modal;
+// fixed-weight split, deterministic with no rnd; unitPrice is a sample price, and the usdValue sum
+// approximates the treasuryUAsset/remainingRewards totals)
 const TREASURY_SPLIT = [
   ['ETH', 'Ethereum', 2500, 0.42],
   ['USDC', 'USD Coin', 1, 0.24],
@@ -50,8 +55,9 @@ const UNCLAIMED_SPLIT = [
   ['USDT', 'Tether USD', 1, 0.2],
   ['DAI', 'Dai', 1, 0.1],
 ];
-// 可领奖励构成（2026-09-30 可领明细弹窗；机制=getClaimableReward(user) 多 token 按票权份额
-// ——GovernanceCycleIncentivizerUpgradeable.sol:199；总额锚 myClaimable，宇宙同 rewardTokenList 样本）
+// Claimable reward composition (claimable detail modal; mechanism = getClaimableReward(user)
+// with multiple tokens split by voting-power share in the governance cycle incentivizer contract;
+// total anchored to myClaimable, same universe as the rewardTokenList sample)
 const CLAIMABLE_SPLIT = [
   ['ETH', 'Ethereum', 2500, 0.38],
   ['USDC', 'USD Coin', 1, 0.3],
@@ -69,7 +75,7 @@ const composeAssets = (total, split) =>
     };
   });
 
-// hero 池比例（mkt-003/101/102/104 实测）：aux/main ≈ 0.164 / 0.133 / 0.132；量/TVL ≈ 0.52
+// hero pool ratios (measured on mkt-003/101/102/104): aux/main ≈ 0.164 / 0.133 / 0.132; volume/TVL ≈ 0.52
 const AUX_RATIO = { 'pol-uasset': 0.164, 'pt-uasset': 0.133, 'pt-pol': 0.132 };
 const APR_RANGE = {
   main: [0.28, 0.55],
@@ -124,7 +130,8 @@ for (const verse of targets) {
     ? Number(verse.projectedMarketCap.raw)
     : between(rnd, 4e6, 2e7);
 
-  // —— 四池：缺池补齐（tvl 量级从既有 main 推导，无 main 按 projected 比例造）——
+  // -- four pools: missing pools are filled (tvl magnitude derived from the existing main; without
+  // a main, fabricated from the projected ratio) --
   const mainTvl = main ? Number(main.tvl.raw) : round(between(rnd, 0.03, 0.08) * projected);
   if (!main) {
     markets.items.push({
@@ -149,12 +156,12 @@ for (const verse of targets) {
       feeState: 'normal',
     });
   }
-  // —— 池卡数值：量/APR 全填 ——
+  // -- pool card values: volume/APR all filled --
   for (const m of markets.items.filter((x) => x.verseId === verse.id)) {
     if (!m.volume24h) m.volume24h = amount(round(Number(m.tvl.raw) * between(rnd, 0.4, 0.65)));
     if (!m.apr7d) m.apr7d = rate(between(rnd, ...APR_RANGE[m.pool]).toFixed(4));
   }
-  // —— 主池 tokenStats + 蜡烛 ——
+  // -- main pool tokenStats + candles --
   const mainNow = markets.items.find((m) => m.verseId === verse.id && m.pool === 'main');
   if (!mainNow.tokenStats) {
     mainNow.tokenStats = {
@@ -181,7 +188,7 @@ for (const verse of targets) {
     );
   }
 
-  // —— POL 持仓 ——
+  // -- POL positions --
   if (!polPos.items.some((x) => x.verseId === verse.id)) {
     const polSupply = round(mainTvl * between(rnd, 0.8, 1.1));
     const uAssetPerPol = round((mainTvl / polSupply) * between(rnd, 0.8, 0.95), 4);
@@ -196,7 +203,8 @@ for (const verse of targets) {
       ),
       polSupply: amount(polSupply),
       uAssetPerPol: rate(uAssetPerPol.toFixed(4)),
-      // 市场价样本=典型折价 4–18%（2026-09-24 用户裁定：一般低于名义价值；真源允许溢/折价——pol-splitter.md）
+      // Market price sample = typical 4-18% discount (generally below nominal
+      // value; the mechanism allows premium/discount)
       marketPricePerPol: rate((nominal * between(rnd, 0.82, 0.96)).toFixed(4)),
       myPol: amount(round(between(rnd, 800, 60000), 2).toFixed(2)),
       claimablePol: amount(
@@ -205,13 +213,13 @@ for (const verse of targets) {
     });
   }
 
-  // —— 质押库 ——
+  // -- staking vault --
   if (!staking.items.some((x) => x.verseId === verse.id)) {
     const totalStaked = round(1e9 * between(rnd, 0.004, 0.012));
     const assetsPerShare = round(between(rnd, 1.02, 1.38), 4);
-    // 恒 5 笔=合约 MAX_REDEEM_REQUESTS 上限（MemecoinYieldVault.sol:21；2026-09-26 用户
-    // 裁定「多来几条」）：3 等待中（Redeem 倒计时样本，剩余 20h/9h/1h 错开）+ 2 已成熟
-    // （Withdraw 样本，成熟 6h/18h 前）；maturesAt = requestedAt + REDEEM_DELAY(24h)
+    // Full 5-entry sample = the contract MAX_REDEEM_REQUESTS cap: 3 pending (Redeem countdown
+    // samples, staggered 20h/9h/1h remaining) + 2 matured (Withdraw samples, matured 6h/18h ago);
+    // maturesAt = requestedAt + REDEEM_DELAY(24h)
     const pending = [
       {
         lockedAssets: amount(round(totalStaked * 0.0005)),
@@ -256,7 +264,7 @@ for (const verse of targets) {
     });
   }
 
-  // —— DAO 周期 ——
+  // -- DAO cycle --
   if (!governance.items.some((x) => x.verseId === verse.id)) {
     const unlocked = verse.stage === 'unlocked';
     const cycleNumber = String(Math.floor(between(rnd, 2, 18)));
@@ -302,10 +310,12 @@ for (const verse of targets) {
   }
 }
 
-// —— 既有/新增条目补资金构成（幂等：缺字段才补；S 级样本登记 sourceRef 不变）——
-// 守卫必须比 raw 数值：amount 对象恒真值，总额为 0（如 myClaimable/remainingRewards
-// 在未结算或窗口关闭时）不得造样本——否则产出 0 锚 + 残值资产的自相矛盾样本
-// （弹窗 Total Value $0 而资产行非 0，2026-10-06 清理过一批）
+// -- Backfill fund compositions for existing/new entries (idempotent: only missing fields are filled;
+// entries that already carry samples keep their sourceRef unchanged) --
+// The guard must check raw values: amount objects are always truthy, and a zero total (e.g.
+// myClaimable/remainingRewards when unsettled or the window closed) must not get fabricated samples
+// -- otherwise you get self-contradictory samples of a 0 anchor plus residual-value assets
+// (modal Total Value $0 while asset rows are non-zero)
 for (const g of governance.items) {
   if (!g.treasuryAssets && Number(g.treasuryUAsset?.raw) > 0)
     g.treasuryAssets = composeAssets(Number(g.treasuryUAsset.raw), TREASURY_SPLIT);

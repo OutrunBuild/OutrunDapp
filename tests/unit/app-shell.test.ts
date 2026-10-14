@@ -4,8 +4,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { OutrunShell } from '../../components/global/app-shell';
 
-// 顶栏三件（链选择/钱包/语言菜单）依赖 App Router 与 mock-wallet 上下文，
-// 均非导航归属语义的测试对象，stub 掉以在 node 环境完成 SSR 渲染。
+// The three header widgets (chain selector / wallet / locale menu) depend on
+// App Router and mock-wallet context; none of them are subjects of the
+// nav-ownership semantics under test, so stub them out to finish SSR render
+// in a node environment.
 vi.mock('@/components/global/chain-selector-dialog', () => ({
   ChainSelectorDialog: () => createElement('div', { 'data-testid': 'chain-stub' }),
 }));
@@ -16,8 +18,9 @@ vi.mock('@/components/global/locale-menu', () => ({
   LocaleMenu: () => createElement('div', { 'data-testid': 'locale-stub' }),
 }));
 
-// 导航归属语义回归防线（fix-review F-1）：e2e 视觉基线对 aria/data 属性维度不敏感
-// （属性翻转实测 0 像素差），此处直接在 SSR HTML 层断言。
+// Regression guard for nav-ownership semantics: the e2e visual baselines are
+// insensitive to aria/data attribute dimensions (attribute flips measured
+// 0 pixel diff), so assert at the SSR HTML layer here.
 function renderShell(
   props: {
     current?: 'home' | 'discover' | 'create' | 'portfolio' | 'referral' | 'faucet';
@@ -36,8 +39,8 @@ function renderShell(
 
 const count = (html: string, needle: string) => (html.match(new RegExp(needle, 'g')) ?? []).length;
 
-describe('OutrunShell 导航归属语义', () => {
-  it('current 省略 = 非导航面：产品壳、零 aria-current、零点亮', () => {
+describe('OutrunShell nav-ownership semantics', () => {
+  it('omitted current = non-nav surface: product shell, zero aria-current, zero active states', () => {
     const html = renderShell();
     expect(html).toContain('product-sidebar');
     expect(html).toContain('mobile-navigation');
@@ -46,14 +49,14 @@ describe('OutrunShell 导航归属语义', () => {
     expect(count(html, 'data-active="true"')).toBe(0);
   });
 
-  it('current="discover"：桌面侧栏 + 移动底栏各恰一处点亮', () => {
+  it('current="discover": exactly one active state each in desktop sidebar + mobile bottom bar', () => {
     const html = renderShell({ current: 'discover' });
     expect(html).not.toContain('marketing-header');
     expect(count(html, 'aria-current="page"')).toBe(2);
     expect(count(html, 'data-active="true"')).toBe(2);
   });
 
-  it('current="home"：营销壳、无产品导航、零 aria-current', () => {
+  it('current="home": marketing shell, no product nav, zero aria-current', () => {
     const html = renderShell({ current: 'home' });
     expect(html).toContain('marketing-header');
     expect(html).not.toContain('product-sidebar');
@@ -61,7 +64,7 @@ describe('OutrunShell 导航归属语义', () => {
     expect(count(html, 'aria-current="page"')).toBe(0);
   });
 
-  it('current="home"：顶栏五入口导航 + 网络切换器 + 语言/钱包（2026-10-06 拍板 + R-12 referral + 2026-10-09 faucet 入主导航）', () => {
+  it('current="home": header five-entry nav + chain switcher + locale/wallet', () => {
     const html = renderShell({ current: 'home' });
     expect(count(html, 'marketing-nav__link')).toBe(5);
     expect(html).toContain('>Explore<');
@@ -69,11 +72,12 @@ describe('OutrunShell 导航归属语义', () => {
     expect(html).toContain('>Launch<');
     expect(html).toContain('>Referral<');
     expect(html).toContain('>Faucet<');
-    // 决议 024：终端索引序号——mono 装饰编号 aria-hidden，不进可访问名
+    // Terminal index numbers: mono decorative numbering is
+    // aria-hidden and stays out of the accessible name
     expect(count(html, 'marketing-nav__index')).toBe(5);
     expect(count(html, 'aria-hidden="true">0')).toBe(5);
-    // 顺序防线（2026-10-09 用户裁定 Launch=02，与侧栏 navItems 同序）：
-    // 序号与入口一一对应，Explore→Launch→Portfolio→Referral→Faucet
+    // Order guard: indexes map 1:1 to entries (Launch=02, same order as
+    // sidebar navItems), Explore→Launch→Portfolio→Referral→Faucet
     expect(html).toContain('aria-hidden="true">01</span>Explore');
     expect(html).toContain('aria-hidden="true">02</span>Launch');
     expect(html).toContain('aria-hidden="true">03</span>Portfolio');
@@ -84,9 +88,11 @@ describe('OutrunShell 导航归属语义', () => {
     expect(html).toContain('data-testid="wallet-stub"');
   });
 
-  // aria-label 字典化防线（fix-review F-1 第二轮）：nav 地标可访问名从 copy 层取，
-  // zh 页读屏不播英文；e2e 基线对该维度 0 像素差，只能在 SSR 层钉。
-  it('zh：nav aria-label 从字典取（主导航/移动端主导航），无英文残留', () => {
+  // aria-label dictionary guard: the nav landmark's
+  // accessible name comes from the copy layer so zh pages don't announce
+  // English; e2e baselines measure 0 pixel diff on this dimension, pin it at
+  // the SSR layer only.
+  it('zh: nav aria-label comes from the copy dictionary, no English leakage', () => {
     const productHtml = renderShell({ locale: 'zh', current: 'discover' });
     expect(count(productHtml, 'aria-label="主导航"')).toBe(1);
     expect(productHtml).toContain('aria-label="移动端主导航"');

@@ -17,28 +17,35 @@ import { SwapSettings } from '../global/swap-settings'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 
-/** 保护窗卡 Exit 上下文（portfolio-page 按 protection 行预取；缺行=卡片回落跳 verse 页） */
+/** Protection-window card Exit context (portfolio-page prefetches per protection row; missing
+ *  row = the card falls back to jumping to the verse page) */
 export type ProtectionExitContext = {
   verse: FixtureVerse
   pol: FixturePolPosition
-  /** 主池价（uAsset per memecoin，candles 末收盘口径）；null=memecoin 腿随空值 0.00 */
+  /** Main pool price (uAsset per memecoin, last candles close semantics); null = the memecoin
+   *  leg renders as 0.00 */
   price: number | null
-  /** uAsset 美元样本（assets usdSample）；null=美元回声行不渲染 */
+  /** uAsset USD sample (assets usdSample); null = the USD echo row is not rendered */
   uAssetUsd: number | null
 }
 
 /**
- * 保护窗 Exit 弹窗（2026-10-09：待办区保护窗卡 Exit 钮由跳 verse 页改页内弹窗）。
- * 机制=redeemMemecoinLiquidity 两 overload（MemeverseLiquidityImpl.sol:851/870）：
- * LP 模式=unwrap=false，POL 1:1 换主池 LP 直转（非价格敏感、合约无滑点参数→无齿轮，
- * 同 PolRedeemLpDialog 口径）；拆币模式=unwrap=true，LP 现场拆 memecoin+uAsset，
- * 6 参强制 minOut×2+deadline（3 参 unwrap 直接 SlippageProtectionRequired——:852-854；
- * OutrunBook lifecycle.md:103）→ 齿轮（SwapSettings）+ Min received/Max slippage 行
- * （pool-remove-liquidity-dialog 先例）。输出腿序=memecoin 主腿在前（井读数同序）。
- * 腿估算：uAsset=量×uAssetPerPol；memecoin=量×uAssetPerPol÷主池价（池价比
- * pro-rata 推导）；≈$ 回声同 PolRedeemPtYtDialog 换算源，样本缺→行不渲染。
- * CTA 纪律同 ActionDialogShell 族：未连接=Connect 可点、已连接=动作钮禁用
- * （不伪造成交）；金额默认空（2026-10-08 裁定），余额不足短句由 AmountField 兜。
+ * Protection-window Exit dialog (the to-do zone protection card's Exit opens an in-page dialog,
+ * not a jump to the verse page). Mechanism = the two redeemMemecoinLiquidity
+ * overloads: LP mode = unwrap=false, POL swapped 1:1 into
+ * main-pool LP, direct transfer (price-insensitive, the contract has no slippage param → no gear,
+ * same semantics as PolRedeemLpDialog); split mode = unwrap=true, the LP is split on the spot into
+ * memecoin+uAsset, the 6-param form mandates minOut×2+deadline (the 3-param unwrap throws
+ * SlippageProtectionRequired directly) → the gear
+ * (SwapSettings) + Min received/Max slippage rows (pool-remove-liquidity-dialog precedent).
+ * Output leg order = the memecoin main leg first, same order as the amount well displays (memecoin
+ * leg on top). Leg estimation:
+ * uAsset = amount×uAssetPerPol; memecoin = amount×uAssetPerPol÷main pool price (derived from the
+ * pool price ratio pro-rata); the ≈$ echo shares PolRedeemPtYtDialog's conversion source; missing
+ * sample → the row is not rendered. CTA discipline follows the ActionDialogShell family:
+ * disconnected = a clickable Connect, connected = the action button is disabled (no faked
+ * settlement); the amount defaults to empty; the insufficient-balance short
+ * sentence is handled by AmountField.
  */
 export function ProtectionExitDialog({
   locale,
@@ -56,21 +63,22 @@ export function ProtectionExitDialog({
   const { verse, pol, price, uAssetUsd } = context
 
   const [mode, setMode] = useState<'lp' | 'split'>('lp')
-  // 打开为空输入（2026-10-08 用户裁定：金额输入默认空 0.00）
   const [amount, setAmount] = useState('')
   const [slippageText, setSlippageText] = useState('0.5')
   const [deadlineText, setDeadlineText] = useState('10')
   const receiveLabelId = useId()
 
   const polSymbol = `POL-${verse.symbol}`
-  // 主池 LP 对口径（同 PolRedeemLpDialog：{MEME}/{uAsset} LP）
+  // Main pool LP pair semantics (same as PolRedeemLpDialog: {MEME}/{uAsset} LP)
   const lpSymbol = `${verse.symbol}/${verse.raiseAsset} LP`
   const parsed = Number(amount)
   const valid = Number.isFinite(parsed) && parsed > 0
 
-  // LP 模式：1:1 主池构造恒等（MemeverseLiquidityImpl.sol:888），无槽位分支
+  // LP mode: the 1:1 main-pool construction identity — no missing-sample slot: 1:1 is exact,
+  // no placeholder state
   const lpOut = valid ? parsed : null
-  // 拆币模式：uAsset 腿=uAssetPerPol；memecoin 腿=按主池价比推导（样本缺→0.00 槽）
+  // Split mode: the uAsset leg = uAssetPerPol; the memecoin leg = derived from the main pool
+  // price ratio (missing sample → 0.00 slot)
   const uOut = valid ? parsed * pol.uAssetPerPol : null
   const mOut =
     valid && price != null && price > 0 ? (parsed * pol.uAssetPerPol) / price : null
@@ -80,14 +88,16 @@ export function ProtectionExitDialog({
   const minU = uOut != null && slippageIssue == null ? uOut * (1 - slippage / 100) : null
   const minM = mOut != null && slippageIssue == null ? mOut * (1 - slippage / 100) : null
 
-  // ≈$ 回声（PolRedeemPtYtDialog:77-80 同源：uAsset 腿×uAssetUsd、memecoin 腿×价×uAssetUsd）
+  // ≈$ echo (same source as PolRedeemPtYtDialog: uAsset leg×uAssetUsd, memecoin
+  // leg×price×uAssetUsd)
   const uUsd = uOut != null && uAssetUsd != null ? uOut * uAssetUsd : null
   const mUsd =
     mOut != null && price != null && uAssetUsd != null ? mOut * price * uAssetUsd : null
 
   return (
     <Dialog>
-      {/* data-slot 钉回 button：主题桥按 [data-slot='button'] 匹配皮肤；卡底 CTA 同款式 */}
+      {/* data-slot pinned back to button: the theme bridge matches the skin by
+          [data-slot='button']; the card-bottom CTA uses the same style */}
       <DialogTrigger data-slot="button" render={<Button variant="outline" />}>
         {triggerLabel}
       </DialogTrigger>
@@ -140,8 +150,8 @@ export function ProtectionExitDialog({
           ariaLabel={`${action.exitTitle} ${polSymbol}`}
         />
 
-        {/* Receive 框：LP=单腿；拆币=双腿合一个框（memecoin 主腿在前，行间 hairline
-            由 ~ 兄弟选择器提供——pool-remove-liquidity 同款） */}
+        {/* Receive box: LP = single leg; split = two legs in one box (memecoin main leg first; the
+            inter-row hairline comes from the ~ sibling selector — same as pool-remove-liquidity) */}
         {mode === 'lp' ? (
           <div className="swap-panel__field" role="group" aria-labelledby={receiveLabelId}>
             <div className="swap-panel__field-head">
@@ -198,8 +208,9 @@ export function ProtectionExitDialog({
           </div>
         )}
 
-        {/* minOut×2+deadline 合约强制（SlippageProtectionRequired）→ 拆币模式明细行
-            （pool-remove-liquidity 同款：Min received 双腿 ' + ' 连接、Max slippage） */}
+        {/* minOut×2+deadline is contract-enforced (SlippageProtectionRequired) → detail rows in
+            split mode (same as pool-remove-liquidity: Min received legs joined with ' + ',
+            Max slippage) */}
         {mode === 'split' && valid ? (
           <DetailRows
             rows={[

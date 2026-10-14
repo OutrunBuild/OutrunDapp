@@ -1,11 +1,12 @@
 'use client'
 
 /**
- * Portfolio 操作弹窗族（2026-10-02 四分区裁定）：跨链发送 / PSM 转换 / CDP 赎回 /
- * USR 存取 / 收益库执行 / 滞留恢复。壳与字段原语（ActionDialogShell/AmountField/
- * DetailRows/DialogCta）2026-10-08 上提 components/global/action-dialogs.tsx 共享
- * （与 verse 交易弹窗族同源，CSS 语言不变）；CTA 走 VaultActions 同款原型口径：
- * 未连接=Connect Wallet 可点切换模拟连接，已连接=动作钮禁用、不伪造链上成功。
+ * Portfolio action dialog family: bridge send / PSM convert / CDP redeem / USR deposit-withdraw.
+ * The shell and field primitives (ActionDialogShell/AmountField/DetailRows/
+ * DialogCta) live in components/global/action-dialogs.tsx, shared with the verse tx dialog
+ * family (CSS language unchanged); CTAs follow the same semantics as VaultActions: disconnected =
+ * a clickable Connect Wallet toggles the mock connection, connected = the action button is
+ * disabled, no faked on-chain success.
  */
 import { useState } from 'react'
 import type { ReactNode } from 'react'
@@ -22,7 +23,8 @@ import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 import { Sheet, SheetClose, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 
 // ---------------------------------------------------------------------------
-// 跨链发送（纯转账两阶段：发送→到账；发送≠完成，完成色只归到账终态）
+// Bridge send (a pure transfer in two phases: send → arrival; send ≠ done, the done color
+// belongs only to the arrival terminal state)
 // ---------------------------------------------------------------------------
 
 export function BridgeDialog({
@@ -35,9 +37,10 @@ export function BridgeDialog({
   locale: Locale
   triggerLabel: string
   assetSymbol: string
-  /** 可选链（主网族） */
+  /** Selectable chains (mainnet family) */
   chains: Array<{ chainId: number; name: string }>;
-  /** 该资产各链余额（From 侧 Max 来源；无余额链可选但 Max 不可用） */
+  /** This asset's per-chain balances (source for the From-side Max; chains without balance are
+   *  selectable but Max is unavailable) */
   balancesByChain: Array<{ chainId: number; name: string; amount: number }>;
 }) {
   const copy = getCopy(locale).portfolio.assets
@@ -124,7 +127,8 @@ export function BridgeDialog({
 }
 
 // ---------------------------------------------------------------------------
-// PSM 转换（机制仍 1:1 兑换；标题去 1:1——2026-10-04 用户裁定。费后到账、额度余量仅 Mint 卡）
+// PSM convert (mechanism is a 1:1 swap; the title omits "1:1".
+// Arrival is post-fee; the headroom row appears only on the Mint card)
 // ---------------------------------------------------------------------------
 
 export function ConvertDialog({
@@ -142,7 +146,7 @@ export function ConvertDialog({
   triggerLabel: string
   uAssetSymbol: string
   reserveSymbol: string
-  /** mint 费率（比率）；null=无配对样本 → 额度/费率行走槽位 */
+  /** Mint fee (ratio); null = no pair sample → the headroom/fee rows fall back to slots */
   feeIn: number | null
   feeOut: number
   headroom: number | null
@@ -204,7 +208,8 @@ export function ConvertDialog({
                 </span>
               ),
             ],
-            // 铸造上限余量只约束 Mint 方向（PSM 铸造 cap），Redeem 卡不显示（2026-10-04 用户裁定）
+            // Mint cap headroom constrains only the Mint direction (PSM mint cap); not shown on the
+            // Redeem card
             ...(mode === 'mint'
               ? ([
                   [
@@ -234,7 +239,8 @@ export function ConvertDialog({
 }
 
 // ---------------------------------------------------------------------------
-// CDP 赎回（唯一减借——SPEC-S2 L50；返还借入 uAsset、抵押物回钱包）
+// CDP redeem (the only debt-reducing path; returns the borrowed uAsset, collateral
+// goes back to the wallet)
 // ---------------------------------------------------------------------------
 
 export function CdpRedeemDialog({
@@ -306,7 +312,8 @@ export function CdpRedeemDialog({
 }
 
 // ---------------------------------------------------------------------------
-// USR 存取（份额指数折算：存入 uAsset 得份额；取出份额得 uAsset）
+// USR deposit/withdraw (share-index conversion: deposit uAsset to get shares; withdraw shares to
+// get uAsset)
 // ---------------------------------------------------------------------------
 
 export function UsrSavingsDialog({
@@ -391,73 +398,12 @@ export function UsrSavingsDialog({
 }
 
 // ---------------------------------------------------------------------------
-// 滞留恢复（纯转账=LayerZero 消息重试；资金不丢失）
-// ---------------------------------------------------------------------------
-
-export function StrandedDialog({
-  locale,
-  triggerLabel,
-  message,
-  triggerClassName,
-}: {
-  locale: Locale
-  triggerLabel: string
-  message: {
-    assetSymbol: string
-    amount: number
-    fromChainName: string
-    toChainName: string
-    sentAt: string
-  };
-  /** 静态行动链接触发器（①待办随时可办行）：传类名即按朴素 button 文本链渲染
-   *  （绕开 [data-slot='button'] 全局画皮——!important 钮壳会压掉文本链形态） */
-  triggerClassName?: string
-}) {
-  const copy = getCopy(locale).portfolio.assets
-  const { connected, toggle } = useMockWallet()
-
-  return (
-    <Dialog>
-      <DialogTrigger
-        data-slot={triggerClassName ? undefined : 'button'}
-        render={
-          triggerClassName ? (
-            <button type="button" className={triggerClassName} />
-          ) : (
-            <Button variant="outline" />
-          )
-        }
-      >
-        {triggerLabel}
-      </DialogTrigger>
-      <ActionDialogShell title={copy.recoverTitle} closeLabel={getCopy(locale).common.close}>
-        <DetailRows
-          rows={[
-            [
-              copy.amount,
-              <span key="amount" data-numeric>
-                {formatAmount(message.amount, locale)} {message.assetSymbol}
-              </span>,
-            ],
-            [
-              `${copy.bridgeFrom} → ${copy.bridgeTo}`,
-              `${message.fromChainName} → ${message.toChainName}`,
-            ],
-          ]}
-        />
-        <p className="panel-note">{copy.inTransitSafe}</p>
-        <p className="panel-note">{copy.recoverBody}</p>
-        <DialogCta locale={locale} connected={connected} onConnect={toggle} label={copy.recoverCta} />
-      </ActionDialogShell>
-    </Dialog>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// 资产底部操作面板（决议 018 补充：移动端资产行去按钮化）：整行 hit 层触发，
-// 链分布明细 + CTA 行（children=Convert/Bridge 弹窗触发器）。点 CTA 同时收起
-// 面板——嵌套弹窗随后接管（base-ui Portal 后挂在上层）。仅 ≤54rem hit 层可见，
-// 桌面行内按钮照旧（触发器不可双栖，两套实例各自独立开合）。
+// Asset bottom action panel (mobile asset rows carry no inline buttons): triggered by a full-row
+// hit layer, chain distribution detail + CTA row (children = the Convert/Bridge dialog triggers).
+// Tapping a CTA does NOT collapse the panel — the nested dialog opens via its own base-ui Portal
+// stacked above the panel. Only the ≤54rem hit layer is visible;
+// desktop inline buttons work as before (the trigger cannot serve double duty, two independent
+// instances open/close independently).
 // ---------------------------------------------------------------------------
 
 export function AssetActionsSheet({
@@ -469,10 +415,10 @@ export function AssetActionsSheet({
 }: {
   locale: Locale
   title: string
-  /** hit 层可访问名（「{symbol} · 资产操作」） */
+  /** Hit layer accessible name (symbol + the asset-actions label, joined by a middle dot) */
   triggerLabel: string
   chains: Array<{ chainId: number; name: string; amount: number }>
-  /** CTA 行（Convert/Bridge 弹窗触发器） */
+  /** CTA row (Convert/Bridge dialog triggers) */
   children: ReactNode
 }) {
   const [open, setOpen] = useState(false)
@@ -507,8 +453,9 @@ export function AssetActionsSheet({
               </li>
             ))}
           </ul>
-          {/* CTA 行=嵌套弹窗触发器：任务弹窗 Portal 后挂叠在面板之上（iOS 栈式），
-              面板保持承载上下文——不可在点击时收起面板，弹窗树随面板内容卸载 */}
+          {/* CTA row = nested dialog triggers: the task dialog's Portal mounts stacked above the
+              panel (iOS stack style); the panel keeps carrying the context — the panel must not
+              collapse on click, the dialog tree unmounts with the panel content */}
           <div className="pf-asset-sheet__cta">{children}</div>
         </div>
       </SheetContent>

@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 
-/** 剪贴板复制 hook（2026-10-08 三处手写体收敛：CopyAddress / VerseShare / ReferralLinkPanel）：
- *  成功→copied 1600ms 回落；语义照抄收敛前——可选链 clipboard、仅 .then、无 .catch、无卸载清理 */
+/** Shared clipboard copy hook (CopyAddress / VerseShare / ReferralLinkPanel):
+ *  success → copied resets after 1600ms; optional-chained clipboard, .then
+ *  only, no .catch, no unmount cleanup */
 export function useCopy() {
   const [copied, setCopied] = useState(false)
   const copy = (text: string) => {

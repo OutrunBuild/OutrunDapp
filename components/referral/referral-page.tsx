@@ -24,17 +24,19 @@ import { ReferralLinkPanel } from './referral-link-panel'
 import { RelativeTime } from './relative-time'
 
 /**
- * /referral（R-12；2026-10-07 v4：v3 行业共识骨架基础上运作方式上移一格（用户裁定，
- * 弃「三步居后」）：统计簇 → 链接 → 运作 → 待领 → tabs 历史）。
- * 最佳实践依据：ReferralRock/Webtonic 转化指南 + GMX/Jupiter/Binance 同构——
- * ①统计簇（Earned/Pending/Friends/Rate）首屏一组，首格 28px 主读数；
- * ②链接前置突出（56px 井 + 右端嵌入复制钮）；③三步说明紧随链接；④双 tab 历史收尾。
- * 卡片节奏（2026-10-07 用户裁定）：五卡各自独立、无分组，卡间一律 space-6。
- * 机制 G 源 = Memeverse hook swap 返佣（source-map M5/M14/M15）；推荐关系=
- * 被推荐人注册时绑定（应用层，2026-10-07 用户裁定）；friends 明细与短码为 S 级样本。
- * 2026-10-08 用户裁定无用户参与态：未连接时统计簇/邀请链接/待领/历史整体隐藏
- * （UserDataGate，无数据的卡片不显示），机制介绍（运作方式+分账条）保留常显；
- * 同日二轮裁定：断连时机制卡下方出黄色连接钱包 CTA（ax-ghost-cta 皮、居中）。
+ * /referral: stats cluster → link → how it works → pending → tabs history, following industry
+ * referral-page conventions — (1) stats cluster (Earned/Pending/Friends/Rate) as one group
+ * in the first screen, first cell a 28px primary reading; (2) the link up front and prominent
+ * (control-height well + right-end embedded copy button); (3) the three-step explanation right after the
+ * link; (4) dual-tab history as the ending. Card rhythm: five cards
+ * each independent, no grouping, always space-6 between cards. Mechanism = the
+ * Memeverse hook swap rebate; the referral relationship is bound when the
+ * referee registers (application layer); friend details and the shortcode
+ * are fixture samples. No-user-participation state: when disconnected, the stats
+ * cluster / invite link / pending / history hide entirely (UserDataGate, cards without data
+ * do not show); the mechanism intro (how it works + split bar) stays always visible; when
+ * disconnected, a yellow connect-wallet CTA appears below the mechanism card
+ * (ax-ghost-cta skin, centered).
  */
 export function ReferralPage({ locale, host }: { locale: Locale; host: string | null }) {
   const copy = getCopy(locale).referral
@@ -43,7 +45,8 @@ export function ReferralPage({ locale, host }: { locale: Locale; host: string | 
   const now = Date.now()
   const snapshot = getFixtureSnapshot()
 
-  // 链接 URL：host 头 SSR 定值（无水合闪变）；/ref/<短码> 与语言无关，两语言共用
+  // Link URL: fixed at SSR from the host header (no hydration flicker); /ref/<shortcode> is
+  // locale-independent, shared by both languages
   const origin = host
     ? host.startsWith('localhost') || host.startsWith('127.')
       ? `http://${host}`
@@ -51,7 +54,7 @@ export function ReferralPage({ locale, host }: { locale: Locale; host: string | 
     : ''
   const linkUrl = `${origin}/ref/${referral.referralCode}`
 
-  // 分账条：LP 65 固定；协议 35 中切出返佣率给「你」（OB hook.md 65/35→65/25/10 表）
+  // Split bar: LP 65 fixed; the rebate rate is carved out of the protocol's 35 for "you"
   const lpShare = 65
   const youShare = referral.ratePercent
   const protocolShare = 35 - youShare
@@ -70,7 +73,8 @@ export function ReferralPage({ locale, host }: { locale: Locale; host: string | 
         </div>
       </header>
 
-      {/* 统计簇（行业共识：关键指标一组首屏；首格=主读数 28px 档）；无用户参与时隐藏 */}
+      {/* Stats cluster (industry consensus: key metrics grouped in the first screen; the first
+          cell = primary reading at the 28px step); hidden when there is no user participation */}
       <UserDataGate>
         <section className="pf-panel ref-stats" aria-label={copy.statsLabel}>
           <div className="pf-panel__body ref-stats__grid" data-numeric>
@@ -98,12 +102,14 @@ export function ReferralPage({ locale, host }: { locale: Locale; host: string | 
         </section>
       </UserDataGate>
 
-      {/* 链接 → 运作方式 → 待领（space-5 紧组）；链接=用户专属短码，随数据卡同隐藏 */}
+      {/* Link → how it works → pending (each card keeps the page's space-6 rhythm); the link =
+          the user's own shortcode, hidden along with the data cards */}
       <UserDataGate>
         <ReferralLinkPanel locale={locale} url={linkUrl} />
       </UserDataGate>
 
-      {/* 运作方式（v4 上移一格：紧随链接先懂机制，再看待领） */}
+      {/* How it works: right after the link, understand the mechanism before
+          seeing pending */}
       <section className="pf-panel ref-how" aria-labelledby="ref-how-title">
         <header className="pf-panel__bar">
           <h2 className="ref-nameplate" id="ref-how-title">
@@ -152,10 +158,11 @@ export function ReferralPage({ locale, host }: { locale: Locale; host: string | 
         </div>
       </section>
 
-      {/* 无用户参与时机制卡下方=连接 CTA（2026-10-08 二次裁定落位；连接后让位回数据卡） */}
+      {/* When there is no user participation, the connect CTA sits below the mechanism card
+          (yields back to the data cards once connected) */}
       <ConnectWalletCta locale={locale} className="connect-cta--ref" />
 
-      {/* 待领（无用户参与时随统计簇同隐藏） */}
+      {/* Pending (hidden along with the stats cluster when there is no user participation) */}
       <UserDataGate>
         <section className="pf-panel ref-pending" aria-labelledby="ref-pending-title">
           <header className="pf-panel__bar">
@@ -180,7 +187,8 @@ export function ReferralPage({ locale, host }: { locale: Locale; host: string | 
                   ) : null}
                 </div>
                 <div className="pf-claim-row__actions">
-                  {/* 原型不伪造成交：Claim 恒禁用（PolMintDialog/VerseShare 同契约） */}
+                  {/* The prototype does not fake settlement: Claim is permanently disabled (same
+                      contract as PolMintDialog/VerseShare) */}
                   <Button variant="outline" disabled>
                     {copy.claim}
                   </Button>
@@ -282,8 +290,9 @@ function TransactionsPanel({
         </tbody>
       </table>
     </div>
-    {/* 移动端堆叠台账行（决议 018 同构）：≤49rem 表格隐藏、此清单接管——返佣额
-        领衔+相对时间右锚（钱包流水惯例），被推荐/网络双列事实格，txid 通栏审计槽 */}
+    {/* Mobile stacked ledger rows: ≤49rem hides the table and this list
+        takes over — the rebate amount leads + relative time right-anchored (wallet history
+        convention), referred/network as a two-fact grid, txid as a full-width audit slot */}
     <ul className="pf-mrows">
       {referral.transactions.map((tx) => (
         <li key={tx.txId} className="pf-mrow">
@@ -366,8 +375,9 @@ function FriendsPanel({ locale, referral }: { locale: Locale; referral: FixtureR
         </tbody>
       </table>
     </div>
-    {/* 移动端堆叠台账行（决议 018 同构）：地址领衔+返佣贡献右锚（桌面仅存的两主列），
-        加入时间/交易量双列事实格（桌面 ref-dim 降噪同口径） */}
+    {/* Mobile stacked ledger rows: address leads + referral contribution
+        right-anchored (the two remaining primary desktop columns), joined date / volume as a
+        two-fact grid (same muting as the desktop ref-dim) */}
     <ul className="pf-mrows">
       {referral.friends.map((friend) => (
         <li key={friend.address} className="pf-mrow">

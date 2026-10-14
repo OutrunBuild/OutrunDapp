@@ -1,7 +1,9 @@
-// 一次性数据扩展脚本（2026-09-27 Add Liquidity 弹窗）：为 markets.json 全部池行补
-// lpPerQuote——LP 铸得率样本：每供给 1 quote 侧资产铸得 LP 数量 = totalSupply/R_quote
-// （v2 式口径，full-range 池双侧等值，费累积使比率缓降 → 样本区间 0.90–0.98）。
-// 确定性：mulberry32 种子取 market.id（同 gen-verse-market-ext 范式），重跑幂等。
+// One-off data extension script (Add Liquidity modal samples): backfills lpPerQuote for every pool
+// row in markets.json -- LP mint rate samples: LP minted per 1 quote-side asset supplied =
+// totalSupply/R_quote (v2-style basis, full-range pools with equal-value sides; fee accrual slowly
+// lowers the ratio -> sample range 0.90-0.98).
+// Determinism: mulberry32 seed = market id + ':lp-rate' (same paradigm as gen-verse-market-ext);
+// idempotent on re-run.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -27,7 +29,7 @@ function mulberry32(text) {
 const data = JSON.parse(readFileSync(marketsPath, 'utf8'));
 for (const market of data.items) {
   const rnd = mulberry32(`${market.id}:lp-rate`);
-  const rate = 0.9 + rnd() * 0.08; // 0.90–0.98，4 位小数
+  const rate = 0.9 + rnd() * 0.08; // 0.90-0.98, 4 decimal places
   market.lpPerQuote = { raw: rate.toFixed(4), unit: 'ratio', scale: 18 };
 }
 writeFileSync(marketsPath, `${JSON.stringify(data, null, 2)}\n`);

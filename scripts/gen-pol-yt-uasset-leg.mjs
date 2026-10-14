@@ -1,8 +1,10 @@
-// 一次性数据扩展脚本（2026-09-28 用户裁定造数看原型效果）：为 pol-positions.json 的
-// locked 记录补 ytRedeemUAssetPerUnit——YT 结算 uAsset 腿预估样本。机制上该腿=结算回收
-// 剩余池派生（锁定期不可推导，yt-flash-swap/pol-splitter.md），此处按用户裁定落样本；
-// 量级锚=unlocked 已有样本 ≈ uAssetPerPol 的 3–5%（如 verse-003 0.0231/0.58≈4%）。
-// 只补缺失记录（locked），不动 unlocked 结算派生真值；mulberry32 种子取记录 id，重跑幂等。
+// One-off data extension script (fabricated samples for prototype visuals):
+// backfills ytRedeemUAssetPerUnit for locked records in pol-positions.json -- YT settlement uAsset
+// leg estimate samples. Mechanically that leg = settlement reclaim derived from the remaining pool
+// (not derivable during the lockup); samples are landed here; magnitude anchor = the existing
+// unlocked samples at ~3-5% of uAssetPerPol (e.g. verse-003 0.0231/0.58≈4%).
+// Only missing records (locked) are filled; the unlocked settlement-derived ground truth is untouched;
+// mulberry32 seed = record id + ':yt-uasset-leg'; idempotent on re-run.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';

@@ -1,18 +1,19 @@
 #!/usr/bin/env node
-// 登记文档闸（check:design-docs）
+// Registration doc gate (check:design-docs)
 //
-// 管辖范围：docs/design-system/*.md
-// 谓词：
-//   1) FAIL  components.md §6 表格「模式名」重复——防「更新时追加新行、不删旧行」事故
-//            （先例：四标签容器行 2026-10 出现新旧两版并存，9.7KB 死内容进过 HEAD）
-//   2) FAIL  任一文件单行超过 MAX_LINE_CHARS（12,000）——防新增巨型单行；当前存量最大
-//            ~9.8K（四标签容器行）。§6 格式改造（大表→每模式小节）落地后应逐档下调此值
-//   3) FAIL  叙事日期（YYYY-MM-DD）——沿革叙事只进 decision-log；唯一豁免 = e2e 时钟钉
-//            定值（agent-workflow.md「时钟钉 2026-10-01」，配置值非叙事）。新增豁免须在
-//            EXEMPT_DATES 登记并说明性质
+// Scope: Markdown docs under docs/design-system/
+// Predicates:
+//   1) FAIL  duplicate pattern-name rows in section 6 of the components doc -- guards against the
+//            "append a new row on update without deleting the old one" accident
+//   2) FAIL  any single line in any file exceeding MAX_LINE_CHARS (12,000) -- guards against new
+//            giant single lines; the loose ceiling fits the legacy big-table format and can be
+//            tightened as the table is split into per-pattern sections
+//   3) FAIL  narrative dates (YYYY-MM-DD) -- history narrative belongs only in the decision log; the
+//            sole exemption = the e2e clock-pin fixed value (a config constant, not narrative).
+//            New exemptions must be registered in EXEMPT_DATES with their nature explained
 //
-// 自检：--self-test 对三个 FAIL 谓词跑正反用例。
-// 退出码：任一 FAIL=1。
+// Self-test: --self-test runs positive and negative cases for all three FAIL predicates.
+// Exit code: any FAIL = 1.
 
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -80,15 +81,19 @@ function runChecks() {
   const components = files.find(([f]) => f === 'components.md');
   if (components) {
     const dupes = findDuplicatePatterns(parseSection6Rows(components[1]));
-    if (dupes.length) failures.push(`§6 模式名重复: ${dupes.join('、')}`);
+    if (dupes.length)
+      failures.push(`components doc section 6 duplicate pattern names: ${dupes.join(', ')}`);
   }
 
   const overlong = findOverlongLines(files, MAX_LINE_CHARS);
-  if (overlong.length) failures.push(`单行超 ${MAX_LINE_CHARS} 字符: ${overlong.join('、')}`);
+  if (overlong.length)
+    failures.push(`single line over ${MAX_LINE_CHARS} chars: ${overlong.join(', ')}`);
 
   const dates = findNarrativeDates(files);
   if (dates.length)
-    failures.push(`叙事日期（只进 decision-log，豁免表见脚本文件头）: ${dates.join('、')}`);
+    failures.push(
+      `narrative dates (decision-log only; exemption table in the script header): ${dates.join(', ')}`,
+    );
 
   return { failures };
 }
@@ -96,25 +101,31 @@ function runChecks() {
 function selfTest() {
   const cases = [
     [
-      '§6 重复行正例',
+      'components doc section 6 duplicate rows positive case',
       JSON.stringify(
         findDuplicatePatterns(parseSection6Rows('## 6. x\n| a | b |\n| a | c |\n## 7. y')),
       ) === '["a"]',
     ],
     [
-      '§6 重复行反例（无重复）',
+      'components doc section 6 duplicate rows negative case (no duplicates)',
       findDuplicatePatterns(
         parseSection6Rows('## 6. x\n| a | b |\n| b | c |\n|---|\n| 模式 | x |\n## 7. y'),
       ).length === 0,
     ],
-    ['超长行正例', findOverlongLines([['t.md', 'x'.repeat(12001)]], 12000).length === 1],
-    ['超长行反例', findOverlongLines([['t.md', 'x'.repeat(12000)]], 12000).length === 0],
     [
-      '叙事日期正例（豁免后仍有残留）',
-      findNarrativeDates([['t.md', '裁定于 2026-10-09，时钟钉 2026-10-01']]).length === 1,
+      'overlong line positive case',
+      findOverlongLines([['t.md', 'x'.repeat(12001)]], 12000).length === 1,
     ],
     [
-      '叙事日期反例（仅豁免定值）',
+      'overlong line negative case',
+      findOverlongLines([['t.md', 'x'.repeat(12000)]], 12000).length === 0,
+    ],
+    [
+      'narrative date positive case (residue remains after exemption)',
+      findNarrativeDates([['t.md', 'ruled on 2026-10-09, 时钟钉 2026-10-01']]).length === 1,
+    ],
+    [
+      'narrative date negative case (exempt fixed value only)',
       findNarrativeDates([['agent-workflow.md', '时钟钉 2026-10-01']]).length === 0,
     ],
   ];
@@ -135,4 +146,4 @@ if (failures.length) {
   for (const f of failures) console.error(`FAIL ${f}`);
   process.exit(1);
 }
-console.log('docs/design-system 登记文档闸：全过');
+console.log('docs/design-system registration doc gate: all checks passed');

@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# 重门：全仓 typecheck + vitest 全量（vitest 已含 fixture-boundary 与设计裸值/对比度/架构合规三
-# checker——见 tests/unit/fixtures/boundary.test.ts 与 tests/unit/contract-gates.test.ts）。
-# 验证对象=当前工作树（非被 push 的 commit 范围）——push 前保持工作树干净（commit 或 stash）；
-# 并行会话留在工作树的 WIP 可能拦下本次 push（fail-closed、可见、可重试）。push 内容级校验与
-# 全仓格式门（§12 钦定 pnpm exec prettier --check .）由 GitHub Actions CI（.github/workflows/ci.yml）负责。
-# e2e 不进（NEXT_DIST_DIR=.next-e2e 独立构建过重，保持手动 pnpm test:e2e）。
+# Heavy gates: repo-wide typecheck + full vitest (vitest already includes the fixture-boundary gate and
+# the design bare-value/contrast/architecture-compliance/CJK-subset checkers -- see
+# tests/unit/fixtures/boundary.test.ts and tests/unit/contract-gates.test.ts).
+# Verified target = the current worktree (not the pushed commit range) -- keep the worktree clean before
+# pushing (commit or stash); WIP left in the worktree by parallel sessions may block this push
+# (fail-closed, visible, retryable). Content-level push validation and the repo-wide format gate
+# (pnpm exec prettier --check .) are handled by GitHub Actions CI (.github/workflows/ci.yml).
+# e2e is not included (the NEXT_DIST_DIR=.next-e2e standalone build is too heavy; keep manual pnpm test:e2e).
 set -euo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"

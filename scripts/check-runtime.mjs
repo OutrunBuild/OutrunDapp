@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Root runtime checker (architecture.md §3/§12). Modes:
+// Root runtime checker. Modes:
 //   --strict           local/CI: exact Node from .node-version, Corepack 0.34.5, pnpm 11.24.0
 //   --vercel --require-package   Vercel: record actual node, require package.json engines
 // No project deps are installed by this script (see bootstrap-pnpm.mjs).
@@ -67,7 +67,7 @@ if (requirePackage) {
       problems.push(`packageManager ${pkg.packageManager} != pnpm@11.24.0`);
   }
 } else if (!existsSync('package.json')) {
-  console.log('note: no frontend workspace yet — package checks deferred (stage-2)');
+  console.log('note: no frontend workspace yet — package checks deferred (no package.json yet)');
 }
 
 console.log(

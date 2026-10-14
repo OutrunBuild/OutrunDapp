@@ -1,7 +1,8 @@
-// 一次性数据扩展脚本（2026-09-27 Swap 代币选择）：为 pol-positions.json 全部记录补
-// ptPricePerPol——每 1 PT 的 PT/POL 池市场价样本。量级锚=OutrunBook yt-flash-swap.md
-// 示例「PT trades at roughly 0.9 POL」（YT 隐含价=1−PT）；PT 折价交易（pol-splitter.md:44）。
-// 区间 0.88–0.92；确定性：mulberry32 种子取记录 id（同 gen-pol-my-lp 范式），重跑幂等。
+// One-off data extension script (Swap token selector samples): backfills ptPricePerPol for every
+// record in pol-positions.json -- the PT/POL pool market price sample per 1 PT. Magnitude anchor =
+// PT trades at roughly 0.9 POL (YT implied price = 1 - PT), i.e. PT trades at a discount to nominal.
+// Range 0.88-0.92; determinism: mulberry32 seed = record id + ':pt-price' (same paradigm as gen-pol-my-lp);
+// idempotent on re-run.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';

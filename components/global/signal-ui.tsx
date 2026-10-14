@@ -7,7 +7,8 @@ import { getCopy } from './copy'
 export function formatAmount(value: number, locale: Locale, compact = false) {
   return new Intl.NumberFormat(locale === 'zh' ? 'zh-CN' : 'en-US', {
     maximumFractionDigits: value < 1 ? 6 : 2,
-    // 017 数字纪律：compact 恒两位小数——终结 45K/122.83K/2.1K 同列混排（min=max=2）
+    // compact always uses two decimals — avoids mixing 45K/122.83K/2.1K
+    // in one column (min=max=2)
     ...(compact ? { notation: 'compact' as const, minimumFractionDigits: 2 } : {}),
   }).format(value)
 }
@@ -18,12 +19,13 @@ export function formatPercent(value: number, locale: Locale) {
   }).format(value)
 }
 
-/** 地址/交易哈希截断：全站统一 `0x1234…abcd`（头 6 + … + 尾 4；2026-10-08 三处私有实现收敛） */
+/** Address/tx-hash truncation: site-wide `0x1234…abcd` (first 6 + … + last 4) */
 export function formatHex(value: string) {
   return `${value.slice(0, 6)}…${value.slice(-4)}`
 }
 
-/** 市值紧凑格式：固定 B/M/K 缩写 + 两位小数（用户裁定 2026-09-23：不随 locale 换算为亿/万） */
+/** Compact market-cap format: fixed B/M/K abbreviations + two decimals; no locale-based
+ *  conversion to zh-style large-number units */
 export function formatMarketCap(value: number) {
   const tiers: Array<[suffix: string, scale: number]> = [
     ['B', 1_000_000_000],
@@ -34,9 +36,10 @@ export function formatMarketCap(value: number) {
   return tier ? `${(value / tier[1]).toFixed(2)}${tier[0]}` : value.toFixed(2)
 }
 
-/** 计数格式化（2026-10-09 用户裁定）：人数等计数是天然整数——未达单位量级时出现
- *  小数点不符合常识，小数只允许伴随 K/M/B 出现；达量级与 formatMarketCap 同语言
- *  （K/M/B 两位小数，不随 locale 换算，统计条单位统一） */
+/** Count formatting: counts such as participant numbers are
+ *  naturally integers — a decimal point below the unit tier defies common sense, so
+ *  decimals are only allowed alongside K/M/B; at tier, same behavior as formatMarketCap
+ *  (K/M/B with two decimals, no locale-based conversion, unified stat-bar units) */
 export function formatCount(value: number) {
   if (value < 1_000) {
     return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value)
@@ -52,14 +55,16 @@ export function formatDate(value: string, locale: Locale) {
   }).format(new Date(value))
 }
 
-/** 卡片用紧凑时间戳：fixture 时刻为固定 UTC，展示统一转 UTC+8（YYYY-MM-DD HH:mm） */
+/** Compact timestamp for cards: fixture moments are fixed UTC; display uniformly shifts
+ * to UTC+8 (YYYY-MM-DD HH:mm) */
 export function formatStamp(value: string) {
   const shifted = new Date(new Date(value).getTime() + 8 * 3_600_000)
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${shifted.getUTCFullYear()}-${pad(shifted.getUTCMonth() + 1)}-${pad(shifted.getUTCDate())} ${pad(shifted.getUTCHours())}:${pad(shifted.getUTCMinutes())}`
 }
 
-/** 赎回列表用纯日期（2026-09-26 用户裁定：参照 demo 的 Dec 25, 2024 形态）；同 formatStamp 的 UTC+8 口径 */
+/** Date-only form for redemption lists (e.g. Dec 25, 2024); same UTC+8 convention as
+ * formatStamp */
 export function formatDay(value: string, locale: Locale) {
   const shifted = new Date(new Date(value).getTime() + 8 * 3_600_000)
   return new Intl.DateTimeFormat(locale === 'zh' ? 'zh-CN' : 'en-US', {
@@ -85,8 +90,10 @@ export function StageBadge({ stage, locale }: { stage: VerseStage; locale: Local
   )
 }
 
-/** Fast Genesis 徽章：青色功能信号，仅创世期且 fixture 标记 fastGenesis 时展示；
-    传 note 时整枚徽章=悬停气泡触发器（button 语义键盘可达，term-gloss 同范式） */
+/** Fast Genesis badge: cyan functional signal; call sites gate on the fixture's
+    fastGenesis flag (in practice genesis-stage snapshots only);
+    when note is passed, the whole badge = hover bubble trigger (button semantics,
+    keyboard reachable, same pattern as term-gloss) */
 export function FastBadge({ label, note }: { label: string; note?: string }) {
   if (!note) {
     return (
@@ -141,7 +148,9 @@ export function ProgressMeter({
   value: number
   amount: number
   threshold: number
-  /** 计价符号：显示具体 uAsset 符号（如 UETH），不写统称（用户裁定 2026-09-22）；缺省=统称（仅 design-system showcase 用） */
+  /** Quote unit: display the specific uAsset symbol (e.g. UETH), not the generic name;
+   * default = the generic name (used only by the design-system
+   * showcase) */
   unit?: string
   locale: Locale
 }) {
@@ -154,7 +163,8 @@ export function ProgressMeter({
         <span>{label}</span>
         <span data-numeric>{formatPercent(value, locale)}%</span>
       </div>
-      {/* aria-valuenow 按规范钳在 [0,100]，溢出真值经 aria-valuetext 播报（与视觉数字同口径） */}
+      {/* aria-valuenow is clamped to [0,100] per spec; the true overflowing value is
+          announced via aria-valuetext (same convention as the visual number) */}
       <div
         className="progress-meter__track"
         role="progressbar"

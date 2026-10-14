@@ -20,7 +20,8 @@ type EconomyCardProps = {
   locale: Locale
   verse: FixtureVerse
   chains: FixtureChain[]
-  /** 整卡点开进详情；router.push 留在 DiscoveryBrowser 单点 */
+  /** Clicking anywhere on the card opens the detail; router.push stays single-sourced in
+   *  DiscoveryBrowser */
   onOpen: () => void
 }
 
@@ -28,7 +29,8 @@ function boundedProgress(value: number) {
   return Math.min(Math.max(value, 0), 100)
 }
 
-/** 治理链在前，其余主网链按 fixture 白名单顺序跟随（omnichain 部署面） */
+/** Governance chain first, remaining mainnet chains follow in fixture whitelist order
+ *  (omnichain deployment surface) */
 function omnichainChains(verse: FixtureVerse, chains: FixtureChain[]) {
   return [
     ...chains.filter((chain) => chain.chainId === verse.governanceChain),
@@ -61,7 +63,8 @@ export function EconomyCard({ locale, verse, chains, onOpen }: EconomyCardProps)
                       <span>{signal.label}</span>
                       <b data-numeric>{formatPercent(signal.value, locale)}%</b>
                     </div>
-                    {/* aria-valuenow 按规范钳在 [0,100]，溢出真值经 aria-valuetext 播报（与视觉数字同口径） */}
+                    {/* aria-valuenow is clamped to [0,100] per spec; the overflowing true value is
+                        announced via aria-valuetext (same semantics as the visual number) */}
                     <span
                       className="economy-progress__track"
                       role="progressbar"
@@ -101,7 +104,8 @@ export function EconomyCard({ locale, verse, chains, onOpen }: EconomyCardProps)
       )
     }
 
-    // 锁定中/已解锁共用同一信号区（2026-09-23 用户裁定两阶段卡内容一致）
+    // Locked/unlocked share the same signal block (identical card content
+    // for both stages)
     if (verse.stage === 'locked' || verse.stage === 'unlocked') {
       return (
         <div className="economy-card__signal">
@@ -163,7 +167,8 @@ export function EconomyCard({ locale, verse, chains, onOpen }: EconomyCardProps)
         <div className="economy-card__identity">
           <h3>
             <Link href={verseHref(locale, verse.id)} aria-label={`${verse.symbol} ${verse.name}`}>
-              {/* Symbol ≤5 字形、Name ≤12 字形，省略号计入额度（2026-10-01 用户裁定「更严格」）；全称走 aria-label */}
+              {/* Symbol ≤5 glyphs, Name ≤12 glyphs, ellipsis counted against the budget;
+                  full names go through aria-label */}
               <strong className="ax-glitch-text">
                 {verse.symbol.length > 5 ? `${verse.symbol.slice(0, 4)}…` : verse.symbol}
               </strong>{' '}

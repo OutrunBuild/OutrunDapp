@@ -3,11 +3,10 @@
 // (final-artifacts.sha256), bidirectional: every listed path must exist with
 // a matching sha256, AND every file inside the watched trees (scope shared
 // with the writer via scripts/design-freeze-trees.mjs) must be listed —
-// untracked additions inside the trees fail as UNLISTED (the 2026-10-14
-// .mimosa hook-state leak slipped in silently precisely without this side).
-// Scope history: decision 032 pruned the process/archaeology trees,
-// decision 030 the prototype packs; any intentional change to watched trees
-// requires regenerating the manifest via scripts/write-design-artifact-manifest.mjs.
+// untracked additions inside the trees fail as UNLISTED, which is what
+// catches stray files that were never added to the manifest.
+// Any intentional change to watched trees requires regenerating the manifest
+// via scripts/write-design-artifact-manifest.mjs.
 // Usage: node scripts/check-design-freeze.mjs [--manifest <file>] [--self-test]
 import { createHash } from 'node:crypto';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';

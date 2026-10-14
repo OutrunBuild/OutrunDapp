@@ -6,7 +6,7 @@ import type { FixtureReferral, Locale } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 
-/** 分钟粒度相对时间文案；无定时器——页面驻留期间不滚动刷新 */
+/** Minute-granularity relative time copy; no timer — no rolling refresh while the page is open */
 export function formatRelative(at: string, locale: Locale, now: number) {
   const ago = getCopy(locale).referral.ago
   const minutes = Math.max(0, Math.round((now - new Date(at).getTime()) / 60_000))
@@ -18,9 +18,10 @@ export function formatRelative(at: string, locale: Locale, now: number) {
 }
 
 /**
- * 相对时间（返佣流水 Time 列，参照重设计 2026-10-07）。
- * 服务端首帧即渲染相对时间（RSC 传入 now，水合零差异——无「日期→相对」闪变）；
- * 挂载后改按客户端时钟重算（e2e 冻结时钟下输出确定）。
+ * Relative time (referral history Time column).
+ * The server's first frame already renders the relative time (the RSC passes in now, zero
+ * hydration delta — no "date → relative" flicker); after mount it recomputes by the client clock
+ * (deterministic output under the e2e frozen clock).
  */
 export function RelativeTime({
   at,

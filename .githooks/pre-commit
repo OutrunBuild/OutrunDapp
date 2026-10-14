@@ -1,13 +1,21 @@
 #!/usr/bin/env bash
-# 快门：对 staged blob（git show :file，非工作树版本）跑 prettier --check 与 eslint。
-# 检查 staged 内容本身——staged 与工作树错位（stage 后工作树又被改/又被格式化）不产生假拦或假放。
-# prettier 域 = staged ∩ 非 .prettierignore：components/fixtures/docs 按仓库「字节冻结优先」裁定在域外，
-# 跳过并公示清单；eslint 走 --stdin --stdin-filename，文件名必须用仓库相对路径（绝对路径会找不到 flat config）。
-# 只查 staged——并行会话与未暂存改动不得令本次 commit 失败（同 Memeverse/OutStake 的 .githooks 约定）。
-# 挂载：git config core.hooksPath .githooks（本仓 .git/config 已设，全局 ~/.gitconfig 亦指向同路径）。
-# 重门（typecheck/test/三 checker）在 pre-push；紧急绕过 = git commit --no-verify，事后补跑：
+# Fast gate: runs prettier --check and eslint against staged blobs (git show :file, not the worktree
+# version). Checks the staged content itself -- a mismatch between staged and worktree (worktree
+# changed/reformatted after staging) produces neither false blocks nor false passes.
+# prettier domain = staged ∩ not in .prettierignore: components/fixtures/docs are outside the domain
+# per the repo's byte-freeze-first policy for those trees; they are skipped and the list is announced.
+# eslint uses --stdin --stdin-filename; the filename must be repo-relative (absolute paths cannot find
+# the flat config).
+# Only staged content is checked -- parallel sessions and unstaged changes must not fail this commit
+# (same .githooks convention as Memeverse/OutStake).
+# Mount: git config core.hooksPath .githooks (already set in this repo's .git/config; the global
+# ~/.gitconfig also points at the same path).
+# Heavy gates (typecheck + full vitest, which includes the fixture-boundary gate and the four
+# design/CJK checkers) run in pre-push; emergency bypass = git commit
+# --no-verify, then re-run afterwards:
 #   pnpm typecheck && pnpm lint && pnpm format:check && pnpm test \
-#     && pnpm check:design && pnpm check:contrast && node scripts/check-architecture-compliance.mjs
+#     && pnpm check:design && pnpm check:contrast && pnpm check:cjk-font \
+#     && node scripts/check-architecture-compliance.mjs
 set -euo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
@@ -36,7 +44,7 @@ for f in "${staged[@]}"; do
     if pnpm exec prettier --file-info "$f" | grep -q '"ignored"[[:space:]]*:[[:space:]]*true'; then
       skipped+=("$f")
     elif ! git show :"$f" | pnpm exec prettier --check --stdin-filepath "$f"; then
-      echo "pre-commit: staged 内容未过 prettier：$f（格式化后重新 git add）" >&2
+      echo "pre-commit: staged content failed prettier: $f (format it, then git add again)" >&2
       exit 1
     fi
   fi
@@ -47,12 +55,12 @@ for f in "${staged[@]}"; do
 done
 
 if [ "${#skipped[@]}" -gt 0 ]; then
-  echo "pre-commit: prettier 域外跳过（.prettierignore 字节冻结裁定）：${skipped[*]}" >&2
+  echo "pre-commit: skipped outside the prettier domain (.prettierignore byte-freeze ruling): ${skipped[*]}" >&2
 fi
 
 for f in "${eslint_targets[@]}"; do
   if ! git show :"$f" | pnpm exec eslint --stdin --stdin-filename "$f"; then
-    echo "pre-commit: staged 内容未过 eslint：$f（修复后重新 git add）" >&2
+    echo "pre-commit: staged content failed eslint: $f (fix it, then git add again)" >&2
     exit 1
   fi
 done

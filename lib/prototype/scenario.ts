@@ -1,11 +1,11 @@
-// 场景协议（步骤 5 收缩版，决议 014/015）：仅保留瞬态视图的截图冻结钩子。
-// 用途=步骤 8 截图矩阵让页面定格在瞬态；真实用户不可见（生产门控）。
-// 数据变体场景（paused/zero-balance 等）已随 11 路由蓝图作废移除——数据状态由
-// fixture 数据本身表达（决议 014）。
-// 决议 015：index-lag 用户可见横幅撤除——索引落后为静默降级（列表数据稍旧，
-// 余额等实时读数照常），无 UI。架构 §383/§476 的降级原则保留、呈现方式改静默。
+// Scenario protocol: only screenshot-freeze hooks for transient views, invisible to real users
+// (production-gated). These hooks exist so screenshot capture can freeze pages in transient
+// states. Data states (paused/zero-balance etc.) are expressed by the fixture data itself, not by
+// scenarios.
+// Index lag degrades silently (list data slightly stale; real-time readings such as balances are
+// unaffected): there is no user-visible index-lag banner.
 
-/** 截图冻结钩子白名单 */
+/** Whitelist of screenshot-freeze hook ids */
 export const SCENARIO_IDS = ['loading', 'empty', 'error'] as const;
 
 export type ScenarioView = (typeof SCENARIO_IDS)[number] | 'normal';
@@ -15,8 +15,9 @@ export function isScenarioView(value: string): value is Exclude<ScenarioView, 'n
 }
 
 /**
- * 场景参数解析。生产构建（OUTRUN_DATA_SOURCE=production）不解析、不注入——
- * 带该参数的生产访问按默认路径处理。
+ * Scenario param parsing. Production runs with OUTRUN_DATA_SOURCE=production in the server
+ * environment (read at runtime — a build without it silently re-enables scenario parsing) neither
+ * parse nor inject -- production access carrying this param is handled via the default path.
  */
 export function parseScenarioParam(value: string | string[] | undefined): ScenarioView | null {
   if (process.env.OUTRUN_DATA_SOURCE === 'production') return null;
@@ -25,13 +26,14 @@ export function parseScenarioParam(value: string | string[] | undefined): Scenar
   return isScenarioView(raw) ? raw : null;
 }
 
-/** 是否渲染横幅/骨架而非数据（empty=清空列表，无横幅） */
+/** Whether to render banner/skeleton instead of data (empty=empty the list, no banner) */
 export function isDegradeView(view: ScenarioView): view is 'loading' | 'empty' | 'error' {
   return view === 'loading' || view === 'empty' || view === 'error';
 }
 
 /**
- * 应用场景到列表：loading/error 清空数据（配合横幅/骨架），其余场景列表照常。
+ * Applies the scenario to the list: loading/empty/error clear the data; a banner/skeleton renders
+ * for loading/error, empty shows the bare empty list; 'normal' leaves the list as-is.
  */
 export function applyScenarioToVerses<T>(verses: T[], view: ScenarioView | null): T[] {
   if (!view) return verses;

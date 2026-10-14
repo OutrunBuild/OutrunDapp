@@ -1,14 +1,15 @@
 'use client'
 
 /**
- * /faucet 水龙头面板（2026-10-09 五轮：一键领取与 Get UUSD 换位、删 1:1 读数——批量
- * 领取留在数据组尾行，UUSD 兑换移页脚作漏斗出口）。三 mock 币台账行（图标/徽章 + 日限
- * + 冷却状态 + Claim）+ hairline 分隔的一键领推行（全部代币 + 一笔交易语义）+ 页脚
- * UUSD 兑换入口（品牌章 + 由 USDC 兑换 + Get UUSD 黄色弹窗触发器——页内唯一黄）。
- * 冷却=fixture remainingMs 快照按墙钟每秒递减（vault RedeemCountdown 同口径纯展示
- * tick 非链上写），到 0 转 Ready；机制=每币 24h 一次（Faucet.sol:43）。行内 Claim 与
- * 已连接 Batch Claim 恒禁用——原型不伪造链上成交；未连接一键领推行=Connect Wallet
- * 可点切换模拟连接（mock-wallet 全站共享开关）。
+ * /faucet faucet panel: three mock-token ledger rows (icon/badge + daily limit + cooldown
+ * status + Claim) + a hairline-separated batch claim row (all tokens + one-transaction
+ * semantics) + footer UUSD swap entry (brand mark + Swap from USDC + the Get UUSD yellow dialog
+ * trigger — the only yellow on the page). Cooldown = the fixture remainingMs snapshot decremented
+ * every second by wall clock (same semantics as the vault RedeemCountdown: a display-only tick,
+ * not an on-chain write), flips to Ready at 0; mechanism = once per 24h per token.
+ * In-row Claim and the connected Batch Claim are permanently disabled — the
+ * prototype does not fake on-chain settlement; when disconnected, the batch row shows a clickable
+ * Connect Wallet that toggles the mock connection (mock-wallet site-wide shared switch).
  */
 import { useEffect, useState } from 'react'
 
@@ -22,7 +23,8 @@ import { Button } from '@/components/ui/button'
 
 import { FaucetSwapDialog } from './faucet-swap-dialog'
 
-/** 冷却剩余（域 ≤24h）：en `21h 25m`、zh `21 小时 25 分`（staticDuration 日粒度不适合冷却档） */
+/** Cooldown remaining (domain ≤24h): en compact hour/minute form, zh CJK unit words with
+ *  spaces (staticDuration's day granularity does not fit the cooldown range) */
 function cooldownText(remainingMs: number, locale: Locale) {
   const totalMinutes = Math.ceil(remainingMs / 60_000)
   const hours = Math.floor(totalMinutes / 60)
@@ -44,7 +46,8 @@ export function FaucetClaims({ locale, faucet }: { locale: Locale; faucet: Fixtu
     return () => clearInterval(id)
   }, [hasCooldown])
 
-  // swapFrom 的 {a} 占位拆解（en 'Swap from {a}' 尾空、zh '由 {a} 兑换' 双侧）
+  // Splitting swapFrom's {a} placeholder (en leaves a trailing space after it, zh wraps it with
+  // spaces on both sides)
   const [swapFromBefore, swapFromAfter] = copy.swapFrom.split('{a}')
 
   return (
@@ -95,8 +98,8 @@ export function FaucetClaims({ locale, faucet }: { locale: Locale; faucet: Fixtu
           )
         })}
 
-        {/* 一键领推行（hairline 与领取组分隔）：全部代币 + 一笔交易语义（2026-10-09
-            用户裁定与 Get UUSD 换位——批量留在数据组，UUSD 移页脚作漏斗出口） */}
+        {/* Batch claim row (hairline separates it from the claim group): all tokens + one-transaction
+            semantics */}
         <div className="fc-claims__batch">
           <div className="pf-claim-row__id">
             <strong>{copy.allTokens}</strong>
@@ -114,8 +117,9 @@ export function FaucetClaims({ locale, faucet }: { locale: Locale; faucet: Fixtu
         </div>
       </div>
       <footer className="fc-claims__foot">
-        {/* UUSD 兑换入口（页脚主行动）：身份 + Get UUSD 黄色弹窗触发器，细节收进弹窗。
-            swapFrom 的 {a} 占位=「USDC 图标+符号」内联节点（2026-10-09 用户裁定） */}
+        {/* UUSD swap entry (footer primary action): identity + the Get UUSD yellow dialog trigger,
+            details live in the dialog. swapFrom's {a} placeholder = an inline "USDC icon + symbol"
+            node */}
         <span className="fc-claims__uusd">
           <TokenIconMark symbol={faucet.swap.uAssetSymbol} size={18} aria-hidden="true" />
           <strong>{faucet.swap.uAssetSymbol}</strong>

@@ -1,12 +1,14 @@
 'use client'
 
 /**
- * ①待办区 v5（2026-10-05 四轮裁定拆表）：形态跟随导航目标——
- * 卡片层=页内锚点/限时警报（保护窗卡倒计时 hero + 金库取出卡页内 signpost）；
- * 领取层=两张独立 Data surface 面板（周期激励逐 verse 行·窗口剩余升序 ／
- * 创世退款行·金额降序），行行动全部跳 verse 页——单面板双组混排可读性不足，
- * 拆表后各行语义同质。跨链滞留项已删（2026-10-05 用户裁定）。
- * 卡片语法=kind 铭牌 / hero 数字 / KV+CTA 底栏（hairline、等高钉底）；一屏一黄主钮。
+ * (1) To-do zone: the zone's shape follows where navigation
+ * lands — card layer = in-page anchors / time-limited alerts (protection-window card countdown
+ * hero + vault-withdrawal card in-page signpost); claim layer = two independent Data surface
+ * panels (periodic incentives, one row per verse, ascending by window remaining / genesis refund
+ * rows, descending by amount); all row actions jump to the verse page — the two groups stay in
+ * separate panels because a single mixed panel lacked readability and each row's semantics are
+ * homogeneous after the split. Card grammar = kind nameplate / hero number / KV+CTA footer
+ * (hairline, equal-height pinned bottom); one yellow primary button per screen.
  */
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -22,7 +24,8 @@ import { ProtectionExitDialog, type ProtectionExitContext } from './protection-e
 
 const HOUR_MS = 3_600_000
 
-/** 走秒倒计时（<24h 场景；锚定快照剩余毫秒，纯展示层 tick） */
+/** Per-second countdown (for <24h cases; anchored to the snapshot's remaining ms, a display-only
+ *  tick) */
 function DeadlineClock({ remainingMs, template }: { remainingMs: number; template: string }) {
   const [elapsed, setElapsed] = useState(0)
   useEffect(() => {
@@ -36,7 +39,7 @@ function DeadlineClock({ remainingMs, template }: { remainingMs: number; templat
   return <span data-numeric>{template.replace('{t}', time)}</span>
 }
 
-/** ≥24h 徽章时长：en 紧凑 d/h，zh 中文单位词（2026-10-08 用户裁定 zh 本地化） */
+/** Badge duration for ≥24h: en compact d/h, zh Chinese unit words */
 function staticDuration(remainingMs: number, locale: Locale) {
   const days = Math.floor(remainingMs / (24 * HOUR_MS))
   const hours = Math.floor((remainingMs % (24 * HOUR_MS)) / HOUR_MS)
@@ -60,7 +63,8 @@ export function ActionZone({
 }: {
   locale: Locale
   actions: FixturePortfolioAction[]
-  /** 保护窗卡 Exit 上下文（verseId 键；缺行=Exit 回落跳 verse 页） */
+  /** Protection-window card Exit context (keyed by verseId; missing row = Exit falls back to
+   *  jumping to the verse page) */
   protectionExits?: Record<string, ProtectionExitContext>
 }) {
   const copy = getCopy(locale).portfolio.action
@@ -69,7 +73,8 @@ export function ActionZone({
   const cards = actions.filter(
     (action) => action.kind === 'protection' || action.kind === 'vault-ready',
   )
-  // 领取双表（2026-10-05 四轮裁定拆表）：激励=窗口剩余升序；退款=金额降序
+  // Dual claim tables: incentives = ascending by
+  // window remaining; refunds = descending by amount
   const incentiveRows = actions
     .filter((action) => action.kind === 'incentive')
     .sort((a, b) => (a.remainingMs ?? 0) - (b.remainingMs ?? 0))
@@ -85,7 +90,8 @@ export function ActionZone({
         <ul className="pf-actions__list">
           {cards.map((action) => {
             if (action.kind === 'vault-ready') {
-              // 金库取出卡：页内 signpost（CTA 锚 #pf-vault），hero=美元待取合计
+              // Vault withdrawal card: in-page signpost (CTA anchors #pf-vault), hero = total USD
+              // pending withdrawal
               return (
                 <li key="vault-ready">
                   <article className="pf-action" data-kind="vault">
@@ -112,7 +118,7 @@ export function ActionZone({
               )
             }
 
-            // 保护窗卡：倒计时 hero + 窗口余量条 + 创世本金 KV
+            // Protection-window card: countdown hero + window-remaining bar + genesis principal KV
             const tone = deadlineTone(action.remainingMs)
             const exitContext = action.verse ? protectionExits?.[action.verse.id] : undefined
             const remainingMs = action.remainingMs ?? 0
@@ -151,8 +157,10 @@ export function ActionZone({
                         </strong>
                       </div>
                     ) : null}
-                    {/* Exit 钮（2026-10-09）：有 POL 仓位样本=页内弹窗（LP 直转/现场拆两币，
-                        redeemMemecoinLiquidity 两 overload）；fixture 缺行=保留跳 verse 页 */}
+                    {/* Exit button: with a POL position sample = in-page dialog (LP
+                        direct conversion / splitting into two tokens on the spot, the two
+                        redeemMemecoinLiquidity overloads); fixture row missing = keep jumping to
+                        the verse page */}
                     {protectionExits && exitContext ? (
                       <ProtectionExitDialog
                         locale={locale}

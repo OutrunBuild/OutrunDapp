@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stage-01 capture protocol (runbook fixed): URL, locale en-US,
+# Capture protocol: URL, locale en-US,
 # prefers-reduced-motion=reduce, ~2s settle, viewport 1440x900 / 390x844.
 # Uses the chromium headless-shell installed by playwright 1.62.1 with
 # --force-prefers-reduced-motion (playwright CLI has no reduced-motion flag;

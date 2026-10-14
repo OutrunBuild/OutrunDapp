@@ -1,12 +1,14 @@
 'use client'
 
 /**
- * ③OutStake 三分区（2026-10-02 用户裁定：头寸/储蓄/收益金库不混排，单独拆开）：
- * 质押仓位=OutrunStakingPositionUpgradeable（stakeForGenesis 原子开仓 + redeem）；
- * 储蓄=OutrunUSRVaultUpgradeable（存取 + usrRate/accrualIndex）；
- * 收益金库=Memeverse MemecoinYieldVault（requestRedeem → REDEEM_DELAY → redeem/withdraw
- * 领回；**金库上无激励功能**——周期激励属 GovernanceCycleIncentivizerUpgradeable.claimReward，
- * 只出现在①待办聚合卡）。金库行操作深链 verse 金库页签（Memeverse 域操作住在 verse 页）。
+ * (3) OutStake three sections (positions/savings/yield vault are separate sections, not
+ * mixed): staked positions = OutrunStakingPositionUpgradeable
+ * (stakeForGenesis atomic open + redeem); savings = OutrunUSRVaultUpgradeable (deposit/withdraw
+ * + usrRate/accrualIndex); yield vault = Memeverse MemecoinYieldVault (requestRedeem →
+ * REDEEM_DELAY → redeem/withdraw to claim back; **no incentive feature on the vault** — periodic
+ * incentives belong to GovernanceCycleIncentivizerUpgradeable.claimReward and appear only in the
+ * (1) to-do aggregation card). Vault row actions deep-link to the verse vault tab (Memeverse
+ * domain actions live on the verse page).
  */
 import Link from 'next/link'
 import { useState } from 'react'
@@ -26,11 +28,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { CdpRedeemDialog, UsrSavingsDialog } from './portfolio-dialogs'
 
 /**
- * ③质押仓位（2026-10-04 用户裁定：卡片网格→面板+表格）：仓位事实集合同构
- * （链/抵押/债务/生息来源/唯一动作），行数随参与创世线性增长——同构多行单一动作
- * 用表格（合约 redeem(positionId) 逐仓操作、无批量，OutrunStakingPositionUpgradeable.sol:217）。
- * 链筛选=组件内客户端态（同日二轮修订：URL ?chain 导航整页刷新被否，筛选只换表格内容）；
- * 铭牌行=计数 + 按锚族债务合计。
+ * (3) Staked positions (panel + table layout): position fact sets
+ * are homogeneous (chain / collateral / debt / yield source / single action), row count grows
+ * linearly with genesis participation — homogeneous many-row single-action uses a table (the
+ * contract's redeem(positionId) operates per position, no batching).
+ * Chain filter = in-component client state (URL ?chain navigation would cause a full page
+ * refresh; the filter swaps only the table content); the nameplate row = count + debt total per
+ * uAsset family (the uAsset is each family's anchor).
  */
 export function StakedPositionsZone({
   locale,
@@ -50,14 +54,15 @@ export function StakedPositionsZone({
   const visible = filterActive
     ? cdpPositions.filter((p) => p.chainId === chainFilter)
     : cdpPositions
-  // 最大敞口优先（合约 Position 无时间戳，「按新近」不可得）
+  // Largest exposure first (the contract's Position has no timestamp, "most recent" is
+  // unobtainable)
   const rows = [...visible].sort((a, b) => b.debt - a.debt)
 
   const owed = new Map<string, number>()
   for (const position of visible) {
     owed.set(position.uAssetSymbol, (owed.get(position.uAssetSymbol) ?? 0) + position.debt)
   }
-  // 族序=合计降序（确定序，不随筛选漂移）
+  // Family order = totals descending (deterministic order, does not drift with filtering)
   const owedRows = [...owed].sort((a, b) => b[1] - a[1])
 
   const filterChips =
@@ -109,9 +114,9 @@ export function StakedPositionsZone({
         <div className="pf-table-wrap">
           <table className="pf-table">
             <colgroup>
-              {/* 列序/列宽（2026-10-04 用户裁定「Source 与 Borrowed 贴太近」二轮）：
-                  在哪居左（链+来源），多少+操作居右（资产区行同款分组语义）——
-                  fixed 比例分配，Source 吸剩余松弛成组间呼吸带 */}
+              {/* Column order/width: identity columns go left (chain + source); amount + action go
+                  right (same grouping semantics as the asset-zone rows) — fixed proportional
+                  allocation; Source absorbs the remaining slack as an inter-group breathing band */}
               <col className="pf-positions__col-chain" />
               <col />
               <col className="pf-positions__col-coll" />
@@ -138,8 +143,9 @@ export function StakedPositionsZone({
                   <tr key={position.id}>
                     <th scope="row">
                       {/*
-                        链列=图标+悬停气泡（2026-10-04 用户裁定）：全链图标官方可辨，
-                        链名退为 tooltip；SR 名字走 Trigger aria-label（img alt="" 无声）。
+                        Chain column = icon + hover bubble: the chain
+                        icons are officially recognizable; chain names demote to tooltip; the SR
+                        name goes through the Trigger aria-label (img alt="" is silent).
                       */}
                       <Tooltip>
                         <TooltipTrigger
@@ -177,8 +183,9 @@ export function StakedPositionsZone({
             </tbody>
           </table>
         </div>
-        {/* 移动端堆叠台账行（决议 018）：≤54rem 表格隐藏、此清单接管——身份行
-            （链标+来源+赎回）+ 事实双列（抵押/借入，复用列头文案）；桌面 display:none */}
+        {/* Mobile stacked ledger rows: ≤54rem hides the table and this list takes
+            over — identity row (chain mark + source + redeem) + two fact columns (collateral/
+            borrowed, reusing the column header copy); display:none on desktop */}
         <ul className="pf-mrows">
           {rows.map((position) => (
             <li key={position.id} className="pf-mrow">
@@ -220,10 +227,11 @@ export function StakedPositionsZone({
 }
 
 /**
- * ③储蓄卡（2026-10-04 用户裁定重做：主数字=存款价值（资产行右缘同款 22px data 档），
- * 份额降为副行凭证记号；利率行=APY 标签+% 数值——同日二轮裁定状态词（Earning 等）
- * 与三句语义句全删、「没意义」，未激活显 0%、capped 不再显示，三态回归纯数值二态。
- * 零新增 fixture 数据（Q1-4 否决）。
+ * (3) Savings card: main number = deposit value (same 22px data
+ * step as the asset row's right edge), shares demoted to a subline credential marker; rate row =
+ * APY label + % value only — no status words, no semantic sentences;
+ * inactive renders 0% and no separate capped state; active/inactive form a pure numeric
+ * two-state.
  */
 export function SavingsZone({
   locale,
@@ -332,7 +340,8 @@ export function VaultZone({ locale, vaultRows }: { locale: Locale; vaultRows: Fi
               {vaultRows.map((row) => (
                 <tr key={row.verse.id}>
                   <th scope="row">
-                    {/* 阶段徽标不进库存单（2026-10-04 用户裁定）：行身份=verse 符号即可 */}
+                    {/* Stage badges stay out of the holdings table: the row
+                        identity = the verse symbol suffices */}
                     <Link href={verseHref(locale, row.verse.id)}>
                       <strong>{row.verse.symbol}</strong>
                     </Link>
@@ -367,8 +376,9 @@ export function VaultZone({ locale, vaultRows }: { locale: Locale; vaultRows: Fi
                     )}
                   </td>
                   <td>
-                    {/* Stake 常驻（深链金库页签，Stake 卡即首屏）；Withdraw 仅在有成熟赎回时
-                        出现、深链金库页签并直落 Withdraw 子页签（2026-10-04 用户裁定） */}
+                    {/* Stake is permanent (deep-links the vault tab, where the Stake card is the
+                        first screen); Withdraw appears only when mature redeems exist, deep-linking
+                        the vault tab and landing directly on the Withdraw sub-tab */}
                     <div className="pf-vault__act">
                       {row.readyTotal > 0 ? (
                         <Link
@@ -388,8 +398,9 @@ export function VaultZone({ locale, vaultRows }: { locale: Locale; vaultRows: Fi
             </tbody>
           </table>
         </div>
-        {/* 移动端堆叠台账行（决议 018）：verse 身份 + Stake/Withdraw 深链 + 事实列
-            （份额/7日年化/赎回状态，绿=可取出）；桌面 display:none */}
+        {/* Mobile stacked ledger rows: verse identity + Stake/Withdraw deep links +
+            fact columns (shares / 7-day APY / redeem status, green = withdrawable); display:none
+            on desktop */}
         <ul className="pf-mrows">
           {vaultRows.map((row) => (
             <li key={row.verse.id} className="pf-mrow">

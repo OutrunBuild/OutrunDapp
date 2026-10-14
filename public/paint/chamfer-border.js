@@ -1,6 +1,8 @@
-// Paint Worklet：切角卡「裸切角」描边（v4）。
-// 实测（v2/v3）：光栅器对水平条带可产出整行满强度、竖直条带不行——
-// 故四条边全部用水平 1 物理像素条带构造：上下边各一条，左右边=逐行堆叠，四边共享同一光栅化路径。
+// Paint Worklet: "bare chamfer" border for chamfered cards (v4).
+// Measured (v2/v3): the rasterizer can produce full-intensity full rows for horizontal strips but
+// not for vertical strips — so all four edges are built from horizontal 1-physical-pixel strips:
+// one each for top and bottom, left/right = row-by-row stacking; all four edges share the same
+// rasterization path.
 registerPaint(
   'chamfer-border',
   class {
@@ -29,7 +31,7 @@ registerPaint(
       const g = 1 / dpr;
       const q = (v) => Math.round(v / g) * g;
 
-      // 填充：切角多边形（对角=裸切）
+      // Fill: chamfered polygon (diagonal = bare chamfer)
       ctx.fillStyle = bg;
       ctx.beginPath();
       ctx.moveTo(q(chamfer), 0);
@@ -42,16 +44,16 @@ registerPaint(
       ctx.fill();
 
       ctx.fillStyle = borderColor;
-      // 顶边（让开左上切角）：一条水平条带
+      // Top edge (clearing the TL chamfer): one horizontal strip
       ctx.fillRect(q(chamfer), 0, q(w) - q(chamfer), g);
-      // 底边（让开右下切角）：一条水平条带
+      // Bottom edge (clearing the BR chamfer): one horizontal strip
       ctx.fillRect(0, q(h) - g, q(w - chamfer), g);
-      // 左右边（让开各自的切角）：逐行水平条带堆叠
+      // Left/right edges (clearing their chamfers): row-by-row horizontal strip stacking
       for (let y = q(chamfer); y < q(h) - g / 2; y += g) {
-        ctx.fillRect(0, y, g, g); // 左边：上让 TL 切角，下到盒底
+        ctx.fillRect(0, y, g, g); // Left edge: clears the TL chamfer at top, runs to the box bottom
       }
       for (let y = 0; y < q(h - chamfer) - g / 2; y += g) {
-        ctx.fillRect(q(w) - g, y, g, g); // 右边：上到盒顶，下让 BR 切角
+        ctx.fillRect(q(w) - g, y, g, g); // Right edge: runs from the box top, clears the BR chamfer at bottom
       }
     }
   },

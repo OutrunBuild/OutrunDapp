@@ -132,8 +132,9 @@ const en = {
         feeRoutes: [
           {
             asset: 'Memecoin fees',
-            // destination 拼写对齐 verseDesk.tabVault；说明只留受益人半句（2026-10-06 用户裁定精简），
-            // 质押池定义由 verse vault 面板的 vault.sub 承担
+            // destination spelling aligns with verseDesk.tabVault; the description keeps only
+            // the beneficiary half-sentence, and the
+            // staking-pool definition is carried by the verse vault panel's vault.sub
             destination: 'Yield Vault',
             description: 'Fees accrue to Memecoin stakers.',
           },
@@ -148,14 +149,16 @@ const en = {
             description: 'Removed from circulation.',
           },
         ],
-        // 竖向走线图（2026-10-01 用户裁定）：阶段 mono 网络标签 + 时序连接注记。
-        // 纯展示标签，无机制事实；pol/rights 键形状不动——home-page.tsx 把它们作为
-        // 术语表传给 lifecycle 段 TermGlossText（components.md 术语悬停释义条目）。
+        // Vertical wiring diagram: per-stage mono network labels +
+        // sequencing connection notes.
+        // Display-only labels, no mechanism facts; the pol/rights key shapes stay put —
+        // home-page.tsx passes them as a glossary to the lifecycle section's TermGlossText
+        // (term-hover definition entries).
         phaseLabels: {
           participation: 'Genesis entry',
           pools: 'Four pools',
           rights: 'Rights split',
-          // 04 无网络标签（2026-10-06 用户裁定）
+          // the fee stage (04, rendered in mechanism-primer) has no network label
         },
         operationNote: 'Once trading is live',
       },
@@ -315,8 +318,10 @@ const en = {
         ctaIncentive: 'Claim Rewards',
         ctaVault: 'Withdraw',
         ctaRefund: 'Review & Claim',
-        // —— 保护窗 Exit 弹窗（2026-10-09：卡 CTA 由跳 verse 页改页内弹窗；
-        //     redeemMemecoinLiquidity 两路径——POL→LP 1:1 / unwrap 拆 memecoin+uAsset）——
+        // —— Protection-window Exit dialog (the card CTA is an in-page dialog, not a
+        //     jump to the verse page;
+        //     redeemMemecoinLiquidity has two paths — POL→LP 1:1 / unwrap splits
+        //     memecoin+uAsset) ——
         exitTitle: 'Exit POL',
         exitModeLp: 'Redeem to LP',
         exitModeSplit: 'Split to {m} + {u}',
@@ -597,7 +602,13 @@ const en = {
       leverageDirectHelp: '{asset} converts to {raise} at par to cover interest — no position.',
       leverageCreditHelp: 'Burned when Genesis locks.',
       currentAction: 'What you can do now',
-      // 创世四态（lifecycle.md:53-55）：Fast 达标=即可触发；非 Fast 达标=仍等截止；截止后=任何人可触发（决议 008 黄昏区口径另行渲染）
+      // Genesis action labels per state (selection lives in verse-page CurrentAction):
+      // genesisActionFastReady = Fast genesis, threshold met — anyone can trigger the
+      // advance at once, ending Genesis early; genesisActionFast = Fast genesis, threshold
+      // not yet met — the advance is triggerable the moment either threshold is met,
+      // no deadline wait; genesisActionMet = non-Fast genesis, threshold met — the advance
+      // still waits for the Genesis deadline; genesisAction = non-Fast genesis, threshold
+      // not yet met — after the deadline, anyone can trigger the advance
       genesisAction: 'Genesis is open for participation. After the deadline, anyone can trigger the stage advance.',
       genesisActionMet:
         'Success threshold met — the launch is headed to Locked. The stage advance triggers after the Genesis deadline.',
@@ -623,9 +634,9 @@ const en = {
         'An asymmetric two-column workbench puts participation before status actions — Discovery stays list-first.',
       ],
     },
-    // 四标签交易台（2026-09-23 用户裁定：Locked/Unlocked 详情页；参照 demo.outrun.build/memeverse/26/detail）
+    // Four-tab trading desk
     verseDesk: {
-      // —— 代币统计条 ——
+      // —— Token stats bar ——
       price: 'Price',
       change24h: '24h',
       marketCap: 'MC',
@@ -635,7 +646,7 @@ const en = {
       totalSupply: 'TS',
       contract: 'CA',
       addressCopied: 'Copied',
-      // —— K 线 ——
+      // —— Candlestick chart ——
       granularity: 'Candle size',
       syncing: 'Syncing — history unavailable in this snapshot',
       ohlc: { open: 'O', high: 'H', low: 'L', close: 'C' },
@@ -667,8 +678,9 @@ const en = {
       deadlineTip: 'If the swap stays pending longer than this, it reverts.',
       deadlineWholeMinutes: 'Deadline only accepts whole minutes.',
       route: 'Route',
-      // —— Swap 代币选择（2026-09-27：输入/输出侧代币可点开选择弹窗；路径行随所选对组词——
-      //     四池路由 four-pools.md、YT 走 PT/POL 池 Flash Swap yt-flash-swap.md）——
+      // —— Swap token selection (input/output side tokens open a selection
+      //     dialog; the route line is worded per the selected pair —
+      //     four-pool routing; YT goes through the PT/POL pool's Flash Swap) ——
       routePoolMain: 'Primary pool',
       routePoolPol: 'POL/uAsset pool',
       routePoolPt: 'PT/uAsset pool',
@@ -676,8 +688,8 @@ const en = {
       selectTokenTitle: 'Select Token',
       tokenSearchPlaceholder: 'Search name or symbol',
       tokenNoResults: 'No tokens found',
-      // —— Flash Swap 弹窗（2026-09-27 方案 B：YT 移出 Swap 卡进 YT 井专属弹窗——POL↔YT 单通道、
-      //     买卖均指定 YT 数量；机制=yt-flash-swap.md）——
+      // —— Flash Swap dialog (a dedicated YT dialog outside the Swap card — POL↔YT single
+      //     channel, both buy and sell specify a YT quantity) ——
       flashSwap: 'Flash Swap',
       flashBuy: 'Buy YT',
       flashSell: 'Sell YT',
@@ -697,12 +709,12 @@ const en = {
       swapCta: 'Connect Wallet',
       swapAction: 'Swap',
       swapActionNote: 'Prototype preview — trades are not wired. Figures are indicative only.',
-      // —— 标签 ——
+      // —— Tabs ——
       tabLiquidity: 'Liquidity',
       tabPol: 'Tokenization',
       tabVault: 'Yield Vault',
       tabDao: 'DAO',
-      // —— Liquidity 标签 ——
+      // —— Liquidity tab ——
       totalValueLocked: 'Total value locked',
       liquidityVolume: '24h volume',
       growth7d: '7d liquidity growth',
@@ -710,17 +722,20 @@ const en = {
       poolsTitle: 'Liquidity Pools',
       aprLabel: 'APR',
       addLiquidity: 'Add Liquidity',
-      // 池卡钮短文案（2026-09-27 用户裁定 Add Liquidity→Add；弹窗标题/CTA 仍用全称键）
+      // Pool card button short copy (Add Liquidity→Add; the
+      // dialog title/CTA keep the full-name keys)
       addLiquidityShort: 'Add',
-      // —— Add Liquidity 弹窗（2026-09-27：池卡 Add 钮改弹窗，功能结构同 Mint POL 弹窗；
-      //     supply/you receive/balance/max/rate/minReceived 复用既有键）——
+      // —— Add Liquidity dialog (the pool card Add button opens a dialog,
+      //     functionally structured like the Mint POL dialog;
+      //     supply/you receive/balance/max/rate/minReceived reuse existing keys) ——
       addLiquidityDialogTitle: 'Add Liquidity',
       addLiquiditySettingsTitle: 'Add Liquidity Settings',
       addLiquiditySlippageTip:
         'If the pool ratio moves against you by more than this percent, adding liquidity reverts.',
       addLiquidityDeadlineTip: 'If adding liquidity stays pending longer than this, it reverts.',
-      // —— Remove Liquidity 弹窗（2026-09-27：池卡新增 Remove 钮；机制=router removeLiquidity
-      //     burn LP 双侧取回，键位同 Add 弹窗分层）——
+      // —— Remove Liquidity dialog (the pool card has a Remove button;
+      //     mechanism = router removeLiquidity burns LP, both sides withdrawn; keys layered
+      //     like the Add dialog) ——
       removeLiquidity: 'Remove',
       removeLiquidityDialogTitle: 'Remove Liquidity',
       removeLiquiditySettingsTitle: 'Remove Liquidity Settings',
@@ -728,8 +743,7 @@ const en = {
         'If the pool ratio moves against you by more than this percent, removing liquidity reverts.',
       removeLiquidityDeadlineTip: 'If removing liquidity stays pending longer than this, it reverts.',
       removeBurn: 'Burn',
-      // —— Tokenization 标签 v2「拆分终端」（2026-09-23 用户裁定：终端级重设计）——
-      // 2026-09-25 用户裁定：叫 POL 全称展开（Memeverse MemePol.sol:8；曾用 Liquidity receipt）
+      // —— Tokenization tab (terminal-level split/merge UI) ——
       polTag: 'Proof of Liquidity',
       marketPrice: 'Market price',
       nominalValue: 'Nominal value',
@@ -745,7 +759,7 @@ const en = {
       mintPol: 'Mint',
       mintNote:
         'Add uAsset + memecoin to the primary pool and mint POL 1:1 — open from the locked stage.',
-      // —— Mint POL 弹窗（2026-09-24：demo 双币供给弹窗功能 + 本站审美适配）——
+      // —— Mint POL dialog (dual-token supply dialog; this site's aesthetic) ——
       mintDialogTitle: 'Mint POL',
       mintSettingsTitle: 'Mint Settings',
       mintSupply: 'Supply',
@@ -755,22 +769,26 @@ const en = {
       mintSlippageTip: 'If the pool ratio moves against you by more than this percent, the mint reverts.',
       mintDeadlineTip: 'If the mint stays pending longer than this, it reverts.',
       redeemPol: 'Redeem',
-      // —— Redeem POL 弹窗（2026-09-27：POL 资产卡 Redeem 恒禁用改弹窗；复用 youReceive/balance/max/swapCta）——
+      // —— Redeem POL dialog (the POL asset card's Redeem opens a dialog; reuses
+      // youReceive/balance/max/swapCta) ——
       redeemPolDialogTitle: 'Redeem POL',
       splitPol: 'Split',
       mergePol: 'Merge',
       splitNote: '1 POL = 1 PT + 1 YT. Splitting and merging are lock-up only.',
       mergeNote: 'Burn equal PT + YT back into POL at 1:1 — lock-up only.',
-      // —— Split/Merge 操作弹窗（2026-09-26：换向器两钮改弹窗；复用 youReceive/balance/max/swapRate/swapCta）——
+      // —— Split/Merge action dialogs (the tokenization terminal's two buttons open
+      // dialogs; reuses youReceive/balance/max/swapRate/swapCta) ——
       splitDialogTitle: 'Split POL',
       mergeDialogTitle: 'Merge to POL',
-      // —— Redeem PT/YT 操作弹窗（2026-09-27：unlocked 换向器改赎回行；redeemPT/redeemYT——POLSplitterUpgradeable.sol:365/387；
-      //    note 文案两轮裁定删净；同日第三轮参照图改双框布局：输入框标签=burnLabel、Receive 独立框=receiveLabel）——
+      // —— Redeem PT/YT action dialogs (after unlock the tokenization terminal becomes
+      // redemption rows; redeemPT/redeemYT mirror the splitter contract's functions;
+      // two-box layout: input label = burnLabel,
+      // separate Receive box = receiveLabel) ——
       redeemPt: 'Redeem PT',
       redeemYt: 'Redeem YT',
       burnLabel: 'Burn',
       receiveLabel: 'Receive',
-      // —— Yield Vault 标签 ——
+      // —— Yield Vault tab ——
       vaultTitle: '{symbol} Yield Vault',
       vaultContract: 'Vault',
       totalStaked: 'Total staked',
@@ -802,7 +820,8 @@ const en = {
       crossNote:
         'Send tokens cross-chain to the governance chain — on arrival, they are automatically staked into the YieldVault as shares.',
       crossCta: 'Open cross-chain staking',
-      // —— 操作卡链感知（2026-09-24 demo 布局重设计；机制=omnichain.md §The governance chain/§Cross-chain staking）——
+      // —— Action card chain awareness (cross-chain staking: tokens route to the
+      // governance chain's Yield Vault) ——
       crossBannerTitle: 'Cross-Chain Staking',
       crossBannerSub: 'powered by LayerZero',
       crossBannerBody:
@@ -812,7 +831,7 @@ const en = {
       crossFee: 'Cross-chain fee',
       crossFeeNote:
         'Quoted by LayerZero at send time and paid exactly in the source chain\'s native token.',
-      // —— DAO 标签 ——
+      // —— DAO tab ——
       daoTitle: '{symbol} DAO',
       governorLabel: 'Governor',
       incentivizer: 'Incentivizer',
@@ -825,15 +844,19 @@ const en = {
       tallyEnter: 'Enter',
       tallyNote: 'Creating and executing proposals happens on Cactus.',
       cycleTitle: 'Current Cycle Incentive',
-      // 行值 #N=周期标识而非「当前周期」本身——2026-10-05 用户裁定标签改周期 ID；
-      // 两卡共用同名字段（同 Treasury/Total votes 先例），当期/上期由卡头区分
+      // Row value #N = a cycle identifier, not "the current cycle" itself — the label is
+      // Cycle ID;
+      // both cards share the same field name (same precedent as Treasury/Total votes); the
+      // current vs last cycle is distinguished by the card header
       cycleChip: 'Cycle ID',
       endsIn: 'Ends on',
       ended: 'Ended',
       finalize: 'Finalize',
       finalizeNote: 'End the current cycle and start the next cycle.',
-      // 结算窗口横幅标题（2026-10-05 用户裁定：结算钮只在周期结束未结算时出现；
-      // finalizeNote 保持在钮后 ⊙ 气泡内——同日再裁定不放横幅正文）
+      // Settlement window banner title (the settle button appears
+      // only while the cycle has ended and is unsettled;
+      // finalizeNote stays in the ⊙ bubble after the button — the banner carries no body
+      // text)
       settleOpen: 'Settlement window open',
       treasury: 'Treasury',
       rewardRatio: 'Reward ratio',
@@ -1061,7 +1084,8 @@ const zh: typeof en = {
         feeRoutes: [
           {
             asset: 'Memecoin 手续费',
-            // 键位同 en 段注释：首现处带半句定义
+            // Key placement mirrors the en section comment: first occurrence carries the
+            // half-sentence definition
             destination: '收益库 YieldVault',
             description: 'Memecoin 质押池——手续费归 Memecoin 质押者。',
           },
@@ -1076,7 +1100,8 @@ const zh: typeof en = {
             description: '永久退出流通。',
           },
         ],
-        // 键位同 en 段注释：走线图阶段标签 + 时序连接注记，纯展示标签
+        // Key placement mirrors the en section comment: wiring-diagram stage labels +
+        // sequencing connection notes, display-only labels
         phaseLabels: {
           participation: '创世参与',
           pools: '建立四池',
@@ -1238,7 +1263,7 @@ const zh: typeof en = {
         ctaIncentive: '去领取',
         ctaVault: '去取出',
         ctaRefund: '查看并领取',
-        // —— 保护窗 Exit 弹窗（键位同 en 段）——
+        // —— Protection-window Exit dialog (keys mirror the en section) ——
         exitTitle: '退出 POL',
         exitModeLp: '赎回为 LP',
         exitModeSplit: '拆成 {m} + {u}',
@@ -1514,7 +1539,13 @@ const zh: typeof en = {
       leverageDirectHelp: '{asset} 按面值兑换为 {raise} 支付利息，无仓位。',
       leverageCreditHelp: '创世锁定时销毁。',
       currentAction: '当前可以做什么',
-      // 创世四态（lifecycle.md:53-55）：Fast 达标=即可触发；非 Fast 达标=仍等截止；截止后=任何人可触发（决议 008 黄昏区口径另行渲染）
+      // Genesis action labels per state (selection lives in verse-page CurrentAction):
+      // genesisActionFastReady = Fast genesis, threshold met — anyone can trigger the
+      // advance at once, ending Genesis early; genesisActionFast = Fast genesis, threshold
+      // not yet met — the advance is triggerable the moment either threshold is met,
+      // no deadline wait; genesisActionMet = non-Fast genesis, threshold met — the advance
+      // still waits for the Genesis deadline; genesisAction = non-Fast genesis, threshold
+      // not yet met — after the deadline, anyone can trigger the advance
       genesisAction: '创世开放参与中。截止后任何人可触发阶段推进。',
       genesisActionMet: '成功门槛已达标——创世将进入锁定。阶段推进待创世截止后触发。',
       genesisActionFast: 'Fast Genesis：任一门槛达标，任何人即可触发阶段推进——无需等到截止。',
@@ -1537,7 +1568,8 @@ const zh: typeof en = {
         '非对称双栏工作台先放参与，再放状态动作，发现页始终以列表比较优先。',
       ],
     },
-    // 四标签交易台（2026-09-23 用户裁定；术语与 OutrunBook 对齐：POL/PT/YT/份额/委托/周期）
+    // Four-tab trading desk (terminology aligned with the product glossary:
+    // POL/PT/YT/shares/delegation/cycle)
     verseDesk: {
       price: '现价',
       change24h: '24h',
@@ -1577,7 +1609,7 @@ const zh: typeof en = {
       deadlineTip: '若兑换在此时长内未完成确认，将回退。',
       deadlineWholeMinutes: '截止时间只接受整数分钟。',
       route: '路径',
-      // —— Swap 代币选择（2026-09-27：键位同 en 段注释）——
+      // —— Swap token selection (keys mirror the en section comment) ——
       routePoolMain: '主池',
       routePoolPol: 'POL/uAsset 池',
       routePoolPt: 'PT/uAsset 池',
@@ -1585,7 +1617,7 @@ const zh: typeof en = {
       selectTokenTitle: '选择代币',
       tokenSearchPlaceholder: '搜索名称或符号',
       tokenNoResults: '未找到代币',
-      // —— Flash Swap 弹窗（2026-09-27：键位同 en 段注释）——
+      // —— Flash Swap dialog (keys mirror the en section comment) ——
       flashSwap: '闪电兑换',
       flashBuy: '买入 YT',
       flashSell: '卖出 YT',
@@ -1616,21 +1648,24 @@ const zh: typeof en = {
       poolsTitle: '流动性池',
       aprLabel: 'APR',
       addLiquidity: '增加流动性',
-      // 池卡钮短文案（2026-09-27 用户裁定，同 en 段）
+      // Pool card button short copy (same as the en section)
       addLiquidityShort: '添加',
-      // —— Add Liquidity 弹窗（2026-09-27：池卡 Add 钮改弹窗；键位同 en 段注释）——
+      // —— Add Liquidity dialog (the pool card Add button opens a dialog;
+      // keys mirror the en section comment) ——
       addLiquidityDialogTitle: '增加流动性',
       addLiquiditySettingsTitle: '加池设置',
       addLiquiditySlippageTip: '若池内配比向不利方向变动超过该比例，加池将回退。',
       addLiquidityDeadlineTip: '若加池在此时长内未完成确认，将回退。',
-      // —— Remove Liquidity 弹窗（2026-09-27：池卡新增 Remove 钮；键位同 en 段注释）——
+      // —— Remove Liquidity dialog (the pool card has a Remove button; keys
+      // mirror the en section comment) ——
       removeLiquidity: '移除',
       removeLiquidityDialogTitle: '移除流动性',
       removeLiquiditySettingsTitle: '移除流动性设置',
       removeLiquiditySlippageTip: '若池内配比向不利方向变动超过该比例，移除流动性将回退。',
       removeLiquidityDeadlineTip: '若移除流动性在此时长内未完成确认，将回退。',
       removeBurn: '销毁',
-      // 2026-09-25 用户裁定：叫 POL 全称展开（保留英文以保 POL↔全称对应；曾用 流动性凭证）
+      // polTag keeps the name POL expanded in English to preserve the
+      // POL↔full-name correspondence across locales
       polTag: 'Proof of Liquidity',
       marketPrice: '市场价格',
       nominalValue: '名义价值',
@@ -1645,7 +1680,7 @@ const zh: typeof en = {
       ytTip: 'POL 拆分的收益半边：结算后按份额领取 {asset} 残值与全部回收 memecoin。',
       mintPol: '铸造',
       mintNote: '付 uAsset + memecoin 加主池流动性，1:1 铸 POL —— 锁定期起开放。',
-      // —— Mint POL 弹窗（2026-09-24：demo 双币供给弹窗功能 + 本站审美适配）——
+      // —— Mint POL dialog (dual-token supply dialog; this site's aesthetic) ——
       mintDialogTitle: '铸造 POL',
       mintSettingsTitle: '铸造设置',
       mintSupply: '供给',
@@ -1655,17 +1690,21 @@ const zh: typeof en = {
       mintSlippageTip: '若池内配比向不利方向变动超过该比例，铸造将回退。',
       mintDeadlineTip: '若铸造在此时长内未完成确认，将回退。',
       redeemPol: '赎回',
-      // —— Redeem POL 弹窗（2026-09-27：POL 资产卡 Redeem 恒禁用改弹窗；复用 youReceive/balance/max/swapCta）——
+      // —— Redeem POL dialog (the POL asset card's Redeem opens a dialog; reuses
+      // youReceive/balance/max/swapCta) ——
       redeemPolDialogTitle: '赎回 POL',
       splitPol: '拆分',
       mergePol: '合并',
       splitNote: '1 POL = 1 PT + 1 YT。拆分与合并仅锁定期开放。',
       mergeNote: '等额销毁 PT 与 YT，按 1:1 合回 POL —— 仅锁定期开放。',
-      // —— Split/Merge 操作弹窗（2026-09-26：换向器两钮改弹窗；复用 youReceive/balance/max/swapRate/swapCta）——
+      // —— Split/Merge action dialogs (the tokenization terminal's two buttons open
+      // dialogs; reuses youReceive/balance/max/swapRate/swapCta) ——
       splitDialogTitle: '拆分 POL',
       mergeDialogTitle: '合并为 POL',
-      // —— Redeem PT/YT 操作弹窗（2026-09-27：unlocked 换向器改赎回行；redeemPT/redeemYT——POLSplitterUpgradeable.sol:365/387；
-      //    note 文案两轮裁定删净；同日第三轮参照图改双框布局：输入框标签=burnLabel、Receive 独立框=receiveLabel）——
+      // —— Redeem PT/YT action dialogs (after unlock the tokenization terminal becomes
+      // redemption rows; redeemPT/redeemYT mirror the splitter contract's functions;
+      // two-box layout: input label = burnLabel,
+      // separate Receive box = receiveLabel) ——
       redeemPt: '赎回 PT',
       redeemYt: '赎回 YT',
       burnLabel: '销毁',
@@ -1720,14 +1759,17 @@ const zh: typeof en = {
       tallyEnter: '进入',
       tallyNote: '创建与执行提案在 Cactus 完成。',
       cycleTitle: '当期周期激励',
-      // 行值 #N=周期标识——2026-10-05 用户裁定标签改周期 ID；两卡共用同名字段
-      //（同「国库/总票数」先例），当期/上期由卡头区分
+      // Row value #N = a cycle identifier — the label is Cycle ID;
+      // both cards share the same field name
+      // (same precedent as "treasury/total votes"); the current vs last cycle is
+      // distinguished by the card header
       cycleChip: '周期 ID',
       endsIn: '结束于',
       ended: '已结束',
       finalize: '触发结算',
       finalizeNote: '结束当前周期并开启下一个周期。',
-      // 结算窗口横幅标题（2026-10-05 用户裁定；说明保持在钮后 ⊙ 气泡）
+      // Settlement window banner title (the note stays in the ⊙
+      // bubble after the button)
       settleOpen: '结算窗口已开启',
       treasury: '国库',
       rewardRatio: '划拨比例',

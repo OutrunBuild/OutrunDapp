@@ -33,16 +33,16 @@ import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global
 import { TxStatus } from '../global/tx-status'
 import { useTxSimulation } from '../global/tx-simulation'
 
-// 预购与普通/杠杆创世同级的独立路径（用户裁定 2026-09-21）；普通/杠杆模式内提供一键预购
+// Preorder is an independent path at the same level as standard/leverage genesis; standard/leverage modes offer one-click preorder
 type ParticipationMode = 'standard' | 'leverage' | 'preorder'
-// credit=杠杆利息创世积分直付（仅杠杆模式；polend.md 两种付息方式之一，锁定时销毁）
-// direct=直接参与：募集 uAsset 直付或储备资产面值直兑合并为一路径（2026-09-22 用户裁定，支付资产下拉区分）
+// credit=leverage interest paid directly as genesis credits (leverage mode only; one of the two interest payment methods, burned at lock time)
+// direct=direct participation: raise uAsset direct payment and reserve-asset par direct swap merged into one path (distinguished by the payment asset dropdown)
 type ParticipationRoute = 'direct' | 'stake' | 'credit'
 
-// 预购容量公式系数（容量=(普通资金+杠杆债务本金)×70%×容量比例——glossary；一次性比例非年化）
+// Preorder capacity formula coefficient (capacity=(standard funds+leverage debt principal)×70%×capacity ratio; one-off ratio, not annualized)
 const PREORDER_CAP_RATE = 0.7
 
-/** 帮助文案模板填充：{asset}=所选支付资产、{raise}=本 Verse 募集 uAsset 符号 */
+/** Help copy template fill: {asset}=selected payment asset, {raise}=this Verse's raise uAsset symbol */
 function fill(template: string, values: { asset: string; raise: string }) {
   return template.replace(/\{asset\}/g, values.asset).replace(/\{raise\}/g, values.raise)
 }
@@ -73,7 +73,7 @@ export function ParticipationPanel({
   leverageInterestRate: number | null
   leverageDebtCap: number | null
   leverageInterestRaised: number
-  /** 样本钱包余额（符号→跨链合计，balances.json；快照缺失符号不在表内→槽位态） */
+  /** Sample wallet balances (symbol→cross-chain total, balances fixture; symbols missing from the snapshot are absent from the table → slot state) */
   walletBalances: Record<string, number>
   sourceRef: string
 }) {
@@ -81,20 +81,20 @@ export function ParticipationPanel({
   const [mode, setMode] = useState<ParticipationMode>('standard')
   const [route, setRoute] = useState<ParticipationRoute>('direct')
   const [asset, setAsset] = useState('')
-  // 一键预购支付资产独立于主支付资产选择（用户裁定 2026-09-25：预购金额也拆 Pay with+amount 并排）
+  // One-click preorder payment asset is independent of the main payment asset selection (preorder amount also split into Pay with + amount side by side)
   const [preorderAsset, setPreorderAsset] = useState('')
   const [sourceId, setSourceId] = useState('')
   const [amount, setAmount] = useState('')
   const [preorderEnabled, setPreorderEnabled] = useState(false)
   const [preorderAmount, setPreorderAmount] = useState('')
   const [reviewing, setReviewing] = useState(false)
-  // 交易签名模拟（state-matrix T4→T5→T6）：确认后前端定时推进，无钱包
+  // Tx signing simulation: after confirmation the frontend advances on a timer, no wallet
   const { txState, beginSigning, resetTx } = useTxSimulation()
   const [invalid, setInvalid] = useState(false)
   const numericAmount = Number(amount || 0)
   const numericPreorder = Number(preorderAmount || 0)
   const preorderOnly = mode === 'preorder'
-  // 路径集随模式变化：杠杆无质押项、普通无创世积分项——跨模式残留选择回落直接参与
+  // Route set varies by mode: leverage has no stake option, standard has no genesis-credit option — leftover selections across modes fall back to direct participation
   const effectiveRoute: ParticipationRoute =
     route === 'stake' && mode === 'leverage'
       ? 'direct'
@@ -104,11 +104,11 @@ export function ParticipationPanel({
           ? 'direct'
           : route
   const raiseAssetSymbol = raiseAsset?.symbol ?? ''
-  // 质押来源→参与资产两级：选来源后才确定可参与资产组（用户裁定 2026-09-22）
+  // Stake source → participating asset, two levels: the asset group is fixed only after a source is selected
   const activeSource =
     yieldSourceRegistry.find((source) => source.id === sourceId) ?? yieldSourceRegistry[0] ?? null
-  // 直接参与=募集 uAsset 直付（首选）+ PSM 配对储备资产面值直兑；质押=所选来源资产组；创世积分=杠杆利息直付；
-  // 预购支付资产组与直接参与同款（用户裁定 2026-09-25：预购也支持 Pay with 下拉——uAsset 直付或储备面值直兑，预购金额仍按募集 uAsset 计价）
+  // Direct participation=raise uAsset direct payment (preferred) + PSM-paired reserve asset par direct swap; stake=selected source's asset group; credit=leverage interest paid directly as genesis credits;
+  // preorder payment asset group matches direct participation (preorder also gets the Pay with dropdown — uAsset direct payment or reserve par direct swap; preorder amount still denominated in the raise uAsset)
   const preorderAssets = raiseAsset ? [raiseAsset, ...reserves] : reserves
   const routeAssets = preorderOnly
     ? preorderAssets
@@ -125,7 +125,7 @@ export function ParticipationPanel({
   const payAsset = payAssetRecord?.symbol ?? ''
   const amountInvalid = invalid && numericAmount <= 0
   const preorderInvalid = invalid && !preorderOnly && preorderEnabled && numericPreorder <= 0
-  // 杠杆：一次性利率（注册时锁定、非年化）；借贷资金=利息÷利率（UI 词=用户裁定 2026-09-25，机制口径仍 OB debt quota）；余量=债务上限−已建债务（POLend LeveragedDebtInfo）
+  // Leverage: one-off interest rate (locked at registration, not annualized); borrowed funds=interest÷rate (UI term; mechanism basis is the POLend debt quota); headroom=debt cap−debt built
   const leverageRate = leverageInterestRate != null && leverageInterestRate > 0 ? leverageInterestRate : null
   const leverageReady = leverageRate != null && leverageDebtCap != null
   const leverageCurrentDebt = leverageRate != null ? leverageInterestRaised / leverageRate : null
@@ -135,18 +135,18 @@ export function ParticipationPanel({
       ? Math.max(leverageDebtCap - leverageCurrentDebt, 0)
       : null
   const leverageExceeded = leverageQuota != null && leverageHeadroom != null && leverageQuota > leverageHeadroom
-  // 质押路径折算：sy 资产按实时价值折算 uAsset（OB:outstake/uasset.md:21，fixture anchorValue 样本率；缺率兜底面值 1——样本缺失不显槽位，用户裁定 2026-09-25）；
-  // direct=面值 1:1 直兑（PSM par，directHelp 口径）
+  // Stake path conversion: sy asset converted to uAsset at real-time value (fixture anchorValue sample rate; a missing rate sample does not open a placeholder slot — it falls back to par 1);
+  // direct=par 1:1 direct swap (PSM par, directHelp scope)
   const convertedAmount = numericAmount * (effectiveRoute === 'stake' ? (payAssetRecord?.anchorValue ?? 1) : 1)
-  // 一键预购上限=创世资金按面值折算 uAsset（PSM 面值 1:1）×70%×容量比例；杠杆创世资金=借贷资金；缺容量比例=null→仅显槽位
+  // One-click preorder cap=genesis funds converted to uAsset (direct=PSM par 1:1, stake=anchorValue rate; leverage=borrowed funds)×70%×capacity ratio; missing capacity ratio=null → slot only
   const genesisFunds = mode === 'leverage' ? (leverageQuota ?? 0) : convertedAmount
   const preorderCap =
     preorderCapacityRatio != null && genesisFunds > 0
       ? genesisFunds * PREORDER_CAP_RATE * preorderCapacityRatio
       : null
   const preorderExceeded = preorderCap != null && numericPreorder > preorderCap
-  // 预购 tab：Verse 级容量（MemeverseLauncherLib.preorderMaxCapacity）=（普通创世资金+杠杆债务本金）×70%×容量比例；
-  // 债务本金=已收利息÷利率；已用=PreorderState.totalFunds 快照（fixture preorderRaised）；余量=容量−已用（先到先得）
+  // Preorder tab: Verse-level capacity (on-chain preorderMaxCapacity)=(standard genesis funds+leverage debt principal)×70%×capacity ratio;
+  // debt principal=interest received÷rate; used=on-chain preorder total snapshot (fixture preorderRaised); remaining=capacity−used (first come, first served)
   const versePreorderBase = leverageRate != null ? normalRaised + leverageInterestRaised / leverageRate : null
   const versePreorderCap =
     preorderCapacityRatio != null && versePreorderBase != null
@@ -160,10 +160,10 @@ export function ParticipationPanel({
     preorderOnly && versePreorderRemaining != null && numericAmount > versePreorderRemaining
   const modeLabel =
     mode === 'standard' ? copy.verse.standardMode : mode === 'leverage' ? copy.verse.leverageMode : copy.verse.preorderMode
-  // 审阅屏行模型（分组化——用户裁定 2026-09-25）：支付组=实付代币视角（利息/本金/预购），进创世组=折算或借贷后的 uAsset；
-  // 合计仅当支付项同资产（杠杆利息与预购同为 uAsset 时直加；质押资产+预购异资产不硬凑）
+  // Review screen row model (grouped): pay group=perspective of the token actually paid (interest/principal/preorder), the into-genesis rows (what actually enters genesis)=uAsset after conversion or borrowing;
+  // total only when pay rows share one asset (leverage interest and preorder are both uAsset → added directly; stake asset + preorder in different assets are not forced together)
   const preorderRowAmount = preorderOnly ? numericAmount : numericPreorder
-  // 预购支付资产独立可选（面值 1:1，数值与计价额相同）：独立 tab 用主选择、一键预购用预购资产选择，均回落募集 uAsset
+  // Preorder payment asset independently selectable (par 1:1, value equals the denominated amount): the preorder tab uses the main selection, one-click preorder uses the preorder asset selection, both fall back to the raise uAsset
   const effectivePreorderAsset =
     preorderAssets.find((item) => item.symbol === preorderAsset)?.symbol ?? preorderAssets[0]?.symbol ?? ''
   const preorderRowAsset = preorderOnly ? payAsset : effectivePreorderAsset
@@ -181,7 +181,7 @@ export function ParticipationPanel({
       ]
   const sameAssetPay = payRows.length > 1 && payRows.every((row) => row.asset === payRows[0].asset)
   const totalPaid = sameAssetPay ? payRows.reduce((sum, row) => sum + row.amount, 0) : null
-  // 预购资金主池开放后才买入，不进创世——preorder-only 无进创世组
+  // Preorder funds buy in only after the main pool opens, not into genesis — preorder-only has no into-genesis group
   const genesisRow = preorderOnly
     ? null
     : mode === 'leverage'
@@ -194,10 +194,10 @@ export function ParticipationPanel({
     setInvalid(false)
   }
 
-  // 支付资产钱包余额（Balance/Max 来源；快照缺失符号=undefined→null 槽位态）
+  // Payment asset wallet balance (source of Balance/Max; snapshot-missing symbol=undefined → null slot state)
   const walletBalance = walletBalances[payAsset] ?? null
   const preorderWalletBalance = walletBalances[effectivePreorderAsset] ?? null
-  // 余额不足（2026-10-04 全站口径）：余额已知且输入>余额；上限类既有错误优先显示，单错误行
+  // Insufficient balance: balance known and input > balance; existing cap-type errors take display priority, single error row
   const balanceShort =
     walletBalance != null && Number.isFinite(numericAmount) && numericAmount > walletBalance
   const showBalanceShort =
@@ -207,8 +207,8 @@ export function ParticipationPanel({
     Number.isFinite(numericPreorder) &&
     numericPreorder > preorderWalletBalance
 
-  /** 余额/Max 行（swap-panel 同款结构；代币符号由相邻 Pay with 展示不重复——2026-10-04 裁定先例；
-   *  快照缺失=-- + Max 禁用） */
+  /** Balance/Max row (same structure as swap-panel; token symbol not repeated, shown by the adjacent Pay with;
+   *  snapshot missing=-- + Max disabled) */
   function balanceRow(balance: number | null, onMax: () => void) {
     return (
       <span className="swap-panel__balance">
@@ -226,7 +226,7 @@ export function ParticipationPanel({
     )
   }
 
-  // 金额输入 Field：stake 分支独立成行；direct/credit/预购与 Pay with 并排（用户裁定 2026-09-25 排版收紧）
+  // Amount input Field: stake branch gets its own row; direct/credit/preorder side by side with Pay with
   const amountField = (
     <Field
       data-invalid={
@@ -446,7 +446,7 @@ export function ParticipationPanel({
         <FieldLegend>{copy.verse.participateTitle}</FieldLegend>
         <FieldGroup>
           <Field>
-            {/* 顶层模式切换：tab 风格，底边线兼作分割线（ax-echo-bar 签名线锚定其下），区别于路径的分段框 */}
+            {/* Top-level mode toggle: tab style, bottom edge line doubles as divider (ax-echo-bar signature line anchors below it), distinct from the route segmented control */}
             <ToggleGroup
               className="participation-toggle participation-toggle--mode ax-echo-bar"
               variant="outline"
@@ -493,15 +493,15 @@ export function ParticipationPanel({
                   </ToggleGroupItem>
                 )}
               </ToggleGroup>
-              {/* 路径说明只留 stake（描述路径行为，用户裁定 2026-09-25）；direct/credit 的支付方式说明移至 Pay with 下拉下方 */}
+              {/* Route description kept only for stake (describes route behavior); direct/credit payment-method descriptions moved below the Pay with dropdown */}
               {effectiveRoute === 'stake' ? (
                 <FieldDescription>{fill(copy.verse.stakeHelp, { asset: payAsset, raise: raiseAssetSymbol })}</FieldDescription>
               ) : null}
             </Field>
           ) : null}
 
-          {/* 预购 tab：Verse 级容量进度条（已用/上限），位于支付资产+金额前作约束上下文；
-              快照缺失→容量区不渲染、CTA 禁用（null 不渲染，2026-10-05 用户裁定） */}
+          {/* Preorder tab: Verse-level capacity progress bar (used/cap), placed before payment asset + amount as constraint context;
+              snapshot missing → capacity area not rendered, CTA disabled (null renders nothing) */}
           {preorderOnly && versePreorderCap != null ? (
             <Field>
               <ProgressMeter
@@ -517,7 +517,7 @@ export function ParticipationPanel({
           ) : null}
 
           {effectiveRoute === 'stake' ? (
-            /* 质押路径三格同行（用户裁定 2026-09-25）：来源/参与资产/金额一排，金额列最宽 */
+            /* Stake route three cells in one row: source/participating asset/amount in one row, amount column widest */
             <div className="participation-trio">
               <Field>
                 <FieldLabel htmlFor="stake-source">{copy.verse.stakeSourceLabel}</FieldLabel>
@@ -579,7 +579,7 @@ export function ParticipationPanel({
               {amountField}
             </div>
           ) : (
-            /* 支付资产与金额并排（用户裁定 2026-09-25：单行各占一格太占空间）；预购支付资产组与直付同款（uAsset 直付+储备面值直兑） */
+            /* Payment asset and amount side by side (a single row with one cell each takes too much space); preorder payment asset group matches direct payment (uAsset direct payment + reserve par direct swap) */
             <div className="participation-duo">
               <Field>
                 <FieldLabel htmlFor="payment-asset">{copy.verse.payAsset}</FieldLabel>
@@ -611,7 +611,7 @@ export function ParticipationPanel({
                     {payAsset}
                   </p>
                 ) : null}
-                {/* 支付方式说明紧贴 Pay with 下拉（用户裁定 2026-09-25）：预购/普通/杠杆 direct/credit 统一分发 */}
+                {/* Payment-method description right under the Pay with dropdown: preorder/standard/leverage direct/credit uniformly dispatched */}
                 <FieldDescription>
                   {fill(
                     preorderOnly

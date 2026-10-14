@@ -4,10 +4,11 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  // disabled 不摘 pointer-events：保留悬停手指光标与 title 提示（原型禁用钮承载机制说明；
-  // 2026-09-24 用户裁定——disabled:pointer-events-none 会连 hover/title 一起吃掉，按钮像坏的）。
-  // disabled 视觉档已删（2026-09-26 用户裁定「根本没有禁用的按钮」）：不降不透明度，
-  // disabled 与 enabled 渲染一致，disabled 属性仅承担交互门控
+  // disabled does not strip pointer-events: keeps the hover pointer cursor and title tooltip
+  // (disabled:pointer-events-none swallows hover/title along with it, making the button look
+  // broken). No separate disabled visual grade: no opacity reduction; disabled renders identically
+  // to enabled, and the disabled attribute only gates interaction (disabled prototype buttons
+  // still carry mechanism explanations via title)
   "group/button inline-flex shrink-0 cursor-pointer items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-[color,background-color,border-color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:cursor-pointer aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
@@ -61,10 +62,11 @@ function Button({
       {...props}
     />
   )
-  // 链接钮画皮承接层（2026-09-28 方案 C）：Chromium 不在 :link/:visited 子树光栅化
-  // paint() 图像（w3c/css-houdini-drafts#1178），链接渲染的按钮自身画皮全灭。
-  // 外层 plate 是链接的祖先（不在封杀范围），由它持 paint 皮肤；锚点退化为文字层。
-  // 仅 nativeButton={false}（render={<Link>/<a>}）走此结构，真 <button> 不包。
+  // Paint-skin carrier layer for link buttons: Chromium does not rasterize paint() images inside
+  // :link/:visited subtrees, so a link-rendered button's own paint skin dies entirely. The outer
+  // plate is an ancestor of the link (outside the kill zone), so it carries the paint skin; the
+  // anchor degrades to a text layer. Only nativeButton={false} (render={<Link>/<a>}) takes this
+  // structure; a real <button> is not wrapped.
   if (nativeButton === false) {
     return (
       <span data-slot="button-plate" data-variant={variant}>

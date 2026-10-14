@@ -3,16 +3,18 @@ import { IBM_Plex_Mono, IBM_Plex_Sans, Saira_Condensed } from 'next/font/google'
 // Production font source. tokens.css composes these variables into
 // --font-display / --font-body / --font-data. Declare each family exactly once.
 //
-// display 维持 swap（2026-10-09 用户否决 optional 实验）：optional 在开发态
-// （dev server 静态资源不缓存，每次刷新都冷加载）与任何绕缓存的刷新下，
-// 字体错过 100ms 阻塞期即整页锁死后备字体、永不换装——用户实见系统黑体
-// 冒充 Noto。刷新闪变真因=Next 对动态路由段不下发 next/font preload（差分
-// 实证见决议 029）；拉丁已由 font-preload.tsx 补发 preload 修复。
+// display stays swap: with optional, in development (dev server static assets are uncached,
+// every refresh loads cold) and under any cache-bypassing refresh, a font that misses the 100ms
+// block period locks the whole page onto the fallback forever, never re-dressing — users actually
+// saw the system sans impersonating Noto. The real cause of refresh flicker = Next not emitting
+// next/font preload for dynamic route segments; font-preload.tsx fixes the Latin side by
+// re-emitting preloads.
 //
-// 中文 Noto Sans SC 不在此声明（决议 029 补充 2）：next/font 形态=4 字重
-// × 113 分片共 452 个不可预载 face，是刷新闪变主源；已改为全站文案子集的
-// 自托管变体单文件（scripts/build-cjk-font.mjs 产物，@font-face 与预载见
-// font-preload.tsx，覆盖对账 pnpm check:cjk-font）。
+// Chinese Noto Sans SC is not declared here: next/font's form =
+// 4 weights × 113 shards = 452 non-preloadable faces, the main refresh-flicker source; replaced
+// with a self-hosted single-file variant subsetting all site copy (artifact of
+// scripts/build-cjk-font.mjs; @font-face and preload in font-preload.tsx, coverage audit via
+// pnpm check:cjk-font).
 
 export const sairaCondensed = Saira_Condensed({
   weight: ['600', '700'],

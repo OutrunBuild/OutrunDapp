@@ -21,17 +21,24 @@ import { Input } from '@/components/ui/input'
 import { FieldError } from '@/components/ui/field'
 
 /**
- * Split/Merge POL 操作弹窗（2026-09-26 用户裁定：换向器两钮从恒禁用改可点弹窗；
- * 同日第二轮裁定：Rate 行与输出区删——1:1 恒等，输出=输入的复述，冗余）。
- * 机制：Split=1 POL → 1 PT + 1 YT（IPOLSplitter.sol:102）、Merge=等额销毁 PT 与 YT
- * 换回同额 POL（:104）——严格 1:1，合约无滑点/无 deadline 参数 → 不设设置齿轮；
- * 闸门仅 locked（unlock/settled 后 AlreadyUnlocked——unlocked 态按钮保持禁用不弹窗）；
- * CTA 纪律同 Mint 弹窗：未连接=Connect Wallet 可点切换模拟连接、已连接=操作钮禁用
- * （原型不伪造链上成交，无任何提示文案）。
- * 无估值行（2026-09-26 用户裁定删 split 输入 ≈$ 换算；PT/YT 本就无独立价样本）。
- * Max 零值禁用（2026-10-09 用户裁定「Max 按钮是坏的」）：amountToInputString(0)
- * 返回空串、点击无任何可见效果=死按钮观感——可填额 ≤0 时 Max 转入 disabled
- * （merge 双框=maxMerge=min(PT,YT)、split=POL 余额），余额 0 是诚实禁用态。
+ * Split/Merge POL action dialog (the PT/YT card action bar's Split/Merge buttons each open
+ * this dialog;
+ * no Rate row and no output area — 1:1 identity, output is
+ * a restatement of the input, redundant).
+ * Mechanism: Split=1 POL → 1 PT + 1 YT, Merge=burn equal PT and YT for
+ * the same amount of POL — strictly 1:1, the contract has no slippage/no deadline
+ * parameters → no settings gear;
+ * gate is locked only (unlock/settled reverts with AlreadyUnlocked; after unlock this dialog
+ * is not rendered — the bar switches to Redeem PT/YT);
+ * CTA discipline same as the Mint dialog: disconnected=Connect Wallet clickable to toggle mock
+ * connection, connected=action button disabled
+ * (no faked on-chain execution, no disclaimers).
+ * No valuation row (the split input ≈$ conversion is omitted; PT/YT have no
+ * independent price samples to begin with).
+ * Max disabled at zero: amountToInputString(0)
+ * returns an empty string and clicking has no visible effect = dead-button look — when the
+ * fillable amount is ≤0 Max goes disabled
+ * (merge dual boxes=maxMerge=min(PT,YT), split=POL balance); a 0 balance is an honest disabled state.
  */
 export function PolSplitMergeDialog({
   locale,
@@ -47,7 +54,7 @@ export function PolSplitMergeDialog({
   const copy = getCopy(locale).verseDesk
   const common = getCopy(locale).common
   const { connected, toggle } = useMockWallet()
-  // merge 两侧恒等额（合约同一 amount 两侧 burn）→ 单状态驱动双输入框
+  // merge's two sides are always equal (the contract burns the same amount on both sides) → a single state drives both input boxes
   const [amount, setAmount] = useState('')
   const balanceErrorId = useId()
 
@@ -56,13 +63,14 @@ export function PolSplitMergeDialog({
   const ytSymbol = `YT-${verse.symbol}`
   const maxMerge = Math.min(pol.myPt, pol.myYt)
   const clean = (raw: string) => setAmount(sanitizeAmount(raw))
-  // merge 双输入共享同一 amount → 错误行只挂 YT 框后一处，两输入同标 aria
+  // merge's two inputs share one amount → the error row mounts in a single place after the YT
+  // box, both inputs carry the same aria
   const parsed = Number(amount)
   const overBalance = mode === 'split' ? parsed > pol.myPol : parsed > maxMerge
 
   return (
     <Dialog>
-      {/* data-slot 钉回 button：同 PolMintDialog——主题桥按 [data-slot='button'] 匹配皮肤 */}
+      {/* data-slot pinned back to button: same as PolMintDialog — the theme bridge matches skins on [data-slot='button'] */}
       <DialogTrigger data-slot="button" render={<Button variant="outline" size="sm" />}>
         {mode === 'split' ? copy.splitPol : copy.mergePol}
       </DialogTrigger>

@@ -18,17 +18,20 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 
 type RedeemMode = 'redeem' | 'withdraw'
 
-/** 原型链环境映射（模拟粘合层，非领域数值）：fixture 治理链=主网 id（1/8453/56），
- * header 链选择器仅暴露测试网（GS-2 用户裁定）——「连接在治理链」的判定
- * 用治理链的测试网对应链（chains.json 同名族：Ethereum/Base/BNB 各自 Sepolia 系） */
+/** Mock chain-environment mapping (mock glue layer, not domain values): the fixture
+ * governance chain=mainnet ids (1/8453/56),
+ * the header chain selector only exposes testnets — the "connected on the governance chain"
+ * check uses the governance chain's corresponding testnet
+ * (same-name mainnet/testnet family: Ethereum/Base/BNB each with their Sepolia series) */
 const GOVERNANCE_TESTNET: Record<number, number> = { 1: 11155111, 8453: 84532, 56: 97 }
 
-/** EVM 地址口径（治理链族 = Ethereum/Base/BNB）：0x + 40 位十六进制；大小写均收，不校验 EIP-55 */
+/** EVM address scope (governance chain family = Ethereum/Base/BNB): 0x + 40 hex digits; accepts any casing, no EIP-55 validation */
 const EVM_ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/
 
 /**
- * 赎回等待倒计时（2026-09-26 用户裁定：走秒）：从 repository 给的快照剩余 remainingMs
- * 起按墙钟每秒递减（纯展示层 tick，非链上写），到 0 停表；template=copy.remaining（{t} 占位）。
+ * Redemption waiting countdown (ticking seconds): starts from the
+ * snapshot remainingMs given by the repository and decrements each second by wall clock (pure
+ * display-layer tick, not an on-chain write), stops at 0; template=copy.remaining ({t} placeholder).
  */
 function RedeemCountdown({ remainingMs, template }: { remainingMs: number; template: string }) {
   const [elapsedMs, setElapsedMs] = useState(0)
@@ -51,20 +54,32 @@ function RedeemCountdown({ remainingMs, template }: { remainingMs: number; templ
 }
 
 /**
- * Yield Vault 操作卡双列（2026-09-27 用户裁定：原三标签单卡通栏把 swap 窄卡原语拉到
- * 标签卡全宽 ~1100px，内容稀疏拉伸；改左列 Stake 常驻 + 右列 Redeem/Withdraw 标签切换，
- * 列比/断点随 POL 标签先例 1.15:0.85、<1024px 退单列）。卡内结构仍走 demo.outrun.build/
- * memeverse（2026-09-24 裁定）Amount 卡 → Details 卡 → 全宽 CTA → 脚注；复用 .swap-panel__*
- * 原语。CTA 通道（2026-09-27）：双卡同屏后为守「一屏一个主 CTA」——左列 Stake 保留黄
- * .swap-panel__cta（存入=主行动），右列 CTA 一律 outline（同 POL 标签操作钮先例）。
- * 链感知（omnichain.md §governance chain——vault 全部操作走治理链）：
- * - 连接网络 = header GS-2 链选择器唯一入口（2026-09-24 用户裁定：卡内芯片删除），经 mock 钱包 chainId 驱动；
- * - Stake 且连接链≠治理链 → 跨链模式（LayerZero 横幅 + 跨链费行 + Cross-chain Stake CTA）；
- * - Redeem/Withdraw 且≠治理链 → CTA 先切链（mock switchChain，非链上写）。
- * 状态列表进标签（2026-09-26 用户裁定，参照 demo 两图）：Redeem 标签尾=Pending Redemptions
- * （仅等待中条目：金额 + Redeemed on {日期} + 走秒倒计时）；Withdraw 标签头=Ready to Withdraw
- * （仅已成熟条目：金额 + Ready since {成熟日} + ✓ Ready），空态 '--'。
- * 原型只演示 ViewModel：写操作 CTA 一律禁用，不伪造链上成功。
+ * Yield Vault action cards in two columns: a left column with
+ * permanent Stake + a right column toggling Redeem/Withdraw
+ * (a full-width bar would stretch the swap narrow-card primitives to the tab card's
+ * full ~1100px width, leaving the sparse content stretched;
+ * column ratio/breakpoint 1.15:0.85 (same as the POL tab), collapsing to one column
+ * below 1024px). Stake/Redeem cards in-card structure: Amount card → Details card → full-width CTA → footnote;
+ * reuses the .swap-panel__*
+ * primitives. CTA channels: with both cards on screen, to keep "one primary CTA
+ * per screen" — the left column Stake keeps the yellow
+ * .swap-panel__cta (deposit=primary action), the right column's CTAs are all outline (same as
+ * the POL tab action button).
+ * Chain awareness (all vault operations go through the
+ * governance chain):
+ * - Connected network = the header chain selector is the only entry
+ * (no in-card chip), driven by the mock wallet's chainId;
+ * - Stake with connected chain≠governance chain → cross-chain mode (LayerZero banner +
+ * cross-chain fee row + Cross-chain Stake CTA);
+ * - Redeem/Withdraw with ≠governance chain → the CTA switches chain first (mock switchChain,
+ * not an on-chain write).
+ * Status lists live inside the tabs: the Redeem
+ * tab's tail=Pending Redemptions
+ * (waiting entries only: amount + Redeemed on {date} + seconds countdown); the Withdraw tab's
+ * head=Ready to Withdraw
+ * (matured entries only: amount + Ready since {maturity date} + ✓ Ready), empty state '--'.
+ * Mock layer only demonstrates the ViewModel: write-action CTAs are always disabled, no
+ * faked on-chain success.
  */
 export function VaultActions({
   locale,
@@ -75,8 +90,9 @@ export function VaultActions({
   myShares,
   myMemecoin,
   pendingRedeems,
-  // 契约调用参数（delegate(delegatee) 入参），非显示字段——UI 无显示设计（2026-10-08 用户裁定）；
-  // 原型无真实交易，参数接收待接线
+  // Contract call parameter (delegate(delegatee) input), not a display field — no display
+  // design in the UI;
+  // no real transactions; receiving the parameter is pending wiring
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   delegatee,
   governanceChain,
@@ -85,27 +101,27 @@ export function VaultActions({
 }: {
   locale: Locale
   symbol: string
-  /** 份额符号 = s + Memecoin 符号 */
+  /** Share symbol = s + Memecoin symbol */
   shareSymbol: string
   assetsPerShare: number
   claimableTotal: number
-  /** 样本账户份额（Redeem 的 Balance/Max 来源） */
+  /** Sample account shares (source of Redeem's Balance/Max) */
   myShares: number
-  /** 样本账户本 verse memecoin 余额（pol-positions myMemecoin；Stake 的 Balance/Max 来源，null=槽位态） */
+  /** Sample account's this-verse memecoin balance (pol-positions myMemecoin; source of Stake's Balance/Max, null=slot state) */
   myMemecoin: number | null
-  /** 两步异步赎回条目（含 ready 分流与 remainingMs 走秒起点；展示层按标签过滤） */
+  /** Two-step async redemption entries (including the ready split and the remainingMs countdown start; the display layer filters by tab) */
   pendingRedeems: FixtureStaking['pendingRedeems']
   delegatee: string
-  /** 治理链 chainId（vault 所在链，omnichain.md §The governance chain） */
+  /** Governance chain chainId (the chain hosting the vault) */
   governanceChain: number
   governanceChainName: string
-  /** ?action=withdraw 深链初值：组合表 Withdraw 落进来直接见 READY 列表（2026-10-04 用户裁定）；redeem 是默认态，无需 prop 预设 */
+  /** ?action=withdraw deep-link initial value: landing from the portfolio table's Withdraw shows the Ready to Withdraw list directly; redeem is the default state, no prop preset needed */
   initialRedeemMode?: 'withdraw'
 }) {
   const copy = getCopy(locale).verseDesk
   const { connected, chainId, toggle, switchChain } = useMockWallet()
-  /** 双卡同屏：左右列金额各自独立（共享会在两卡间串值） */
   const [redeemMode, setRedeemMode] = useState<RedeemMode>(initialRedeemMode ?? 'redeem')
+  /** Two cards on screen: left/right column amounts are independent (sharing would bleed values between the two cards) */
   const [stakeAmount, setStakeAmount] = useState('')
   const [redeemAmount, setRedeemAmount] = useState('')
   const [delegateSelf, setDelegateSelf] = useState(true)
@@ -131,7 +147,8 @@ export function VaultActions({
       {getCopy(locale).common.connect}
     </Button>
   )
-  /* 右列同款 CTA 的 outline 通道（黄通道只留左列 Stake——一屏一个主 CTA） */
+  /* Outline channel for the right column's same CTAs (the yellow channel is reserved for the
+     left column's Stake — one primary CTA per screen) */
   const switchCtaAlt = (
     <Button variant="outline" className="swap-panel__cta" onClick={() => switchChain(governanceWalletChain)}>
       {copy.switchChainCta.replace('{chain}', governanceChainName)}

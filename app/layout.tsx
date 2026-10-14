@@ -9,12 +9,12 @@ import { getDisplayLocale } from '@/lib/locale';
 
 import './globals.css';
 
-// 预水合画皮装载（刷新闪变修复，2026-10-09 用户裁定）：原 PaintSkin 在 useEffect
-// 里 addModule，首帧到水合之间 paint() 光栅化为空——按钮裸奔后补描边即「闪一下」。
-// 此内联脚本随 HTML 解析同步执行（nonce 取自 proxy.ts 的 x-nonce，CSP
-// strict-dynamic 下无 nonce 的内联会被拦），把 --dpr 与 worklet 注册抢到首帧前；
-// 语义与 PaintSkin 完全一致（__paintBooted 先置再注册、resolve/reject 都打
-// data-paint-ready），组件侧见 __paintBooted 守卫。
+// Pre-hydration paint skin boot: a worklet registered only in PaintSkin's useEffect leaves the frames before
+// hydration unpainted — paint() rasterizes to nothing between the first frame and hydration, so buttons run
+// bare and get their strokes back a beat later (the "flash"). This inline script runs synchronously during HTML
+// parsing (nonce taken from proxy.ts's x-nonce; under CSP strict-dynamic, inline scripts without a nonce are blocked),
+// sets --dpr and registers the worklet before the first frame. Semantics are identical to PaintSkin
+// (__paintBooted set before registering, both resolve/reject set data-paint-ready); see the __paintBooted guard on the component side.
 const PAINT_BOOT_JS = [
   '(function(){',
   'var r=document.documentElement;',
@@ -24,7 +24,7 @@ const PAINT_BOOT_JS = [
   'window.__paintBooted=true;',
   "pw.addModule('/paint/chamfer-border.js').then(",
   "function(){r.dataset.paintReady='1'},",
-  "function(e){console.error('[paint-skin] worklet 注册失败',e);r.dataset.paintReady='1'}",
+  "function(e){console.error('[paint-skin] worklet registration failed',e);r.dataset.paintReady='1'}",
   ');',
   '})()',
 ].join('');
@@ -58,9 +58,9 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // x-nonce 由 proxy.ts 逐请求注入（architecture §14）；全站本就动态渲染，此处
-  // 读 headers 不引入新的渲染降级。缺失时内联脚本无 nonce 会被 CSP 拦，
-  // PaintSkin 的 __paintBooted 守卫兜底回 useEffect 注册路径
+  // x-nonce is injected per request by proxy.ts; the site is already fully dynamically rendered,
+  // so reading headers here changes nothing about the rendering mode. When missing, the inline script has no nonce and is
+  // blocked by CSP; PaintSkin's __paintBooted guard falls back to the useEffect registration path
   const nonce = (await headers()).get('x-nonce') ?? undefined;
 
   return (
@@ -69,8 +69,9 @@ export default async function RootLayout({
         <FontPreloadLinks />
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: PAINT_BOOT_JS }} />
         <PaintSkin />
-        {/* 标题信号失真的湍流滤镜（.ax-fault-title 爆窗帧引用，globals.css）：x 频率≈0
-              → 每条扫描线整体水平位移 = 信号撕裂质感；baseFrequency x 保持 0 是形征 */}
+        {/* Turbulence filters for the title signal distortion (referenced by .ax-fault-title glitch burst frames, globals.css):
+              x frequency ≈ 0 → each scanline shifts horizontally as a whole = signal-tear texture; baseFrequency x
+              staying 0 is the shape signature */}
         <svg aria-hidden="true" focusable="false" className="ax-fault-defs">
           <defs>
             <filter id="fault-turb-a" x="-20%" y="-20%" width="140%" height="140%">
@@ -94,9 +95,9 @@ export default async function RootLayout({
           </defs>
         </svg>
         {children}
-        {/* 全站 CRT 扫描线（023 补充 10 提升至 body 级）：单一横纹组件——原挂壳层末尾
-            时 dialog portal（body 直挂、z-50）绘制于其上吃不到膜；body 级 z-overlay
-            盖住包括弹窗在内的全部内容，页面与弹窗同一张膜 */}
+        {/* Site-wide CRT scanlines, mounted at body level: a single horizontal-stripe component — when it
+            hung at the end of the shell, dialog portals (mounted on body, z-50) painted above it and missed the film; at body level
+            z-overlay covers all content including dialogs, so pages and dialogs share one film */}
         <div className="ax-scanlines" aria-hidden="true" />
       </body>
     </html>

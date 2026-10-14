@@ -1,6 +1,7 @@
 import type { SVGProps } from 'react'
 
-// 品牌图标：simple-icons 官方 path（cdn.simpleicons.org，程序化注入零手抄）
+// Brand icons: official simple-icons paths (cdn.simpleicons.org, injected
+// programmatically, zero hand-copying)
 type BrandIconProps = SVGProps<SVGSVGElement>
 
 function BaseIcon({ path, ...props }: BrandIconProps & { path: string }) {

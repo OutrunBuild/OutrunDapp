@@ -4,8 +4,9 @@
 // Usage:
 //   node scripts/export-abi.mjs --src <forge-out-dir> --list <abi-list.json> --repo <memeverse|outstake|kernel>
 //
-// - Walks --src for artifact JSONs (compatible with `out/<File.sol>/<Contract>.json`
-//   and `out/<Contract>.json` layouts), takes the top-level `abi` array.
+// - Walks --src for artifact JSONs (compatible with Foundry's per-source
+//   `out/<dir>/<Contract>.json` layout and the flat `out/<Contract>.json` layout), takes the
+//   top-level `abi` array.
 // - Filters by the --repo key of the list file; names not in the list are skipped.
 // - A listed name with no artifact fails the run (no silent misses).
 // - Writes `contracts/abi/v1-rc/<Name>.json` (content = JSON.stringify(abi, null, 2) + "\n").

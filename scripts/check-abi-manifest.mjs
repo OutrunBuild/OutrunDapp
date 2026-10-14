@@ -6,7 +6,7 @@
 // ④ deployments/{chainId}.json cross-checks against the manifest (addresses, deployment
 // blocks, abiVersion, kernel codehash, implementation codehashes);
 // ⑤ no plaintext API-key patterns in manifest/deployments.
-// On-chain live codehash re-reads are release certification (stage-04 steps 9/12), not CI.
+// On-chain live codehash re-reads are release certification, not CI.
 
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
@@ -72,7 +72,7 @@ for (const chainId of chainIds) {
     const [base, inst] = name.split('.');
     const entry = mc.contracts[base];
     if (!entry) {
-      if (name === 'UniswapV4PoolManager') continue; // trusted infra beyond the ABI list (§14)
+      if (name === 'UniswapV4PoolManager') continue; // trusted infra beyond the ABI list
       fail(`${chainId}: deployments contract not in manifest: ${name}`);
       continue;
     }
@@ -118,7 +118,7 @@ for (const chainId of chainIds) {
   // implementationCodehashes: keyed by implementation display name (generation-time source =
   // the same address-keyed chain reads as the manifest, see generate-deployment-artifacts.mjs);
   // offline CI re-verifies table presence/shape (schema) — address↔name binding is
-  // release-certification territory (steps 9/12 cast re-reads), not reconstructible here.
+  // release-certification territory (on-chain code re-reads), not reconstructible here.
   if (Object.keys(config.implementationCodehashes).length === 0)
     fail(`${chainId}: implementationCodehashes empty`);
 }
@@ -138,4 +138,6 @@ if (problems.length > 0) {
   for (const p of problems) console.error(` - ${p}`);
   process.exit(1);
 }
-console.log('abi/manifest integrity OK：schema/SHA256/EIP-55/交叉一致/key 扫描全过');
+console.log(
+  'abi/manifest integrity OK: schema/SHA256/EIP-55/cross-consistency/key scan all passed',
+);

@@ -1,8 +1,12 @@
-// e2e 共享：基线路由表与确定性时钟锚点（visual.spec / a11y.spec 共用）
-// 新页面交付：人工三档抽查后补进 PAGES（agent-workflow.md §3.2）
-// connectWallet: true = 截图/扫描前点 product-topbar 钱包钮切到连接态
-// （2026-10-08 裁定：未连接=无用户参与态，数据卡隐藏——数据富集布局走连接态基线，
-//  *-disconnected 条目锁未连接默认态，防闸门失效数据泄漏回页面）。
+// e2e shared: baseline route table and deterministic clock anchor
+// (shared by visual.spec / a11y.spec)
+// New page delivery: after manual three-tier spot checks, add to PAGES
+// connectWallet: true = click the product-topbar wallet button before the
+// screenshot/scan to enter the connected state
+// (disconnected = no-user-participation state, data cards
+// hidden — data-enriched layouts use the connected-state baseline;
+//  *-disconnected entries lock the disconnected default state, preventing
+// gate failure from leaking data back onto pages).
 export const FIXED_NOW = new Date('2026-10-01T00:00:00Z');
 
 export type VisualPage = { name: string; path: string; connectWallet?: boolean };

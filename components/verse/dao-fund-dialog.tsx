@@ -14,13 +14,11 @@ import {
 import { getCopy } from '../global/copy'
 import { formatAmount, formatPercent } from '../global/signal-ui'
 
-/** >>> 动态符（青色功能信号徽章；三 chevron 流动动画——标示可点开资金明细，参照 demo）。
- *  单 SVG 三 path 方案（2026-09-26 七次微调定参）：间距由 path 坐标几何定义
- *  （advance 9、字宽 6 → 笔画间隙 3 单位 ≈2.6px），viewBox 紧贴描边边界，
- *  渲染 19.25×11（chevron 实高 ~8.25px）；cap/join=butt/miter 尖角棱线、描边 2；
- *  颜色=--or-cyan（可点明细=功能信号——品红回声改青，用户裁定）。
- *  沿革：字符 >（顶角太尖）→ 三独立 SVG（假间距）→ 单 SVG round 2.5（太圆润）
- *  → butt/miter 2.2 品红 → 本版 */
+/** >>> animated glyph (cyan functional-signal badge; three-chevron flowing animation — marks
+ *  tappable fund details). Single SVG with three paths: spacing is defined by path coordinate
+ *  geometry (advance 9, glyph width 6 → stroke gap 3 units ≈2.1px = 3 × 19.25/28), viewBox hugging the stroke bounds,
+ *  rendered 19.25×11 (actual chevron height ~8.25px); cap/join=butt/miter sharp facets,
+ *  stroke 2; color=--or-cyan (tappable details = functional signal) */
 export function DaoDots() {
   return (
     <svg className="dao-dots" viewBox="7 4 28 16" fill="none" aria-hidden="true" focusable="false">
@@ -40,15 +38,18 @@ export function DaoDots() {
 }
 
 /**
- * DAO 资金明细弹窗（参照 demo.outrun.build/memeverse/26：Total Value + 多资产行）。
- * 触发 = 带 >>> 动态符的可点数据卡（当期/上期国库、未领取奖励）；
- * 构成 = governance fixture 资产样本（S 级，总额锚 treasuryUAsset/remainingRewards）。
- * 触发器渲染为原芯片 div（DialogTrigger render 范式）；布局随档位：>640px=KPI 芯片网格、
- * ≤640px=hairline 行（globals.css 移动端重构块，2026-10-05）。
- * actionLabel=底部主 CTA（可领明细弹窗领取钮，参照图同款；点击关闭弹窗——原型模拟）。
- * triggerButton=按钮触发变体（2026-10-05 用户裁定：可领行触发面积收回按钮本身，
- * 整行不再触发；>>> 移入按钮文案后）——传此参时忽略 children，渲染
- * outline 钮（label + DaoDots）作触发器，dialog 内容不变。
+ * DAO fund breakdown dialog: shows Total Value + multi-asset rows. Trigger = tappable data card
+ * with the >>> animated glyph (current/prior
+ * treasury, unclaimed rewards). Composition = governance fixture asset samples,
+ * totals anchored to treasuryUAsset/remainingRewards. The trigger renders as the original
+ * chip div (DialogTrigger render pattern); layout by breakpoint: >640px=KPI chip grid,
+ * ≤640px=hairline rows (globals.css).
+ * actionLabel=bottom primary CTA (claim button of the claimable-details dialog;
+ * clicking closes the dialog — no faked on-chain execution).
+ * triggerButton=button-trigger variant: the claimable row's trigger
+ * area shrinks back to the button itself, the whole row is not a trigger; >>> lives in
+ * the button copy — when passed, children is ignored and an outline button (label + DaoDots)
+ * renders as the trigger; dialog content unchanged.
  */
 export function DaoFundDialog({
   locale,
@@ -79,16 +80,18 @@ export function DaoFundDialog({
           <DaoDots />
         </DialogTrigger>
       ) : (
-        /* className 必须走 prop 通道：包装件自带 className 时 base-ui 合并会丢弃 render
-           元素上的 className（cycle-card__hit 静默失效=桌面 hover 亮边/青描边与移动端
-           整行按压反馈全不生效，2026-10-05 修） */
+        /* className must go through the prop channel: when the wrapper carries its own
+           className, base-ui merging drops the className on the render element
+           (cycle-card__hit silently failing = desktop hover glow/cyan outline and the mobile
+           full-row press feedback all dead) */
         <DialogTrigger nativeButton={false} render={<div />} className="cycle-card__hit">
           {children}
         </DialogTrigger>
       )}
       <DialogContent className="dao-fund-pop">
-        {/* 壳复用 .pol-mint（同 POL/Liquidity/Swap 弹窗）：底色/描边光/padding 都在这层，
-            缺了它弹窗只剩虚化遮罩、内容透底（2026-09-30 修复） */}
+        {/* Shell reuses .pol-mint (same as the POL/Liquidity/Swap dialogs): surface/stroke
+            glow/padding all live on this layer; without it the dialog is just a blurred mask
+            with content see-through */}
         <div className="pol-mint">
           <header className="pol-mint__head">
             <DialogTitle className="pol-mint__title">{title}</DialogTitle>
@@ -139,18 +142,20 @@ export function DaoFundDialog({
               )
             })}
           </ul>
-          {/* CTA 恒 disabled：原型不伪造链上成交（同 PolMintDialog 契约）；本仓 Button disabled
-              渲染与 enabled 一致——参照图的通栏主钮观感保留，交互门控 */}
+          {/* CTA always disabled: no faked on-chain execution (same
+              as PolMintDialog); in this repo Button disabled renders identically to enabled —
+              the full-width primary button look is kept, interactions gated */}
           {actionLabel ? (
             <Button className="swap-panel__cta" disabled>
               {actionLabel}
             </Button>
           ) : null}
-          {/* 白名单口径注脚（2026-09-30 源码对账）：明细只覆盖治理注册的代币注册表——
-              getTreasuryBalances→treasuryTokenList、getClaimableReward→rewardTokenList
-              （GovernanceCycleIncentivizerUpgradeable.sol:266/:199）；Governor 持有的
-              未注册代币不入账本不显示。原四弹窗统一一条（用户裁定）；
-              2026-10-06 裁定：未领取/可领两弹窗不再显示，仅国库两弹窗保留 */}
+          {/* Whitelist-scope footnote: the breakdown only
+              covers the governance-registered token registry —
+              treasury balances read treasuryTokenList, claimable rewards read rewardTokenList;
+              unregistered tokens held
+              by the Governor stay off the ledger and are not shown. Rendered only in the two
+              treasury dialogs, not in the unclaimed/claimable dialogs */}
           {showRegisteredNote ? (
             <p className="dao-fund-pop__note">{copy.registeredAssetsNote}</p>
           ) : null}

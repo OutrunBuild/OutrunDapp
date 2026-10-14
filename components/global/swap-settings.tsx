@@ -1,13 +1,16 @@
 'use client'
 
 /**
- * Swap 设置层（滑点/截止齿轮 Popover）——swap 卡与 verse 交易弹窗族（Mint POL/
- * 加池/移除池/Flash Swap）共用的唯一实现。2026-10-08 由五处逐份复制收敛（同位置
- * 先例=fmtUsd/sanitizeAmount 收敛，component-contract §1）；行为契约=§17/§22/
- * §24/§25/§26。受控口径（§25 拍板 A 的机制落地）：value 存 string 原样展示——
- * 键入中间态（尾点/空串）不经 Number() 落盘，旧 number 状态会把 0.25 静默吞成 25、
- * 非整分钟就地报错不可达；数值推导在消费方经 slippageToNumber/deadlineToNumber。
- * error id 内走 useId（池弹窗每卡一实例防相撞，§22 口径）。
+ * Swap settings layer (slippage/deadline gear Popover) — the sole implementation shared
+ * by the swap card and the verse trade dialog family (Mint POL/add liquidity/remove
+ * liquidity/Flash Swap) and the portfolio protection-exit dialog. Controlled convention:
+ * value stores the string as typed —
+ * typing intermediate states (trailing dot/empty string) never pass through Number()
+ * into storage; a number state would silently swallow 0.25 into 25, making the
+ * whole-minute in-place error unreachable; value derivation happens at the consumer via
+ * slippageToNumber/deadlineToNumber.
+ * The error id internally uses useId (one instance per card in pool dialogs to avoid
+ * collisions).
  */
 import { useId } from 'react'
 import { Info, Settings2 } from 'lucide-react'
@@ -30,7 +33,8 @@ import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
-/** 设置项/明细行标签旁的解释气泡（复用 create 页 ⊙ 提示语言；明细行语境同样可用） */
+/** Explanation bubble next to setting/detail-row labels (reuses the create page's ⊙ tip
+ * language; equally usable in detail-row contexts) */
 export function SettingsTip({ text }: { text: string }) {
   return (
     <Tooltip>
@@ -42,9 +46,11 @@ export function SettingsTip({ text }: { text: string }) {
   )
 }
 
-/** 齿轮设置层（受控组件）：slippage/deadline 值均为展示原样 string、预设点击回写
- * String(preset)；deadline 组省略=不渲染截止行（合约无 deadline 参数的场景，如
- * Flash Swap——可选限价+到期不做，同其组件头注口径） */
+/** Gear settings layer (controlled component): slippage/deadline values are
+ * display-as-typed strings; preset clicks write back String(preset); omitting the
+ * deadline group = the deadline row is not rendered (for contracts without a deadline
+ * param, e.g. Flash Swap — an optional limit price + expiry is out of scope, matching
+ * its component header note) */
 export function SwapSettings({
   locale,
   settingsLabel,
@@ -54,7 +60,8 @@ export function SwapSettings({
   deadline,
 }: {
   locale: Locale
-  /** 齿轮 aria-label（各语境定名：swap 卡/Mint/加池/移除池…） */
+  /** Gear aria-label (named per context: swap card/Mint/add liquidity/remove
+   * liquidity…) */
   settingsLabel: string
   slippageTip: string
   slippageValue: string

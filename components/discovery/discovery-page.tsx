@@ -42,7 +42,8 @@ export function DiscoveryPage({ locale, searchParams }: DiscoveryPageProps) {
   const availableChains = new Set(snapshot.verses.map((verse) => String(verse.governanceChain)))
   const chain = chainValue && availableChains.has(chainValue) ? chainValue : 'all'
   const modeValue = first(searchParams.mode)
-  // 模式筛选仅适用于创世阶段（2026-10-01 用户裁定）：其余阶段忽略 mode，防隐藏过滤
+  // Mode filter applies only to the genesis stage: other stages ignore
+  // mode, preventing hidden filtering
   const mode = stage === 'genesis' && (modeValue === 'fast' || modeValue === 'normal') ? modeValue : 'all'
   const query = first(searchParams.q)?.slice(0, 80) ?? ''
 

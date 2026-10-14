@@ -22,7 +22,8 @@ function GlossTerm({ gloss }: { gloss: TermGlossEntry }) {
   )
 }
 
-/** 复用处术语释义：按术语表切分字符串、命中处挂悬停气泡；首现定义仍在机制段正文，不在此重复 */
+/** Term glosses at reuse sites: splits the string by the glossary and attaches hover bubbles at
+ *  hits; first-occurrence definitions stay in the mechanism section body and are not repeated here */
 export function TermGlossText({
   text,
   glosses,

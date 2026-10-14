@@ -1,6 +1,7 @@
-// 为 markets.json 全部蜡烛补确定性成交量 v（uAsset 计价样本）。
-// 口径：基础量 + 波动放大（|Δc/o| 越大量越大），与价格同为假数据——原型看效果（2026-09-23）。
-// 幂等：已有 v 的蜡烛跳过。用法：pnpm node scripts/gen-candle-volumes.mjs
+// Backfills deterministic volume v (uAsset-denominated sample) for every candle in markets.json.
+// Basis: base volume + volatility amplification (the larger |Δc/o|, the larger the volume); fake data
+// same as prices -- for prototype visuals.
+// Idempotent: candles that already have v are skipped. Usage: pnpm node scripts/gen-candle-volumes.mjs
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const marketsPath = new URL('../fixtures/data/markets.json', import.meta.url);

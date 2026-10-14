@@ -1,13 +1,17 @@
 import type { SVGProps } from 'react'
 
-// 代币资产身份图标（2026-10-07 定稿；2026-10-09 扩 sUSDS/aUSDC——/faucet 领取行）：
-// - uAsset 族（UUSD/UETH/UBNB，Credit 前缀匹配共用）= Outrun 品牌章 v3.1：黄地圆
-//   #FCEE0A + 品红锚定字形（logo-yellow / logo-magenta-bright），几何=官方标轮廓
-//   追踪 + 对标调轻 $，构造与审计见 docs/design/token-icons/README.md
-// - 储备/原生/生息代币（BNB/ETH/USDC/USDT/sUSDS/aUSDC）= 官方代币图标：USDC/USDT/ETH/
-//   BNB=CoinGecko/Trust Wallet 代币资产源；sUSDS=Sky 官方 CoinGecko 收录资产
-//   （assets.coingecko.com coins/52721，绿币白 S）；aUSDC=Aave 官方 aave-ui-kit 内嵌
-//   组合标（USDC+Aave 徽标，256 SVG）——第三方资产不套品牌章，用官方标
+// Token asset identity icons (sUSDS/aUSDC serve the /faucet claim rows):
+// - uAsset family (UUSD/UETH/UBNB; prefix matching also matches the Credit-variant
+//   symbols, e.g. UETH(Credit)) = Outrun brand
+//   emblem: yellow disc #FCEE0A + magenta-anchored glyph (logo-yellow /
+//   logo-magenta-bright); geometry traced from the official mark outline, with the $
+//   lightened
+// - Reserve/native/yield-bearing tokens (BNB/ETH/USDC/USDT/sUSDS/aUSDC) = official
+//   token icons: USDC/USDT/ETH/BNB from the CoinGecko/Trust Wallet token asset
+//   sources; sUSDS = Sky's official CoinGecko-listed asset (assets.coingecko.com
+//   coins/52721, green coin with a white S); aUSDC = the combined mark embedded in
+//   Aave's official aave-ui-kit (USDC + Aave badge, 256 SVG) — third-party assets do
+//   not wear the brand emblem; official marks are used
 const TOKEN_ICON: Record<string, string> = {
   UUSD: '/tokens/uusd.svg',
   UETH: '/tokens/ueth.svg',
@@ -20,7 +24,8 @@ const TOKEN_ICON: Record<string, string> = {
   aUSDC: '/tokens/ausdc.svg',
 }
 
-/** 是否有已知代币图标（uAsset 品牌章 + 储备/原生官方图标，前缀匹配） */
+/** Whether a known token icon exists (uAsset brand emblem + reserve/native official
+ * icons, prefix matching) */
 export function hasTokenIcon(symbol: string): boolean {
   return Object.keys(TOKEN_ICON).some((prefix) => symbol.startsWith(prefix))
 }

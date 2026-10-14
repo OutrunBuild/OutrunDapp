@@ -1,25 +1,30 @@
 import { expect, test, type Page } from '@playwright/test';
 
-// 语言切换零副作用回归闸（2026-10-08 测试盲区裁决 [F]；裁决本体 = architecture.md §22
-// 2026-09-26）：/zh 与无前缀形态共用 /en 路由树，切换 = push+refresh 仅换语言载荷、
-// 组件状态全保；返回键经 popstate 对账恢复「URL 口径 = 渲染语言」。断言取语义
-// selector 与 URL/lang 属性，不钉 copy；仅桌面档（同 dialog-a11y/swap-settings 口径）、
-// 不截屏不写快照。
+// Locale-switch zero-side-effect regression gate: /zh and the
+// no-prefix form share the /en route tree; switching = push+refresh swapping
+// only the language payload with all component state preserved; the back key
+// recovers "URL standard = rendered language" via a popstate reconciliation.
+// Assertions use semantic selectors and URL/lang attributes, not pinned copy;
+// desktop tier only (same standard as dialog-a11y/swap-settings); no
+// screenshots, no snapshots.
 
 const VERSE_LOCKED = '/memeverse/2';
 
-/** 点开语言菜单并切到对端语言（当前项 data-current="true"，目标项无该属性） */
+/** Opens the locale menu and switches to the other language (current item has data-current="true", the target item lacks it) */
 async function switchLocale(page: Page) {
   await page.locator('.locale-menu__trigger').click();
   await page.locator('.locale-menu__item:not([data-current])').click();
 }
 
-test('切到中文：URL 前缀翻转 + 表单输入态全保（零副作用本体）', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop-1280', '弹窗断言仅桌面档');
+test('switch to zh: URL prefix flips + form input state fully preserved (zero side effects)', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1280', 'runs on the desktop tier only');
   await page.goto(VERSE_LOCKED, { waitUntil: 'networkidle' });
 
-  // 卖出侧金额输入 = 常驻表单的受控 string 状态（Popover 载体会被「点开语言菜单」
-  // 这一浮层外点击正常关闭，不能当零副作用载体）
+  // Sell-side amount input = the persistent form's controlled string state
+  // (a Popover carrier would be legitimately closed by the outside-click of
+  // "opening the locale menu", so it cannot serve as the zero-side-effect carrier)
   const amount = page.locator('.swap-panel input.numeric-input').first();
   await amount.fill('0.42');
   await expect(amount).toHaveValue('0.42');
@@ -29,13 +34,15 @@ test('切到中文：URL 前缀翻转 + 表单输入态全保（零副作用本�
 
   await expect(page).toHaveURL(/\/zh\/memeverse\/2$/);
   await expect(page.locator('.outrun-site')).toHaveAttribute('lang', 'zh-CN');
-  // 核心：软导航 + refresh 后输入值仍在（页面树不重挂载）
+  // Core: after soft navigation + refresh the input value survives (page tree not remounted)
   await expect(amount).toBeVisible();
   await expect(amount).toHaveValue('0.42');
 });
 
-test('切回英文后按返回键：popstate 对账恢复渲染语言与 URL 一致', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop-1280', '弹窗断言仅桌面档');
+test('back key after switching to en: popstate reconciliation restores render language consistent with the URL', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1280', 'runs on the desktop tier only');
   await page.goto(`/zh${VERSE_LOCKED}`, { waitUntil: 'networkidle' });
   await expect(page.locator('.outrun-site')).toHaveAttribute('lang', 'zh-CN');
 
@@ -43,8 +50,10 @@ test('切回英文后按返回键：popstate 对账恢复渲染语言与 URL 一
   await expect(page).toHaveURL(/memeverse\/2$/);
   await expect(page.locator('.outrun-site')).toHaveAttribute('lang', 'en');
 
-  // 返回键：popstate 先恢复共享段缓存（= 切换后的 en）→ URL 已回 /zh 与渲染错位 →
-  // 对账 refresh 重取 zh 载荷（断言自动重试覆盖 100ms 延时 + refresh 往返）
+  // Back key: popstate first restores the shared-segment cache (= post-switch en) →
+  // the URL is back at /zh, mismatching the render → the reconciliation refresh
+  // re-fetches the zh payload (assertion auto-retry covers the 100ms delay +
+  // refresh round trip)
   await page.goBack();
   await expect(page).toHaveURL(/\/zh\/memeverse\/2$/);
   await expect(page.locator('.outrun-site')).toHaveAttribute('lang', 'zh-CN');

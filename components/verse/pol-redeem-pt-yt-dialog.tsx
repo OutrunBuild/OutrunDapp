@@ -21,21 +21,28 @@ import { Input } from '@/components/ui/input'
 import { FieldError } from '@/components/ui/field'
 
 /**
- * Redeem PT/YT 操作弹窗（2026-09-27：unlocked 态换向器改赎回行，两钮触发本窗）。
- * 机制：redeemPT=销毁 PT 按创世锁仓时一次性登记的固定比率兑回 uAsset
- * （POLSplitterUpgradeable.sol:365→_ptToUAsset:470，比率=mainPoolUAssetUsed/mainPoolPOLRawAmount
- * ——MemeverseLiquidityImpl.sol:239，即 fixture uAssetPerPol 口径，非 1:1，2026-09-25 用户裁定）；
- * redeemYT=销毁 YT 按份额领结算剩余池（uAsset+memecoin 两币，:387，每份率=池×份额/流通 YT）。
- * 闸门仅 unlocked（unlockFromLocked 自动 settle——MemeverseSettlementImpl.sol:536-537；
- * locked 态不渲染赎回行，换向器仍在）。合约无滑点/deadline → 不设设置齿轮；
- * 输出非 1:1 恒等（与 Split/Merge 弹窗删输出区的裁定不冲突）→ 2026-09-27 第三轮参照图
- * 裁定改双框：输入框（label=burnLabel）+ Receive 独立框（同 swap 双框语言：只读
- * `output`+代币章）——PT=单框（uAsset 章）、YT=双框（memecoin 主腿框+uAsset 框，
- * 与井读数同序），You receive 明细行随之删除（信息不重复）；rate 缺样本→随空值 0.00
- * （「以链上读值为准」槽位 2026-10-05 用户裁定全站废止）。
- * CTA 纪律同 Split/Merge：未连接=Connect Wallet 可点、已连接=操作钮禁用（不伪造成交）。
- * Max 零值禁用（2026-10-09 用户裁定，同 Split/Merge 弹窗）：销毁币余额 ≤0 时
- * Max disabled——amountToInputString(0) 空串填充=死按钮观感。
+ * Redeem PT/YT action dialog (in the unlocked state the PT/YT card's action bar shows the
+ * two Redeem buttons; each triggers this dialog).
+ * Mechanism: redeemPT=burn PT and redeem uAsset at the fixed ratio registered once at genesis
+ * lock (ratio=mainPoolUAssetUsed/mainPoolPOLRawAmount,
+ * i.e. the fixture uAssetPerPol scope, not 1:1); redeemYT=burn YT to claim the settlement's
+ * remaining pool pro rata
+ * (uAsset+memecoin, two tokens; per-unit rate=pool×share/circulating YT).
+ * Gate is unlocked only (unlockFromLocked settles automatically;
+ * the locked state does not render the redeem buttons, the bar keeps Flash Swap/Split/Merge).
+ * The contract has no
+ * slippage/deadline → no settings gear;
+ * output is not a 1:1 identity (unlike the Split/Merge dialog, whose output is a 1:1 identity
+ * and needs no output area) → dual boxes:
+ * input box (label=burnLabel) + separate Receive box (same dual-box language as swap: read-only
+ * `output` + token chip) — PT=single box (uAsset chip), YT=dual boxes (memecoin main leg box +
+ * uAsset box, same order as the well readout); no separate You receive detail row (would
+ * duplicate info); rate missing sample → Receive box degrades to placeholder 0.00.
+ * CTA discipline same as Split/Merge: disconnected=Connect Wallet clickable; connected=action
+ * button disabled (no faked execution).
+ * Max disabled at zero (same as the Split/Merge dialog): when the burn
+ * token balance is ≤0 Max is disabled — amountToInputString(0) filling an empty string reads
+ * as a dead button.
  */
 export function PolRedeemPtYtDialog({
   locale,
@@ -49,16 +56,16 @@ export function PolRedeemPtYtDialog({
   verse: FixtureVerse
   pol: FixturePolPosition
   mode: 'pt' | 'yt'
-  /** 主池价（trade.tokenStats.price）：YT memecoin 腿折美元用；null=美元行不渲染 */
+  /** Main-pool price (trade.tokenStats.price): for converting the YT memecoin leg to USD; null=USD row not rendered */
   price: number | null
-  /** uAsset 美元样本（assets usdSample）：各腿美元行用；null=美元行不渲染 */
+  /** uAsset USD sample (assets usdSample): for each leg's USD row; null=USD row not rendered */
   uAssetUsd: number | null
 }) {
   const copy = getCopy(locale).verseDesk
   const common = getCopy(locale).common
   const { connected, toggle } = useMockWallet()
-  // 打开为空输入（2026-10-08 用户裁定：金额输入默认空 0.00，废除 2026-09-27
-  // 打开预填余额口径）；清空/改数后照常重算
+  // Opens with empty input (amount input defaults to empty 0.00, not prefilled with balance);
+  // recalculates as usual after clearing/changing the number
   const [amount, setAmount] = useState('')
   const receiveLabelId = useId()
   const balanceErrorId = useId()
@@ -72,8 +79,9 @@ export function PolRedeemPtYtDialog({
   const ptOut = valid ? parsed * pol.uAssetPerPol : null
   const ytUAssetOut = valid && pol.ytRedeemUAssetPerUnit != null ? parsed * pol.ytRedeemUAssetPerUnit : null
   const ytMemeOut = valid && pol.ytRedeemMemecoinPerUnit != null ? parsed * pol.ytRedeemMemecoinPerUnit : null
-  // 美元回声（2026-09-27 用户裁定补：每 Receive 框下 ≈$ 行，与卡片井读数同源换算——
-  // uAsset 腿×uAssetUsd、memecoin 腿×主池价×uAssetUsd；样本缺→不渲染）
+  // USD echo: an ≈$ row under each Receive box, converted
+  // from the same source as the card well readout —
+  // uAsset leg×uAssetUsd, memecoin leg×main-pool price×uAssetUsd; missing sample → not rendered
   const ptUsd = ptOut != null && uAssetUsd != null ? ptOut * uAssetUsd : null
   const ytUAssetUsd = ytUAssetOut != null && uAssetUsd != null ? ytUAssetOut * uAssetUsd : null
   const ytMemeUsd =
@@ -85,7 +93,7 @@ export function PolRedeemPtYtDialog({
 
   return (
     <Dialog>
-      {/* data-slot 钉回 button：同 PolMintDialog——主题桥按 [data-slot='button'] 匹配皮肤 */}
+      {/* data-slot pinned back to button: same as PolMintDialog — the theme bridge matches skins on [data-slot='button'] */}
       <DialogTrigger data-slot="button" render={<Button variant="outline" size="sm" />}>
         {mode === 'pt' ? copy.redeemPt : copy.redeemYt}
       </DialogTrigger>
@@ -137,9 +145,11 @@ export function PolRedeemPtYtDialog({
             ) : null}
           </div>
 
-          {/* Receive 收账框（2026-09-27 参照图裁定：同输入框款式、只读 output+代币章）：
-              PT=单腿；YT=双腿合一个框（memecoin 主腿在前与井读数同序，行间 hairline）——
-              单 Receive 标签管两腿，不重复标也不留空标签行 */}
+          {/* Receive box (same style as the input box,
+              read-only output + token chip):
+              PT=single leg; YT=both legs merged into one box (memecoin main leg first, same
+              order as the well readout, hairline between rows) —
+              a single Receive label covers both legs, no duplicate label and no empty label row */}
           {mode === 'pt' ? (
             <div className="swap-panel__field" role="group" aria-labelledby={receiveLabelId}>
               <div className="swap-panel__field-head">

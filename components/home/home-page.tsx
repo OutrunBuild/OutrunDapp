@@ -58,7 +58,8 @@ function SiteFooter({ locale }: { locale: Locale }) {
 
       <div className="site-footer__bottom">
         <span>&copy; 2026 Outrun &middot; {copy.home.footerTagline}</span>
-        {/* X/Discord/Telegram 官方账号链接待定（Q），暂以平台根域名占位 */}
+        {/* X/Discord/Telegram official account links pending (Q); platform root domains used as
+            placeholders for now */}
         <nav className="site-footer__social" aria-label={copy.home.footerSocialLabel}>
           <a href="https://x.com" target="_blank" rel="noreferrer" aria-label="X (Twitter)">
             <XIcon />

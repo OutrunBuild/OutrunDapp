@@ -1,7 +1,9 @@
 /**
- * ②资产与跨链区（2026-10-02 裁定：跨链功能并入 Portfolio，v1 无 /bridge 独立页；
- * 余额=Data surface 面板（可跨链行 + 只读页脚）。在途 Signal panel 已删
- * （2026-10-04 裁定）：sent 无需行动不占版面；stranded 展示也已删（2026-10-05 裁定）。
+ * (2) Assets & cross-chain zone (cross-chain lives inside Portfolio, there is no
+ * standalone /bridge page; balances = a Data surface panel (bridgeable rows: uAsset section
+ * first, Credit section behind a divider nameplate).
+ * Sent in-transit items need no action and take no layout here; stranded items are not shown
+ * anywhere (they never enter the to-do zone either).
  */
 import type { FixturePsmPair, FixtureWalletAsset, Locale } from '@/lib/data/fixture-repository'
 
@@ -13,15 +15,17 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { AssetActionsSheet, BridgeDialog, ConvertDialog } from './portfolio-dialogs'
 
 export type AssetRowView = FixtureWalletAsset & {
-  /** PSM 配对（Convert 入口）；null=无配对不渲染该动作 */
+  /** PSM pair (Convert entry); null = no pair, the action is not rendered */
   psm: FixturePsmPair | null
 }
 
 /**
- * 资产行（决议 018 补充）：桌面=tile | 身份+链分布 | 总量+法币 | 行内按钮（原样）；
- * 移动端=纯台账单线（链分布数值让位链徽标、按钮让位整行 hit 层）——点行开底部
- * 操作面板（链分布明细 + Convert/Bridge），行高节奏归一。触发器不可双栖：
- * 桌面按钮与面板 CTA 是两套独立实例，各自开合互不影响。
+ * Asset row: desktop = tile | identity + chain distribution | total + fiat | inline buttons;
+ * mobile = a pure ledger single line (chain distribution numbers give way to chain badges,
+ * buttons give way to a full-row hit layer) — tapping the row opens the bottom action panel
+ * (chain distribution detail + Convert/Bridge), normalizing the row-height rhythm. The trigger
+ * cannot serve double duty: the desktop button and the panel CTA are two independent instances,
+ * each opening/closing without affecting the other.
  */
 function AssetRow({
   locale,
@@ -31,9 +35,9 @@ function AssetRow({
 }: {
   locale: Locale
   asset: AssetRowView
-  /** 主网链族（跨链弹窗 from/to） */
+  /** Mainnet chain family (bridge dialog from/to) */
   chains: Array<{ chainId: number; name: string }>
-  /** 储备资产余额表（转换弹窗 Redeem 侧 Max） */
+  /** Reserve asset balance table (Convert dialog Redeem-side Max) */
   reserveBalances: Record<string, number>
 }) {
   const copy = getCopy(locale).portfolio.assets
@@ -62,9 +66,9 @@ function AssetRow({
 
   return (
     <li className="pf-asset-row" data-kind={asset.kind}>
-      {/* 资产身份=代币图标（2026-10-07 定稿 v3.1 印章制式；旧方案链徽/UUSD'$'字形占位
-          已废——链徽只表达链属不表达资产）。链徽仍在下方链分布行（悬停=链名，
-          2026-10-04 用户裁定） */}
+      {/* Asset identity = token icon (a chain badge expresses chain membership,
+          not the asset, so it is not used for the identity slot). Chain badges remain in the
+          chain-distribution row below (hover = chain name) */}
       <span className="pf-asset-row__tile">
         <TokenIconMark symbol={asset.symbol} size={20} aria-hidden="true" />
       </span>
@@ -98,7 +102,8 @@ function AssetRow({
         {convert}
         {bridge}
       </div>
-      {/* 移动端整行 hit 层（≤54rem 显示）：开底部操作面板；桌面 display:none 按钮照旧 */}
+      {/* Mobile full-row hit layer (shown ≤54rem): opens the bottom action panel; on desktop the
+          display:none buttons work as before */}
       <AssetActionsSheet
         locale={locale}
         title={asset.symbol}
@@ -120,14 +125,15 @@ export function AssetsZone({
 }: {
   locale: Locale
   assets: AssetRowView[]
-  /** 主网链族（跨链弹窗 from/to） */
+  /** Mainnet chain family (bridge dialog from/to) */
   chains: Array<{ chainId: number; name: string }>
-  /** 储备资产余额表（转换弹窗 Redeem 侧 Max） */
+  /** Reserve asset balance table (Convert dialog Redeem-side Max) */
   reserveBalances: Record<string, number>
 }) {
   const copy = getCopy(locale).portfolio.assets
   const bridgeable = assets.filter((asset) => asset.bridgeable)
-  // Credit 族与 uAsset 族分区（2026-10-04 用户裁定）：uAsset 在前，Credit 组带分隔铭牌
+  // Credit family and uAsset family split into sections: uAsset first,
+  // the Credit group carries a divider nameplate
   const uassetRows = bridgeable.filter((asset) => asset.kind === 'uasset')
   const creditRows = bridgeable.filter((asset) => asset.kind === 'credit')
   const rowProps = { locale, chains, reserveBalances }

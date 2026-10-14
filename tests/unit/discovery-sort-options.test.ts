@@ -1,5 +1,6 @@
-// P2-5：切阶段 tab 的排序合法性归一——locked↔unlocked 共享项保留、
-// 跨 genesis（排序集交集仅 createtime）与非法值回落 createtime
+// Switching stage tabs must normalize sort legality — locked↔unlocked
+// shared options are kept; cross-genesis (sort-set intersection is only
+// createtime) and illegal values fall back to createtime
 import { describe, expect, it } from 'vitest';
 
 import { getFixtureSnapshot } from '../../lib/data/fixture-repository';
@@ -10,26 +11,26 @@ import {
 } from '../../components/discovery/sort-options';
 
 describe('legalSortForStage', () => {
-  it('目标阶段合法则保留（locked↔unlocked 共享项不丢）', () => {
+  it('legal for the target stage is kept (locked<->unlocked shared options survive)', () => {
     expect(legalSortForStage('unlocked', 'marketcap')).toBe('marketcap');
     expect(legalSortForStage('unlocked', 'volume')).toBe('volume');
     expect(legalSortForStage('locked', 'treasury')).toBe('treasury');
     expect(legalSortForStage('genesis', 'endtime')).toBe('endtime');
   });
 
-  it('目标阶段非法则回落 createtime（跨 genesis 必降级）', () => {
+  it('illegal for the target stage falls back to createtime (crossing genesis always downgrades)', () => {
     expect(legalSortForStage('locked', 'endtime')).toBe('createtime');
     expect(legalSortForStage('unlocked', 'progress')).toBe('createtime');
     expect(legalSortForStage('genesis', 'unlocktime')).toBe('createtime');
     expect(legalSortForStage('genesis', 'marketcap')).toBe('createtime');
   });
 
-  it('未知/空值回落 createtime', () => {
+  it('unknown/empty values fall back to createtime', () => {
     expect(legalSortForStage('locked', 'bogus')).toBe('createtime');
     expect(legalSortForStage('genesis', '')).toBe('createtime');
   });
 
-  it('createtime 是三浏览阶段唯一公共排序项', () => {
+  it('createtime is the only sort option shared by all three browsing stages', () => {
     const stages = ['genesis', 'locked', 'unlocked'] as const;
     const shared = stages
       .map((stage) => new Set(SORT_OPTIONS_BY_STAGE[stage]))
@@ -38,7 +39,8 @@ describe('legalSortForStage', () => {
   });
 });
 
-// sortVerses 期望钉在冻结 fixture 上：verses 数据变更走冻结链重签，需同步更新此处
+// sortVerses expectations are pinned to the frozen fixture: verse data changes
+// go through the freeze chain re-signing, which requires updating here in sync
 describe('sortVerses', () => {
   function pick(...ids: string[]) {
     const verses = getFixtureSnapshot().verses;
@@ -49,8 +51,8 @@ describe('sortVerses', () => {
     });
   }
 
-  it('可空数值键 null 恒沉底，不随升降序翻转', () => {
-    // verse-001 无 livePhase 快照（volume24h=null）；002/026 为锁定态有值
+  it('nullable numeric keys sink nulls to the end regardless of sort direction', () => {
+    // verse-001 has no livePhase snapshot (volume24h=null); 002/026 are locked with values
     const verses = pick('verse-002', 'verse-001', 'verse-026');
     expect(sortVerses(verses, 'volume', 'asc').map((verse) => verse.id)).toEqual([
       'verse-002',
@@ -64,8 +66,8 @@ describe('sortVerses', () => {
     ]);
   });
 
-  it('未知排序名按 size 口径（participationSize）升降序', () => {
-    // size：verse-021=27000 < verse-005=182000 < verse-017=562000
+  it('unknown sort name sorts by size (participationSize) asc/desc', () => {
+    // size: verse-021=27000 < verse-005=182000 < verse-017=562000
     const verses = pick('verse-005', 'verse-021', 'verse-017');
     expect(sortVerses(verses, 'bogus', 'asc').map((verse) => verse.id)).toEqual([
       'verse-021',
@@ -79,8 +81,8 @@ describe('sortVerses', () => {
     ]);
   });
 
-  it('progress 取双门槛较大值排序', () => {
-    // max(normal, leverage)：verse-008=106.7 > verse-001=82 > verse-022=80
+  it('progress sorts by the larger of the two thresholds', () => {
+    // max(normal, leverage): verse-008=106.7 > verse-001=82 > verse-022=80
     const verses = pick('verse-001', 'verse-008', 'verse-022');
     expect(sortVerses(verses, 'progress', 'desc').map((verse) => verse.id)).toEqual([
       'verse-008',
@@ -89,7 +91,7 @@ describe('sortVerses', () => {
     ]);
   });
 
-  it('排序返回新数组，不改写输入顺序', () => {
+  it('sorting returns a new array without mutating input order', () => {
     const verses = pick('verse-005', 'verse-021', 'verse-017');
     const before = verses.map((verse) => verse.id);
     sortVerses(verses, 'size', 'asc');

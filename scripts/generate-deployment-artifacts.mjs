@@ -4,9 +4,9 @@
 //   /tmp/outrun-deploy-full.json      address-keyed chain reads (tx/block/codehash/impl)
 //   /tmp/outrun-abi-sha256.txt        per-ABI-file sha256 lines from export-abi.mjs
 // then validate both through scripts/deployment-schema.mjs (fail-closed, nothing is
-// written unless the schemas pass). Chain set per architecture §5/§26 (421614/84532/97).
-// Regen procedure: rerun the frozen-worktree export (stage-04 runbook steps 4–6),
-// the chain sweeps, then this script — do not hand-edit the artifacts.
+// written unless the schemas pass). Chain set: 421614/84532/97.
+// Regen procedure: rerun the frozen-worktree export, the chain sweeps, then this script —
+// do not hand-edit the artifacts.
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -22,8 +22,8 @@ const COMMITS = {
 };
 const KERNEL = {
   implementation: toChecksumAddress('0xd6cedde84be40893d153be9d467cd6ad37875b28'),
-  // Measured 2026-10-13 via public RPCs (bsc-testnet-rpc.publicnode.com, sepolia.base.org,
-  // sepolia-rollup.arbitrum.io/rpc); registered in architecture §5.
+  // Measured via public RPCs (bsc-testnet-rpc.publicnode.com, sepolia.base.org,
+  // sepolia-rollup.arbitrum.io/rpc).
   codehash: {
     97: '0x5143969744cb305cedc9748f191ce11fb77fab00ae1e08f8d3beeeb0219239bd',
     84532: '0x0b7b78a4c39a523ebfc23394a547dffd0b9eb0276740e8ce59b6b87287ded3af',
@@ -36,8 +36,8 @@ const CHAINS = [
     id: 421614,
     env: 'ARB_SEPOLIA',
     explorer: 'https://sepolia.arbiscan.io',
-    layerZeroEid: 40231, // ARBITRUM_SEPOLIA_EID from deployment .env (G-source)
-    safeBlockLag: 24, // v1-rc engineering default (rollup), tunable in stage 5/6
+    layerZeroEid: 40231, // ARBITRUM_SEPOLIA_EID from deployment .env
+    safeBlockLag: 24, // v1-rc engineering default (rollup); tunable
     alchemyHost: 'arb-sepolia.g.alchemy.com',
     infuraHost: 'arbitrum-sepolia.infura.io',
   },
@@ -46,7 +46,7 @@ const CHAINS = [
     env: 'BASE_SEPOLIA',
     explorer: 'https://sepolia.basescan.org',
     layerZeroEid: 40245, // BASE_SEPOLIA_EID from deployment .env
-    safeBlockLag: 12, // v1-rc engineering default (rollup), tunable in stage 5/6
+    safeBlockLag: 12, // v1-rc engineering default (rollup); tunable
     alchemyHost: 'base-sepolia.g.alchemy.com',
     infuraHost: 'base-sepolia.infura.io',
   },
@@ -55,7 +55,7 @@ const CHAINS = [
     env: 'BSC_TESTNET',
     explorer: 'https://testnet.bscscan.com',
     layerZeroEid: 40102, // BSC_TESTNET_EID from deployment .env
-    safeBlockLag: 15, // v1-rc engineering default, tunable in stage 5/6
+    safeBlockLag: 15, // v1-rc engineering default; tunable
     alchemyHost: 'bnb-testnet.g.alchemy.com',
     infuraHost: 'bsc-testnet.infura.io',
   },
@@ -83,7 +83,7 @@ const FEATURES = [
 // (solc 0.8.17, optimizer 1000000 — Uniswap's own build config). Per-chain runtime
 // codehash differs BY DESIGN: Permit2's DOMAIN_SEPARATOR immutable hashes chainId.
 const PERMIT2 = toChecksumAddress('0x000000000022d473030f116ddee9f6b43ac78ba3');
-// Bytecode differs per chain (independently deployed instances); measured 2026-10-13
+// Bytecode differs per chain (independently deployed instances); measured
 // via public RPCs, same sweep as the other codehashes.
 const PERMIT2_CODEHASH = {
   97: '0xc9fc98683a624e287416c3560ef5f91675fa759668a377d4ce0adc080f315f3d',
@@ -174,7 +174,7 @@ function manifestContracts(chain) {
     MemeverseRegistrarOmnichain: isBsc
       ? undeployedEntry(
           'MemeverseRegistrarOmnichain',
-          'center chain (97) uses MemeverseRegistrarAtLocal; user entry there is MemeverseRegistrationCenter (registration-details §2/§8)',
+          'center chain (97) uses MemeverseRegistrarAtLocal; user entry there is MemeverseRegistrationCenter',
         )
       : deployedEntry({
           abi: 'MemeverseRegistrarOmnichain',
@@ -290,11 +290,11 @@ function manifestContracts(chain) {
     }),
     OutrunWstETHSY: undeployedEntry(
       'OutrunWstETHSYUpgradeable',
-      'Sepolia-targeted batch; chain not in the §26 testnet set',
+      'Sepolia-targeted batch; chain not in the testnet set (421614/84532/97)',
     ),
     OutrunStakedUSDeSY: undeployedEntry(
       'OutrunStakedUSDeSYUpgradeable',
-      'Sepolia-targeted batch; chain not in the §26 testnet set',
+      'Sepolia-targeted batch; chain not in the testnet set (421614/84532/97)',
     ),
     OutrunSlisBNBSY: isBsc
       ? deployedEntry({ abi: 'OutrunSlisBNBSYUpgradeable', row: row(chain, 'OutrunSlisBNBSY') })
@@ -361,7 +361,7 @@ for (const { id, env, explorer, layerZeroEid, safeBlockLag, alchemyHost, infuraH
       }
     }
   }
-  // Trusted infra beyond the ABI list (§14): pool manager + credit factory.
+  // Trusted infra beyond the ABI list: pool manager + credit factory.
   contracts.UniswapV4PoolManager = POOL_MANAGER[id];
 
   // Keyed by checksummed implementation address: raw impl rows share names across

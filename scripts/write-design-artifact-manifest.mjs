@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Stage-01 14B: write docs/design/final-artifacts.sha256 — the frozen manifest of
+// Write docs/design/final-artifacts.sha256 — the frozen manifest of
 // every design artifact in the watched trees (tree scope and skip rules are
 // shared with the gate via scripts/design-freeze-trees.mjs). The manifest file
 // itself is always excluded from its own listing.

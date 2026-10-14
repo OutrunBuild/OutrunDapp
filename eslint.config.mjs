@@ -1,12 +1,15 @@
-// ESLint 10 flat config；typed lint 使用 typescript alias（@typescript/typescript6 6.0.2
-// 程序化 API，architecture §3 双编译器边界）。类型检查由 typescript7 CLI 独立负责。
-// ignores 对齐 .gitignore 面（ESLint 不读 .gitignore）：构建产物（.next* 全系）、
-// 证据二进制/冻结快照、本地工具点目录、vendor 冻结桥——lint 面收敛为源码与仓内脚本。
+// ESLint 10 flat config; typed lint uses the `typescript` package, which package.json aliases (link:) to
+// vendor/typescript-bridge — the dual-compiler bridge: bin/tsc is the TS 7.0.2 CLI, the programmatic API is
+// TS 6.0.2. Type checking is owned separately by the TS 7 CLI.
+// ignores aligns with the .gitignore surface (ESLint does not read .gitignore): build artifacts (all .next* variants),
+// test artifacts (coverage, playwright-report, test-results), evidence binaries/frozen snapshots, local tooling
+// dot-directories, the vendor frozen bridge — the lint surface narrows to source code and in-repo scripts.
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  // 全局排除必须独占对象（与 rules 同对象时语义变为「该规则只作用于这些文件」——原单对象写法
-  // 自始未生效，node_modules 全靠 ESLint 内建默认排除撑着）
+  // Global excludes must live in their own object (sharing an object with rules changes the semantics to "these rules
+  // apply only to these files" — the original single-object form never took effect; node_modules was covered only by
+  // ESLint's built-in default ignores)
   {
     ignores: [
       'node_modules/**',
@@ -30,7 +33,7 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   {
     rules: {
-      // `_` 开头的函数参数 = 有意占位（如 signal-ui 的 SourceRef/LayoutNotes 空实现）
+      // Function parameters starting with `_` are intentional placeholders (e.g. signal-ui's empty SourceRef/LayoutNotes implementations)
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },

@@ -1,14 +1,19 @@
 'use client'
 
 /**
- * 移动端分区页签 deck（决议 018）：≤54rem 顶栏下吸顶四分段（待办/资产/仓位/已参与），
- * 一次只显示一个分区；KPI 信号带在窄视口让位页签角标（「摘要即导航」语义不变，
- * 计数随页签常驻可视）。桌面 ≥54rem：页签条 display:none、四分区序贯全显
- * （间距统一节奏 2026-10-08 用户裁定，见 globals.css）——deck 只做布局包装，
- * DOM 层级多一层透明块，视觉零变化。
- * 全部分区常驻 DOM（RSC 直出），无 JS 时不隐藏任何分区（优雅降级）；
- * #pf-* 页内锚点（金库 signpost 卡 CTA 等）目标可能在隐藏分区——无盒模型
- * 原生锚点滚不动，由 deck 接管为换区 + 滚动到位。
+ * Mobile zone tab deck: below ≤54rem, a four-segment bar sticky under the top bar
+ * (to-do / assets / positions / participations; three when there are no to-dos), showing one
+ * zone at a time; the KPI signal band
+ * yields to tab badges at narrow viewports (the "summary as navigation" semantics is unchanged,
+ * counts stay permanently visible with the tabs). Desktop ≥54rem: the tab bar is display:none
+ * and the four zones show sequentially in full (spacing rhythm unified, see globals.css) — the
+ * deck is only a layout wrapper, adding one transparent block to
+ * the DOM hierarchy with zero visual change.
+ * All zones stay resident in the DOM (RSC straight-out); without JS no zone is hidden (graceful
+ * degradation); #pf-* in-page anchors inside the deck (the vault signpost card CTA etc.) may
+ * target hidden zones — a native anchor cannot scroll without a box in the layout, so the deck
+ * takes over as zone switch + scroll into place; page-head KPI anchors sit outside the deck and
+ * keep native behavior.
  */
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 
@@ -19,7 +24,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
 export type PfZoneKey = 'action' | 'money' | 'positions' | 'participations'
 
-/** #pf-* 锚点 → 所属分区 */
+/** #pf-* anchor → owning zone */
 const ANCHOR_ZONES: Record<string, PfZoneKey> = {
   'pf-actions': 'action',
   'pf-assets': 'money',
@@ -44,12 +49,14 @@ export function PortfolioZoneTabs({
 }) {
   const copy = getCopy(locale).portfolio.tabs
   const [zone, setZone] = useState<PfZoneKey>(initialZone)
-  // data-js 只在挂载后落 DOM：SSR/无 JS 输出不带它，CSS 的分区隐藏永不生效
+  // data-js lands in the DOM only after mount: SSR/no-JS output lacks it, so the CSS zone hiding
+  // never takes effect
   const [js, setJs] = useState(false)
   const deckRef = useRef<HTMLDivElement>(null)
   useEffect(() => setJs(true), [])
 
-  // 换区后滚动：双 rAF 等 React 提交后再定位（scroll-margin 吸顶偏移在 CSS 侧）
+  // Scroll after zone switch: a double rAF waits for React's commit before positioning (the
+  // scroll-margin sticky offset lives on the CSS side)
   const reveal = (next: PfZoneKey, target?: Element | null) => {
     setZone(next)
     requestAnimationFrame(() => {
@@ -61,7 +68,7 @@ export function PortfolioZoneTabs({
     })
   }
 
-  // 页内锚点接管：目标分区若处于隐藏态，原生锚点跳转落空
+  // In-page anchor takeover: if the target zone is hidden, the native anchor jump is a no-op
   useEffect(() => {
     if (!js) return
     const deck = deckRef.current
@@ -117,8 +124,9 @@ export function PortfolioZoneTabs({
       <div data-zone-wrap="money" className="pf-zone-group">
         {children.money}
       </div>
-      {/* 仓位/已参与同属桌面尾组，移动端各占一页签——外层组保留，
-          内层 sub 网格间隙与组 gap 同档（按断点取档，见 globals.css） */}
+      {/* Positions/participations share the desktop tail group but each holds a mobile tab — the
+          outer group is kept; the inner sub grid gap uses the same step as the group gap (step
+          chosen per breakpoint, see globals.css) */}
       <div className="pf-zone-group pf-deck__tail">
         <div data-zone-wrap="positions" className="pf-zone-sub">
           {children.positions}

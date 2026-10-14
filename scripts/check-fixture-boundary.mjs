@@ -1,13 +1,22 @@
 #!/usr/bin/env node
-// check-fixture-boundary.mjs — fixture/生产隔离检查（阶段 2 步骤 10）
-// 用法：
-//   node scripts/check-fixture-boundary.mjs --source            静态 import 扫描（生产目录禁直接/间接引 fixture）
-//   node scripts/check-fixture-boundary.mjs --graph production  从生产入口走 import 图，禁止到达 fixtures/**
-//   node scripts/check-fixture-boundary.mjs --bundle <dir>      产物扫描（OUTRUN_FIXTURE_ONLY_v1 哨兵；阶段 3 构建后）
-//     <dir>=.next 时正向枚举生产子目录（server/static/standalone）；dev 缓存（.next/dev）经合法路径
-//     （fixture-repository → fixtures）无 tree-shake 含哨兵，扫它=假警，且 dev 产物不随部署分发
-//   node scripts/check-fixture-boundary.mjs --self-test         临时副本注入六类违规→必须全杀→自动清理
-// 唯一合法 import 图：fixtures/** → lib/data/fixture-repository.ts → components/**（ui/design-system 通用层除外）或 fixtures/inspector/**
+// check-fixture-boundary.mjs -- fixture/production isolation check
+// Usage:
+//   node scripts/check-fixture-boundary.mjs --source            static import scan (production dirs
+//     must not import fixtures directly/indirectly)
+//   node scripts/check-fixture-boundary.mjs --graph production  walk the import graph from production
+//     entries; reaching fixtures/** is forbidden
+//   node scripts/check-fixture-boundary.mjs --bundle <dir>      artifact scan (OUTRUN_FIXTURE_ONLY_v1
+//     sentinel; run after a production build)
+//     When <dir>=.next only production subdirs are enumerated (server/static/standalone); the dev
+//     cache (.next/dev) reaches the sentinel via the legitimate path (fixture-repository -> fixtures)
+//     without tree-shaking, so scanning it = false alarm, and dev artifacts are not shipped with
+//     deployments
+//   node scripts/check-fixture-boundary.mjs --self-test         inject six violation kinds into a
+//     temp copy -> all must be caught -> auto cleanup
+//   (a forbidden-token scan of lib/data/source-resolver.ts and lib/data/repository.ts always runs,
+//     with or without flags)
+// The only legal import graph: fixtures/** -> lib/data/fixture-repository.ts -> components/**
+// (ui/design-system common layers exempt) or fixtures/inspector/**
 import {
   readdirSync,
   readFileSync,
@@ -26,8 +35,9 @@ import { argv, exit } from 'node:process';
 const args = new Set(argv.slice(2));
 const ROOT = argv.includes('--root') ? argv[argv.indexOf('--root') + 1] : process.cwd();
 
-// components 不再豁免任何子目录：域组件（verse/home/…）与通用层一律禁直接引 fixtures，
-// fixtures 的唯一合法消费方就是 lib/data/fixture-repository.ts 本身
+// components no longer exempts any subdirectory: domain components (verse/home/…) and the common
+// layer are all barred from importing fixtures directly; the only legal consumer of fixtures is
+// lib/data/fixture-repository.ts itself
 const PROD_DIR_RE = /^(app|features|entities|components|lib(?!\/data\/fixture-repository))\//;
 const FIXTURE_RE = /^fixtures(\/|$)/;
 const JS_EXT = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
@@ -44,10 +54,12 @@ function* walkJs(dir) {
   }
 }
 
-// tsconfig paths 前缀别名（runbook 步骤 10：脚本必须解析路径别名）。只支持「前缀/* → 单目标前缀/*」
-// 形态；其余形态（精确键、多目标）收进 UNSUPPORTED_ALIAS——resolveSpec 对命中者落 unresolved 注记
-// 而非按外部包静默放行（runbook：无法静态解析的路径别名视为违规）。tsconfig 缺失或不可解析
-// （--self-test 临时副本只拷 scripts/ 与 fixtures/）时兜底 @/ → ROOT
+// tsconfig paths prefix aliases (the script must resolve path aliases). Only the
+// "prefix/* -> single target prefix/*" form is supported; other forms (exact keys, multi-target) go
+// into UNSUPPORTED_ALIAS -- resolveSpec records an unresolved note for hits instead of silently
+// passing them as external packages (path aliases that cannot be statically resolved are
+// violations). Fallback @/ -> ROOT when tsconfig is missing or unparsable (the --self-test temp copy
+// only copies scripts/ and fixtures/)
 const ALIAS_PREFIXES = [];
 const UNSUPPORTED_ALIAS = [];
 {
@@ -61,28 +73,31 @@ const UNSUPPORTED_ALIAS = [];
         ),
       );
     } catch {
-      /* JSONC 等解析失败 → 走下方兜底 */
+      /* JSONC and other parse failures -> fall through to the fallback below */
     }
   }
   for (const [from, tos] of entries) {
     if (from.endsWith('/*') && tos.length === 1 && tos[0].endsWith('/*'))
-      ALIAS_PREFIXES.push([from.slice(0, -1), tos[0].slice(0, -1)]); // '@/*': ['./*'] → ['@/', './']
+      ALIAS_PREFIXES.push([from.slice(0, -1), tos[0].slice(0, -1)]); // '@/*': ['./*'] -> ['@/', './']
     else UNSUPPORTED_ALIAS.push(from.endsWith('/*') ? from.slice(0, -2) : from);
   }
-  // tsconfig 已声明 @/*（无论支持形态与否）就不再兜底——否则兜底会短路该键的 fail-closed 注记
+  // Once tsconfig declares @/* (in any form, supported or not), the fallback does not apply --
+  // otherwise the fallback would short-circuit that key's fail-closed note
   if (!ALIAS_PREFIXES.some(([from]) => from === '@/') && !UNSUPPORTED_ALIAS.some((a) => a === '@'))
     ALIAS_PREFIXES.push(['@/', './']);
 }
 
-// 相对路径与 tsconfig 别名统一解析（含省略扩展名与 index）；一律以绝对路径计算再归一为 ROOT 相对；
-// 别名解析不出同样落 unresolved 注记，不静默放行
+// Resolve relative paths and tsconfig aliases uniformly (including omitted extensions and index);
+// always compute absolute paths first, then normalize to ROOT-relative; unresolvable aliases also
+// get an unresolved note, never silently passed
 function resolveSpec(fromAbs, spec) {
   let base;
   if (spec.startsWith('.') || spec.startsWith('/')) base = resolve(dirname(fromAbs), spec);
   else {
     const hit = ALIAS_PREFIXES.find(([from]) => spec.startsWith(from));
     if (!hit) {
-      // tsconfig 已声明但本脚本不支持解析形态的别名：fail-closed 注记，不按外部包放行
+      // Alias declared in tsconfig but in a form this script cannot resolve: fail-closed note,
+      // not passed as an external package
       if (UNSUPPORTED_ALIAS.some((a) => spec === a || spec.startsWith(a + '/')))
         return { unresolved: true, target: spec };
       return { external: true };
@@ -104,7 +119,7 @@ const toRel = (abs) =>
     ? abs.slice(ROOT.length + 1).replaceAll('\\', '/')
     : abs.replaceAll('\\', '/');
 
-// 静态 import 形状（含 export-from / require / 动态 import()）
+// static import shapes (including export-from / require / dynamic import())
 const IMPORT_RES = [
   /\bimport\s+[^'"]*?from\s*['"]([^'"]+)['"]/g,
   /\bexport\s+[^'"]*?from\s*['"]([^'"]+)['"]/g,
@@ -112,7 +127,8 @@ const IMPORT_RES = [
   /\bimport\s*\(\s*['"]([^'"]+)['"]\s*(?:,|\))/g,
   /\bimport\s*['"]([^'"]+)['"]/g,
 ];
-// 动态 import()/require（含引号开头——拼接形态如 import('../x' + y) 也必须进判定，由 importsOf 剥字面量）
+// dynamic import()/require (including quote-first forms -- concatenated shapes like import('../x' + y)
+// must also be judged; importsOf strips the literal)
 const DYNAMIC_IMPORT_RE = /\b(?:import|require)\s*\(\s*[^)]+?\)/g;
 
 function importsOf(file) {
@@ -132,14 +148,15 @@ function importsOf(file) {
         .replace(/^.*?\(/, '')
         .replace(/\)$/, '')
         .trim();
-      // 字面量后紧跟结束或 , （两参 import attributes 形态）= 静态可解析，由 IMPORT_RES 捕获为 spec；
-      // 拼接/变量等其余形态视为动态 source resolver
+      // A literal immediately followed by end or , (the two-arg import attributes form) = statically
+      // resolvable, captured as a spec by IMPORT_RES; other shapes (concatenation/variables) are
+      // treated as dynamic source resolvers
       if (!/^['"][^'"]*['"]\s*($|,)/.test(inner))
         note(
           rel,
           lineOf(src, m.index),
           'dynamic-source-resolver',
-          `非字面量动态 import/require：${inner.slice(0, 60)}（生产目录禁止动态 source resolver）`,
+          `non-literal dynamic import/require: ${inner.slice(0, 60)} (dynamic source resolvers forbidden in production directories)`,
         );
     }
   }
@@ -163,14 +180,22 @@ function sourceScan() {
   ];
   for (const f of files) {
     const rel = toRel(f);
-    const imports = importsOf(f); // 单次调用共享：动态源违规注记在函数体内，重复调用会重复注记
+    const imports = importsOf(f); // shared single call: the dynamic-source violation notes live in the
+    // function body; repeated calls would duplicate them
     for (const im of imports) {
-      if (im.unresolved) note(rel, im.line, 'unresolved-import', `无法静态解析：${im.target}`);
+      if (im.unresolved)
+        note(rel, im.line, 'unresolved-import', `cannot resolve statically: ${im.target}`);
       if (im.target && FIXTURE_RE.test(im.target) && isProd(rel)) {
-        note(rel, im.line, 'direct-fixture-import', `生产文件直接导入 fixture：${im.target}`);
+        note(
+          rel,
+          im.line,
+          'direct-fixture-import',
+          `production file imports a fixture directly: ${im.target}`,
+        );
       }
     }
-    // fixture-repository 只允许被 components/**（ui/design-system 通用层除外）、fixtures/**、tests/** 引用
+    // fixture-repository may only be referenced by components/** (ui/design-system common layers
+    // exempt), fixtures/**, tests/**
     if (rel === 'lib/data/fixture-repository.ts') continue;
     for (const im of imports) {
       if (
@@ -181,7 +206,7 @@ function sourceScan() {
           rel,
           im.line,
           'illegal-bridge-consumer',
-          `fixture-repository 非法消费方：仅 components/**（ui/design-system 除外）、fixtures/**、tests/** 可引用`,
+          `illegal fixture-repository consumer: only components/** (ui/design-system excepted), fixtures/**, and tests/** may reference it`,
         );
       }
     }
@@ -189,7 +214,7 @@ function sourceScan() {
 }
 
 function graphScan() {
-  // 从生产根出发的传递闭包，禁止到达 fixtures/**
+  // transitive closure from the production roots; reaching fixtures/** is forbidden
   const entryDirs = ['app', 'features', 'entities', 'components', 'lib'].map((d) => join(ROOT, d));
   const seen = new Set();
   const stack = [];
@@ -203,7 +228,12 @@ function graphScan() {
       if (!im.target || im.external) continue;
       if (FIXTURE_RE.test(im.target)) {
         if (isProd(rel))
-          note(rel, im.line, 'graph-reaches-fixture', `import 图到达 fixture：${im.target}`);
+          note(
+            rel,
+            im.line,
+            'graph-reaches-fixture',
+            `import graph reaches a fixture: ${im.target}`,
+          );
         continue;
       }
       const t = join(ROOT, im.target);
@@ -212,26 +242,31 @@ function graphScan() {
   }
 }
 
-/** Next 构建目录中可部署的生产输出子目录（正向枚举；cache/dev/diagnostics/types 为开发与中间产物，不分发） */
+/** Deployable production output subdirs in the Next build directory (positive enumeration;
+ *  cache/dev/diagnostics/types are dev and intermediate artifacts, not shipped) */
 const PROD_BUNDLE_SUBDIRS = ['server', 'static', 'standalone'];
 
-// bundle 扫描是否真执行（目录缺失/无产物子目录的早退路径不算）——report() 汇总行据此如实标注
+// whether the bundle scan actually ran (early exits for missing dir / no artifact subdirs do not
+// count) -- report()'s summary line labels this truthfully
 let bundleScanExecuted = false;
 
 function bundleScan(dir) {
   if (!existsSync(dir)) {
-    console.log(`--bundle ${dir}: 目录不存在——阶段 3 生产构建后执行（接口已定义）`);
+    console.log(`--bundle ${dir}: directory does not exist -- run after a production build`);
     return;
   }
-  // `.next` 只扫生产子目录：dev server 编译缓存（.next/dev/**）无 tree-shake，合法消费方
-  // fixture-repository 会把哨兵留在 dev SSR chunk 里——那是允许的 import 图，不是泄漏。
-  // 非 `.next` 的自定义产物目录维持整扫（原接口语义不变）。
+  // `.next` scans only production subdirs: the dev server compile cache (.next/dev/**) has no
+  // tree-shaking, and the legitimate consumer fixture-repository leaves the sentinel in dev SSR
+  // chunks -- that is the allowed import graph, not a leak.
+  // Non-`.next` custom artifact directories keep the full scan (original interface semantics unchanged).
   const roots =
     basename(dir) === '.next'
       ? PROD_BUNDLE_SUBDIRS.map((d) => join(dir, d)).filter(existsSync)
       : [dir];
   if (basename(dir) === '.next' && roots.length === 0) {
-    console.log(`--bundle ${dir}: 未发现生产产物子目录（server/static）——阶段 3 生产构建后执行`);
+    console.log(
+      `--bundle ${dir}: no production artifact subdirs found (server/static/standalone) -- run after a production build`,
+    );
     return;
   }
   bundleScanExecuted = true;
@@ -243,7 +278,7 @@ function bundleScan(dir) {
           f.startsWith(ROOT) ? f.slice(ROOT.length + 1) : f,
           1,
           'bundle-sentinel',
-          '产物含 fixture 哨兵',
+          'artifact contains the fixture sentinel',
         );
       }
     }
@@ -251,7 +286,8 @@ function bundleScan(dir) {
 }
 
 function resolverTokenScan() {
-  // runbook：拒绝 production resolver 中出现 fixture-repository / scenario selector / 哨兵常量
+  // reject fixture-repository / scenario selector / sentinel constants appearing in
+  // production resolvers
   const TOKENS = ['fixture-repository', 'OUTRUN_FIXTURE_ONLY_v1', 'scenario'];
   for (const f of ['lib/data/source-resolver.ts', 'lib/data/repository.ts']) {
     const abs = join(ROOT, f);
@@ -260,7 +296,12 @@ function resolverTokenScan() {
     src.split('\n').forEach((line, i) => {
       for (const t of TOKENS)
         if (line.includes(t))
-          note(f, i + 1, 'production-resolver-token', `生产 resolver 含禁词：${t}`);
+          note(
+            f,
+            i + 1,
+            'production-resolver-token',
+            `production resolver contains a forbidden token: ${t}`,
+          );
     });
   }
 }
@@ -274,30 +315,39 @@ function runAll() {
 }
 
 function report() {
-  // 去重：--source/--graph 同进程各调一次 importsOf，函数体内的动态注记会成对重复
+  // dedupe: --source/--graph each call importsOf once per process; the in-function dynamic notes
+  // would otherwise appear in pairs
   const unique = [
     ...new Map(violations.map((v) => [`${v.file}|${v.line}|${v.kind}|${v.detail}`, v])).values(),
   ];
   if (unique.length) {
-    console.error(`fixture boundary FAIL：${unique.length} 处违规`);
+    console.error(`fixture boundary FAIL: ${unique.length} violation(s)`);
     for (const v of unique) console.error(` - [${v.kind}] ${v.file}:${v.line} ${v.detail}`);
     exit(1);
   }
   const bundleSuffix = argv.includes('--bundle')
     ? bundleScanExecuted
-      ? '（bundle 扫描已执行）'
-      : '（bundle 扫描未执行）'
+      ? ' (bundle scan executed)'
+      : ' (bundle scan not executed)'
     : '';
-  console.log('fixture boundary OK：无直接导入/间接到达/动态 resolver 违规' + bundleSuffix);
+  // the OK line enumerates only what this invocation actually ran (the resolver token scan always
+  // runs); the bundle layer keeps its own executed/not-executed suffix
+  const scanned = [
+    ...(args.has('--source') ? ['no direct-import violations'] : []),
+    ...(args.has('--graph') ? ['no indirect-reach violations'] : []),
+    'no forbidden resolver tokens',
+  ];
+  console.log(`fixture boundary OK: ${scanned.join(', ')}` + bundleSuffix);
 }
 
 async function selfTest() {
-  // 临时副本注入六类违规（runbook：直接 import / 路径别名 / re-export / 动态 resolver /
-  // 引号开头拼接动态 resolver / 别名桥消费方）→ 全杀 → 清理
+  // temp copy injects six violation kinds (direct import / path alias / re-export / dynamic
+  // resolver / quote-first concatenated dynamic resolver / alias bridge consumer) -> all caught ->
+  // cleanup
   const tmp = mkdtempSync(join(tmpdir(), 'fx-boundary-'));
   try {
     for (const d of ['scripts']) cpSync(join(ROOT, d), join(tmp, d), { recursive: true });
-    cpSync(join(ROOT, 'fixtures'), join(tmp, 'fixtures'), { recursive: true }); // 让 import 可解析到真实 fixture 目标
+    cpSync(join(ROOT, 'fixtures'), join(tmp, 'fixtures'), { recursive: true }); // so imports resolve to real fixture targets
     mkdirSync(join(tmp, 'app'), { recursive: true });
     mkdirSync(join(tmp, 'lib/data'), { recursive: true });
     writeFileSync(join(tmp, 'app/direct.ts'), `import { fixtureData } from '../fixtures/index';\n`);
@@ -310,10 +360,11 @@ async function selfTest() {
       `const src = '../fixtures/index';\nconst m = await import(src);\n`,
     );
     writeFileSync(join(tmp, 'lib/data/repository.ts'), `export const repo = 'production';\n`);
-    writeFileSync(join(tmp, 'lib/data/fixture-repository.ts'), `export const bridge = 1;\n`); // 别名桥消费用例的解析目标
+    writeFileSync(join(tmp, 'lib/data/fixture-repository.ts'), `export const bridge = 1;\n`); // resolution target for the alias-bridge consumer case
     const { execFileSync } = await import('node:child_process');
-    // [文件名, 期望的违规 tag]——re-export 与直接/别名导入同 tag（同属 direct-fixture-import），动态源单列 tag；
-    // alias-bridge 锁定 '@/' 归一后 illegal-bridge-consumer 的拦截（别名归一修复前该规则对 '@/' 全盲）
+    // [filename, expected violation tag] -- re-export shares the tag with direct/alias imports (all
+    // direct-fixture-import); dynamic source gets its own tag; alias-bridge locks in the
+    // illegal-bridge-consumer interception after '@/' normalization
     const cases = [
       ['direct', 'direct-fixture-import', `import { fixtureData } from '../fixtures/index';\n`],
       ['alias', 'direct-fixture-import', `import { fixtureData } from '@/fixtures/index';\n`],
@@ -352,18 +403,18 @@ async function selfTest() {
           ],
           { stdio: 'pipe' },
         );
-        results.push(`${kind}: 未被拦截（FAIL）`);
+        results.push(`${kind}: not intercepted (FAIL)`);
       } catch (e) {
         const out = String(e.stdout ?? '') + String(e.stderr ?? '');
         const m = out.match(new RegExp(`\\[${tag}\\] (app/${kind}\\.ts):(\\d+)`));
         results.push(
           m
-            ? `${kind}: 已拦截 [${tag}] ${m[1]}:${m[2]} ✓`
-            : `${kind}: 已拦截但 tag/位置缺失（${out
+            ? `${kind}: intercepted [${tag}] ${m[1]}:${m[2]} ✓`
+            : `${kind}: intercepted but tag/location missing (${out
                 .split('\n')
                 .filter((l) => l.includes(' - '))
                 .slice(0, 2)
-                .join(' | ')}）`,
+                .join(' | ')})`,
         );
       }
     }
@@ -372,7 +423,7 @@ async function selfTest() {
     if (!ok) exit(1);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
-    console.log('self-test 临时副本已清理');
+    console.log('self-test temp copy cleaned up');
   }
 }
 

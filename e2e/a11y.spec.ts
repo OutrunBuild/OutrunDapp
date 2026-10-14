@@ -4,14 +4,18 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { PAGES, ZH_PAGES } from './pages';
 
-// axe 无障碍回归闸门（agent-workflow.md §3.2）：WCAG 2.0/2.1 A+AA 全量扫描，
-// 与 e2e/a11y-baseline.json 基线比对——新增规则或节点数上涨即 FAIL；
-// 存量清零会提示收缩基线。基调是回归闸而非一次性清零，存量治理走正常 UI 任务。
-// 重建基线（治理后收缩 / 首次）：UPDATE_A11Y_BASELINE=1 pnpm test:e2e -- e2e/a11y.spec.ts
-// 仅桌面档跑（移动端渲染同 DOM，axe 规则不随视口变化）。
+// axe accessibility regression gate: full WCAG 2.0/2.1
+// A+AA scan compared against the e2e/a11y-baseline.json baseline — a new rule
+// or node-count increase FAILs; an emptied stock issue prompts baseline
+// shrinkage. The intent is a regression gate, not a one-time cleanup; stock
+// remediation goes through normal UI tasks.
+// Rebuild the baseline (post-remediation shrink / first run):
+// UPDATE_A11Y_BASELINE=1 pnpm test:e2e -- e2e/a11y.spec.ts
+// Desktop tier only (mobile renders the same DOM; axe rules do not vary by viewport).
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
-// cwd = playwright.config.ts 所在仓库根（勿用 import.meta：本包未开 "type":"module"，TS 编译为 CJS）
+// cwd = repo root where playwright.config.ts lives (do not use import.meta: this
+// package has no "type":"module", TS compiles to CJS)
 const BASELINE_PATH = join(process.cwd(), 'e2e', 'a11y-baseline.json');
 const UPDATE = process.env.UPDATE_A11Y_BASELINE === '1';
 
@@ -26,18 +30,21 @@ function readBaseline(): Baseline {
   }
 }
 
-test('axe: 无新增 WCAG A/AA 违规（基线比对）', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop-1280', 'axe 扫描仅桌面档');
+test('axe: no new WCAG A/AA violations (baseline comparison)', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1280', 'axe scan runs on the desktop tier only');
 
   const baseline = readBaseline();
   const next: Baseline = {};
   const regressions: string[] = [];
 
-  // zh 变体页进扫描（2026-10-08 测试盲区裁决 [H]）：zh 是不同 DOM——文案/排版变体
-  // 可引入 en 扫不见的违规；「移动端同 DOM」省档理由只覆盖视口、不覆盖语言变体。
+  // zh variant pages enter the scan: zh is
+  // a different DOM — copy/layout variants can introduce violations invisible to
+  // the en scan; the "mobile same DOM" tier-skipping rationale covers viewport
+  // only, not language variants.
   for (const { name, path, connectWallet } of [...PAGES, ...ZH_PAGES]) {
     await page.goto(path, { waitUntil: 'networkidle' });
-    // connectWallet 条目扫连接态全量 DOM（与 visual 基线同口径）；*-disconnected 扫默认态
+    // connectWallet entries scan the connected-state full DOM (same standard as the
+    // visual baseline); *-disconnected scans the default state
     if (connectWallet) {
       const control = page.locator('.wallet-control');
       await control.click();
@@ -56,24 +63,26 @@ test('axe: 无新增 WCAG A/AA 违规（基线比对）', async ({ page }, testI
     for (const f of found) {
       const b = base.find((x) => x.id === f.id);
       if (!b) {
-        regressions.push(`${name}: 新增规则 ${f.id} ×${f.nodes}（${f.help}）`);
+        regressions.push(`${name}: new rule ${f.id} x${f.nodes} (${f.help})`);
       } else if (f.nodes > b.nodes) {
-        regressions.push(`${name}: ${f.id} 节点数 ${b.nodes} → ${f.nodes}（${f.help}）`);
+        regressions.push(`${name}: ${f.id} node count ${b.nodes} -> ${f.nodes} (${f.help})`);
       }
     }
     for (const b of base) {
       if (!found.some((f) => f.id === b.id)) {
-        console.log(`  改善：${name} 的 ${b.id} 已清零——请收缩 e2e/a11y-baseline.json`);
+        console.log(
+          `  improvement: ${name} ${b.id} cleared to zero — shrink e2e/a11y-baseline.json`,
+        );
       }
     }
   }
 
   if (UPDATE) {
     writeFileSync(BASELINE_PATH, `${JSON.stringify(next, null, 2)}\n`);
-    console.log('a11y 基线已重写：e2e/a11y-baseline.json');
+    console.log('a11y baseline rewritten: e2e/a11y-baseline.json');
   }
   expect(
     regressions,
-    `无障碍回归（治理存量请走 UI 任务并收缩基线）:\n${regressions.join('\n')}`,
+    `accessibility regressions (remediate stock via UI tasks and shrink the baseline):\n${regressions.join('\n')}`,
   ).toEqual([]);
 });

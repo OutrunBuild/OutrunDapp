@@ -21,21 +21,21 @@ import { Input } from '@/components/ui/input'
 import { FieldError } from '@/components/ui/field'
 
 /**
- * Redeem POL 操作弹窗（2026-09-27：POL 资产卡 Redeem 钮由恒禁用改弹窗）。
- * 机制：销毁 POL 按主池构造 1:1 换回主池（memecoin/uAsset）LP 代币
- * （MemeverseLiquidityImpl.sol:861/888 amountInLP=amountInPOL——:841 注释
- * "1:1 LP amount equals the burned POL amount by main-pool construction"；
- * IMemeverseLiquidityImpl.sol:64）。unwrap=false LP 直转路径非价格敏感
- * （:850-852）→ 合约无滑点/deadline 参数 → 不设设置齿轮（unwrap=true 拆成
- * memecoin+uAsset 两币的 6 参滑点入口不进本窗）。闸门仅 unlocked
- * （:857/884 NotUnlockedStage；OutrunBook lifecycle.md:18/97 From Unlocked）。
- * You receive 行保留：1:1 恒等但输入 POL、输出 LP 代币身份不同（与 Split/Merge
- * 弹窗删输出区的裁定不冲突——非输入复述）；LP 显示符号=主池对口径
- * {MEME}/{uAsset} LP（repository main 池 pair；与池两弹窗 lpSymbol 惯例一致——
- * 链上 ERC20 全池静态同名 symbol "MLP"/name "Memeverse LP"（SwapFacet.sol:313），
- * 按池区分只能靠对口径）；打开为空输入（2026-10-08 用户裁定，
- * 废除 2026-09-27 打开预填口径）；CTA 纪律同前：
- * 未连接=Connect Wallet 可点、已连接=操作钮禁用（不伪造成交）。
+ * Redeem POL action dialog (the POL asset card's Redeem button).
+ * Mechanism: burning POL returns main-pool (memecoin/uAsset)
+ * LP tokens 1:1 by main-pool construction
+ * (amountInLP=amountInPOL). The unwrap=false direct LP transfer path is not price
+ * sensitive → the contract has no slippage/deadline parameters → no settings gear
+ * (the unwrap=true split into memecoin+uAsset 6-parameter slippage entry does not belong in
+ * this dialog). Gate is unlocked only (locked/unsettled states revert with NotUnlockedStage).
+ * The You receive row stays: 1:1 identity, but the input POL and the output LP token are
+ * different identities (unlike the Split/Merge dialog, which drops the
+ * output area — this is not a restatement of the input); LP display symbol=main-pool pair
+ * scope {MEME}/{uAsset} LP (repository main pool pair; consistent with the two pool dialogs'
+ * lpSymbol convention — on-chain the ERC20 of every pool statically shares symbol "MLP"/name
+ * "Memeverse LP", so pools can only be told apart by the pair scope);
+ * opens with empty input; CTA discipline as before:
+ * disconnected=Connect Wallet clickable; connected=action button disabled (no faked execution).
  */
 export function PolRedeemLpDialog({
   locale,
@@ -49,24 +49,24 @@ export function PolRedeemLpDialog({
   const copy = getCopy(locale).verseDesk
   const common = getCopy(locale).common
   const { connected, toggle } = useMockWallet()
-  // 打开为空输入（2026-10-08 用户裁定：金额输入默认空 0.00，废除打开预填余额口径）
+  // Opens with empty input (amount input defaults to empty 0.00, not prefilled with balance)
   const [amount, setAmount] = useState('')
   const balanceErrorId = useId()
 
   const polSymbol = `POL-${verse.symbol}`
-  // 主池 LP 对口径（repository main 池 pair [verse.symbol, verse.raiseAsset]）
+  // Main-pool LP pair scope (repository main pool pair [verse.symbol, verse.raiseAsset])
   const lpSymbol = `${verse.symbol}/${verse.raiseAsset} LP`
   const clean = (raw: string) => setAmount(sanitizeAmount(raw))
 
   const parsed = Number(amount)
   const valid = Number.isFinite(parsed) && parsed > 0
   const overBalance = parsed > pol.myPol
-  // 1:1 主池构造恒等（MemeverseLiquidityImpl.sol:861），无样本/槽位分支
+  // 1:1 identity by main-pool construction (amountInLP=amountInPOL), no sample/slot branch
   const lpOut = valid ? parsed : null
 
   return (
     <Dialog>
-      {/* data-slot 钉回 button：同 PolMintDialog——主题桥按 [data-slot='button'] 匹配皮肤 */}
+      {/* data-slot pinned back to button: same as PolMintDialog — the theme bridge matches skins on [data-slot='button'] */}
       <DialogTrigger data-slot="button" render={<Button variant="outline" size="sm" />}>
         {copy.redeemPol}
       </DialogTrigger>

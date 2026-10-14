@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Fixture inspector 服务器（阶段 2 步骤 9）：
+// Fixture inspector server:
 //   node scripts/serve-fixture-inspector.mjs --root fixtures --port 4174
-// 只允许读取 --root 内的常规文件：拒绝绝对路径、.. 穿越、符号链接逃逸。无依赖。
+// Only regular files inside --root may be read: rejects absolute paths, .. traversal, symlink escape.
+// Zero dependencies.
 import { createServer } from 'node:http';
 import { createReadStream } from 'node:fs';
 import { stat, realpath } from 'node:fs/promises';
@@ -46,6 +47,6 @@ const server = createServer(async (req, res) => {
 
 server.listen(port, '127.0.0.1', () => {
   console.log(
-    `fixture inspector: http://127.0.0.1:${port}/ （root=${root}；仅原型/测试，禁止生产导入）`,
+    `fixture inspector: http://127.0.0.1:${port}/ (root=${root}; prototype/testing only, never import from production)`,
   );
 });

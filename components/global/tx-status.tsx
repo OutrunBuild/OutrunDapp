@@ -17,16 +17,18 @@ export type TxState =
 const TX_ORDER = ['signing', 'confirming', 'confirmed'] as const
 
 /**
- * 交易签名状态条 = component-contract §8 TransactionStatus 首个原型落地
- * （state-matrix T4 等待签名 → T5 上链确认 → T6 已确认）。
- * 原型无钱包：签名/上链由调用方定时模拟推进，无 hash/gas，关键事实行省略。
- * aria：交易状态是关键信息，容器 assertive（契约 §8）。
+ * Transaction-signing status strip with three steps:
+ * awaiting signature → confirming on-chain → confirmed.
+ * The prototype has no wallet: signature/on-chain progress is simulated by the caller
+ * on timers; no hash/gas, key-facts row omitted.
+ * aria: transaction state is critical information; the container is assertive.
  */
 export function TxStatus({ locale, state }: { locale: Locale; state: TxState }) {
   const copy = getCopy(locale)
   const labels = [copy.verse.txSign, copy.verse.txSubmit, copy.verse.txDone]
 
-  // 终态附加（决议：拒签=Cancelled 非失败语气；回退=Reverted 失败语气+原因占位）
+  // Terminal states: rejected signature = Cancelled with a non-failure tone;
+  // revert = Reverted with a failure tone + reason placeholder
   if (state === 'cancelled' || state === 'reverted') {
     const cancelled = state === 'cancelled'
     return (

@@ -1,6 +1,8 @@
-// 一次性数据扩展脚本（2026-09-28 用户裁定造数看原型效果）：为 pol-positions.json 全部
-// 记录补 myReserve——样本账户本 verse PSM 配对储备余额（UETH→ETH、UBNB→BNB；钱包级）。
-// 量级锚=「钱包同时持有一部分储备」= myUAsset 的 20–60%；mulberry32 种子取记录 id，重跑幂等。
+// One-off data extension script (fabricated samples for prototype visuals):
+// backfills myReserve for every record in pol-positions.json -- the sample account's paired PSM
+// reserve balance in this verse (UETH->ETH, UBNB->BNB; wallet level).
+// Magnitude anchor = "the wallet also holds part of the reserves" = 20-60% of myUAsset; mulberry32
+// seed = record id + ':my-reserve'; idempotent on re-run.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';

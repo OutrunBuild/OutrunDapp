@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Single-file SHA256 writer (stage-2 runbook step 1). Node stdlib only.
+// Single-file SHA256 writer. Node stdlib only.
 // Usage: node scripts/write-file-hash.mjs --input <path> --output <path>
 // Writes "<sha256>  <input-path>\n" (sha256sum format) to --output.
 // Refuses to overwrite an existing output whose recorded hash for the same

@@ -1,6 +1,7 @@
-// Next.js 16 proxy（architecture §14）：每请求生成 base64 nonce，
-// 同一 nonce 写入 request x-nonce、request CSP 与 response CSP；
-// 全站动态渲染，禁止 ISR/PPR/静态导出（runbook 步骤 2 CSP/渲染约束）。
+// Next.js 16 proxy: generate a base64 nonce per request;
+// the same nonce is written into the request x-nonce, the request CSP and the response CSP;
+// site-wide dynamic rendering; ISR/PPR/static export are forbidden — cached output would replay a stale
+// per-request nonce and break the CSP.
 import { NextResponse, type NextRequest } from 'next/server';
 
 function buildNonce(): string {
@@ -13,7 +14,7 @@ function cspHeader(nonce: string, dev: boolean): string {
     `'nonce-${nonce}'`,
     "'strict-dynamic'",
     'https://challenges.cloudflare.com',
-    ...(dev ? ["'unsafe-eval'"] : []), // 仅 development
+    ...(dev ? ["'unsafe-eval'"] : []), // development only
   ].join(' ');
 
   return [
@@ -29,14 +30,17 @@ function cspHeader(nonce: string, dev: boolean): string {
   ].join('; ');
 }
 
-// locale 路由（2026-09-22 方案 C，替代 GS-7 的「en 前缀」形态）：
-// 语言状态仍在 URL——en 无前缀（内部 rewrite 到 /en/**）、zh 带 /zh 前缀；
-// cookie 仅存回访偏好，用于 '/' 重定向（Googlebot 无 cookie，'/' 的英文规范内容不受影响）。
+// locale routing:
+// language state still lives in the URL — en is prefix-less (internally rewritten to /en/**), zh carries the /zh prefix;
+// the cookie only stores the returning-visitor preference, used for the '/' redirect
+// (Googlebot has no cookie, so the canonical English content at '/' is unaffected).
 const LOCALE_COOKIE = 'OUTRUN_LOCALE';
 
-// 旧 URL 收敛（2026-09-23 用户裁定：创建页与发现页并入 /memeverse/* 域）：
-// /launch → /memeverse/launch、/memeverse → /memeverse/explore；
-// 307 避免原型期浏览器缓存（与 verse-021 形态收敛同口径）。
+// Legacy URL convergence: the launch page and discovery page live under the /memeverse/* domain,
+// so their old addresses redirect:
+// /launch → /memeverse/launch, /memeverse → /memeverse/explore;
+// 307 so browsers do not cache the redirect and keep re-checking the legacy path; switch to 301
+// only after the legacy paths are retired.
 const LEGACY_PATHS: Record<string, string> = {
   '/launch': '/memeverse/launch',
   '/memeverse': '/memeverse/explore',
@@ -62,26 +66,28 @@ function localeRouting(
 
   const { pathname, search } = request.nextUrl;
 
-  // zh 前缀（2026-09-26 语言切换零副作用）：内部同样 rewrite 到 /en/**，
-  // 与无前缀形态共用同一棵路由树——跨语言软导航命中同键客户端缓存、
-  // 页面树不重挂载（表单/图表/弹窗等组件状态全保）。展示语言不走路由段，
-  // 由 x-locale 请求头下传（URL 前缀仍是语言唯一真源）。
+  // zh prefix: internally also rewritten to /en/**,
+  // sharing the same route tree as the prefix-less shape — cross-language soft navigation hits the same-key client
+  // cache and the page tree does not remount (form/chart/dialog component state is fully preserved). The display
+  // language does not use a route segment; it is passed down via the x-locale request header
+  // (the URL prefix remains the sole source of truth for language).
   if (pathname === '/zh' || pathname.startsWith('/zh/')) {
     requestHeaders.set('x-locale', 'zh');
     const target = new URL(
       `/en${pathname === '/zh' ? '' : pathname.slice(3)}${search}`,
       request.url,
     );
-    // CSP 必须设在 rewrite 响应上（request headers 不会透传为响应头——2026-10-09 步骤 8 发现 /zh 路径 CSP 缺失的根因）
+    // Request headers are not forwarded as response headers, so every rewrite response must set
+    // the CSP explicitly — without this the rewritten page ships with no browser-facing CSP.
     const rewritten = NextResponse.rewrite(target, { request: { headers: requestHeaders } });
     rewritten.headers.set('Content-Security-Policy', csp);
     return rewritten;
   }
 
-  // 旧 /en/** 地址收敛到 canonical 无前缀（2026-10-08 生产插桩实证：rewrite
-  // 不二次进入 proxy、该分支只剩外部直达请求，原「暂保持可达」提前收敛）。
-  // 307 与 LEGACY_PATHS 同口径（原型期防浏览器缓存），上线换 301；
-  // 伪造 x-locale 直达面随入口消失而封死。
+  // Legacy /en/** addresses converge to the canonical prefix-less form.
+  // Internal rewrites never re-enter the proxy, so this branch only sees external direct requests.
+  // 307 follows the same LEGACY_PATHS redirect policy (same no-cache rationale and 301 timing);
+  // redirecting /en/** away also removes the URL surface a client-forged x-locale could pair with.
   if (pathname === '/en' || pathname.startsWith('/en/')) {
     const rest = pathname === '/en' ? '/' : pathname.slice(3);
     return NextResponse.redirect(new URL(`${rest}${search}`, request.url), 307);
@@ -91,12 +97,16 @@ function localeRouting(
     return NextResponse.redirect(new URL(`/zh${search}`, request.url));
   }
 
-  // 其余页面路径 = 英文内容：内部 rewrite 到 /en/**，URL 栏保持无前缀。
-  // 无条件覆写：客户端预置的 x-locale 不得冒充内部首跳信号（内部 rewrite
-  // 目标恒为 /en/**，不会重入本分支；首跳 zh 的保护见上 /en 分支守卫）。
+  // All other page paths = English content: internally rewritten to /en/**, the URL bar stays prefix-less.
+  // Unconditional overwrite: a client-preset x-locale must not impersonate the internal first-hop signal (internal
+  // rewrite targets are always /en/** and never re-enter this branch; first-hop zh protection is the /en branch guard above).
   requestHeaders.set('x-locale', 'en');
   const target = new URL(`/en${pathname === '/' ? '' : pathname}${search}`, request.url);
-  return NextResponse.rewrite(target, { request: { headers: requestHeaders } });
+  // Same as the /zh branch: request headers are not forwarded as response headers, so the rewrite
+  // response must set the CSP explicitly or the prefix-less pages (the canonical entry) ship with none.
+  const rewritten = NextResponse.rewrite(target, { request: { headers: requestHeaders } });
+  rewritten.headers.set('Content-Security-Policy', csp);
+  return rewritten;
 }
 
 export function proxy(request: NextRequest) {
@@ -117,7 +127,8 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // paint/ = Paint Worklet 静态资产、fonts/ = CJK 字体子集产物（public/**，需原样 URL 加载，不走 locale rewrite）
+  // paint/ = Paint Worklet static assets, fonts/ = CJK font subset artifacts
+  // (public/**, must load via their exact URLs, no locale rewrite)
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.ico$|.*\\.svg$|paint/|fonts/).*)',
   ],

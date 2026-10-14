@@ -43,7 +43,8 @@ import { VaultPanel } from './verse-vault-panel'
 
 function CurrentAction({ verse, locale }: { verse: FixtureVerse; locale: Locale }) {
   const copy = getCopy(locale)
-  // 创世文案四态（lifecycle.md:53-55）：Fast 达标=即可推进；Fast 未达标=达标即触发；非 Fast 达标=仍等截止；常规=截止后可推进
+  // Genesis copy, four states: Fast threshold met=can advance now; Fast not met=triggers on
+  // reaching the threshold; non-Fast met=still waits for the deadline; standard=can advance after the deadline
   const thresholdMet = verse.normalProgress >= 100 || verse.leverageProgress >= 100
   const body =
     verse.stage === 'genesis'
@@ -104,9 +105,9 @@ export function VersePage({
 }: {
   locale: Locale
   verseId: string
-  /** URL ?tab= 原始值；不在白名单内回落 Liquidity */
+  /** Raw URL ?tab= value; falls back to Liquidity when not in the whitelist */
   tab?: string
-  /** URL ?action= 原始值；当前仅 vault 页签接受 withdraw（金库操作卡初值） */
+  /** Raw URL ?action= value; only the vault tab accepts withdraw (vault action card initial value) */
   action?: string
 }) {
   const snapshot = getFixtureSnapshot()
@@ -116,25 +117,27 @@ export function VersePage({
   const vaultInitialView = initialTab === 'vault' && action === 'withdraw' ? 'withdraw' : undefined
   const copy = getCopy(locale)
   const participationOptions = getFixtureParticipationOptions(verse.raiseAsset)
-  // Fast Genesis 达标判定：双口径任一达标（预购与债务本金不计入——lifecycle.md:35-49）
+  // Fast Genesis threshold check: either of the two scopes met (preorder and debt principal do not count toward the threshold)
   const thresholdMet = verse.normalProgress >= 100 || verse.leverageProgress >= 100
-  // Refund 是结算态：不渲染参与工作台/资金池/通用时间线，收敛为单一退款结算面板
+  // Refund is the settlement state: no participation workbench/pools/generic timeline rendered;
+  // collapses to a single refund settlement panel
   const isRefund = verse.stage === 'refund'
   const myRefundParticipations = isRefund
     ? getFixtureParticipations().filter((participation) => participation.verseId === verse.id)
     : []
-  // 部署面口径与 Explore 卡片一致：治理链外的其余主网链即 Spoke 链（omnichain 部署面）
+  // Deployment-face scope consistent with the Explore cards: mainnet chains other than the
+  // governance chain are Spoke chains (omnichain deployment face)
   const spokeChains = getFixtureChains().filter(
     (chain) => chain.env === 'mainnet' && chain.chainId !== verse.governanceChain,
   )
-  // 样本账户在本 Verse 的已参与资金（普通+杠杆利息+预购，均按 uAsset 计——participations fixture）
+  // Sample account's participated funds in this Verse (standard+leverage interest+preorder, all in uAsset — participations fixture)
   const myParticipation = getFixtureParticipations()
     .filter(
       (participation) =>
         participation.verseId === verse.id && participation.owner === snapshot.sampleAccount.address,
     )
     .reduce((sum, participation) => sum + participation.amount, 0)
-  // locked/unlocked 交易台与四标签数据（缺失→面板槽位态）
+  // locked/unlocked trade desk and four-tab data (missing → panel slot state)
   const trade = getFixtureVerseTrade(verse.id)
   if (!trade) notFound()
   const staking = getFixtureStaking(verse.id)
@@ -151,8 +154,9 @@ export function VersePage({
           <span className="verse-identity__symbol" aria-hidden="true">
             {verse.symbol.slice(0, 2)}
           </span>
-          {/* symbol 在前（用户更关心），name 随后；右缘=分享组（2026-10-06 用户裁定：
-              hero 阶段徽章删除——数据面已有阶段信号，右上角让位分享组） */}
+          {/* symbol first (users care more), name after; right edge=share group (no hero stage
+              badge — the data area already carries stage signals,
+              the top-right yields to the share group) */}
           <div className="verse-identity__titlerow">
             <strong className="ax-glitch-text verse-identity__ticker" data-numeric>
               {verse.symbol}
@@ -216,8 +220,9 @@ export function VersePage({
         <SourceRef value={verse.sourceRef} id={verse.id} />
       </header>
 
-      {/* 创世期保留双门槛判定卡；locked/unlocked 改走交易台+四标签（Q1 用户裁定 2026-09-23：
-          成功判定/当前可以做什么/指标卡三块移除，信息由统计条与四标签覆盖） */}
+      {/* The genesis stage keeps the dual-threshold card; locked/unlocked switch to trade desk +
+          four tabs (the success check/what you can do now/metrics card blocks are covered by the
+          stats bar and the four tabs) */}
       {verse.stage === 'genesis' ? (
         <section className="threshold-panel ax-glow-card" aria-labelledby="threshold-title">
         <div className="threshold-panel__intro">
@@ -297,7 +302,8 @@ export function VersePage({
       ) : verse.stage === 'genesis' ? (
         <div className="verse-workbench" id="participate">
         <section className="workbench-primary ax-glow-card" aria-labelledby="participation-title">
-          {/* 创世态标题/描述删除（2026-09-22 用户裁定：与右侧「当前可以做什么」完全重复）；sr-only h2 维持 section 大纲 */}
+          {/* No visible genesis-state title/description (would fully duplicate
+              the right side's "what you can do now"); sr-only h2 keeps the section outline */}
           <h2 id="participation-title" className="sr-only">
             {copy.verse.participateTitle}
           </h2>
@@ -353,7 +359,7 @@ export function VersePage({
         </div>
       </div>
       ) : (
-        /* locked / unlocked：交易台持久区 + 四标签（2026-09-23 用户裁定） */
+        /* locked / unlocked: persistent trade desk area + four tabs */
         <>
           <VerseTradeDesk locale={locale} verse={verse} trade={trade} />
           <VerseTabs locale={locale} initialTab={initialTab}>

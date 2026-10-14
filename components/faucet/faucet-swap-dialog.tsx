@@ -1,12 +1,13 @@
 'use client'
 
 /**
- * Get UUSD 弹窗（2026-10-09 口径终值回归 PSM——用户核对合约后修正：UUSD 只能经 PSM
- * 获得，生息资产直接走 stakeForGenesis 不经 UUSD）：PSM 面值兑换双向（Get=USDC→UUSD
- * mint / Back=UUSD→USDC redeem），机制 source-map S8（面值 1:1、tin/tout 费率、mint
- * 受 stockCap headroom、无滑点/deadline 参数→不设设置齿轮）。原语复用
- * global/action-dialogs；CTA 口径=未连接 Connect 可点切换模拟连接、已连接动作钮仅随
- * 输入门控（无 onClick，不伪造成交）——ConvertDialog 同款。
+ * Get UUSD dialog (UUSD is obtainable only via PSM, and yield-bearing assets go straight through
+ * stakeForGenesis without touching UUSD): two-way PSM face-value swap (Get = USDC→UUSD mint /
+ * Back = UUSD→USDC redeem), mechanism facts (face value 1:1, tin/tout fees, mint bounded
+ * by stockCap headroom, no slippage/deadline params → no settings gear). Primitives reuse
+ * global/action-dialogs; CTA semantics = when disconnected, a clickable Connect toggles the mock
+ * connection; when connected, the action button is gated only by input (no onClick, no faked
+ * settlement) — same as ConvertDialog.
  */
 import { useState } from 'react'
 import type { ReactNode } from 'react'
@@ -87,7 +88,8 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fixtu
                 '--'
               ),
             ],
-            // 铸造额度余量只约束 Get（mint）方向（PSM stockCap，ConvertDialog 同口径）
+            // Mint headroom constrains only the Get (mint) direction (PSM stockCap; same
+            // semantics as ConvertDialog)
             ...(mode === 'get'
               ? ([
                   [

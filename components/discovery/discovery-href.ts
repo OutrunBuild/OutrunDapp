@@ -2,7 +2,7 @@ import type { VerseStage } from '@/lib/data/fixture-repository'
 
 import { legalSortForStage } from './sort-options'
 
-/** discovery URL 状态六轴（props = 解析端归一后的当前值） */
+/** Six axes of discovery URL state (props = the parser's normalized current values) */
 export type DiscoveryQueryState = {
   stage: VerseStage
   sort: string
@@ -12,8 +12,9 @@ export type DiscoveryQueryState = {
   q: string
 }
 
-/** 参数合并 + 序列化单一构造点：未指定的轴继承当前值；
- * 默认值不进 URL（order=desc / chain=all / q 空；mode 仅创世阶段写入，2026-10-01 用户裁定） */
+/** Single construction point for param merging + serialization: unspecified axes inherit the
+ *  current values; defaults stay out of the URL (order=desc / chain=all / q empty; mode written
+ *  only in the genesis stage) */
 export function discoveryHref(
   pathname: string,
   current: DiscoveryQueryState,
@@ -30,13 +31,15 @@ export function discoveryHref(
   return `${pathname}?${params.toString()}`
 }
 
-/** 切阶段 tab（P2-5[B]）：目标阶段合法则保留排序（locked↔unlocked 共享项），跨 genesis 非法回落 createtime */
+/** Switching stage tab: keeps the sort if legal for the target stage (locked↔unlocked
+ *  share options); when illegal across genesis, falls back to createtime */
 export function stageTabHref(pathname: string, current: DiscoveryQueryState, stage: VerseStage) {
   return discoveryHref(pathname, current, { stage, sort: legalSortForStage(stage, current.sort) })
 }
 
-/** 清筛选（P2-5[A]）：只重置 chain/mode/q 三轴，保留用户所在的 stage/sort/order 位置；
- * 筛选栏 Clear 与空态 Clear 共用，语义分裂结构性不可复现 */
+/** Clear filters: resets only the chain/mode/q axes, preserving the user's stage/sort/
+ *  order position; shared by the filter-bar Clear and the empty-state Clear, so the two cannot
+ *  semantically diverge by construction */
 export function clearFiltersHref(pathname: string, current: DiscoveryQueryState) {
   return discoveryHref(pathname, current, { chain: 'all', mode: 'all', q: '' })
 }

@@ -20,18 +20,26 @@ import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
 /**
- * Flash Swap 操作弹窗（2026-09-27 方案 B：YT 移出 Swap 卡，进 Tokenization 页 YT 井）。
- * 机制（yt-flash-swap.md）：POL↔YT 单通道，复用 PT/POL 池流动性；买卖均「指定 YT 数量」——
- * 买=到手 y YT、支付 y−R（R=y PT 的池内变现，上限=Max paid）、卖=收到 y−Q（下限=Min received）。
- * 对手侧展示=uAsset 而非 POL（2026-09-28 用户裁定：理解成本更低）——前端按 POL/uAsset 池价
- * 折算组合，链上仍经 Flash Swap 以 POL 成交。
- * 线性参考价：1 YT ≈ (1−PT/POL 池价)×POL/uAsset 池价（隐含价，1 POL=1 PT+1 YT）；费率=PT/POL 池动态费单次。
- * UI 同构：上块=YT 驱动输入（买卖共用不翻转），下块=uAsset 派生只读；模式条只改标签与保护行方向。
- * 闸门仅 locked（井底门控；解锁后 split/merge 关闭、Flash Swap 随之不可用，转结算赎回）。
- * 设置齿轮只留滑点（合约无 deadline 参数；可选限价+到期属高级项原型不做——同 Split/Merge 裁定口径）。
- * 打开为空输入（2026-10-08 用户裁定：金额输入默认空 0.00，废除 2026-09-28
- * 打开预填余额口径）；清空/改数后照常重算，模式切换保留输入。
- * CTA 纪律同 Mint 弹窗：未连接=Connect Wallet 可点切换模拟连接、已连接=操作钮禁用（不伪造成交）。
+ * Flash Swap action dialog: YT's dedicated tool, living on the Tokenization page's YT well.
+ * Mechanism: single POL↔YT channel reusing PT/POL pool liquidity; both buy
+ * and sell "specify the YT amount" —
+ * buy=receive y YT, pay y−R (R=in-pool realization of y PT, cap=Max paid);
+ * sell=receive y−Q (floor=Min received).
+ * Counterparty side shown as uAsset instead of POL (lower comprehension
+ * cost) — the frontend converts the composite via the POL/uAsset pool price; on-chain it still
+ * settles in POL through the Flash Swap.
+ * Linear reference price: 1 YT ≈ (1−PT/POL pool price)×POL/uAsset pool price (implied price,
+ * 1 POL=1 PT+1 YT); fee=single application of the PT/POL pool dynamic fee.
+ * Buy/sell share one layout (no flip): upper block=YT-driven input, lower block=
+ * uAsset-derived read-only; the mode bar only changes labels and the protection row's direction.
+ * Gate is locked only (well-bottom gating; after unlock split/merge closes and Flash Swap
+ * becomes unavailable with it, moving to settlement redemption).
+ * Settings gear keeps only slippage (the contract has no deadline parameter; optional limit
+ * price + expiry are advanced items not built — same scope as the Split/Merge dialog).
+ * Opens with empty input (amount input defaults to empty 0.00, not prefilled with balance);
+ * recalculates as usual after clearing/changing the number; mode switch preserves input.
+ * CTA discipline same as the Mint dialog: disconnected=Connect Wallet clickable to toggle mock
+ * connection; connected=action button disabled (no faked execution).
  */
 export function PolFlashSwapDialog({
   locale,
@@ -42,7 +50,7 @@ export function PolFlashSwapDialog({
   locale: Locale
   verse: FixtureVerse
   pol: FixturePolPosition
-  /** uAsset 美元样本价；null=隐藏美元换算行 */
+  /** uAsset USD sample price; null=hide the USD conversion row */
   uAssetUsd: number | null
 }) {
   const copy = getCopy(locale).verseDesk
@@ -51,38 +59,46 @@ export function PolFlashSwapDialog({
   const [mode, setMode] = useState<'buy' | 'sell'>('buy')
   const legLabelId = useId()
   const balanceErrorId = useId()
-  // 打开为空输入（2026-10-08 用户裁定：金额输入默认空 0.00）
+  // Opens with empty input (amount input defaults to empty 0.00)
   const [amount, setAmount] = useState('')
-  // 设置层受控值存 string 原样展示（§25 拍板 A：留点不吞；数值推导经
-  // slippageToNumber，2026-10-08 P1-1 修）
+  // The settings-layer controlled value is stored as a string and shown verbatim
+  // (keep the trailing dot instead of swallowing it; numeric derivation goes through
+  // slippageToNumber)
   const [slippageText, setSlippageText] = useState('0.5')
   const [rateInverted, setRateInverted] = useState(false)
 
   const ytSymbol = `YT-${verse.symbol}`
   const clean = (raw: string) => setAmount(sanitizeAmount(raw))
 
-  // uAsset 计价隐含价（2026-09-28 用户裁定：对手侧直接用 uAsset，理解成本更低——内部两步：
-  // 1 POL=1 PT+1 YT → 1 YT ≈ 1 POL−PT 池市价（yt-flash-swap.md），再按 POL/uAsset 池价折 uAsset；
-  // 链上仍经 Flash Swap 以 POL 成交，前端组合 POL/uAsset 池腿）
+  // uAsset-denominated implied price (counterparty side uses uAsset
+  // directly, lower comprehension cost — two steps internally:
+  // 1 POL=1 PT+1 YT → 1 YT ≈ 1 POL − PT pool market price, then converted to
+  // uAsset via the POL/uAsset pool price;
+  // on-chain it still settles in POL via Flash Swap, the frontend composes the POL/uAsset pool legs)
   const ytPerUAsset = (1 - pol.ptPricePerPol) * pol.marketPricePerPol
   const parsed = Number(amount)
   const valid = Number.isFinite(parsed) && parsed > 0 && ytPerUAsset > 0
-  // 买卖同为线性参考价：支付/收到 uAsset = YT 数量 × 隐含价（执行价由池状态决定，见杠杆警示）
+  // Buy and sell both use the linear reference price: paid/received uAsset = YT amount × implied
+  // price (execution price is decided by pool state, see the leverage warning)
   const uAssetLeg = valid ? parsed * ytPerUAsset : null
-  // 余额不足：卖=超 YT 持仓；买=派生支付腿超 uAsset 余额（下块只读，错误归驱动输入框）
+  // Insufficient balance: sell=exceeds YT holdings; buy=derived pay leg exceeds the uAsset balance
+  // (lower block is read-only, the error belongs to the driving input)
   const overBalance =
     mode === 'sell' ? parsed > pol.myYt : uAssetLeg != null && uAssetLeg > pol.myUAsset
-  // 滑点校验=§25 口径（slippage-input.ts）：越界期间保护值推导退 '--' 槽位
+  // Slippage validation (see getSlippageIssue/slippageToNumber in global/slippage-input):
+  // while out of bounds, protected-value derivation falls back to the '--' slot
   const slippage = slippageToNumber(slippageText)
   const slippageIssue = getSlippageIssue(slippage)
   const protectedLeg =
     uAssetLeg != null && slippageIssue == null
       ? uAssetLeg * (mode === 'buy' ? 1 + slippage / 100 : 1 - slippage / 100)
       : null
-  // 大数分层口径=global/amount-format（fmtUsd/fmtTokenAmount；裸乘积有 float64 尾噪必须过层）；
-  // 费率行=用户手续费率样本（相对支付额，fixture 直读不做推导——2026-09-28 用户裁定：
-  // 假数据不算精确值；谱系与过高回滚口径见 flashFeeNote ⊙ 与 fixture 注释）
-  // ≈$：两侧同为 uAsset 计价 × uAssetUsd
+  // Large-number layering scope=global/amount-format (fmtUsd/fmtTokenAmount; raw products carry
+  // float64 tail noise and must go through the layer);
+  // fee row=user fee rate sample (relative to the paid amount, read directly from fixture with no
+  // derivation — the sample is not a precise value; the too-high rollback scope see the
+  // flashFeeNote tooltip and the fixture comment)
+  // ≈$: both sides denominated in uAsset × uAssetUsd
   const uAssetUsdText =
     uAssetUsd == null || uAssetLeg == null ? null : fmtUsd(uAssetLeg * uAssetUsd, locale)
   const ytUsd =
@@ -97,7 +113,8 @@ export function PolFlashSwapDialog({
         title={copy.flashSwap}
         closeLabel={common.close}
         toolbar={
-          /* 只留滑点：合约无 deadline；可选限价+到期不做（见组件头注） */
+          /* Slippage only: the contract has no deadline; optional limit price + expiry not done
+             (see the component header note) */
           <SwapSettings
             locale={locale}
             settingsLabel={copy.flashSettingsTitle}
@@ -108,7 +125,8 @@ export function PolFlashSwapDialog({
         }
       >
 
-          {/* 模式条：vault 操作卡同款 tab 风 ToggleGroup（买=exact-out 支付上限、卖=到账下限） */}
+          {/* Mode bar: tab-style ToggleGroup same as the vault action cards (buy=exact-out pay cap,
+              sell=receive floor) */}
           <ToggleGroup
             className="vault-actions__bar"
             value={[mode]}
@@ -122,7 +140,8 @@ export function PolFlashSwapDialog({
             <ToggleGroupItem value="sell">{copy.flashSell}</ToggleGroupItem>
           </ToggleGroup>
 
-          {/* 上块=YT 驱动输入：买卖共用（真源：两向均指定 YT 数量），Sell 挂 Max、Buy 无 */}
+          {/* Upper block=YT-driven input: shared by buy/sell (source of truth: both directions
+              specify the YT amount), Sell gets Max, Buy does not */}
           <div className="swap-panel__field">
             <div className="swap-panel__field-head">
               <span>YT</span>
@@ -165,8 +184,9 @@ export function PolFlashSwapDialog({
             <ArrowDown size={16} />
           </span>
 
-          {/* 下块=uAsset 派生只读（对手侧=uAsset——用户裁定 2026-09-28；内部经 POL/uAsset 池折算）：
-              Buy=You pay（上限见 Max paid 行）、Sell=You receive（下限见 Min received） */}
+          {/* Lower block=uAsset-derived read-only (counterparty side=uAsset;
+              converted internally via the POL/uAsset pool):
+              Buy=You pay (cap see the Max paid row), Sell=You receive (floor see the Min received row) */}
           <div className="swap-panel__field" role="group" aria-labelledby={legLabelId}>
             <div className="swap-panel__field-head">
               <span id={legLabelId}>{mode === 'buy' ? copy.flashYouPay : copy.youReceive}</span>

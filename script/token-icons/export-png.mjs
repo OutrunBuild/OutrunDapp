@@ -1,6 +1,6 @@
-// 代币图标 PNG 导出（Trust Wallet 上架格式 256×256 透明底）
-// 用法：pnpm node script/token-icons/export-png.mjs
-// 依赖仓库 Playwright chromium；SVG 源 docs/design/token-icons/svg/<t>-seal.svg
+// Token icon PNG export (Trust Wallet listing format 256x256 transparent background)
+// Usage: pnpm node script/token-icons/export-png.mjs
+// Depends on the repo's Playwright chromium; SVG sources docs/design/token-icons/svg/<t>-seal.svg
 import { chromium } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';

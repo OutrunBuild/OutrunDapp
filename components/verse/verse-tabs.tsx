@@ -10,10 +10,13 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 export type VerseTabKey = 'liquidity' | 'pol' | 'vault' | 'dao'
 
 /**
- * 四标签容器（2026-09-23 用户裁定：Locked/Unlocked 详情页 = 头卡(=Overview) + 交易台 +
- * Liquidity/POL/Yield Vault/DAO）。面板以 RSC children 传入，本组件只负责切换显隐。
- * initialTab=URL ?tab= 深链（服务端白名单校验后传入）：作为受控初值，并在挂载时把
- * 页签区滚进视口——否则视口停在页首，切了页签也看不见（2026-10-04 用户裁定跳转落点）。
+ * Four-tab container: Locked/Unlocked detail page = head card (=Overview) + trade desk +
+ * Liquidity/POL/Yield Vault/DAO. Panels are passed in as RSC children; this component only
+ * toggles visibility.
+ * initialTab=URL ?tab= deep link (passed in after server-side whitelist validation): used as
+ * the controlled initial value, and on mount it scrolls
+ * the tab area into view — otherwise the viewport stays at the page top and the tab switch
+ * is invisible.
  */
 export function VerseTabs({
   locale,
@@ -30,10 +33,13 @@ export function VerseTabs({
 
   useEffect(() => {
     if (!initialTab) return
-    // 深链定位：图表 canvas/字体/图片等异步块就位会推移上方布局，单次 scrollIntoView
-    // 会被顶走——ResizeObserver 观测文档高度变化、变化即对齐；3.5s 后解除避免永久抢滚动。
-    // behavior 必须显式 instant：全局 html{scroll-behavior:smooth} 会把 auto 解析成
-    // 平滑动画（逐帧/逐次重启动画只会缓慢爬行）；之后的客户端切换不再抢滚动
+    // Deep-link positioning: async blocks like chart canvas/fonts/images pushing in will shift
+    // the layout above, so a single scrollIntoView
+    // gets pushed away — a ResizeObserver watches document height changes and realigns on each;
+    // it detaches after 3.5s to avoid fighting scrolling forever.
+    // behavior must be explicit instant: the global html{scroll-behavior:smooth} resolves auto
+    // into a smooth animation (per-frame/per-attempt restarts only crawl slowly); explicit
+    // instant keeps later client tab switches from fighting the deep-link scroll
     const section = sectionRef.current
     if (!section) return
     const start = performance.now()

@@ -27,15 +27,19 @@ import { SavingsZone, StakedPositionsZone, VaultZone } from './positions-zone'
 import { ParticipationsZone } from './participations-zone'
 
 /**
- * /portfolio（2026-10-02 四分区裁定）：①待办（只收逾期有后果项，同类聚合）②资产与跨链
- * （余额按链分布 + 跨链/1:1 转换/存入储蓄弹窗）③仓位与储蓄（CDP 质押仓位 + USR 储蓄卡 +
- * 收益库存单表）④已参与（阶段分组表 + 可领客户端筛选）。信号状态行=页级签名（摘要
- * 即导航，锚点直达分区）；在途段已删（2026-10-04 裁定删在途卡），滞留段随待办卡锚①。
- * 2026-10-05 决议 017 质量轮：页头净值 hero（钱包+储蓄+金库待领样本折算 + 三段分配条）；
- * 2026-10-08 用户裁定分区间距统一：六分区全序列 space-7 48px（取代 017 三组节奏）。
- * 2026-10-08 用户裁定无用户参与态：未连接时 KPI/净值 hero/四分区整体隐藏
- * （UserDataGate，无数据的卡片不显示、不做零值占位），页面只剩页头标题+副题；
- * 同日补充裁定：断连时页头下方出黄色连接钱包 CTA（ConnectWalletCta）。
+ * /portfolio, four sections: (1) to-do (only overdue items with consequences,
+ * aggregated by kind) (2) assets & cross-chain (balances per chain + bridge / 1:1 convert /
+ * deposit-to-savings dialogs; stranded items are not rendered) (3) positions & savings (CDP
+ * staked positions + USR savings card + yield vault holdings table) (4) participations
+ * (stage-grouped tables + client-side claimable filter). The signal status row = the page-level
+ * signature (summary doubles as navigation, anchors jump straight to sections).
+ * Page-head net-worth hero (wallet + savings + vault ready, converted at sample prices + a
+ * three-segment allocation bar); the whole six-section
+ * sequence sits at space-7 48px. No-user-participation state: when disconnected,
+ * the KPI row / net-worth hero / four sections hide entirely (UserDataGate — cards without data
+ * do not show, no zero-value placeholders), leaving only the page-head title + subtitle;
+ * when disconnected, a yellow connect-wallet CTA appears below
+ * the page head (ConnectWalletCta).
  */
 export function PortfolioPage({ locale }: { locale: Locale }) {
   const snapshot = getFixtureSnapshot()
@@ -56,8 +60,9 @@ export function PortfolioPage({ locale }: { locale: Locale }) {
   }
   const reserveBalances = getFixtureReserveBalances()
 
-  // 保护窗 Exit 上下文（2026-10-09）：有 POL 仓位样本的 protection 行=页内弹窗；
-  // 缺行不进映射 → 卡片 Exit 回落跳 verse 页。价格/美元样本供拆币腿估算与回声。
+  // Protection-window Exit context: protection rows with a POL position sample =
+  // in-page dialog; rows missing from the map → the card's Exit falls back to jumping to the
+  // verse page. Price/USD samples feed the split-leg estimation and echo.
   const protectionExits: Record<string, ProtectionExitContext> = {}
   for (const action of actions) {
     if (action.kind !== 'protection' || !action.verse) continue
@@ -79,7 +84,8 @@ export function PortfolioPage({ locale }: { locale: Locale }) {
     { href: '#pf-participations', tone: 'success', label: copy.signals.claimable, value: signals.claimableVerses },
   ]
 
-  // 净值 hero（017）：钱包 + 储蓄 + 金库待领，fixture 样本价折算（快照口径）
+  // Net-worth hero: wallet + savings + vault ready, converted at fixture sample prices
+  // (snapshot semantics)
   const walletUsd = assets.reduce(
     (sum, asset) => sum + (asset.usdSample != null ? asset.total * asset.usdSample : 0),
     0,
@@ -92,7 +98,8 @@ export function PortfolioPage({ locale }: { locale: Locale }) {
   const vaultReadyUsd = vaultRows.reduce((sum, row) => sum + (row.readyUsd ?? 0), 0)
   const totalUsd = walletUsd + savingsUsd + vaultReadyUsd
   const pct = (part: number) => (totalUsd > 0 ? Math.round((part / totalUsd) * 100) : 0)
-  // 构成分区：0 值段不画、四舍五入到 0% 的图例项不渲染（2026-10-05 用户裁定）
+  // Allocation segments: zero-value segments are not drawn, legend items rounding to 0% are not
+  // rendered
   const heroParts = [
     {
       seg: 'pf-hero__seg--wallet',
@@ -168,7 +175,7 @@ export function PortfolioPage({ locale }: { locale: Locale }) {
                 <span key={part.seg} className={part.seg} style={{ flexGrow: part.usd }} />
               ))}
           </div>
-          {/* 图例=构成的可访问文本（色点映射段色，2026-10-05 用户选 B） */}
+          {/* Legend = the allocation's accessible text (color dots map to segment colors) */}
           <p className="pf-hero__legend">
             {heroParts
               .filter((part) => pct(part.usd) > 0)
@@ -183,11 +190,13 @@ export function PortfolioPage({ locale }: { locale: Locale }) {
         </UserDataGate>
       </header>
 
-      {/* 无用户参与时页头下方唯一行动（连接后随数据卡一并消失） */}
+      {/* The only action below the page head when there is no user participation (disappears
+          along with the data cards once connected) */}
       <ConnectWalletCta locale={locale} />
 
-      {/* 移动端分区页签 deck（决议 018）：≤54rem 吸顶四分段一次显一区、桌面零变化；
-          无用户参与时随四分区一起隐藏（2026-10-08 裁定） */}
+      {/* Mobile zone tab deck: ≤54rem sticky four-segment tabs, one zone shown at a
+          time, zero change on desktop; hides along with the four sections when there is no user
+          participation */}
       <UserDataGate>
         <PortfolioZoneTabs
         locale={locale}

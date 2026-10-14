@@ -1,5 +1,5 @@
 {
-  "note": "fixture 冻结清单；自身条目 hash=self 不递归；重建：node scripts/write-fixture-manifest.mjs（输出确定性字节）",
+  "note": "fixture frozen manifest; own entry hash=self, no recursion; regenerate: node scripts/write-fixture-manifest.mjs (byte-deterministic output)",
   "items": {
     "fixtures/README.md": {
       "bytes": 1921,
@@ -90,12 +90,12 @@
       "sha256": "6525324d906738aae2a26fd579630c955e81e57493680604173f91194f3d3ce2"
     },
     "fixtures/index.ts": {
-      "bytes": 1706,
-      "sha256": "5862d4d6cede0191102d04dc7ab17c7541a8c19df1546e034a0da6b8cc1cfbd2"
+      "bytes": 1707,
+      "sha256": "27a0d92e2d4a3cba4dc14b633a65267daee1f25e289186d45a721b9357b0c8d5"
     },
     "fixtures/inspector/index.html": {
-      "bytes": 15542,
-      "sha256": "67744992654b089f63994a9402b02167a9a368743630d0c7f4357d765487c62b"
+      "bytes": 16296,
+      "sha256": "87a46d4868da071366f557ee3f77dec5979e4b2622f32dea06f0440a90770335"
     },
     "fixtures/invariants/amounts.json": {
       "bytes": 3317,
@@ -118,8 +118,8 @@
       "sha256": "58685ea536525913a525b2700875e38c8365c6d799e9fd9a1d658dbebcde2dc4"
     },
     "fixtures/schema.ts": {
-      "bytes": 28659,
-      "sha256": "a4d4520f5c0182437af23f9501aae6d96afaabf1aef73dca85e9cfce7fac9311"
+      "bytes": 28633,
+      "sha256": "f93d257d480f5ced2faae1485e222b6715848f21733d7e10d54b103a7db9b166"
     },
     "fixtures/manifest.json": {
       "bytes": 0,

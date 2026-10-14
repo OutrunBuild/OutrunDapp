@@ -26,10 +26,11 @@ import { PolRedeemPtYtDialog } from './pol-redeem-pt-yt-dialog'
 import { PolSplitMergeDialog } from './pol-split-merge-dialog'
 import { formatAmount, formatDay, formatMarketCap, formatPercent, SourceRef } from '../global/signal-ui'
 
-/** Liquidity 标签：四池总览 + 池卡（four-pools.md:9-14；APR/量=样本，
- *  缺失字段→该行不渲染——null 不渲染，2026-10-05 用户裁定）；
- *  池卡双钮 Add/Remove 2026-09-27 改弹窗（PoolAddLiquidityDialog/PoolRemoveLiquidityDialog，
- *  机制分层见各组件头注；同日用户裁定 Add 短文案） */
+/** Liquidity tab: four-pool overview + pool cards (APR/volume=samples,
+ *  missing fields → that row not rendered — null renders nothing);
+ *  the pool cards' Add/Remove buttons open dialogs
+ *  (PoolAddLiquidityDialog/PoolRemoveLiquidityDialog,
+ *  mechanism layering see each component's header note) */
 export function LiquidityPanel({
   locale,
   verse,
@@ -42,13 +43,13 @@ export function LiquidityPanel({
   pol: FixturePolPosition | null
 }) {
   const copy = getCopy(locale).verseDesk
-  // 总览=四池合计（Q2 用户裁定）；统计条的 Liq/Vol 是主池口径，两处不同源
+  // Overview=four-pool totals; the stats bar's Liq/Vol is main-pool scope, the two have different sources
   const volumeTotal = trade.pools.reduce(
     (sum, pool) => (pool.volume24h != null ? sum + pool.volume24h : sum),
     0,
   )
   const hasVolume = trade.pools.some((pool) => pool.volume24h != null)
-  // ≈$ 换算与主池联动配比（同 PolPanel 的 uAssetUsd / price 源）
+  // ≈$ conversion is paired with the main pool (same uAssetUsd/price sources as PolPanel)
   const uAssetUsd = getFixtureAssetUsdSample(verse.raiseAsset)
 
   return (
@@ -69,9 +70,10 @@ export function LiquidityPanel({
       <ul className="liquidity-panel__pools">
         {trade.pools.map((pool) => (
           <li key={pool.id} className="pool-card" data-pool={pool.pool}>
-            {/* 三段竖排（2026-09-30 布局重构：原单行 6 元素在 ~480px 卡宽互相挤压，
-                统计格被压到 54px 数值换行、四卡高矮不齐）：头行=交易对+APR 决策读数、
-                数据行=TVL+24h 量、底行=全宽等分双钮 */}
+            {/* Three stacked sections (a single row of 6 elements squeezed at ~480px card width:
+                stat cells crushed to 54px, values wrapping, four cards uneven in height):
+                head row=pair+APR readout,
+                data row=TVL+24h volume, bottom row=full-width equal-split dual buttons */}
             <header className="pool-card__head">
               <strong className="pool-card__pair" data-numeric>
                 {pool.baseSymbol}/{pool.quoteSymbol}
@@ -97,8 +99,10 @@ export function LiquidityPanel({
                 </div>
               ) : null}
             </dl>
-            {/* 池卡双钮 Add/Remove（2026-09-27 用户裁定：新增 Remove 移除流动性、Add 改短文案）；
-                2026-09-30 起收全宽等分行（同 POL 终端卡满行钮语言） */}
+            {/* Pool card dual buttons Add/Remove (Remove for
+                liquidity removal, Add uses the short copy);
+                both join a full-width equal-split row (same as the POL terminal
+                card's full-row button language) */}
             <div className="pool-card__actions">
               <PoolAddLiquidityDialog
                 locale={locale}
@@ -123,14 +127,19 @@ export function LiquidityPanel({
   )
 }
 
-/** Tokenization 标签 v2「拆分终端」（2026-09-23 用户裁定：草稿级排版升级为终端级）：
- * POL 资产卡（余额主读数 + 市场价↔名义价值仪表）⇢ 分缝（Y 型拆分符=机制隐喻）⇢ PT/YT 衍生卡。
- * 机制出处：Mint/Redeem=POL 代币（source-map.md#M14 对账行）；Split/Merge=1 POL⇄1 PT+1 YT
- * 仅锁定期（IPOLSplitter.sol:102/104，merge=等额销毁 PT+YT 1:1 换回 POL；unlock/settled 后
- * AlreadyUnlocked）；Redeem PT/YT=unlocked 结算后销毁赎回（POLSplitterUpgradeable.sol:365/387，
- * 2026-09-27 换向器在 unlocked 改两行赎回）；Claim YT=创世锁定后按出资比例一次性领取
- * （MemeverseSettlementImpl.sol:88，杠杆参与者按利息比例 claimLeveragedYT）；
- * 名义价值=2×uAsset 侧（pt-yt-splitter.md §4）。 */
+/** Tokenization tab "split terminal":
+ * POL asset card (balance as primary readout + market price↔nominal value gauge) ⇢ seam
+ * (Y-shaped split glyph=mechanism metaphor) ⇢ PT/YT derivative cards.
+ * Mechanism: Mint/Redeem=POL tokens;
+ * Split/Merge=1 POL⇄1 PT+1 YT
+ * only during the locked period (merge=burning equal PT+YT for POL
+ * 1:1; after unlock/settled it is
+ * AlreadyUnlocked); Redeem PT/YT=burn-and-redeem after the unlocked settlement
+ * (in the unlocked state the PT/YT card's action bar shows the two Redeem buttons); Claim YT=one-time claim pro rata
+ * to contribution after the genesis lock
+ * (leverage participants claim via claimLeveragedYT by interest
+ * share);
+ * nominal value=2×uAsset side. */
 export function PolPanel({
   locale,
   verse,
@@ -140,20 +149,24 @@ export function PolPanel({
   locale: Locale
   verse: FixtureVerse
   pol: FixturePolPosition | null
-  /** 主池价（trade.tokenStats.price）：Mint 弹窗的配比与 Rate 行来源；null=无样本 */
+  /** Main-pool price (trade.tokenStats.price): source of the Mint dialog's ratio and the Rate row; null=no sample */
   price: number | null
 }) {
   const copy = getCopy(locale).verseDesk
   const unlocked = verse.stage === 'unlocked'
-  // POL-/PT-/YT-<MEME>（MemeverseLaunchImpl.sol:117-119；POLSplitterUpgradeable.sol:225-226）
+  // Symbol conventions: POL-/PT-/YT- prefixed with the memecoin symbol
   const polSymbol = `POL-${verse.symbol}`
   const ptSymbol = `PT-${verse.symbol}`
   const ytSymbol = `YT-${verse.symbol}`
 
-  // 偏差对比刻度（2026-09-25 本体裁定：这是两个价格的对比（measure vs target），不是滑块——
-  // 语言=bullet chart 语义：轴=「相对名义价值的偏差」线性刻度，两端端标 −D%/+D% 即刻度依据
-  // （D=50（2026-09-25 用户裁定 ±25 不够），|Δ| 超界自动放宽到 100/200/400 并同步端标），
-  // 基准=0（平价，品红 datum），市场值标位置恒=Δ/(2D)+50% 线性落点，两者之间的偏差条=|Δ| 的墨水
+  // Deviation comparison scale: this is a comparison of two prices
+  // (measure vs target), not a slider —
+  // language=bullet chart semantics: the axis is a linear "deviation from nominal value" scale,
+  // the end labels −D%/+D% anchor the scale
+  // (D starts at 50; when |Δ| exceeds the bound it widens
+  // automatically to 100/200/400 with the end labels synced),
+  // baseline=0 (parity, magenta datum), the market mark's position is always the linear landing
+  // spot Δ/(2D)+50%, and the deviation bar between them is the ink of |Δ|
   const nominal = pol?.nominalValuePerPol ?? 0
   const market = pol?.marketPricePerPol ?? 0
   const deltaPct = nominal > 0 ? ((market - nominal) / nominal) * 100 : 0
@@ -162,22 +175,27 @@ export function PolPanel({
   const spanWidth = Math.abs(marketPos - 0.5)
   const deltaLabel = `${deltaPct < 0 ? '−' : '+'}${formatPercent(Math.abs(deltaPct), locale)}%`
 
-  // 计价=美元（2026-09-23 用户裁定：标价统一 $ 口径，与交易台统计条/Liquidity 面板一致；
-  // 汇率=assets.json usdSample——同 SwapPanel 的 uAssetUsd 源；无样本→槽位态。
-  // 市值/总供应不展示——对用户无实际价值（2026-09-23 用户裁定删除））
+  // Denomination=USD (pricing unified to the $ scope, consistent with
+  // the trade desk stats bar/Liquidity panel;
+  // rate=fixture usdSample — same uAssetUsd source as SwapPanel; no sample → slot state.
+  // Market cap/total supply not shown — no real value to users)
   const uAssetUsd = getFixtureAssetUsdSample(verse.raiseAsset)
   const marketUsd = uAssetUsd != null && pol ? `$${formatAmount(market * uAssetUsd, locale)}` : null
   const nominalUsd = uAssetUsd != null && pol ? `$${formatAmount(nominal * uAssetUsd, locale)}` : null
   const estUsd =
     uAssetUsd != null && pol ? `$${formatMarketCap(pol.myPol * market * uAssetUsd)}` : null
-  // PT/YT 每枚机制值（2026-09-27 用户裁定井读数重构）：
-  // PT 腿=固定兑付率 uAssetPerPol（创世锁仓一次性登记，locked/unlocked 皆确定，非 1:1），
-  // 美元=腿×uAssetUsd 样本；
-  // YT 腿（双腿形态——pol-splitter.md「YT 结算兑付=uAsset+Memecoin 两币」，2026-09-28 用户裁定）：
-  // memecoin 腿两阶段皆可推导（1 PT+1 YT=1 POL=M meme+U uAsset，PT 固定吃掉 uAsset 侧 →
-  // 残差名义=memecoin 侧=uAssetPerPol÷主池价；unlocked 用结算样本 ytRedeemMemecoinPerUnit）；
-  // uAsset 腿=ytRedeemUAssetPerUnit 样本（locked=结算预估样本（造数裁定）+unlocked=结算派生真值）。
-  // 美元=(meme 腿×主池价+uAsset 腿)×uAssetUsd；样本/价缺失 → null → '--'。
+  // Per-unit mechanism values of PT/YT (well readout):
+  // PT leg=fixed redemption rate uAssetPerPol (registered once at genesis lock, determined in
+  // both locked/unlocked, not 1:1),
+  // USD=leg×uAssetUsd sample;
+  // YT legs (dual-leg form — "YT settlement payout=uAsset+Memecoin, two tokens"):
+  // the memecoin leg is derivable in both stages (1 PT+1 YT=1 POL=M meme+U uAsset; PT fixedly
+  // consumes the uAsset side →
+  // residual nominal=memecoin side=uAssetPerPol÷main-pool price; unlocked uses the settlement
+  // sample ytRedeemMemecoinPerUnit);
+  // uAsset leg=ytRedeemUAssetPerUnit sample (locked=settlement estimate sample — locked-stage
+  // estimate sample, not a settlement read; unlocked=settlement-derived truth).
+  // USD=(meme leg×main-pool price+uAsset leg)×uAssetUsd; sample/price missing → null → '--'.
   const ptLeg = pol ? pol.uAssetPerPol : null
   const ptUsd = ptLeg != null && uAssetUsd != null ? ptLeg * uAssetUsd : null
   const ytMemeLeg = !pol
@@ -195,7 +213,7 @@ export function PolPanel({
 
   return (
     <div className="pol-panel">
-      {/* 面板标题「Tokenization」删（2026-09-24 用户裁定：页签已示，冗余） */}
+      {/* No panel title here (the tab already shows it, redundant) */}
       {pol ? (
         <div className="pol-panel__grid">
           <section className="pol-card" data-token="pol">
@@ -208,12 +226,14 @@ export function PolPanel({
             </header>
             <div className="pol-card__balance">
               <span className="pol-label">{copy.polBalance}</span>
-              {/* symbol 卡头已示，余额行不重复；估值内联尾随（2026-09-23 用户裁定） */}
+              {/* symbol already shown in the card head, not repeated on the balance row; valuation trails inline */}
               <strong className="pol-card__amount" data-numeric>
                 {formatAmount(pol.myPol, locale)}
                 {estUsd != null ? (
                   <span className="pol-card__est">
-                    {/* ≈ 即分隔（同 pol-twin 美元回声行），原「· ≈」双标点在移动档折行后 · 孤悬行首 */}
+                    {/* ≈ is the separator (same as the pol-twin USD echo row); a "· ≈"
+                        double punctuation would leave a stranded · at line start after
+                        wrapping on mobile */}
                     ≈ {estUsd}
                   </span>
                 ) : null}
@@ -238,7 +258,8 @@ export function PolPanel({
                 </span>
               </div>
               <div className="pol-gauge__axis">
-                {/* z 序=偏差条→市场值标→名义 datum：近平价时 datum 压在值标之上，0 点不消失 */}
+                {/* Z order=deviation bar → market mark → nominal datum: near parity the datum sits
+                    above the mark so the 0 point never disappears */}
                 {spanWidth > 0.004 && (
                   <span
                     className="pol-gauge__span"
@@ -254,7 +275,8 @@ export function PolPanel({
                   style={{ insetInlineStart: `${(marketPos * 100).toFixed(1)}%` }}
                 />
                 <span className="pol-gauge__datum" style={{ insetInlineStart: '50%' }} />
-                {/* 端标+中点即刻度依据（2026-09-25）：线性偏差刻度 −D%~+D%，0=平价 */}
+                {/* End labels + midpoint anchor the scale: linear deviation scale
+                    −D%~+D%, 0=parity */}
                 <span className="pol-gauge__scale" aria-hidden="true">
                   <span data-numeric>{`−${domainPct}%`}</span>
                   <span data-numeric>0</span>
@@ -280,8 +302,9 @@ export function PolPanel({
             </div>
             <div className="pol-card__actions">
               <div className="pol-card__btns">
-                {/* 2026-09-24 用户裁定：Mint 改弹窗（双币供给→POL，机制同 mintNote；
-                    弹窗内 CTA 仍禁用——原型不伪造成交） */}
+                {/* Mint opens a dialog (dual-token supply → POL,
+                    mechanism same as mintNote;
+                    the in-dialog CTA stays disabled — no faked execution) */}
                 <PolMintDialog
                   locale={locale}
                   verse={verse}
@@ -289,11 +312,13 @@ export function PolPanel({
                   price={price}
                   uAssetUsd={uAssetUsd}
                 />
-                {/* 2026-09-27 用户裁定：Redeem 恒禁用改弹窗（PolRedeemLpDialog——销毁 POL
-                    1:1 换主池 LP 代币，机制见该组件头注）；仅 unlocked（合约 NotUnlockedStage
-                    闸门，fixture 域 pol 持仓仅 locked/unlocked——与原 !locked 渲染域等价），
-                    locked 机制性不渲染灰钮、Mint 撑满行（2026-09-25 用户裁定）；
-                    note 行 2026-09-25 删、title 悬浮 2026-09-27 全站删 */}
+                {/* Redeem is a dialog
+                    (PolRedeemLpDialog — burn POL
+                    for main-pool LP tokens 1:1, mechanism see that component's header note);
+                    unlocked only (contract NotUnlockedStage
+                    gate; the fixture-domain pol position only has locked/unlocked);
+                    locked skips rendering a disabled button and Mint spans the row;
+                    no note row, no title hover */}
                 {unlocked ? (
                   <PolRedeemLpDialog locale={locale} verse={verse} pol={pol} />
                 ) : null}
@@ -312,9 +337,12 @@ export function PolPanel({
           </div>
 
           <section className="pol-card" data-token="pt-yt">
-            {/* 双生井 v3（2026-09-28 用户裁定：井=纯读对称——身份头+账目行+美元回声，井底无钮；
-                机制等式升为井组头（与左 seam 分缝成「左符号右公式」）；操作统一井组下通栏：
-                locked=Flash Swap/Split/Merge 三等宽、unlocked=Redeem PT/YT 两等宽 */}
+            {/* Twin wells (pure-read symmetry — identity head +
+                account rows + USD echo, no buttons at the well bottom;
+                the mechanism equation lives in the well-group header (with the left seam
+                forming "symbol left, formula right"); actions unified in a full-width bar under
+                the well group:
+                locked=Flash Swap/Split/Merge three equal-width, unlocked=Redeem PT/YT two equal-width */}
             <p className="pol-twin__equation">
               <span data-numeric>{`1 ${polSymbol} = 1 PT + 1 YT`}</span>
               <Tooltip>
@@ -332,7 +360,8 @@ export function PolPanel({
                     <strong className="pol-twin__symbol" data-numeric>
                       {ptSymbol}
                     </strong>
-                    {/* 机制一行注只留全称，说明收进 ⊙ 气泡（2026-09-25 用户裁定） */}
+                    {/* The one-line mechanism note keeps only the full name; the explanation
+                        lives in the ⊙ bubble */}
                     <span className="pol-twin__desc">
                       {copy.ptFullName}
                       <Tooltip>
@@ -348,7 +377,8 @@ export function PolPanel({
                   </div>
                 </div>
                 <div className="pol-twin__quote">
-                  {/* 账目行=名义价值口径（2026-09-28 用户裁定：须明示非市场价格） */}
+                  {/* Account row=nominal value scope (must be explicit
+                      that it is not the market price) */}
                   <span className="pol-label">
                     {copy.nominalValue}
                     <Tooltip>
@@ -394,8 +424,10 @@ export function PolPanel({
                   </div>
                 </div>
                 <div className="pol-twin__quote">
-                  {/* 账目行=名义价值口径（2026-09-28 用户裁定：须明示非市场价格）；
-                      双腿：unlocked=结算样本真值；locked=meme 腿推导+uAsset 腿预估样本（造数裁定） */}
+                  {/* Account row=nominal value scope (must be explicit
+                      that it is not the market price);
+                      dual legs: unlocked=settlement sample truth; locked=derived meme leg +
+                      estimated uAsset leg sample (locked-stage estimate; see above) */}
                   <span className="pol-label">
                     {copy.nominalValue}
                     <Tooltip>
@@ -411,7 +443,8 @@ export function PolPanel({
                         ? `${formatAmount(ytMemeLeg, locale)} ${verse.symbol}`
                         : '--'}
                     </span>
-                    {/* uAsset 腿：unlocked=结算样本真值；locked=结算预估样本（造数裁定） */}
+                    {/* uAsset leg: unlocked=settlement sample truth; locked=settlement estimate
+                        sample (locked-stage estimate; see above) */}
                     <span className="pol-twin__leg-extra">
                       + {ytUAssetLeg != null ? `${formatAmount(ytUAssetLeg, locale)} ${verse.raiseAsset}` : '--'}
                     </span>
@@ -424,9 +457,12 @@ export function PolPanel({
                 ) : null}
               </div>
             </div>
-            {/* 通栏操作区（v3 2026-09-28：井底清空纯读，操作统一井组下通栏——跨阶段位置统一；
-                locked=Flash Swap/Split/Merge 三等宽（Flash Swap 属 YT 单通道——yt-flash-swap.md）、
-                unlocked=Redeem PT/YT 两等宽；余额展示在各弹窗 Balance/Max） */}
+            {/* Full-width action area (well bottoms cleared to pure read; actions
+                unified in a full-width bar under the well group — position consistent across
+                stages;
+                locked=Flash Swap/Split/Merge three equal-width (Flash Swap belongs to the YT
+                single channel),
+                unlocked=Redeem PT/YT two equal-width; balances shown in each dialog's Balance/Max) */}
             <div className="pol-card__btns">
               {unlocked ? (
                 <>
@@ -463,7 +499,7 @@ export function PolPanel({
   )
 }
 
-/** DAO 标签：概览 + Tally 外链卡 + 当期/上期周期激励（Q11：不含提案列表） */
+/** DAO tab: overview + Tally external-link card + current/last cycle incentives (no proposal list) */
 export function DaoPanel({
   locale,
   verse,
@@ -557,9 +593,11 @@ export function DaoPanel({
               </span>
             ) : null}
           </header>
-          {/* 结算窗口横幅（2026-10-05 用户裁定）：触发结算钮不常驻——只在周期结束
-              时间已到且未结算时渲染；finalizeNote 收在钮后 ⊙ 气泡（同日再裁定：
-              说明不放横幅正文），钮右置 */}
+          {/* Settlement window banner: the finalize button is not
+              permanent — rendered only when the cycle end
+              time has passed and settlement has not happened; finalizeNote tucked into the ⊙
+              bubble after the button (the explanation does not go into the banner body), button
+              placed right */}
           {!governance.finalized && new Date(governance.cycleEndsAt).getTime() <= Date.now() ? (
             <div className="cycle-card__settle">
               <div className="cycle-card__settle-copy">
@@ -579,7 +617,8 @@ export function DaoPanel({
                   <TooltipContent className="cycle-card__settle-tip">{copy.finalizeNote}</TooltipContent>
                 </Tooltip>
               </Button>
-              {/* sr-only 置于按钮外：放内部会被并进按钮可访问名称，说明应由 describedby 单独播报 */}
+              {/* sr-only placed outside the button: inside, it would be merged into the button's
+                  accessible name; the explanation should be announced separately via describedby */}
               <span id={finalizeNoteId} className="sr-only">
                 {copy.finalizeNote}
               </span>
@@ -728,9 +767,11 @@ export function DaoPanel({
                   <span className="stat-unit">{copy.votesUnit}</span>
                 </dd>
               </div>
-              {/* 可领行（2026-10-05 用户裁定）：整行不再作触发器——明细弹窗只由
-                  领取钮本身触发（triggerButton 变体），>>> 移入按钮文案后；
-                  无样本构成时退 disabled 钮（原 2026-09-30 点击穿透范式随之退役） */}
+              {/* Claimable row: the whole row is not a trigger —
+                  the breakdown dialog is triggered only by
+                  the claim button itself (triggerButton variant), the >>> glyph (DaoDots) lives
+                  in the button copy;
+                  without a sample composition it falls back to a disabled button */}
               <div>
                 <dt className="cycle-card__claim-label">
                   {copy.yourClaimable}

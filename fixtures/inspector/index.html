@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Outrun Fixture 数据检查台（原型/测试专用）</title>
+<title>Outrun Fixture Inspector (prototype/test only)</title>
 <style>
   :root { color-scheme: dark; font-family: ui-sans-serif, system-ui, "PingFang SC", sans-serif; }
   body { margin: 0; background: #12141b; color: #e7eaf0; }
@@ -41,10 +41,10 @@
 </head>
 <body>
 <header>
-  <h1>Outrun Fixture 数据检查台 <span class="warn">— 原型/测试数据，禁止生产</span></h1>
-  <div class="sub">这是阶段 3 所有原型页面的数据源。选一个场景：下面会先告诉你<b>该场景模拟什么、验收时该看到什么</b>，再列出该场景下的数据记录（已按业务分组、字段中文化）。</div>
+  <h1>Outrun Fixture Inspector <span class="warn">— prototype/test data, never production</span></h1>
+  <div class="sub">Data source for the prototype pages. Pick a scenario: the panel below first tells you <b>what the scenario simulates and what acceptance should show</b>, then lists the data records for that scenario (grouped by domain; scenario names come from the fixture table).</div>
   <div class="bar">
-    <label class="sub">场景</label>
+    <label class="sub">Scenario</label>
     <select id="scenario"></select>
     <span class="sub" id="count"></span>
   </div>
@@ -53,18 +53,18 @@
 <script type="module">
 const FILES = ['chains','assets','verses','markets','positions','psm','usr-vaults','bridge-messages','transactions','governance','accounts','notifications'];
 const GROUPS = [
-  ['verses', 'Verse（页面样本：每个 Verse 是一种生命周期状态）'],
-  ['markets', '行情与池（K 线 / 四池 / 费率状态）'],
-  ['positions', 'CDP 仓位（创世质押留下的仓位）'],
-  ['psm', '面值兑换池（PSM）'],
-  ['usr-vaults', '储蓄金库（USR）'],
-  ['bridge-messages', '跨链消息'],
-  ['transactions', '交易状态样本'],
-  ['governance', '治理周期与提案'],
-  ['accounts', '账户（逐链启用状态）'],
-  ['assets', '资产清单'],
-  ['chains', '链清单'],
-  ['notifications', '操作提示（toast）'],
+  ['verses', 'Verses (page samples: each verse is one lifecycle state)'],
+  ['markets', 'Markets & pools (candles / four pools / fee states)'],
+  ['positions', 'CDP positions (left by genesis staking)'],
+  ['psm', 'Par swap pool (PSM)'],
+  ['usr-vaults', 'Savings vaults (USR)'],
+  ['bridge-messages', 'Bridge messages'],
+  ['transactions', 'Transaction state samples'],
+  ['governance', 'Governance cycles & proposals'],
+  ['accounts', 'Accounts (per-chain delegation state)'],
+  ['assets', 'Asset catalog'],
+  ['chains', 'Chain catalog'],
+  ['notifications', 'Notifications (toasts)'],
 ];
 const fmtAmt = (a, sym='') => a ? `${Number(a.raw).toLocaleString('zh-CN', {maximumFractionDigits: 8})}${sym?' '+sym:''}` : '—';
 const fmtRate = r => r == null ? '—' : r.unit === 'bps' ? `${Number(r.raw)/100}%` : r.unit === 'ppm' ? `${Number(r.raw)/10000}%` : `${Number(r.raw)*100}%`;
@@ -83,122 +83,122 @@ function rows(item, file) {
     case 'verses': {
       const g = item.genesis, t = Number(g.minSuccessThreshold.raw);
       const p1 = Math.min(100, Math.round(Number(g.normalRaised.raw)/t*100)), p2 = Math.min(100, Math.round(Number(g.leverageInterest.raw)/t*100));
-      const stageZh = {genesis:'创世中', locked:'锁定中', unlocked:'已解锁', refund:'退款态'}[item.stage];
-      let x = kv('阶段', `<span class="ok-badge">${stageZh}</span>`) + kv('治理链', C[item.governanceChain]);
+      const stageLabel = {genesis:'Genesis active', locked:'Locked', unlocked:'Unlocked', refund:'Refund'}[item.stage];
+      let x = kv('Stage', `<span class="ok-badge">${stageLabel}</span>`) + kv('Governance chain', C[item.governanceChain]);
       if (item.stage === 'genesis') {
-        x += kv('成功门槛', `${fmtAmt(g.minSuccessThreshold)} uAsset（双口径独立判定，任一达标即成功）`);
-        x += kv('普通资金进度', `${p1}%（${fmtAmt(g.normalRaised)} / ${fmtAmt(g.minSuccessThreshold)}）`);
-        x += kv('杠杆利息进度', `${p2}%（${fmtAmt(g.leverageInterest)} / ${fmtAmt(g.minSuccessThreshold)}）`);
-        x += kv('创世截止', fmtTime(g.endsAt));
+        x += kv('Success threshold', `${fmtAmt(g.minSuccessThreshold)} uAsset (dual-metric independent check; either reaching it succeeds)`);
+        x += kv('Normal raise progress', `${p1}% (${fmtAmt(g.normalRaised)} / ${fmtAmt(g.minSuccessThreshold)})`);
+        x += kv('Leverage interest progress', `${p2}% (${fmtAmt(g.leverageInterest)} / ${fmtAmt(g.minSuccessThreshold)})`);
+        x += kv('Genesis deadline', fmtTime(g.endsAt));
       }
-      if (item.unlock?.unlockedAtTx) x += kv('实际解锁时间', fmtTime(item.unlock.unlockedAtTx)) + `<div class="note">24 小时保护期从这一刻起算 → 止于 ${fmtTime(item.unlock.unlockedAtTx)}+24h（保护期内四池暂停公开交易、退出按份额执行）</div>`;
-      if (item.stage === 'refund') x += `<div class="blocked">创世失败：双口径均未达标 → 进入退款态，参与者可领全额退款（每地址一次）</div>`;
+      if (item.unlock?.unlockedAtTx) x += kv('Actual unlock time', fmtTime(item.unlock.unlockedAtTx)) + `<div class="note">The 24h protection window starts at this moment → ends at ${fmtTime(item.unlock.unlockedAtTx)}+24h (during the window swaps pause pool-by-pool in the sample data and exits execute pro rata)</div>`;
+      if (item.stage === 'refund') x += `<div class="blocked">Genesis failed: neither metric reached its threshold → refund state; participants can claim a full refund (once per address)</div>`;
       return x;
     }
     case 'markets': {
-      const feeZh = {normal:'正常费率', 'opening-decay':'开池衰减期（50%→1%/15 分钟）', 'dynamic-applied':'动态费生效中', 'paused-protection':'保护期·公开交易暂停'}[item.feeState];
-      let x = kv('池', {main:'主池 Memecoin/uAsset', 'pol-uasset':'辅助池 POL/uAsset', 'pt-uasset':'辅助池 PT/uAsset', 'pt-pol':'辅助池 PT/POL'}[item.pool]) + kv('TVL', fmtAmt(item.tvl)) + kv('费率状态', feeZh);
-      if (item.candles?.length) x += kv('K 线样本', `${item.candles.length} 根（1h）：${item.candles.map(c=>Number(c.c)).join(' → ')}`);
-      if (item.feeState === 'paused-protection') x += `<div class="blocked">注意：保护期只禁 Swap，移除流动性与赎回保持开放（六步退出依赖）</div>`;
+      const feeLabel = {normal:'Normal fee', 'opening-decay':'Opening decay (opening fee decays 50%→1% over the first 15 min)', 'dynamic-applied':'Dynamic fee active', 'paused-protection':'Protection window · public trading paused'}[item.feeState];
+      let x = kv('Pool', {main:'Main pool Memecoin/uAsset', 'pol-uasset':'Side pool POL/uAsset', 'pt-uasset':'Side pool PT/uAsset', 'pt-pol':'Side pool PT/POL'}[item.pool]) + kv('TVL', fmtAmt(item.tvl)) + kv('Fee state', feeLabel);
+      if (item.candles?.length) x += kv('Candle sample', `${item.candles.length} bars (1h): ${item.candles.map(c=>Number(c.c)).join(' → ')}`);
+      if (item.feeState === 'paused-protection') x += `<div class="blocked">Note: during the window swaps pause pool-by-pool in the sample data; liquidity removal and redemption stay open (the six-step exit depends on them)</div>`;
       return x;
     }
     case 'positions': {
       const sym = S[item.collateral.assetId];
-      let x = kv('抵押', `${fmtAmt(item.collateral.amount, sym)}（生息来源：${item.yieldSource}，持续生息）`);
-      x += kv('未偿债务', fmtAmt(item.debt, 'uAsset')) + kv('所在链', C[item.chainId]);
-      x += `<div class="note">无到期 · 当前零利率（治理可调）· 无清算 · 随时可赎 · 需主动操作</div>`;
-      if (item.scenario.includes('cdp-insufficient-uasset')) x += `<div class="blocked">赎回需另行持有 ${fmtAmt(item.debt, 'uAsset')}（余额不足时按钮禁用+提示，跨链出去的需先桥回）</div>`;
+      let x = kv('Collateral', `${fmtAmt(item.collateral.amount, sym)} (yield source: ${item.yieldSource}, accruing continuously)`);
+      x += kv('Outstanding debt', fmtAmt(item.debt, 'uAsset')) + kv('Chain', C[item.chainId]);
+      x += `<div class="note">No maturity · zero interest for now (governance-adjustable) · no liquidation · redeemable anytime · requires a manual action</div>`;
+      if (item.scenario.includes('cdp-insufficient-uasset')) x += `<div class="blocked">Redemption additionally requires holding ${fmtAmt(item.debt, 'uAsset')} (button disabled with a hint when the balance is short; assets bridged out must be bridged back first)</div>`;
       return x;
     }
     case 'psm': {
       const headroom = Number(item.stockCap.raw) - Number(item.netMinted.raw);
-      let x = kv('兑换对', `${S[item.reserveId]} ⇄ ${S[item.uAssetId]}（一资产一池）`) + kv('费率', `兑入 ${fmtRate(item.tin)} / 兑出 ${fmtRate(item.tout)}（默认各 0.1%）`);
-      x += kv('铸造额度余量', headroom > 0 ? fmtAmt({raw:String(headroom),decimals:18}) : '0') + kv('储备余额', fmtAmt(item.reserveAvailable, S[item.reserveId]));
-      if (headroom <= 0) x += `<div class="blocked">额度用尽 → 兑入（铸造）方向禁用；兑出不受额度限制</div>`;
-      if (Number(item.reserveAvailable.raw) === 0) x += `<div class="blocked">储备枯竭 → 面值兑出关闭，等待储备补充</div>`;
-      if (item.scenario.includes('dust')) x += `<div class="blocked">dust 域：报价返 0 = 不可执行 → 界面禁发并提示提高金额（无链上守卫，前端预检是唯一防线）</div>`;
+      let x = kv('Swap pair', `${S[item.reserveId]} ⇄ ${S[item.uAssetId]} (one asset, one pool)`) + kv('Fees', `swap in ${fmtRate(item.tin)} / swap out ${fmtRate(item.tout)} (0.1% each by default)`);
+      x += kv('Mint headroom', headroom > 0 ? fmtAmt({raw:String(headroom),decimals:18}) : '0') + kv('Reserve balance', fmtAmt(item.reserveAvailable, S[item.reserveId]));
+      if (headroom <= 0) x += `<div class="blocked">Headroom exhausted → the swap-in (mint) direction is disabled; swap out is not capped</div>`;
+      if (Number(item.reserveAvailable.raw) === 0) x += `<div class="blocked">Reserve depleted → par swap-out closed until the reserve is replenished</div>`;
+      if (item.scenario.includes('psm-dust-quote-zero')) x += `<div class="blocked">Dust domain: a quote of 0 = not executable → the UI blocks the submit and asks for a higher amount (no on-chain guard; the front-end precheck is the only line of defense)</div>`;
       return x;
     }
     case 'usr-vaults': {
       const idx = Number(item.accrualIndexRaw)/1e18;
-      let x = kv('金库', `${S[item.assetId]}（存入 ${S[item.assetId].replace('su','U')} 计息）`);
-      x += kv('币种利率', fmtRate(item.usrRate) + (Number(item.usrRate.raw)===0 ? '（未激活）' : '')) + kv('份额价格指数', `${idx.toFixed(4)}（初始 1.0000，按秒增长）`);
-      if (Number(item.usrRate.raw)===0) x += `<div class="note">未激活态：存取照常、份额不增值——界面须明示</div>`;
-      if (item.capped) x += `<div class="note">封顶钳制域：份额价不再随时间线性增长（以实时预估值为准）</div>`;
-      x += `<div class="note">警示文案样本：直接向金库地址转账不产生份额且无法找回</div>`;
+      let x = kv('Vault', `${S[item.assetId]} (deposits accrue in ${S[item.assetId].replace('su','U')})`);
+      x += kv('Token rate', fmtRate(item.usrRate) + (Number(item.usrRate.raw)===0 ? ' (inactive)' : '')) + kv('Share price index', `${idx.toFixed(4)} (starts at 1.0000, grows every second)`);
+      if (Number(item.usrRate.raw)===0) x += `<div class="note">Inactive: deposits and withdrawals work normally but shares do not grow — the UI must state this</div>`;
+      if (item.capped) x += `<div class="note">Capped domain: the share price no longer grows linearly over time (defer to the real-time estimate)</div>`;
+      x += `<div class="note">Warning-copy sample: transfers straight to the vault address mint no shares and are unrecoverable</div>`;
       return x;
     }
     case 'bridge-messages': {
-      const stageZh = {sent:'已发送', delivered:'已到账', settled:'已落位 ✓', stranded:'滞留（资金不丢）'}[item.stage];
+      const stageLabel = {sent:'Sent', delivered:'Delivered', settled:'Settled ✓', stranded:'Stranded (funds safe)'}[item.stage];
       const steps = [
-        ['发送', ['sent','delivered','settled','stranded']],
-        ['到账', ['delivered','settled']],
-        ['落位（份额生效）', ['settled']],
+        ['Send', ['sent','delivered','settled','stranded']],
+        ['Deliver', ['delivered','settled']],
+        ['Settle (shares take effect)', ['settled']],
       ].map(([label, ok]) => `<span class="step ${ok.includes(item.stage)?'done':''}">${label}</span>`).join('');
-      let x = kv('方向', `${C[item.fromChain]} → ${C[item.toChain]}`) + kv('资产/数量', fmtAmt(item.amount, S[item.assetId])) + kv('发送时间', fmtTime(item.sentAt));
+      let x = kv('Direction', `${C[item.fromChain]} → ${C[item.toChain]}`) + kv('Asset / amount', fmtAmt(item.amount, S[item.assetId])) + kv('Sent at', fmtTime(item.sentAt));
       x += `<div class="steps">${steps}</div>`;
-      if (item.stage === 'stranded') x += `<div class="blocked">已发出未到账——资金不丢失；纯转账=LayerZero 自动重试；质押类=手动恢复入口</div>`;
-      if (item.remainderOnSource) x += kv('尾数留源链', fmtAmt(item.remainderOnSource, S[item.assetId])) + `<div class="note">跨链只传 6 位小数，超出部分从未被烧毁、留在源链</div>`;
+      if (item.stage === 'stranded') x += `<div class="blocked">Sent but not yet delivered — funds are not lost; plain transfers = LayerZero auto-retry; staking messages = manual recovery entry</div>`;
+      if (item.remainderOnSource) x += kv('Remainder left on source chain', fmtAmt(item.remainderOnSource, S[item.assetId])) + `<div class="note">Bridging carries only 6 decimals; the rest was never burned and stays on the source chain</div>`;
       return x;
     }
     case 'transactions': {
-      const stateZh = {reviewing:'审阅中', 'awaiting-signature':'待签名', signing:'签名中', submitting:'提交中', confirming:'确认中', success:'成功 ✓', failure:'失败', 'user-rejected':'已取消（拒签）'}[item.state];
-      const kindZh = {'kernel-batch':'批量交易', 'type4-first-delegation':'首次启用+交易', 'cross-chain-send':'跨链发送', plain:'普通交易'}[item.kind];
-      let x = kv('类型', kindZh) + kv('状态', stateZh) + kv('链', C[item.chainId]);
+      const stateLabel = {reviewing:'Reviewing', 'awaiting-signature':'Awaiting signature', signing:'Signing', submitting:'Submitting', confirming:'Confirming', success:'Success ✓', failure:'Failed', 'user-rejected':'Canceled (signature rejected)'}[item.state];
+      const kindLabel = {'kernel-batch':'Batch transaction', 'type4-first-delegation':'First delegation + transaction', 'cross-chain-send':'Cross-chain send', plain:'Plain transaction'}[item.kind];
+      let x = kv('Kind', kindLabel) + kv('State', stateLabel) + kv('Chain', C[item.chainId]);
       if (item.nonce) x += kv('nonce', item.nonce);
       if (item.errorMsg) x += `<div class="blocked">${item.errorMsg}</div>`;
-      if (item.state === 'user-rejected') x += `<div class="note">拒签≠失败：回表单、草稿保留、toast 文案「已取消」</div>`;
+      if (item.state === 'user-rejected') x += `<div class="note">Signature rejection ≠ failure: back to the form, draft kept, toast copy "Canceled"</div>`;
       return x;
     }
     case 'governance': {
-      let x = kv('周期', `第 ${Number(item.cycleNumber)} 期 · 时长 ${item.cycleDurationDays} 天（读链显示，文案不硬编码）`) + kv('周期结束', fmtTime(item.cycleEndsAt));
-      x += kv('结算触发', item.finalized ? '已触发' : '未被触发（任何人可点「触发结算」）');
-      if (item.claimWindowEndsAt) x += kv('领取窗口止', fmtTime(item.claimWindowEndsAt)) + `<div class="note">逾期未领并入国库，不补发</div>`;
+      let x = kv('Cycle', `Cycle ${Number(item.cycleNumber)} · ${item.cycleDurationDays} days long (read from chain, copy not hardcoded)`) + kv('Cycle ends', fmtTime(item.cycleEndsAt));
+      x += kv('Settlement trigger', item.finalized ? 'Triggered' : 'Not triggered (anyone can press "Trigger settlement")');
+      if (item.claimWindowEndsAt) x += kv('Claim window ends', fmtTime(item.claimWindowEndsAt)) + `<div class="note">Unclaimed past the deadline rolls into the treasury; no reissue</div>`;
       for (const p of item.proposals) {
-        const st = {active:'投票中', passed:'已通过', defeated:'已否决', executed:'已执行'}[p.state];
-        x += kv(`${st}${p.governanceTarget?' · 治理类（需超级多数）':''}`, p.title);
+        const st = {active:'Voting', passed:'Passed', defeated:'Defeated', queued:'Queued', executed:'Executed'}[p.state];
+        x += kv(`${st}${p.governanceTarget ? ' · governance-class (supermajority)' : ''}`, p.title);
       }
       return x;
     }
     case 'accounts': {
-      const kindZh = {'external-eoa':'外部钱包', 'embedded-eoa':'内置账户'}[item.walletKind];
-      let x = kv('形态', kindZh) + kv('地址', item.address.value + '（fixture 专用）');
-      const zh = {'connected-eoa':'未启用','authorization-requested':'等待授权签名','authorization-signed':'已签授权·待广播','delegation-pending':'等待上链','kernel-delegated':'已启用','unsupported-delegation':'检测到不支持的启用','delegation-replacement-pending':'替换中','delegation-revoked':'已撤销'};
+      const kindLabel = {'external-eoa':'External wallet', 'embedded-eoa':'Embedded account'}[item.walletKind];
+      let x = kv('Wallet kind', kindLabel) + kv('Address', item.address.value + ' (fixture-only)');
+      const stateLabel = {'connected-eoa':'Not enabled','authorization-requested':'Awaiting authorization signature','authorization-signed':'Authorization signed · pending broadcast','delegation-pending':'Pending on-chain','kernel-delegated':'Enabled','unsupported-delegation':'Unsupported delegation detected','delegation-replacement-pending':'Replacing','delegation-revoked':'Revoked'};
       for (const pc of item.perChain) {
-        x += kv(C[pc.chainId], `<span class="${pc.state==='kernel-delegated'?'ok-badge':''}">${zh[pc.state]}</span>${pc.state==='unsupported-delegation'?'<div class="blocked">需先替换启用，读取功能保留</div>':''}`);
+        x += kv(C[pc.chainId], `<span class="${pc.state==='kernel-delegated'?'ok-badge':''}">${stateLabel[pc.state]}</span>${pc.state==='unsupported-delegation'?'<div class="blocked">Replace the delegation first; read features stay available</div>':''}`);
       }
       return x;
     }
-    case 'chains': return kv('chainId', `${item.chainId}（${item.name}，${item.env === 'mainnet' ? '主网' : '测试网'}，原生代币 ${item.nativeSymbol}）`) + (item.scenario.includes('undeployed') ? '<div class="blocked">该链作为「未部署/RPC 故障/索引落后」场景的载体：相关入口禁用、区块级错误、索引落后静默降级</div>' : '');
-    case 'assets': return kv(item.symbol, `${{uasset:'uAsset 锚定代币', reserve:'储备资产', sy:'生息资产', memecoin:'Memecoin', share:'储蓄份额', credit:'创世积分'}[item.kind]}${item.anchorNote ? ' · '+item.anchorNote : ''}`);
+    case 'chains': return kv('chainId', `${item.chainId} (${item.name}, ${item.env === 'mainnet' ? 'mainnet' : 'testnet'}, native token ${item.nativeSymbol})`) + (item.scenario.includes('undeployed') ? '<div class="blocked">This chain carries the "undeployed / RPC failure / indexer lag" scenario: related entries disabled, block-level errors, silent degradation on indexer lag</div>' : '');
+    case 'assets': return kv(item.symbol, `${{uasset:'uAsset pegged token', reserve:'Reserve asset', sy:'Yield-bearing asset', memecoin:'Memecoin', share:'Savings share', credit:'Genesis credits'}[item.kind]}${item.anchorNote ? ' · '+item.anchorNote : ''}`);
     default: return kv(item.kind, item.messageKey + ' · ' + fmtTime(item.at));
   }
 }
 
 const all = FILES.flatMap(f => data[f].map(i => [i, f]));
 const sel = document.getElementById('scenario');
-sel.innerHTML = `<option value="">全部数据（不按场景过滤）</option>` + scenarioMeta.map(s => `<option value="${s.id}">${s.label}（${s.id}）</option>`).join('');
+sel.innerHTML = `<option value="">All data (no scenario filter)</option>` + scenarioMeta.map(s => `<option value="${s.id}">${s.label} (${s.id})</option>`).join('');
 
 function render() {
   const s = sel.value;
   const meta = scenarioMeta.find(m => m.id === s);
   const shown = s ? all.filter(([i]) => i.scenario.includes(s)) : all;
-  document.getElementById('count').textContent = `${shown.length} 条相关记录`;
+  document.getElementById('count').textContent = `${shown.length} matching records`;
   let html = '';
   if (meta) {
-    html += `<div class="scenario-card"><h2>场景：${meta.label}（${meta.id}）</h2>
-      <p class="expect"><b>模拟什么：</b>${meta.expectation}</p>
-      <p class="expect"><b>涉及记录：</b>${meta.affects.join('、')}</p></div>`;
+    html += `<div class="scenario-card"><h2>Scenario: ${meta.label} (${meta.id})</h2>
+      <p class="expect"><b>Simulates:</b> ${meta.expectation}</p>
+      <p class="expect"><b>Affects:</b> ${meta.affects.join(', ')}</p></div>`;
   }
   for (const [group, label] of GROUPS) {
     const items = shown.filter(([i, f]) => f === group);
     if (!items.length) continue;
     html += `<section class="group">${label}</section>`;
     for (const [i, f] of items) {
-      html += `<div class="card"><h3><span class="what">${i.id}</span><span class="badge src">依据：${i.sourceRef.replace('docs/','').replace('docs/page-briefs/','')}</span></h3>${rows(i, f)}</div>`;
+      html += `<div class="card"><h3><span class="what">${i.id}</span><span class="badge src">Source: ${i.sourceRef.replace('docs/','').replace('docs/page-briefs/','')}</span></h3>${rows(i, f)}</div>`;
     }
   }
-  if (!shown.length) html = '<div class="empty-state">该场景无独立数据记录（属运行时行为，见场景说明）</div>';
+  if (!shown.length) html = '<div class="empty-state">No dedicated data records for this scenario (runtime behavior; see the scenario notes)</div>';
   document.getElementById('list').innerHTML = html;
 }
 sel.addEventListener('change', render);
