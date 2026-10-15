@@ -288,7 +288,7 @@ const en = {
     portfolio: {      title: 'Portfolio',
       sub: 'Your assets, positions and participations in one place.',
       exploreCta: 'Explore genesis',
-      exploreNote: 'Join a verse genesis to start building your portfolio.',
+      exploreNote: 'Nothing here yet',
       signals: {
         groupLabel: 'Portfolio status',
         todo: 'To handle',
@@ -1233,7 +1233,7 @@ const zh: typeof en = {
       title: '资产组合',
       sub: '你的资产、仓位与参与，集中在一处。',
       exploreCta: '去发现页',
-      exploreNote: '参与一个 Verse 的创世，你的组合就从这里开始。',
+      exploreNote: '组合还是空的',
       signals: {
         groupLabel: '组合状态',
         todo: '待办',

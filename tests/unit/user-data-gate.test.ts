@@ -117,15 +117,16 @@ describe('ExploreCta (2026-10-15 user ruling)', () => {
   it('renders the explore jump with its note when connected', () => {
     mockConnected = true;
     const html = renderToString(createElement(ExploreCta, { locale: 'en' }));
-    expect(html).toContain('connect-cta');
+    expect(html).toContain('empty-state');
+    expect(html).toContain('Nothing here yet');
     expect(html).toContain('Explore genesis');
-    expect(html).toContain('Join a verse genesis');
     mockConnected = false;
   });
 
   it('renders nothing when disconnected (the connect CTA owns that state)', () => {
     mockConnected = false;
     const html = renderToString(createElement(ExploreCta, { locale: 'en' }));
+    expect(html).not.toContain('empty-state');
     expect(html).not.toContain('connect-cta');
   });
 });

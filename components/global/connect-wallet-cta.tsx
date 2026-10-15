@@ -58,12 +58,13 @@ export function ExploreCta({ locale }: { locale: Locale }) {
   const { connected } = useMockWallet()
   const copy = getCopy(locale).portfolio
   if (!connected) return null
+  // Discovery's no-match pattern lifted into the page slot: .empty-state + h3 + lg ghost CTA
   return (
-    <div className="connect-cta connect-cta--explore">
-      <p className="connect-cta__note">{copy.exploreNote}</p>
+    <div className="empty-state pf-explore-empty">
+      <h3>{copy.exploreNote}</h3>
       <Button
-        variant="default"
-        className="ax-ghost-cta connect-cta__button"
+        className="ax-ghost-cta"
+        size="lg"
         nativeButton={false}
         render={<Link href={localePath(locale, '/memeverse/explore')} />}
       >
