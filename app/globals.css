@@ -938,9 +938,11 @@ svg {
 }
 
 /* Portfolio connected+empty slot: discovery's .empty-state pattern (h3 + lg ghost CTA)
-   lifted to page level, spaced like the connect CTA it mirrors */
-.pf-explore-empty {
-  margin-block-start: var(--space-7);
+   lifted to page level; pulled up close under the page head, with a roomier
+   title-to-action gap */
+.empty-state.pf-explore-empty {
+  margin-block-start: var(--space-2);
+  gap: var(--space-6);
 }
 
 @media (max-width: 54rem) {

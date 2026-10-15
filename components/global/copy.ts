@@ -60,7 +60,7 @@ const en = {
       titleLead: 'Turn shared belief into',
       titleAccent: 'a living economy.',
       sub: 'One onchain system for launch, liquidity, yield and governance—so communities can outrun the moment that created them.',
-      primaryCta: 'Explore communities',
+      primaryCta: 'Explore Communities',
       kpiBand: {
         label: 'Protocol KPIs',
         tvl: 'Total Value Locked',
@@ -287,7 +287,7 @@ const en = {
     },
     portfolio: {      title: 'Portfolio',
       sub: 'Your assets, positions and participations in one place.',
-      exploreCta: 'Explore genesis',
+      exploreCta: 'Explore Communities',
       exploreNote: 'Nothing here yet',
       signals: {
         groupLabel: 'Portfolio status',

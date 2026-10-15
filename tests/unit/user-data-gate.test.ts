@@ -119,7 +119,7 @@ describe('ExploreCta (2026-10-15 user ruling)', () => {
     const html = renderToString(createElement(ExploreCta, { locale: 'en' }));
     expect(html).toContain('empty-state');
     expect(html).toContain('Nothing here yet');
-    expect(html).toContain('Explore genesis');
+    expect(html).toContain('Explore Communities');
     mockConnected = false;
   });
 

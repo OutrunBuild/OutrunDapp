@@ -1,5 +1,3 @@
-import Link from 'next/link'
-
 import {
   getFixtureReferral,
   getFixtureSnapshot,
@@ -12,7 +10,6 @@ import { ChainLogoMark } from '../global/chain-icons'
 import { TokenIconMark } from '../global/token-icons'
 import { getCopy } from '../global/copy'
 import { ConnectWalletCta } from '../global/connect-wallet-cta'
-import { localePath } from '../global/routes'
 import { formatAmount, formatDay, formatHex } from '../global/signal-ui'
 import { UserDataGate } from '../global/user-data-gate'
 
@@ -42,6 +39,9 @@ export async function ReferralPage({ locale, host }: { locale: Locale; host: str
   const copy = getCopy(locale).referral
   const referral = await getFixtureReferral()
   if (!referral) return null
+  // History tabs render only when at least one side has data; a lone dataset still shows both
+  // tabs (the empty side keeps its title-only empty state)
+  const hasHistory = referral.transactions.length > 0 || referral.friends.length > 0
   const now = Date.now()
   const snapshot = await getFixtureSnapshot()
 
@@ -162,8 +162,10 @@ export async function ReferralPage({ locale, host }: { locale: Locale; host: str
           (yields back to the data cards once connected) */}
       <ConnectWalletCta locale={locale} className="connect-cta--ref" />
 
-      {/* Pending (hidden along with the stats cluster when there is no user participation) */}
+      {/* Pending (hidden along with the stats cluster when there is no user participation;
+          not rendered at all when nothing is pending) */}
       <UserDataGate>
+        {referral.pending.length > 0 ? (
         <section className="pf-panel ref-pending" aria-labelledby="ref-pending-title">
           <header className="pf-panel__bar">
             <h2 className="ref-nameplate" id="ref-pending-title">
@@ -197,15 +199,18 @@ export async function ReferralPage({ locale, host }: { locale: Locale; host: str
             ))}
           </div>
         </section>
+        ) : null}
       </UserDataGate>
 
       <UserDataGate>
+        {hasHistory ? (
         <ReferralHistory locale={locale} friendsCount={referral.friendsCount}>
           {{
             transactions: <TransactionsPanel locale={locale} referral={referral} now={now} />,
             friends: <FriendsPanel locale={locale} referral={referral} />,
           }}
         </ReferralHistory>
+        ) : null}
       </UserDataGate>
     </OutrunShell>
   )
@@ -225,14 +230,6 @@ function TransactionsPanel({
     return (
       <div className="empty-state">
         <h3>{copy.tx.empty}</h3>
-        <p>{copy.tx.emptyBody}</p>
-        <Button
-          className="ax-ghost-cta"
-          nativeButton={false}
-          render={<Link href={localePath(locale, '/memeverse/explore')} />}
-        >
-          {copy.tx.emptyCta}
-        </Button>
       </div>
     )
   }
