@@ -114,11 +114,12 @@ describe('zero-data portfolio zones unmount (2026-10-15 user ruling)', () => {
 import { ExploreCta } from '../../components/global/connect-wallet-cta';
 
 describe('ExploreCta (2026-10-15 user ruling)', () => {
-  it('renders the explore jump when connected', () => {
+  it('renders the explore jump with its note when connected', () => {
     mockConnected = true;
     const html = renderToString(createElement(ExploreCta, { locale: 'en' }));
     expect(html).toContain('connect-cta');
     expect(html).toContain('Explore genesis');
+    expect(html).toContain('No assets, positions or participations yet');
     mockConnected = false;
   });
 

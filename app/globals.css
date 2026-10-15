@@ -937,6 +937,20 @@ svg {
   margin-block-start: var(--space-6);
 }
 
+/* ExploreCta variant (connected + every portfolio zone empty): stacks an explanation
+   line above the ghost CTA — secondary color, centered, measure-capped for readability */
+.connect-cta--explore {
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.connect-cta__note {
+  color: var(--color-text-secondary);
+  max-inline-size: 34rem;
+  text-align: center;
+}
+
 @media (max-width: 54rem) {
   .connect-cta__button {
     inline-size: 100%;

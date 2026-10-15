@@ -59,7 +59,8 @@ export function ExploreCta({ locale }: { locale: Locale }) {
   const copy = getCopy(locale).portfolio
   if (!connected) return null
   return (
-    <div className="connect-cta">
+    <div className="connect-cta connect-cta--explore">
+      <p className="connect-cta__note">{copy.exploreNote}</p>
       <Button
         variant="default"
         className="ax-ghost-cta connect-cta__button"
