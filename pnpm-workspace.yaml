@@ -1,6 +1,7 @@
 packages:
   - '.'
   - 'vendor/typescript-bridge'
+  - 'subgraph'
 overrides:
   '@typescript/old': npm:typescript@6.0.2
 allowBuilds:

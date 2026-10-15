@@ -47,6 +47,6 @@ const server = createServer(async (req, res) => {
 
 server.listen(port, '127.0.0.1', () => {
   console.log(
-    `fixture inspector: http://127.0.0.1:${port}/ (root=${root}; prototype/testing only, never import from production)`,
+    `fixture inspector: http://127.0.0.1:${port}/ (root=${root}; prototype/testing only, never import from core code)`,
   );
 });

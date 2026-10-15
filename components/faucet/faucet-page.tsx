@@ -14,11 +14,11 @@ import { FaucetClaims } from './faucet-claims'
  * daily limit of 1,000,000×1e18 and a 24h cooldown; fee/balance/cooldown remaining/
  * headroom are fixture samples.
  */
-export function FaucetPage({ locale }: { locale: Locale }) {
+export async function FaucetPage({ locale }: { locale: Locale }) {
   const copy = getCopy(locale).faucet
-  const faucet = getFixtureFaucet()
+  const faucet = await getFixtureFaucet()
   if (!faucet) return null
-  const snapshot = getFixtureSnapshot()
+  const snapshot = await getFixtureSnapshot()
 
   return (
     <OutrunShell locale={locale} current="faucet" accountAddress={snapshot.sampleAccount.address}>

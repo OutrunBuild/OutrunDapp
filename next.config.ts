@@ -1,10 +1,27 @@
 import type { NextConfig } from 'next';
 
+// Build-time data-source swap (fixture-boundary-contract OUTRUN_DATA_SOURCE section): onchain
+// builds redirect the fixture repository module to the onchain adapter, so fixtures/** is
+// statically unreachable in the compiled graph (two-build rule; runtime env flips cannot change
+// an already-built artifact). The default (fixture) build resolves the real module untouched.
+const ONCHAIN_MODE = process.env.OUTRUN_DATA_SOURCE === 'onchain';
+const FIXTURE_MODULE = '@/lib/data/fixture-repository';
+const ONCHAIN_ADAPTER = './components/data/onchain-adapter';
+
 const nextConfig: NextConfig = {
   // e2e-only build directory: pnpm test:e2e builds+starts with NEXT_DIST_DIR=.next-e2e,
   // fully isolated from the running .next (dev / production preview) — rebuilding .next while a server serves
   // from it mixes old and new chunks
   ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
+  ...(ONCHAIN_MODE
+    ? {
+        turbopack: { resolveAlias: { [FIXTURE_MODULE]: ONCHAIN_ADAPTER } },
+        webpack: (config: { resolve: { alias: Record<string, string> } }) => {
+          config.resolve.alias[FIXTURE_MODULE] = ONCHAIN_ADAPTER;
+          return config;
+        },
+      }
+    : {}),
   // next build must invoke the project's .bin/tsc (TS 7.0.2) for a real type check; type errors must not be ignored.
   experimental: {
     useTypeScriptCli: true,

@@ -13,3 +13,8 @@ export type FixtureChain = {
 
 export type Locale = 'zh' | 'en';
 export type VerseStage = 'genesis' | 'locked' | 'unlocked' | 'refund';
+
+// 24h liquidity protection window (protocol constant). Lives in this client-safe module —
+// client components import it here; fixture-repository and the onchain adapter re-export from
+// this single source.
+export const PROTECTION_WINDOW_MS = 24 * 60 * 60 * 1000;

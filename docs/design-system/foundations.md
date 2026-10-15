@@ -108,12 +108,13 @@ clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100%
 
 ## 7. 断点与响应式
 
-`app/globals.css` 使用 `max-width` 三档（移动优先地收敛桌面布局）：
+`app/globals.css` 使用 `max-width` 四档（移动优先地收敛桌面布局；`1023px` 是代码既有的 lg 收敛档，与 Tailwind 断点边界对齐，不计入新增档位）：
 
 | 断点 | 像素 | 发生什么 |
 |---|---|---|
 | `68rem` | ≤1088px | 产品壳收窄；`.discovery-layout` 退单列；筛选栏 `.filter-rail` 转横向；`.lifecycle-tabs`/`.discovery-tools` 压缩 |
-| `54rem` | ≤864px | 侧栏隐藏 → `.mobile-navigation` 底部 tab；`.mobile-filter-toggle` 出现，`.discovery-filters[data-open]` 抽屉；营销 header 收拢；`.economy-grid` 减列 |
+| `1023px` | ≤1023px | 营销 header 文字导航隐藏，header 收成品牌 + 右对齐 actions 两列；`.pol-panel__grid`/`.vault-actions` 退单列 |
+| `54rem` | ≤864px | 侧栏隐藏 → `.mobile-navigation` 底部 tab；`.mobile-filter-toggle` 出现，`.discovery-filters[data-open]` 抽屉；`.economy-grid` 减列 |
 | `30rem` | ≤480px | 品牌切 symbol；KPI 2×2；表格横滚冻结首列；`.economy-card__facts` 堆叠；中文 h1 缩放 |
 
 新页面必须在这三档里各截一张图验证（见 agent-workflow.md）。不新增断点值；需要新档位时先讨论。

@@ -81,3 +81,7 @@ playwright-report/
 
 # 会话工具状态（mimosa 插件）
 .mimosa/
+
+# subgraph codegen/build artifacts (graph build output, not source)
+subgraph/generated/
+subgraph/build/

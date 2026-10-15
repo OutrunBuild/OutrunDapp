@@ -72,7 +72,7 @@ function SplitPrice({ price }: { price: number }) {
  * market cap=current price×total supply (derived); CA=fixture sample. Missing fields → that
  * stat chip is not rendered (null renders nothing).
  */
-export function VerseTradeDesk({
+export async function VerseTradeDesk({
   locale,
   verse,
   trade,
@@ -84,7 +84,7 @@ export function VerseTradeDesk({
   const copy = getCopy(locale).verseDesk
   const stats = trade.tokenStats
   // Swap/Mint POL supply-side balances share the same source (pol-positions fixture; null=slot)
-  const pol = getFixturePolPosition(verse.id)
+  const pol = await getFixturePolPosition(verse.id)
 
   return (
     <section className="verse-desk" aria-label={verse.symbol}>
@@ -176,10 +176,10 @@ export function VerseTradeDesk({
           memecoinName={verse.name}
           uAssetSymbol={verse.raiseAsset}
           price={stats.price ?? 0}
-          uAssetUsd={getFixtureAssetUsdSample(verse.raiseAsset)}
+          uAssetUsd={await getFixtureAssetUsdSample(verse.raiseAsset)}
           memecoinBalance={pol?.myMemecoin ?? null}
           uAssetBalance={pol?.myUAsset ?? null}
-          reserves={getFixtureParticipationOptions(verse.raiseAsset).reserves}
+          reserves={(await getFixtureParticipationOptions(verse.raiseAsset)).reserves}
           reserveBalance={pol?.myReserve ?? null}
           pol={pol}
         />

@@ -35,7 +35,11 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'NEXT_DIST_DIR=.next-e2e pnpm build && NEXT_DIST_DIR=.next-e2e pnpm start -p 4188',
+    // Data mode pinned to fixture (stage 5 step 8): the e2e baseline proves the onchain seam
+    // leaves fixture rendering byte-identical; any diff = real regression, fix code not baseline.
+    // Playwright runs via pnpm directly (never through rtk — flag swallowing, silent rewrites).
+    command:
+      'OUTRUN_DATA_SOURCE=fixture NEXT_DIST_DIR=.next-e2e pnpm build && OUTRUN_DATA_SOURCE=fixture NEXT_DIST_DIR=.next-e2e pnpm start -p 4188',
     url: `${BASE}/`,
     reuseExistingServer: true,
     timeout: 420_000,

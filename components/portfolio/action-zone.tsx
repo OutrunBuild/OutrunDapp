@@ -14,7 +14,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 import type { FixturePortfolioAction, Locale } from '@/lib/data/fixture-repository'
-import { PROTECTION_WINDOW_MS } from '@/lib/data/fixture-repository'
+import { PROTECTION_WINDOW_MS } from '@/lib/data/types'
 
 import { getCopy } from '../global/copy'
 import { verseHref } from '../global/routes'

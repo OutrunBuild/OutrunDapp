@@ -1,0 +1,8 @@
+{
+  "name": "outrun-subgraph",
+  "private": true,
+  "description": "Outrun DApp event-indexing subgraph (schema + AssemblyScript mappings), compiled by @graphprotocol/graph-cli from the repo root and deployed via Graph Studio per testnet",
+  "dependencies": {
+    "@graphprotocol/graph-ts": "0.38.2"
+  }
+}

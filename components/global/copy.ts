@@ -287,6 +287,7 @@ const en = {
     },
     portfolio: {      title: 'Portfolio',
       sub: 'Your assets, positions and participations in one place.',
+      exploreCta: 'Explore genesis',
       signals: {
         groupLabel: 'Portfolio status',
         todo: 'To handle',
@@ -416,8 +417,6 @@ const en = {
         kindPreorder: 'Preorder',
         manage: 'Manage',
         claim: 'Claim',
-        empty: 'No participations yet',
-        emptyCta: 'Explore genesis',
       },
     },
     referral: {
@@ -1232,6 +1231,7 @@ const zh: typeof en = {
     portfolio: {
       title: '资产组合',
       sub: '你的资产、仓位与参与，集中在一处。',
+      exploreCta: '去发现页',
       signals: {
         groupLabel: '组合状态',
         todo: '待办',
@@ -1358,8 +1358,6 @@ const zh: typeof en = {
         kindPreorder: '预购',
         manage: '管理',
         claim: '去领取',
-        empty: '还没有参与记录',
-        emptyCta: '去发现页',
       },
     },
     referral: {

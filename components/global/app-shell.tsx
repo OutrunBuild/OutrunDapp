@@ -182,7 +182,7 @@ function MobileNavigation({ locale, current }: { locale: Locale; current?: NavKe
   )
 }
 
-export function OutrunShell({
+export async function OutrunShell({
   locale,
   current,
   accountAddress,
@@ -190,7 +190,7 @@ export function OutrunShell({
 }: ShellProps) {
   const copy = getCopy(locale)
   // View-chain selector exposes only the 3 testnets (no mainnet options)
-  const chains = getFixtureChains().filter((c) => c.env === 'testnet')
+  const chains = (await getFixtureChains()).filter((c) => c.env === 'testnet')
 
   if (current === 'home') {
     return (

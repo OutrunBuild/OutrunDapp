@@ -38,12 +38,12 @@ import { RelativeTime } from './relative-time'
  * disconnected, a yellow connect-wallet CTA appears below the mechanism card
  * (ax-ghost-cta skin, centered).
  */
-export function ReferralPage({ locale, host }: { locale: Locale; host: string | null }) {
+export async function ReferralPage({ locale, host }: { locale: Locale; host: string | null }) {
   const copy = getCopy(locale).referral
-  const referral = getFixtureReferral()
+  const referral = await getFixtureReferral()
   if (!referral) return null
   const now = Date.now()
-  const snapshot = getFixtureSnapshot()
+  const snapshot = await getFixtureSnapshot()
 
   // Link URL: fixed at SSR from the host header (no hydration flicker); /ref/<shortcode> is
   // locale-independent, shared by both languages

@@ -132,6 +132,8 @@ export function AssetsZone({
 }) {
   const copy = getCopy(locale).portfolio.assets
   const bridgeable = assets.filter((asset) => asset.bridgeable)
+  // 2026-10-15 (user ruling): zero bridgeable rows unmount the whole zone — no empty shell card
+  if (bridgeable.length === 0) return null
   // Credit family and uAsset family split into sections: uAsset first,
   // the Credit group carries a divider nameplate
   const uassetRows = bridgeable.filter((asset) => asset.kind === 'uasset')

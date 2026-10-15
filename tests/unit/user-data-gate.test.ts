@@ -1,5 +1,6 @@
-import { createElement } from 'react';
-import { renderToString } from 'react-dom/server';
+import { createElement, type ReactNode } from 'react';
+import { renderToPipeableStream, renderToString } from 'react-dom/server';
+import { Writable } from 'node:stream';
 import { describe, expect, it, vi } from 'vitest';
 
 import { PortfolioPage } from '../../components/portfolio/portfolio-page';
@@ -17,14 +18,50 @@ vi.mock('@/components/global/locale-menu', () => ({
   LocaleMenu: () => createElement('div', { 'data-testid': 'locale-stub' }),
 }));
 
+// Controllable wallet-connection state for the ExploreCta suite below. The flag must be
+// declared before the module-level renders further down (vi.mock factories are hoisted, but
+// the flag read happens at render time).
+let mockConnected = false;
+vi.mock('@/components/global/mock-wallet', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/components/global/mock-wallet')>();
+  return {
+    ...actual,
+    useMockWallet: () => ({ connected: mockConnected, toggle: () => {} }),
+  };
+});
+
 // Regression guard for the no-user-participation state:
 // SSR is always disconnected (mock-wallet server snapshot false), so
 // UserDataGate must keep data cards entirely out of the SSR HTML — e2e visual
 // baselines are sensitive to "what got rendered extra" but insensitive to a
 // single attribute, so assert card class-name absence/presence here directly.
-const NOT_RENDERED = renderToString(createElement(PortfolioPage, { locale: 'en' }));
-const REF_NOT_RENDERED = renderToString(
-  createElement(ReferralPage, { locale: 'en', host: 'localhost:3000' }),
+// Async server components (stage 5 data-seam conversion): the page tree embeds async children
+// (OutrunShell), so legacy renderToString throws on suspension — render through the streaming
+// API and wait for allReady, exactly what the fixture build's server does
+function renderAsync(node: ReactNode): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    let html = '';
+    const sink = new Writable({
+      write(chunk, _enc, cb) {
+        html += chunk;
+        cb();
+      },
+    });
+    const { pipe } = renderToPipeableStream(node, {
+      onAllReady() {
+        pipe(sink);
+        sink.end(() => resolve(html));
+      },
+      onError(e) {
+        reject(e instanceof Error ? e : new Error(String(e)));
+      },
+    });
+  });
+}
+
+const NOT_RENDERED = await renderAsync(await PortfolioPage({ locale: 'en' }));
+const REF_NOT_RENDERED = await renderAsync(
+  await ReferralPage({ locale: 'en', host: 'localhost:3000' }),
 );
 
 describe('no-user-participation state (disconnected SSR)', () => {
@@ -44,5 +81,50 @@ describe('no-user-participation state (disconnected SSR)', () => {
     expect(REF_NOT_RENDERED).not.toContain('ref-link');
     expect(REF_NOT_RENDERED).not.toContain('ref-pending');
     expect(REF_NOT_RENDERED).not.toContain('ref-history');
+  });
+});
+
+// 2026-10-15 user ruling: zero-data portfolio sections render nothing at all — no empty
+// shell cards, no zero-value placeholders
+import { AssetsZone } from '../../components/portfolio/assets-zone';
+import { ParticipationsZone } from '../../components/portfolio/participations-zone';
+
+describe('zero-data portfolio zones unmount (2026-10-15 user ruling)', () => {
+  it('participations zone renders nothing with zero rows', () => {
+    const html = renderToString(createElement(ParticipationsZone, { locale: 'en', rows: [] }));
+    expect(html).not.toContain('pf-participations');
+    expect(html).not.toContain('empty-state');
+  });
+
+  it('assets zone renders nothing with zero assets', () => {
+    const html = renderToString(
+      createElement(AssetsZone, {
+        locale: 'en',
+        assets: [],
+        chains: [],
+        reserveBalances: {},
+      }),
+    );
+    expect(html).not.toContain('pf-assets');
+  });
+});
+
+// ExploreCta (2026-10-15 user ruling): connected wallet with every portfolio zone empty keeps
+// exactly one action — the jump-to-discovery CTA
+import { ExploreCta } from '../../components/global/connect-wallet-cta';
+
+describe('ExploreCta (2026-10-15 user ruling)', () => {
+  it('renders the explore jump when connected', () => {
+    mockConnected = true;
+    const html = renderToString(createElement(ExploreCta, { locale: 'en' }));
+    expect(html).toContain('connect-cta');
+    expect(html).toContain('Explore genesis');
+    mockConnected = false;
+  });
+
+  it('renders nothing when disconnected (the connect CTA owns that state)', () => {
+    mockConnected = false;
+    const html = renderToString(createElement(ExploreCta, { locale: 'en' }));
+    expect(html).not.toContain('connect-cta');
   });
 });

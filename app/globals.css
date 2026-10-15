@@ -1073,6 +1073,17 @@ svg {
   .marketing-nav {
     display: none;
   }
+
+  /* The header must collapse on the same tier the text nav hides: with the nav
+    gone from the desktop `auto auto 1fr` grid, __actions would fall into the
+    middle `auto` track and lose the right edge */
+  .marketing-header {
+    grid-template-columns: auto 1fr;
+  }
+
+  .marketing-header__actions {
+    justify-content: end;
+  }
 }
 
 .nav-disabled,
@@ -8777,14 +8788,6 @@ svg {
 }
 
 @media (max-width: 54rem) {
-  .marketing-header {
-    grid-template-columns: auto 1fr;
-  }
-
-  .marketing-header__actions {
-    justify-content: end;
-  }
-
   .marketing-main {
     padding: var(--space-5) var(--space-4);
   }

@@ -24,12 +24,12 @@ function first(value: QueryValue) {
   return Array.isArray(value) ? value[0] : value
 }
 
-export function DiscoveryPage({ locale, searchParams }: DiscoveryPageProps) {
+export async function DiscoveryPage({ locale, searchParams }: DiscoveryPageProps) {
   const scenario = parseScenarioParam(first(searchParams.scenario))
-  const rawSnapshot = getFixtureSnapshot()
+  const rawSnapshot = await getFixtureSnapshot()
   const verses = applyScenarioToVerses(rawSnapshot.verses, scenario)
   const snapshot = { ...rawSnapshot, verses }
-  const mainnetChains = getFixtureChains().filter((chain) => chain.env === 'mainnet')
+  const mainnetChains = (await getFixtureChains()).filter((chain) => chain.env === 'mainnet')
   const copy = getCopy(locale)
   const stageValue = first(searchParams.stage)
   const stage = ['genesis', 'locked', 'unlocked'].includes(stageValue ?? '')

@@ -16,7 +16,7 @@ import {
 
 import { OutrunShell } from '../global/app-shell'
 import { getCopy } from '../global/copy'
-import { ConnectWalletCta } from '../global/connect-wallet-cta'
+import { ConnectWalletCta, ExploreCta } from '../global/connect-wallet-cta'
 import { formatAmount } from '../global/signal-ui'
 import { UserDataGate } from '../global/user-data-gate'
 import { ActionZone } from './action-zone'
@@ -41,24 +41,28 @@ import { ParticipationsZone } from './participations-zone'
  * when disconnected, a yellow connect-wallet CTA appears below
  * the page head (ConnectWalletCta).
  */
-export function PortfolioPage({ locale }: { locale: Locale }) {
-  const snapshot = getFixtureSnapshot()
+export async function PortfolioPage({ locale }: { locale: Locale }) {
+  const snapshot = await getFixtureSnapshot()
   const copy = getCopy(locale).portfolio
-  const signals = getFixturePortfolioSignals()
-  const actions = getFixturePortfolioActions()
-  const chains = getFixtureChains()
+  const signals = await getFixturePortfolioSignals()
+  const actions = await getFixturePortfolioActions()
+  const chains = (await getFixtureChains())
     .filter((chain) => chain.env === 'mainnet')
     .map((chain) => ({ chainId: chain.chainId, name: chain.name }))
-  const usrSavings = getFixtureUsrSavings()
-  const assets: AssetRowView[] = getFixtureWalletAssets().map((asset) => ({
-    ...asset,
-    psm: asset.kind === 'uasset' ? getFixturePsmPair(asset.symbol) : null,
-  }))
+  const usrSavings = await getFixtureUsrSavings()
+  const walletAssets = await getFixtureWalletAssets()
+  const assets: AssetRowView[] = []
+  for (const asset of walletAssets) {
+    assets.push({
+      ...asset,
+      psm: asset.kind === 'uasset' ? await getFixturePsmPair(asset.symbol) : null,
+    })
+  }
   const uAssetBalances: Record<string, number> = {}
   for (const asset of assets) {
     if (asset.kind === 'uasset') uAssetBalances[asset.symbol] = asset.total
   }
-  const reserveBalances = getFixtureReserveBalances()
+  const reserveBalances = await getFixtureReserveBalances()
 
   // Protection-window Exit context: protection rows with a POL position sample =
   // in-page dialog; rows missing from the map → the card's Exit falls back to jumping to the
@@ -67,7 +71,7 @@ export function PortfolioPage({ locale }: { locale: Locale }) {
   for (const action of actions) {
     if (action.kind !== 'protection' || !action.verse) continue
     const verse = snapshot.verses.find((candidate) => candidate.id === action.verse?.id)
-    const pol = verse ? getFixturePolPosition(verse.id) : null
+    const pol = verse ? await getFixturePolPosition(verse.id) : null
     if (!verse || !pol) continue
     protectionExits[verse.id] = {
       verse,
@@ -83,6 +87,9 @@ export function PortfolioPage({ locale }: { locale: Locale }) {
     { href: '#pf-actions', tone: 'warning', label: copy.signals.todo, value: signals.actionCount },
     { href: '#pf-participations', tone: 'success', label: copy.signals.claimable, value: signals.claimableVerses },
   ]
+  // 2026-10-15 (user ruling): zero-data sections render nothing — the signal strip and net-worth
+  // hero collapse when all their values are zero (no zero-value placeholders)
+  const hasSignals = signals.actionCount > 0 || signals.claimableVerses > 0
 
   // Net-worth hero: wallet + savings + vault ready, converted at fixture sample prices
   // (snapshot semantics)
@@ -94,8 +101,17 @@ export function PortfolioPage({ locale }: { locale: Locale }) {
     (sum, vault) => sum + (vault.usdSample != null ? vault.myAssets * vault.usdSample : 0),
     0,
   )
-  const vaultRows = getFixtureVaultRows()
+  const vaultRows = await getFixtureVaultRows()
   const vaultReadyUsd = vaultRows.reduce((sum, row) => sum + (row.readyUsd ?? 0), 0)
+  const cdpPositions = await getFixtureCdpPositions()
+  const participationRows = await getFixtureParticipationRows()
+  const hasZoneData =
+    actions.length > 0 ||
+    assets.length > 0 ||
+    usrSavings.length > 0 ||
+    cdpPositions.length > 0 ||
+    vaultRows.length > 0 ||
+    participationRows.length > 0
   const totalUsd = walletUsd + savingsUsd + vaultReadyUsd
   const pct = (part: number) => (totalUsd > 0 ? Math.round((part / totalUsd) * 100) : 0)
   // Allocation segments: zero-value segments are not drawn, legend items rounding to 0% are not
@@ -144,6 +160,7 @@ export function PortfolioPage({ locale }: { locale: Locale }) {
           </h1>
           <p>{copy.sub}</p>
           <UserDataGate>
+            {hasSignals ? (
             <nav className="pf-kpi" aria-label={copy.signals.groupLabel}>
               {signalItems.map((item) => (
                 <a
@@ -160,9 +177,11 @@ export function PortfolioPage({ locale }: { locale: Locale }) {
                 </a>
               ))}
             </nav>
+            ) : null}
           </UserDataGate>
         </div>
         <UserDataGate>
+          {totalUsd > 0 ? (
           <div className="pf-hero">
           <span className="pf-hero__label">{copy.totalLabel}</span>
           <strong className="pf-hero__value" data-numeric>
@@ -187,17 +206,21 @@ export function PortfolioPage({ locale }: { locale: Locale }) {
               ))}
           </p>
           </div>
+          ) : null}
         </UserDataGate>
       </header>
 
       {/* The only action below the page head when there is no user participation (disappears
-          along with the data cards once connected) */}
+          along with the data cards once connected); connected with every zone empty, the
+          explore CTA takes that slot instead (2026-10-15 user ruling) */}
       <ConnectWalletCta locale={locale} />
+      {!hasZoneData ? <ExploreCta locale={locale} /> : null}
 
       {/* Mobile zone tab deck: ≤54rem sticky four-segment tabs, one zone shown at a
           time, zero change on desktop; hides along with the four sections when there is no user
-          participation */}
+          participation — including when every zone's data is empty (2026-10-15 user ruling) */}
       <UserDataGate>
+        {hasZoneData ? (
         <PortfolioZoneTabs
         locale={locale}
         initialZone={actions.length > 0 ? 'action' : 'money'}
@@ -218,15 +241,16 @@ export function PortfolioPage({ locale }: { locale: Locale }) {
             <>
               <StakedPositionsZone
                 locale={locale}
-                cdpPositions={getFixtureCdpPositions()}
+                cdpPositions={cdpPositions}
                 uAssetBalances={uAssetBalances}
               />
               <VaultZone locale={locale} vaultRows={vaultRows} />
             </>
           ),
-          participations: <ParticipationsZone locale={locale} rows={getFixtureParticipationRows()} />,
+          participations: <ParticipationsZone locale={locale} rows={participationRows} />,
         }}
         </PortfolioZoneTabs>
+        ) : null}
       </UserDataGate>
     </OutrunShell>
   )

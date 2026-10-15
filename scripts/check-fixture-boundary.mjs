@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-// check-fixture-boundary.mjs -- fixture/production isolation check
+// check-fixture-boundary.mjs -- fixture/onchain isolation check
 // Usage:
-//   node scripts/check-fixture-boundary.mjs --source            static import scan (production dirs
+//   node scripts/check-fixture-boundary.mjs --source        static import scan (core source dirs
 //     must not import fixtures directly/indirectly)
-//   node scripts/check-fixture-boundary.mjs --graph production  walk the import graph from production
+//   node scripts/check-fixture-boundary.mjs --graph onchain  walk the import graph from core-tree
 //     entries; reaching fixtures/** is forbidden
 //   node scripts/check-fixture-boundary.mjs --bundle <dir>      artifact scan (OUTRUN_FIXTURE_ONLY_v1
-//     sentinel; run after a production build)
-//     When <dir>=.next only production subdirs are enumerated (server/static/standalone); the dev
+//     sentinel; run after an onchain-mode build)
+//     When <dir>=.next only production-build subdirs are enumerated (server/static/standalone); the dev
 //     cache (.next/dev) reaches the sentinel via the legitimate path (fixture-repository -> fixtures)
 //     without tree-shaking, so scanning it = false alarm, and dev artifacts are not shipped with
 //     deployments
@@ -38,7 +38,7 @@ const ROOT = argv.includes('--root') ? argv[argv.indexOf('--root') + 1] : proces
 // components no longer exempts any subdirectory: domain components (verse/home/…) and the common
 // layer are all barred from importing fixtures directly; the only legal consumer of fixtures is
 // lib/data/fixture-repository.ts itself
-const PROD_DIR_RE = /^(app|features|entities|components|lib(?!\/data\/fixture-repository))\//;
+const CORE_DIR_RE = /^(app|features|entities|components|lib(?!\/data\/fixture-repository))\//;
 const FIXTURE_RE = /^fixtures(\/|$)/;
 const JS_EXT = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
 
@@ -156,7 +156,7 @@ function importsOf(file) {
           rel,
           lineOf(src, m.index),
           'dynamic-source-resolver',
-          `non-literal dynamic import/require: ${inner.slice(0, 60)} (dynamic source resolvers forbidden in production directories)`,
+          `non-literal dynamic import/require: ${inner.slice(0, 60)} (dynamic source resolvers forbidden in core source directories)`,
         );
     }
   }
@@ -166,8 +166,8 @@ function lineOf(src, idx) {
   return src.slice(0, idx).split('\n').length;
 }
 
-function isProd(rel) {
-  return PROD_DIR_RE.test(rel);
+function isCore(rel) {
+  return CORE_DIR_RE.test(rel);
 }
 
 function sourceScan() {
@@ -185,12 +185,12 @@ function sourceScan() {
     for (const im of imports) {
       if (im.unresolved)
         note(rel, im.line, 'unresolved-import', `cannot resolve statically: ${im.target}`);
-      if (im.target && FIXTURE_RE.test(im.target) && isProd(rel)) {
+      if (im.target && FIXTURE_RE.test(im.target) && isCore(rel)) {
         note(
           rel,
           im.line,
           'direct-fixture-import',
-          `production file imports a fixture directly: ${im.target}`,
+          `core source file imports a fixture directly: ${im.target}`,
         );
       }
     }
@@ -214,7 +214,7 @@ function sourceScan() {
 }
 
 function graphScan() {
-  // transitive closure from the production roots; reaching fixtures/** is forbidden
+  // transitive closure from the core-tree roots; reaching fixtures/** is forbidden
   const entryDirs = ['app', 'features', 'entities', 'components', 'lib'].map((d) => join(ROOT, d));
   const seen = new Set();
   const stack = [];
@@ -227,7 +227,7 @@ function graphScan() {
     for (const im of importsOf(f)) {
       if (!im.target || im.external) continue;
       if (FIXTURE_RE.test(im.target)) {
-        if (isProd(rel))
+        if (isCore(rel))
           note(
             rel,
             im.line,
@@ -252,10 +252,10 @@ let bundleScanExecuted = false;
 
 function bundleScan(dir) {
   if (!existsSync(dir)) {
-    console.log(`--bundle ${dir}: directory does not exist -- run after a production build`);
+    console.log(`--bundle ${dir}: directory does not exist -- run after an onchain-mode build`);
     return;
   }
-  // `.next` scans only production subdirs: the dev server compile cache (.next/dev/**) has no
+  // `.next` scans only production-build subdirs: the dev server compile cache (.next/dev/**) has no
   // tree-shaking, and the legitimate consumer fixture-repository leaves the sentinel in dev SSR
   // chunks -- that is the allowed import graph, not a leak.
   // Non-`.next` custom artifact directories keep the full scan (original interface semantics unchanged).
@@ -265,7 +265,7 @@ function bundleScan(dir) {
       : [dir];
   if (basename(dir) === '.next' && roots.length === 0) {
     console.log(
-      `--bundle ${dir}: no production artifact subdirs found (server/static/standalone) -- run after a production build`,
+      `--bundle ${dir}: no production artifact subdirs found (server/static/standalone) -- run after an onchain-mode build`,
     );
     return;
   }
@@ -287,7 +287,7 @@ function bundleScan(dir) {
 
 function resolverTokenScan() {
   // reject fixture-repository / scenario selector / sentinel constants appearing in
-  // production resolvers
+  // the onchain resolvers
   const TOKENS = ['fixture-repository', 'OUTRUN_FIXTURE_ONLY_v1', 'scenario'];
   for (const f of ['lib/data/source-resolver.ts', 'lib/data/repository.ts']) {
     const abs = join(ROOT, f);
@@ -299,8 +299,8 @@ function resolverTokenScan() {
           note(
             f,
             i + 1,
-            'production-resolver-token',
-            `production resolver contains a forbidden token: ${t}`,
+            'onchain-resolver-token',
+            `onchain resolver contains a forbidden token: ${t}`,
           );
     });
   }
@@ -359,7 +359,7 @@ async function selfTest() {
       join(tmp, 'app/dynamic.ts'),
       `const src = '../fixtures/index';\nconst m = await import(src);\n`,
     );
-    writeFileSync(join(tmp, 'lib/data/repository.ts'), `export const repo = 'production';\n`);
+    writeFileSync(join(tmp, 'lib/data/repository.ts'), `export const repo = 'onchain';\n`);
     writeFileSync(join(tmp, 'lib/data/fixture-repository.ts'), `export const bridge = 1;\n`); // resolution target for the alias-bridge consumer case
     const { execFileSync } = await import('node:child_process');
     // [filename, expected violation tag] -- re-export shares the tag with direct/alias imports (all
@@ -399,7 +399,7 @@ async function selfTest() {
             tmp,
             '--source',
             '--graph',
-            'production',
+            'onchain',
           ],
           { stdio: 'pipe' },
         );

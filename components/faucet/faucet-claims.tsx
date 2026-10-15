@@ -37,7 +37,9 @@ export function FaucetClaims({ locale, faucet }: { locale: Locale; faucet: Fixtu
   const common = getCopy(locale).common
   const { connected, toggle } = useMockWallet()
   const [elapsedMs, setElapsedMs] = useState(0)
-  const hasCooldown = faucet.tokens.some((token) => token.cooldownRemainingMs > 0)
+  const hasCooldown = faucet.tokens.some(
+    (token) => token.cooldownRemainingMs != null && token.cooldownRemainingMs > 0,
+  )
 
   useEffect(() => {
     if (!hasCooldown) return
@@ -60,8 +62,6 @@ export function FaucetClaims({ locale, faucet }: { locale: Locale; faucet: Fixtu
       </header>
       <div className="pf-panel__body">
         {faucet.tokens.map((token) => {
-          const remaining = Math.max(0, token.cooldownRemainingMs - elapsedMs)
-          const ready = remaining <= 0
           return (
             <div className="pf-claim-row" key={token.symbol}>
               {hasTokenIcon(token.symbol) ? (
@@ -79,15 +79,21 @@ export function FaucetClaims({ locale, faucet }: { locale: Locale; faucet: Fixtu
                 <strong data-numeric>
                   {formatAmount(token.dailyLimit, locale)} {token.symbol}
                 </strong>
-                {connected ? (
-                  ready ? (
-                    <span className="fc-claims__ready">{copy.ready}</span>
-                  ) : (
-                    <span className="fc-claims__cooling" data-numeric>
-                      {copy.readyIn.replace('{t}', cooldownText(remaining, locale))}
-                    </span>
-                  )
-                ) : null}
+                {connected
+                  ? token.cooldownRemainingMs == null
+                    ? // no on-chain source for per-user cooldown (2026-10-14 ruling): slot not rendered
+                      null
+                    : Math.max(0, token.cooldownRemainingMs - elapsedMs) <= 0
+                      ? <span className="fc-claims__ready">{copy.ready}</span>
+                      : (
+                          <span className="fc-claims__cooling" data-numeric>
+                            {copy.readyIn.replace(
+                              '{t}',
+                              cooldownText(Math.max(0, token.cooldownRemainingMs - elapsedMs), locale),
+                            )}
+                          </span>
+                        )
+                  : null}
               </div>
               <div className="pf-claim-row__actions">
                 <Button variant="outline" size="sm" disabled>

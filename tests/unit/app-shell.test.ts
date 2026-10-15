@@ -21,27 +21,28 @@ vi.mock('@/components/global/locale-menu', () => ({
 // Regression guard for nav-ownership semantics: the e2e visual baselines are
 // insensitive to aria/data attribute dimensions (attribute flips measured
 // 0 pixel diff), so assert at the SSR HTML layer here.
-function renderShell(
+async function renderShell(
   props: {
     current?: 'home' | 'discover' | 'create' | 'portfolio' | 'referral' | 'faucet';
     locale?: 'en' | 'zh';
   } = {},
 ) {
-  return renderToString(
-    createElement(OutrunShell, {
-      locale: 'en',
-      accountAddress: '0xabc',
-      children: createElement('div', null, 'main content'),
-      ...props,
-    }),
-  );
+  // OutrunShell is an async server component (stage 5 data-seam conversion): resolve it first,
+  // then SSR the returned element -- same output the fixture build renders
+  const element = await OutrunShell({
+    locale: 'en',
+    accountAddress: '0xabc',
+    children: createElement('div', null, 'main content'),
+    ...props,
+  });
+  return renderToString(element);
 }
 
 const count = (html: string, needle: string) => (html.match(new RegExp(needle, 'g')) ?? []).length;
 
 describe('OutrunShell nav-ownership semantics', () => {
-  it('omitted current = non-nav surface: product shell, zero aria-current, zero active states', () => {
-    const html = renderShell();
+  it('omitted current = non-nav surface: product shell, zero aria-current, zero active states', async () => {
+    const html = await renderShell();
     expect(html).toContain('product-sidebar');
     expect(html).toContain('mobile-navigation');
     expect(html).not.toContain('marketing-header');
@@ -49,23 +50,23 @@ describe('OutrunShell nav-ownership semantics', () => {
     expect(count(html, 'data-active="true"')).toBe(0);
   });
 
-  it('current="discover": exactly one active state each in desktop sidebar + mobile bottom bar', () => {
-    const html = renderShell({ current: 'discover' });
+  it('current="discover": exactly one active state each in desktop sidebar + mobile bottom bar', async () => {
+    const html = await renderShell({ current: 'discover' });
     expect(html).not.toContain('marketing-header');
     expect(count(html, 'aria-current="page"')).toBe(2);
     expect(count(html, 'data-active="true"')).toBe(2);
   });
 
-  it('current="home": marketing shell, no product nav, zero aria-current', () => {
-    const html = renderShell({ current: 'home' });
+  it('current="home": marketing shell, no product nav, zero aria-current', async () => {
+    const html = await renderShell({ current: 'home' });
     expect(html).toContain('marketing-header');
     expect(html).not.toContain('product-sidebar');
     expect(html).not.toContain('mobile-navigation');
     expect(count(html, 'aria-current="page"')).toBe(0);
   });
 
-  it('current="home": header five-entry nav + chain switcher + locale/wallet', () => {
-    const html = renderShell({ current: 'home' });
+  it('current="home": header five-entry nav + chain switcher + locale/wallet', async () => {
+    const html = await renderShell({ current: 'home' });
     expect(count(html, 'marketing-nav__link')).toBe(5);
     expect(html).toContain('>Explore<');
     expect(html).toContain('>Portfolio<');
@@ -92,14 +93,14 @@ describe('OutrunShell nav-ownership semantics', () => {
   // accessible name comes from the copy layer so zh pages don't announce
   // English; e2e baselines measure 0 pixel diff on this dimension, pin it at
   // the SSR layer only.
-  it('zh: nav aria-label comes from the copy dictionary, no English leakage', () => {
-    const productHtml = renderShell({ locale: 'zh', current: 'discover' });
+  it('zh: nav aria-label comes from the copy dictionary, no English leakage', async () => {
+    const productHtml = await renderShell({ locale: 'zh', current: 'discover' });
     expect(count(productHtml, 'aria-label="主导航"')).toBe(1);
     expect(productHtml).toContain('aria-label="移动端主导航"');
     expect(productHtml).not.toContain('aria-label="Primary"');
     expect(productHtml).not.toContain('aria-label="Mobile primary"');
 
-    const homeHtml = renderShell({ locale: 'zh', current: 'home' });
+    const homeHtml = await renderShell({ locale: 'zh', current: 'home' });
     expect(count(homeHtml, 'aria-label="主导航"')).toBe(1);
     expect(homeHtml).not.toContain('aria-label="Primary"');
   });

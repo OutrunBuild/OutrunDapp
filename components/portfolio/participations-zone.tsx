@@ -17,9 +17,8 @@ import { useState } from 'react'
 import type { FixtureParticipationRow, Locale, VerseStage } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
-import { localePath, verseHref } from '../global/routes'
+import { verseHref } from '../global/routes'
 import { formatAmount, formatDay, SectionHeading, StageBadge } from '../global/signal-ui'
-import { Button } from '@/components/ui/button'
 
 const GROUP_ORDER: VerseStage[] = ['genesis', 'locked', 'unlocked']
 
@@ -153,23 +152,8 @@ export function ParticipationsZone({ locale, rows }: { locale: Locale; rows: Fix
     </nav>
   )
 
-  if (rows.length === 0) {
-    return (
-      <section className="pf-participations" id="pf-participations">
-        <SectionHeading title={copy.title} description={copy.sub} />
-        <div className="empty-state">
-          <h3>{copy.empty}</h3>
-          <Button
-            className="ax-ghost-cta"
-            nativeButton={false}
-            render={<Link href={localePath(locale, '/memeverse/explore')} />}
-          >
-            {copy.emptyCta}
-          </Button>
-        </div>
-      </section>
-    )
-  }
+  // 2026-10-15 (user ruling): an empty participation list renders nothing — no empty-state card
+  if (rows.length === 0) return null
 
   return (
     <section className="pf-participations" id="pf-participations">

@@ -27,6 +27,9 @@ export default tseslint.config(
       '.impeccable/**',
       '.worktrees/**',
       'vendor/**',
+      // AssemblyScript mapping sources + graph codegen output: compiled by @graphprotocol/graph-cli,
+      // outside the TS 7 / eslint toolchain (graph build is the gate for these)
+      'subgraph/**',
     ],
   },
   ...tseslint.configs.recommended,

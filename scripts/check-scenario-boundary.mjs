@@ -2,16 +2,16 @@
 // check-scenario-boundary.mjs -- scenario protocol boundary verification (dual mode):
 //
 // Mode A (default): --rendered <html-file> [more.html...]
-//   Scans HTML rendered by the production server (OUTRUN_DATA_SOURCE=production):
+//   Scans HTML rendered by the onchain-data server (OUTRUN_DATA_SOURCE=onchain):
 //   scenario-switching DOM (scenario-selector/degrade-banner/degrade-skeleton) must not appear,
 //   and HTML from parameterized requests such as ?scenario=loading must not contain the degrade
-//   banner/skeleton (production neither parses nor injects).
+//   banner/skeleton (onchain mode neither parses nor injects).
 //
 // Mode B: --self-test
 //   Injects fake HTML containing sentinels to verify the scanner catches them, and a clean file
 //   produces zero hits.
 //
-// The default build (non-production env) including selector code is expected behavior -- rendering
+// The default build (non-onchain env) including selector code is expected behavior -- rendering
 // is gated server-side by OUTRUN_DATA_SOURCE, so no chunk scanning is done.
 import { readFileSync, writeFileSync } from 'node:fs';
 
@@ -42,7 +42,7 @@ if (args.includes('--self-test')) {
   }
   writeFileSync(
     '/tmp/scenario-boundary-selftest-clean.html',
-    '<main><p>clean production html</p></main>',
+    '<main><p>clean onchain-mode html</p></main>',
   );
   const clean = scanHtml('/tmp/scenario-boundary-selftest-clean.html');
   if (clean.length > 0) {
@@ -72,10 +72,10 @@ for (const file of files) {
 
 if (violations > 0) {
   console.error(
-    `scenario boundary FAIL: ${violations} file(s) contain scenario-switching residue (production must not render it)`,
+    `scenario boundary FAIL: ${violations} file(s) contain scenario-switching residue (onchain mode must not render it)`,
   );
   process.exit(1);
 }
 console.log(
-  `scenario boundary OK: ${files.length} production-rendered HTML file(s) with zero scenario-switching residue`,
+  `scenario boundary OK: ${files.length} onchain-mode-rendered HTML file(s) with zero scenario-switching residue`,
 );

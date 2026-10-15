@@ -1,11 +1,12 @@
 // fixture repository -- the sole legal consumer of fixtures. Allowed import graph:
 // fixtures/** -> this file -> components/** (except the ui/design-system generic layer), tests/**
-// or fixtures/inspector/**. Production code (the app/, features/, entities/, components/ and lib/
+// or fixtures/inspector/**. Core source code (the app/, features/, entities/, components/ and lib/
 // trees, except this file and the ui/design-system generic layer) must not import it directly or
-// indirectly: enforced by scripts/check-fixture-boundary.mjs --source / --graph production.
+// indirectly: enforced by scripts/check-fixture-boundary.mjs --source / --graph onchain.
 import { OUTRUN_FIXTURE_ONLY_v1, fixtureData } from '../../fixtures/index';
 
 import type { VerseStage } from './types';
+import { PROTECTION_WINDOW_MS } from './types';
 
 export const FIXTURE_ONLY_SENTINEL = OUTRUN_FIXTURE_ONLY_v1;
 
@@ -38,7 +39,26 @@ export const fixtureRepository = {
 // consumers (components domain components etc.) untouched.
 export type { FixtureChain, Locale, VerseStage } from './types';
 
-export type SourceRecord = { id: string; sourceRef: string };
+// Shared ViewModel types live in the neutral leaf ./view-models (re-exported here so existing
+// component consumers stay untouched; the onchain RPC/Graph repository imports the same shapes)
+import type {
+  SourceRecord,
+  FixtureCreateConfig,
+  FixtureReferral,
+  FixtureReferralAssetAmount,
+  FixtureFaucet,
+} from './view-models';
+
+export type {
+  SourceRecord,
+  FixtureCreateConfig,
+  FixtureReferralAssetAmount,
+  FixtureReferralTransaction,
+  FixtureReferralFriend,
+  FixtureReferral,
+  FixtureFaucetToken,
+  FixtureFaucet,
+} from './view-models';
 
 export type FixtureMarket = SourceRecord & {
   verseId: string;
@@ -259,7 +279,7 @@ function getSnapshot(): FixtureSnapshot {
     .flatMap((verse) => verse.markets)
     .reduce((sum, market) => sum + market.tvl, 0);
   // Cumulative participating-address sample: sum of each verse's participants (address-level dedup
-  // sample); cross-verse overlap is not deducted -- an order-of-magnitude sample; production reads
+  // sample); cross-verse overlap is not deducted -- an order-of-magnitude sample; onchain mode reads
   // on-chain values. Do not count accounts.items -- those are the portfolio page's persona wallets,
   // not a network-wide sample.
   const participantTotal = verses.reduce((sum, verse) => sum + verse.participantCount, 0);
@@ -414,20 +434,6 @@ export function getFixtureParticipations(): FixtureParticipation[] {
   }));
 }
 
-export type FixtureCreateConfig = {
-  /** Allowed genesis duration range (center min/maxDurationDays read-value sample) */
-  minDurationDays: number;
-  maxDurationDays: number;
-  /** Fixed lockup: unlockTime = endTime + 365 days (FIXED_LOCKUP_DURATION contract constant, not a registration parameter) */
-  lockupDays: number;
-  /** Cross-chain fan-out fee sample per remote chain (in governance-chain native asset; fee=0 for hub-chain targets); no registration fee */
-  remoteDeployFee: number;
-  /** LayerZero send fee sample for origin-chain -> registration-hub-chain when registering from a remote chain (quoteRegister;
-   *  same-chain origin=0); sample scenario assumption = governance chain is the registration hub chain */
-  remoteSendFee: number;
-  sourceRef: string;
-};
-
 /** Create-form on-chain parameter snapshot; returns null when the create-config fixture has no records -> UI null-not-rendered */
 export function getFixtureCreateConfig(): FixtureCreateConfig | null {
   const config = fixtureData.createConfig.items[0];
@@ -446,7 +452,7 @@ export function getFixtureCreateConfig(): FixtureCreateConfig | null {
  *  (registration reverts with SymbolNotUnlock; endTime=registration+durationDays×DAY is the genesis deadline; at genesis
  *  end nonce+1 -> new uniqueId makes the symbol reusable).
  *  Sample convention: a verse with snapshot stage='genesis' = inside the genesis window = locked. The contract maps by raw byte string --
- *  matching must be case-sensitive and not trimmed. Production=previewRegistration+symbolRegistry on-chain reads */
+ *  matching must be case-sensitive and not trimmed. Onchain mode=previewRegistration+symbolRegistry on-chain reads */
 export function getFixtureOccupiedSymbols(): string[] {
   return fixtureRepository
     .verses()
@@ -454,7 +460,7 @@ export function getFixtureOccupiedSymbols(): string[] {
     .map((verse) => verse.symbol);
 }
 
-/** Shell chain-selector data: six-chain view; functional exports keep the sentinel object out of the production bundle */
+/** Shell chain-selector data: six-chain view; functional exports keep the sentinel object out of the shipped bundle */
 export function getFixtureChains() {
   return fixtureRepository.chains().map((c) => ({
     chainId: c.chainId,
@@ -514,7 +520,7 @@ const HISTORY_TOTAL_HOURLY = 8760;
 /** Candle history backfill (derived sample): the fixture stores only 168h of real data; anchored at the seam (k=1's close
  *  === fixture first candle's open), a deterministic random walk toward the past extends it to ~1 year -- drift accumulates
  *  only in the seam-less far end, with zero jump at the seam (anchor at the newest end so the seam stays continuous);
- *  results are constant for a given verseId; production defers to data-source pagination */
+ *  results are constant for a given verseId; onchain mode defers to data-source pagination */
 function extendHourlyHistory(candles: FixtureCandle[], seedKey: string): FixtureCandle[] {
   if (candles.length === 0 || candles.length >= HISTORY_TOTAL_HOURLY) return candles;
   let seed = 2166136261;
@@ -871,8 +877,8 @@ export function getFixtureGovernanceState(verseId: string): FixtureGovernanceSta
 
 const ANCHOR_MS = Date.parse(FIXTURE_TIME_ANCHOR);
 
-/** 24-hour liquidity protection window (anchored to the actual unlock transaction time, not unlockTime) */
-export const PROTECTION_WINDOW_MS = 24 * 60 * 60 * 1000;
+/** 24-hour liquidity protection window (anchored to the actual unlock transaction time, not unlockTime) — single source in ./types */
+export { PROTECTION_WINDOW_MS };
 
 /** Sample account's wallet balance view (section (2) asset rows): asset -> per-chain distribution aggregation (product assets = uAsset family + genesis credits;
  *  reserve/native balances are unrelated to this product and stay out of the table; only
@@ -1423,49 +1429,6 @@ export function getFixturePortfolioSignals() {
  *  (pending rows=chain × token).
  *  Friends detail and the referralCode short code are samples (on-chain events exclude the
  *  referee, no code registry); ≈$ conversion reuses the assets usdSample sample prices. */
-export type FixtureReferralAssetAmount = {
-  assetId: string;
-  symbol: string;
-  chainId: number;
-  chainName: string;
-  amount: number;
-  /** Sample-price conversion; no sample price=null (the ≈$ row is not rendered) */
-  usd: number | null;
-};
-
-export type FixtureReferralTransaction = {
-  txId: string;
-  friendAddress: string;
-  chainId: number;
-  chainName: string;
-  rebate: { symbol: string; amount: number; usd: number | null };
-  at: string;
-};
-
-export type FixtureReferralFriend = {
-  address: string;
-  joinedAt: string;
-  volumeUsd: number;
-  earnedUsd: number;
-};
-
-export type FixtureReferral = {
-  /** Link owner=sample account (owner is not in referral.json, derived from accounts to prevent drift between the two) */
-  owner: string;
-  referralCode: string;
-  /** Rebate rate (percentage of total fees; production reads hook referrerRebateBps()) */
-  ratePercent: number;
-  /** Cumulative earned USD (sum of earned × usdSample; rows without a sample price count as 0) */
-  totalEarnedUsd: number;
-  /** Claimable USD (same convention) */
-  pendingUsd: number;
-  friendsCount: number;
-  earned: FixtureReferralAssetAmount[];
-  pending: FixtureReferralAssetAmount[];
-  transactions: FixtureReferralTransaction[];
-  friends: FixtureReferralFriend[];
-};
-
 export function getFixtureReferral(): FixtureReferral | null {
   const record = fixtureData.referral.items[0];
   if (!record) return null;
@@ -1525,35 +1488,6 @@ export function getFixtureReferral(): FixtureReferral | null {
 // /faucet (testnet faucet + PSM face-value conversion to UUSD; UUSD's only acquisition path=PSM,
 // yield-bearing assets stakeForGenesis directly without passing through UUSD)
 // ---------------------------------------------------------------------------
-
-export type FixtureFaucetToken = {
-  symbol: string;
-  name: string;
-  /** Daily claim allowance (contract dailyLimit, one-time full mint) */
-  dailyLimit: number;
-  /** Cooldown remaining milliseconds sample (0=claimable; >0=ClaimTooSoon error domain) */
-  cooldownRemainingMs: number;
-};
-
-export type FixtureFaucet = {
-  chainId: number;
-  chainName: string;
-  tokens: FixtureFaucetToken[];
-  swap: {
-    uAssetSymbol: string;
-    reserveSymbol: string;
-    /** mint fee rate (ratio, 10bps->0.001) */
-    feeIn: number;
-    /** redeem fee rate (ratio) */
-    feeOut: number;
-    /** Mint allowance headroom (stockCap−netMinted sample); null=slot */
-    headroom: number | null;
-    /** Sample account's UUSD balance (Max source for the Back to USDC direction) */
-    myUAsset: number;
-    /** Sample account's reserve balance (Max source for the Get UUSD direction) */
-    myReserve: number;
-  };
-};
 
 export function getFixtureFaucet(): FixtureFaucet | null {
   const record = fixtureData.faucet.items[0];

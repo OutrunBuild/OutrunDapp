@@ -1,7 +1,7 @@
 // Scenario protocol: only screenshot-freeze hooks for transient views, invisible to real users
-// (production-gated). These hooks exist so screenshot capture can freeze pages in transient
-// states. Data states (paused/zero-balance etc.) are expressed by the fixture data itself, not by
-// scenarios.
+// (gated to fixture-mode data). These hooks exist so screenshot capture can freeze pages in
+// transient states. Data states (paused/zero-balance etc.) are expressed by the fixture data
+// itself, not by scenarios.
 // Index lag degrades silently (list data slightly stale; real-time readings such as balances are
 // unaffected): there is no user-visible index-lag banner.
 
@@ -15,12 +15,13 @@ export function isScenarioView(value: string): value is Exclude<ScenarioView, 'n
 }
 
 /**
- * Scenario param parsing. Production runs with OUTRUN_DATA_SOURCE=production in the server
- * environment (read at runtime — a build without it silently re-enables scenario parsing) neither
- * parse nor inject -- production access carrying this param is handled via the default path.
+ * Scenario param parsing. Onchain-data mode runs with OUTRUN_DATA_SOURCE=onchain in the server
+ * environment (read at runtime — a build without it silently re-enables scenario parsing) and
+ * neither parses nor injects -- onchain-mode access carrying this param is handled via the
+ * default path.
  */
 export function parseScenarioParam(value: string | string[] | undefined): ScenarioView | null {
-  if (process.env.OUTRUN_DATA_SOURCE === 'production') return null;
+  if (process.env.OUTRUN_DATA_SOURCE === 'onchain') return null;
   const raw = Array.isArray(value) ? value[0] : value;
   if (!raw) return null;
   return isScenarioView(raw) ? raw : null;

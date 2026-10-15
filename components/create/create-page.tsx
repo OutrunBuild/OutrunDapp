@@ -10,13 +10,13 @@ import {
   type Locale,
 } from '@/lib/data/fixture-repository'
 
-export function CreatePage({ locale }: { locale: Locale }) {
-  const snapshot = getFixtureSnapshot()
+export async function CreatePage({ locale }: { locale: Locale }) {
+  const snapshot = await getFixtureSnapshot()
   // The create page originates only on mainnet chains (3 mainnets of the six-chain whitelist —
   // same scope as the discovery page's chain filter)
-  const chains = getFixtureChains().filter((chain) => chain.env === 'mainnet')
-  const config = getFixtureCreateConfig()
-  const occupiedSymbols = getFixtureOccupiedSymbols()
+  const chains = (await getFixtureChains()).filter((chain) => chain.env === 'mainnet')
+  const config = await getFixtureCreateConfig()
+  const occupiedSymbols = await getFixtureOccupiedSymbols()
   const copy = getCopy(locale)
 
   return (
@@ -49,7 +49,7 @@ export function CreatePage({ locale }: { locale: Locale }) {
         chains={chains}
         /* Full six-chain list (incl. testnet stand-ins): the quote looks up the origin chain's
            native symbol by the wallet's connected chain */
-        walletChains={getFixtureChains()}
+        walletChains={await getFixtureChains()}
         config={config}
         occupiedSymbols={occupiedSymbols}
       />

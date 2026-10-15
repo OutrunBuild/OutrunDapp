@@ -31,7 +31,7 @@ import { formatAmount, formatDay, formatMarketCap, formatPercent, SourceRef } fr
  *  the pool cards' Add/Remove buttons open dialogs
  *  (PoolAddLiquidityDialog/PoolRemoveLiquidityDialog,
  *  mechanism layering see each component's header note) */
-export function LiquidityPanel({
+export async function LiquidityPanel({
   locale,
   verse,
   trade,
@@ -50,7 +50,7 @@ export function LiquidityPanel({
   )
   const hasVolume = trade.pools.some((pool) => pool.volume24h != null)
   // ≈$ conversion is paired with the main pool (same uAssetUsd/price sources as PolPanel)
-  const uAssetUsd = getFixtureAssetUsdSample(verse.raiseAsset)
+  const uAssetUsd = await getFixtureAssetUsdSample(verse.raiseAsset)
 
   return (
     <div className="liquidity-panel">
@@ -140,7 +140,7 @@ export function LiquidityPanel({
  * (leverage participants claim via claimLeveragedYT by interest
  * share);
  * nominal value=2×uAsset side. */
-export function PolPanel({
+export async function PolPanel({
   locale,
   verse,
   pol,
@@ -179,7 +179,7 @@ export function PolPanel({
   // the trade desk stats bar/Liquidity panel;
   // rate=fixture usdSample — same uAssetUsd source as SwapPanel; no sample → slot state.
   // Market cap/total supply not shown — no real value to users)
-  const uAssetUsd = getFixtureAssetUsdSample(verse.raiseAsset)
+  const uAssetUsd = await getFixtureAssetUsdSample(verse.raiseAsset)
   const marketUsd = uAssetUsd != null && pol ? `$${formatAmount(market * uAssetUsd, locale)}` : null
   const nominalUsd = uAssetUsd != null && pol ? `$${formatAmount(nominal * uAssetUsd, locale)}` : null
   const estUsd =

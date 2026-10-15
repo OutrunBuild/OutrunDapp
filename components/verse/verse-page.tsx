@@ -97,7 +97,7 @@ function participationKindLabel(kind: FixtureParticipation['kind'], locale: Loca
   return copy.verse.preorderKind
 }
 
-export function VersePage({
+export async function VersePage({
   locale,
   verseId,
   tab,
@@ -110,39 +110,40 @@ export function VersePage({
   /** Raw URL ?action= value; only the vault tab accepts withdraw (vault action card initial value) */
   action?: string
 }) {
-  const snapshot = getFixtureSnapshot()
-  const verse = getFixtureVerse(verseId)
+  const snapshot = await getFixtureSnapshot()
+  const verse = await getFixtureVerse(verseId)
   if (!verse) notFound()
   const initialTab = VERSE_TAB_KEYS.find((key) => key === tab)
   const vaultInitialView = initialTab === 'vault' && action === 'withdraw' ? 'withdraw' : undefined
   const copy = getCopy(locale)
-  const participationOptions = getFixtureParticipationOptions(verse.raiseAsset)
+  const participationOptions = await getFixtureParticipationOptions(verse.raiseAsset)
   // Fast Genesis threshold check: either of the two scopes met (preorder and debt principal do not count toward the threshold)
   const thresholdMet = verse.normalProgress >= 100 || verse.leverageProgress >= 100
   // Refund is the settlement state: no participation workbench/pools/generic timeline rendered;
   // collapses to a single refund settlement panel
   const isRefund = verse.stage === 'refund'
+  const allParticipations = await getFixtureParticipations()
   const myRefundParticipations = isRefund
-    ? getFixtureParticipations().filter((participation) => participation.verseId === verse.id)
+    ? allParticipations.filter((participation) => participation.verseId === verse.id)
     : []
   // Deployment-face scope consistent with the Explore cards: mainnet chains other than the
   // governance chain are Spoke chains (omnichain deployment face)
-  const spokeChains = getFixtureChains().filter(
+  const spokeChains = (await getFixtureChains()).filter(
     (chain) => chain.env === 'mainnet' && chain.chainId !== verse.governanceChain,
   )
   // Sample account's participated funds in this Verse (standard+leverage interest+preorder, all in uAsset — participations fixture)
-  const myParticipation = getFixtureParticipations()
+  const myParticipation = allParticipations
     .filter(
       (participation) =>
         participation.verseId === verse.id && participation.owner === snapshot.sampleAccount.address,
     )
     .reduce((sum, participation) => sum + participation.amount, 0)
   // locked/unlocked trade desk and four-tab data (missing → panel slot state)
-  const trade = getFixtureVerseTrade(verse.id)
+  const trade = await getFixtureVerseTrade(verse.id)
   if (!trade) notFound()
-  const staking = getFixtureStaking(verse.id)
-  const polPosition = getFixturePolPosition(verse.id)
-  const governance = getFixtureGovernanceState(verse.id)
+  const staking = await getFixtureStaking(verse.id)
+  const polPosition = await getFixturePolPosition(verse.id)
+  const governance = await getFixtureGovernanceState(verse.id)
 
   return (
     <OutrunShell
@@ -319,7 +320,7 @@ export function VersePage({
             leverageInterestRate={verse.leverageInterestRate}
             leverageDebtCap={verse.leverageDebtCap}
             leverageInterestRaised={verse.leverageInterest}
-            walletBalances={getFixtureWalletBalances()}
+            walletBalances={await getFixtureWalletBalances()}
             sourceRef={verse.sourceRef}
           />
         </section>

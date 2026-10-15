@@ -1,11 +1,13 @@
 'use client'
 
+import Link from 'next/link'
 import { WalletCards } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import type { Locale } from '@/lib/data/fixture-repository'
 
 import { getCopy } from './copy'
+import { localePath } from './routes'
 import { useMockWallet } from './mock-wallet'
 
 /**
@@ -41,6 +43,30 @@ export function ConnectWalletCta({
       >
         <WalletCards data-icon="inline-start" aria-hidden="true" />
         {copy.common.connect}
+      </Button>
+    </div>
+  )
+}
+
+/**
+ * Connected-but-empty counterpart of the connect CTA (2026-10-15 user ruling): when the wallet
+ * is connected yet every portfolio zone is empty, the page keeps exactly one action — jump to
+ * the discovery page. Same shell/skin as ConnectWalletCta (centered ax-ghost-cta); the page
+ * mounts it only in the all-zones-empty state, so data present ⇒ not rendered.
+ */
+export function ExploreCta({ locale }: { locale: Locale }) {
+  const { connected } = useMockWallet()
+  const copy = getCopy(locale).portfolio
+  if (!connected) return null
+  return (
+    <div className="connect-cta">
+      <Button
+        variant="default"
+        className="ax-ghost-cta connect-cta__button"
+        nativeButton={false}
+        render={<Link href={localePath(locale, '/memeverse/explore')} />}
+      >
+        {copy.exploreCta}
       </Button>
     </div>
   )

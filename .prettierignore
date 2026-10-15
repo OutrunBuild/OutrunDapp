@@ -25,3 +25,6 @@ test-results/
 
 # 会话工具状态文件（mimosa 插件运行时产物，非项目文件）
 .mimosa/
+
+# AssemblyScript mappings + graph codegen output: gated by graph build, not prettier
+subgraph

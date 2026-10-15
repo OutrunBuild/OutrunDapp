@@ -14,8 +14,8 @@ describe('check-fixture-boundary', () => {
   it('--source: no violations in this repo (exit 0)', () => {
     expect(run(['--source'])).toContain('fixture boundary OK');
   });
-  it('--graph production: the production import graph cannot reach fixtures (exit 0)', () => {
-    expect(run(['--graph', 'production'])).toContain('fixture boundary OK');
+  it('--graph onchain: the onchain import graph cannot reach fixtures (exit 0)', () => {
+    expect(run(['--graph', 'onchain'])).toContain('fixture boundary OK');
   });
   // Real bundle scanning depends on the local .next build output; CI runners
   // build nothing (ci.yml defers the production build to the compliance round)
@@ -33,7 +33,7 @@ describe('check-fixture-boundary', () => {
     expect(out).toContain('bundle scan not executed');
     expect(out).not.toContain('bundle scan executed');
   });
-  it('--bundle: a sentinel in the dev cache (.next/dev) does not false-alarm; a sentinel in a production subdir is still blocked', () => {
+  it('--bundle: a sentinel in the dev cache (.next/dev) does not false-alarm; a sentinel in a production-build subdir is still blocked', () => {
     // False-positive shape: the dev server does no
     // tree-shaking, so legal consumers leave the sentinel in .next/dev SSR chunks
     const base = mkdtempSync(join(tmpdir(), 'fx-bundle-'));
@@ -47,7 +47,7 @@ describe('check-fixture-boundary', () => {
       mkdirSync(join(fakeNext, 'static/chunks'), { recursive: true });
       writeFileSync(join(fakeNext, 'static/chunks/app.js'), 'console.log("clean");');
       expect(run(['--bundle', fakeNext])).toContain('fixture boundary OK');
-      // Positive control: a sentinel in the same directory's production
+      // Positive control: a sentinel in the same directory's production-build
       // subdirectory must still be blocked with a non-zero exit
       writeFileSync(
         join(fakeNext, 'static/chunks/leak.js'),

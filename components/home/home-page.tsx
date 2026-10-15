@@ -79,8 +79,8 @@ function SiteFooter({ locale }: { locale: Locale }) {
   )
 }
 
-export function HomePage({ locale }: { locale: Locale }) {
-  const snapshot = getFixtureSnapshot()
+export async function HomePage({ locale }: { locale: Locale }) {
+  const snapshot = await getFixtureSnapshot()
   const copy = getCopy(locale)
   const kpi = copy.home.kpiBand
 

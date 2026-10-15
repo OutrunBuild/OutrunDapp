@@ -1,0 +1,377 @@
+# Outrun DApp event-indexing schema (architecture.md §9.2).
+# Hard rule: EVERY entity primary key embeds the originating chainId ("{chainId}-<natural key>"),
+# and every entity also carries an explicit chainId field for filtering. Cross-chain address-only
+# keys are forbidden. Event shapes come from the frozen ABI set contracts/abi/v1-rc (frozen-commit
+# exports); the UniswapV4 PoolManager Swap fragment is the v4-core standard event (verified against
+# v4-core/src/interfaces/IPoolManager.sol).
+
+# --- Verse registration / lifecycle / listing -----------------------------------
+
+type Verse @entity(immutable: false) {
+  id: ID! # {chainId}-{verseId}
+  chainId: Int!
+  verseId: BigInt!
+  name: String!
+  symbol: String!
+  uri: String
+  description: String
+  uAsset: Bytes!
+  stage: String! # genesis|refund|locked|unlocked (updated on ChangeStage)
+  flashGenesis: Boolean!
+  memecoin: Bytes
+  pol: Bytes
+  yieldVault: Bytes
+  governor: Bytes
+  incentivizer: Bytes
+  endTime: BigInt!
+  unlockTime: BigInt!
+  omnichainIds: [BigInt!]!
+  communities: [String!]!
+  registeredAtBlock: BigInt!
+  registeredAtTimestamp: BigInt!
+  registeredTx: Bytes!
+}
+
+type VerseStageChange @entity(immutable: true) {
+  id: ID! # {chainId}-{verseId}-{blockNumber}-{logIndex}
+  chainId: Int!
+  verseId: BigInt!
+  stage: String!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  tx: Bytes!
+}
+
+type SymbolRegistration @entity(immutable: true) {
+  id: ID! # {chainId}-{uniqueId} (registration hub chain only)
+  chainId: Int!
+  uniqueId: BigInt!
+  name: String!
+  symbol: String!
+  uri: String
+  description: String
+  communities: [String!]!
+  durationDays: BigInt!
+  uAsset: Bytes!
+  omnichainIds: [BigInt!]!
+  blockTimestamp: BigInt!
+  tx: Bytes!
+}
+
+# --- Genesis / Preorder / refund / claim / participation history ------------------
+
+type GenesisParticipation @entity(immutable: true) {
+  id: ID! # {chainId}-{verseId}-{blockNumber}-{logIndex}
+  chainId: Int!
+  verseId: BigInt!
+  payer: Bytes!
+  depositer: Bytes!
+  amount: BigInt!
+  blockTimestamp: BigInt!
+  tx: Bytes!
+}
+
+type PreorderParticipation @entity(immutable: true) {
+  id: ID! # {chainId}-{verseId}-{blockNumber}-{logIndex}
+  chainId: Int!
+  verseId: BigInt!
+  caller: Bytes!
+  user: Bytes!
+  amountInUAsset: BigInt!
+  blockTimestamp: BigInt!
+  tx: Bytes!
+}
+
+type LeveragedGenesisParticipation @entity(immutable: true) {
+  id: ID! # {chainId}-{verseId}-{blockNumber}-{logIndex}
+  chainId: Int!
+  verseId: BigInt!
+  kind: String! # direct (interest) | credit
+  payer: Bytes!
+  user: Bytes!
+  amount: BigInt! # interestAmount (direct) or creditAmount (credit)
+  blockTimestamp: BigInt!
+  tx: Bytes!
+}
+
+type ParticipationRefund @entity(immutable: true) {
+  id: ID! # {chainId}-{verseId}-{blockNumber}-{logIndex}
+  chainId: Int!
+  verseId: BigInt!
+  kind: String! # genesis | preorder | leveraged-credit
+  receiver: Bytes!
+  amount: BigInt!
+  blockTimestamp: BigInt!
+  tx: Bytes!
+}
+
+type ParticipationClaim @entity(immutable: true) {
+  id: ID! # {chainId}-{verseId}-{blockNumber}-{logIndex}
+  chainId: Int!
+  verseId: BigInt!
+  kind: String! # normal-fees | normal-yt | preorder-memecoin | leveraged-yt | residual | pol-split | pol-merge | redeem-pt | redeem-yt
+  receiver: Bytes!
+  uAssetAmount: BigInt
+  ptAmount: BigInt
+  memecoinAmount: BigInt
+  polAmount: BigInt
+  ytAmount: BigInt
+  blockTimestamp: BigInt!
+  tx: Bytes!
+}
+
+# --- Pools / swap / liquidity / fees / referral / YT flash swap history ------------
+
+type Pool @entity(immutable: false) {
+  id: ID! # {chainId}-{poolId}
+  chainId: Int!
+  poolId: Bytes!
+  currency0: Bytes!
+  currency1: Bytes!
+  liquidityToken: Bytes!
+  startPriceX96: BigInt
+  createdAtBlock: BigInt!
+  createdAtTimestamp: BigInt!
+}
+
+type PoolSwap @entity(immutable: true) {
+  id: ID! # {chainId}-{poolId}-{blockNumber}-{logIndex}
+  chainId: Int!
+  poolId: Bytes!
+  sender: Bytes!
+  amount0: BigInt!
+  amount1: BigInt!
+  sqrtPriceX96: BigInt!
+  liquidity: BigInt!
+  tick: BigInt!
+  fee: BigInt!
+  blockTimestamp: BigInt!
+  tx: Bytes!
+}
+
+type PoolLiquidity @entity(immutable: true) {
+  id: ID! # {chainId}-{poolId}-{blockNumber}-{logIndex}
+  chainId: Int!
+  poolId: Bytes!
+  kind: String! # add | remove
+  provider: Bytes!
+  to: Bytes
+  liquidity: BigInt!
+  amount0: BigInt!
+  amount1: BigInt!
+  blockTimestamp: BigInt!
+  tx: Bytes!
+}
+
+type PoolFee @entity(immutable: true) {
+  id: ID! # {chainId}-{poolId}-{blockNumber}-{logIndex}
+  chainId: Int!
+  poolId: Bytes!
+  kind: String! # lp | protocol | claimed
+  user: Bytes # claimed-to / n/a for lp|protocol
+  currency: Bytes!
+  amount: BigInt!
+  feePerShare: BigInt
+  treasury: Bytes
+  pairedCurrency: Bytes
+  pairedAmount: BigInt
+  blockTimestamp: BigInt!
+  tx: Bytes!
+}
+
+type ReferralRebate @entity(immutable: true) {
+  id: ID! # {chainId}-{blockNumber}-{logIndex}
+  chainId: Int!
+  kind: String! # accrued | claimed
+  referrer: Bytes!
+  recipient: Bytes # claim destination (claimed only)
+  currency: Bytes!
+  amount: BigInt!
+  blockTimestamp: BigInt!
+  tx: Bytes!
+}
+
+type YTFlashSwap @entity(immutable: true) {
+  id: ID! # {chainId}-{verseId}-{blockNumber}-{logIndex}
+  chainId: Int!
+  verseId: BigInt!
+  direction: String! # pol-for-yt | yt-for-pol
+  payer: Bytes!
+  recipient: Bytes!
+  exactYT: BigInt!
+  polAmount: BigInt!
+  referrer: Bytes
+  blockTimestamp: BigInt!
+  tx: Bytes!
+}
+
+# --- OutStake positions / user activity ---------------------------------------------
+
+type CdpPositionEvent @entity(immutable: true) {
+  id: ID! # {chainId}-{positionId}-{blockNumber}-{logIndex}
+  chainId: Int!
+  positionId: BigInt!
+  kind: String! # stake | stake-for-genesis | redeem
+  owner: Bytes!
+  verseId: BigInt # stake-for-genesis only
+  amountInSY: BigInt
+  mintedUAsset: BigInt
+  syRedeemed: BigInt
+  principalBurned: BigInt
+  interestPaid: BigInt
+  receiver: Bytes
+  tokenOut: Bytes
+  amountTokenOut: BigInt
+  blockTimestamp: BigInt!
+  tx: Bytes!
+}
+
+type PsmSwap @entity(immutable: true) {
+  id: ID! # {chainId}-{psm}-{blockNumber}-{logIndex}
+  chainId: Int!
+  psm: Bytes!
+  kind: String! # mint | redeem
+  reserveToken: Bytes!
+  to: Bytes!
+  amountIn: BigInt!
+  amountOut: BigInt!
+  fee: BigInt!
+  blockTimestamp: BigInt!
+  tx: Bytes!
+}
+
+type UsrVaultActivity @entity(immutable: true) {
+  id: ID! # {chainId}-{vault}-{blockNumber}-{logIndex}
+  chainId: Int!
+  vault: Bytes!
+  kind: String! # deposit | withdraw
+  owner: Bytes!
+  assets: BigInt!
+  shares: BigInt!
+  blockTimestamp: BigInt!
+  tx: Bytes!
+}
+
+type GenesisCreditClaim @entity(immutable: true) {
+  id: ID! # {chainId}-{credit}-{blockNumber}-{logIndex}
+  chainId: Int!
+  credit: Bytes!
+  user: Bytes!
+  amount: BigInt!
+  blockTimestamp: BigInt!
+  tx: Bytes!
+}
+
+# --- Staking / governance / cycle rewards / treasury ---------------------------------
+
+type GovernanceProposal @entity(immutable: false) {
+  id: ID! # {chainId}-{governor}-{proposalId}
+  chainId: Int!
+  governor: Bytes!
+  proposalId: BigInt!
+  proposer: Bytes!
+  targets: [Bytes!]!
+  values: [BigInt!]!
+  description: String!
+  voteStart: BigInt!
+  voteEnd: BigInt!
+  status: String! # created | canceled | queued | executed
+  etaSeconds: BigInt
+  blockTimestamp: BigInt!
+  tx: Bytes!
+}
+
+type GovernanceVote @entity(immutable: true) {
+  id: ID! # {chainId}-{governor}-{proposalId}-{voter}
+  chainId: Int!
+  governor: Bytes!
+  proposalId: BigInt!
+  voter: Bytes!
+  support: Int!
+  weight: BigInt!
+  reason: String
+  blockTimestamp: BigInt!
+  tx: Bytes!
+}
+
+type GovernanceCycle @entity(immutable: false) {
+  id: ID! # {chainId}-{incentivizer}-{cycleId}
+  chainId: Int!
+  incentivizer: Bytes!
+  cycleId: BigInt!
+  startTime: BigInt!
+  endTime: BigInt!
+  status: String! # started | finalized
+  treasuryTokens: [Bytes!]!
+  treasuryBalances: [BigInt!]!
+  rewardTokens: [Bytes!]!
+  rewards: [BigInt!]!
+  blockTimestamp: BigInt!
+  tx: Bytes!
+}
+
+type GovernanceRewardClaim @entity(immutable: true) {
+  id: ID! # {chainId}-{incentivizer}-{cycleId}-{user}-{token}
+  chainId: Int!
+  incentivizer: Bytes!
+  cycleId: BigInt!
+  user: Bytes!
+  token: Bytes!
+  amount: BigInt!
+  blockTimestamp: BigInt!
+  tx: Bytes!
+}
+
+type TreasuryActivity @entity(immutable: true) {
+  id: ID! # {chainId}-{incentivizer}-{cycleId}-{token}-{blockNumber}-{logIndex}
+  chainId: Int!
+  incentivizer: Bytes!
+  cycleId: BigInt!
+  kind: String! # income | spend | sync
+  token: Bytes!
+  counterparty: Bytes
+  amount: BigInt!
+  blockTimestamp: BigInt!
+  tx: Bytes!
+}
+
+# --- LayerZero send/receive ------------------------------------------------------------
+
+type LayerZeroMessage @entity(immutable: true) {
+  id: ID! # {chainId}-{guid|tx}-{blockNumber}-{logIndex}
+  chainId: Int!
+  kind: String! # oft-sent | oft-received | staking-processed | compose-settled | compose-rejected | interoperation
+  guid: Bytes
+  srcEid: BigInt
+  dstEid: BigInt
+  token: Bytes
+  account: Bytes
+  amountSentLD: BigInt
+  amountReceivedLD: BigInt
+  amount: BigInt
+  remainder: BigInt
+  blockTimestamp: BigInt!
+  tx: Bytes!
+}
+
+# --- Dynamic contract activity (MemecoinYieldVault template) --------------------------
+
+type VaultActivity @entity(immutable: true) {
+  id: ID! # {chainId}-{vault}-{blockNumber}-{logIndex}
+  chainId: Int!
+  vault: Bytes!
+  kind: String! # deposit | withdraw | redeem-request | delegate-changed | yields-accumulated
+  controller: Bytes
+  owner: Bytes
+  sender: Bytes
+  receiver: Bytes
+  assets: BigInt
+  shares: BigInt
+  yieldSource: Bytes
+  yieldAmount: BigInt
+  exchangeRate: BigInt
+  fromDelegate: Bytes
+  toDelegate: Bytes
+  blockTimestamp: BigInt!
+  tx: Bytes!
+}
