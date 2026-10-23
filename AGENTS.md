@@ -4,7 +4,17 @@
 
 ## 项目
 
-Next.js 16 App Router · React 19 · Tailwind v4 · shadcn（`base` 原语，非 radix）· `pnpm`。路由 `app/[locale]/…`，`locale ∈ en | zh`，默认 `en`。URL scheme（2026-09-22 方案 C）：en 无前缀（`proxy.ts` 内部 rewrite 到 `/en/**`），zh 带 `/zh` 前缀；语言切换走 `components/global/routes.ts` 的 `localePath`，勿手拼 `/${locale}`。memeverse 详情页 URL 用数字段 `/memeverse/<verseId 数字>`（= 链上 uint256 verseId 口径），fixture 行 id（`verse-021`）不进 URL；创建页=`/memeverse/launch`（原 `/launch`）、发现页=`/memeverse/explore`（原 `/memeverse`）（2026-09-23 用户裁定，旧地址由 `proxy.ts` 307 收敛）。产品代码按域分桶：`components/verse/`（详情页/交易台/POL·池·赎回弹窗群）、`components/home/`、`components/discovery/`、`components/create/`、`components/portfolio/`、`components/referral/`，跨页共享件在 `components/global/`（shell/wallet/copy/routes/signal-ui 等）（2026-10-02 由 `components/prototype/` 按 import 闭包拆分）。
+Next.js 16 App Router · React 19 · Tailwind v4 · shadcn（`base` 原语，非 radix）· `pnpm`。路由 `app/[locale]/…`，`locale ∈ en | zh`，默认 `en`。
+
+**URL scheme**：en 无前缀（`proxy.ts` 内部 rewrite 到 `/en/**`），zh 带 `/zh` 前缀；外部直连 `/en/**` 由 `proxy.ts` 307 收敛到无前缀地址（x-locale 防伪造守卫，非兼容跳转）。语言切换走 `components/global/routes.ts` 的 `localePath`，勿手拼 `/${locale}`。memeverse 详情页 URL 用数字段 `/memeverse/<verseId 数字>`（= 链上 uint256 verseId 口径），fixture 行 id（`verse-021`）不进 URL；创建页=`/memeverse/launch`、发现页=`/memeverse/explore`。
+
+**目录分桶**（按域分桶；`ui/`、`design-system/` 为通用层）：
+
+- `components/verse/`：memeverse 详情页/交易台/POL·池·赎回弹窗群
+- `components/home/` · `components/discovery/` · `components/create/` · `components/portfolio/` · `components/referral/`：对应同名页面
+- `components/faucet/`：水龙头领取与兑换
+- `components/data/`：链上读数适配（`onchain-adapter.ts` 等）
+- `components/global/`：跨页共享件（shell/wallet/copy/routes/signal-ui 等）
 
 ## 产品真源
 
@@ -16,31 +26,60 @@ Next.js 16 App Router · React 19 · Tailwind v4 · shadcn（`base` 原语，非
 
 冲突规则：产品叙事以 OutrunBook 为准、机制以合约 spec 为准；冲突登记 `source-map.md` 对账区，Agent 不裁决。
 
-工作方式：页面/交互需要机制公式或样本数值时，**先查真源**（spec 定公式、OutrunBook 定解释与量级），再把样本数据写进 `fixtures/`（schema + sourceRef 齐全，走三层边界），不要以「数据不可得」为由禁用功能或留空；只有 fixture 快照本身缺失的字段才降级为「null 不渲染」槽位（「以链上读值为准」类解释文案 2026-10-05 用户裁定全站禁用，`docs/design-system/copy-and-i18n.md` §2）。
+工作方式：页面/交互需要机制公式或样本数值时，**先查真源**（spec 定公式、OutrunBook 定解释与量级），再把样本数据写进 `fixtures/`（schema + sourceRef 齐全，走三层边界），不要以「数据不可得」为由禁用功能或留空；只有 fixture 快照本身缺失的字段才降级为「null 不渲染」槽位（「以链上读值为准」类解释文案全站禁用，`docs/design-system/copy-and-i18n.md` §2）。
 
-## 细节保真（新功能 / 新 UI 硬纪律，2026-09-22 用户裁定）
+## 细节保真（新功能 / 新 UI 硬纪律）
 
 真源层级 = 三仓库 + 用户当次指定的参照物（如旧 demo）；`docs/page-briefs/*` 是派生登记，不是真源，与其上来源冲突时按上来源做、事后改 brief 登记口径。
 
-任何新页面/新功能，**写第一行代码前**先在任务回复里产出「细节台账」，每个字段/数值/文案/交互分支标三态之一：
+### 任务分级（存量修正不走全量台账）
 
-- **G（真源）**：三仓库或本仓架构有原文 → 引用到 文件:行；界面术语与 OutrunBook 用词一致
-- **S（样本）**：真源无具体值但机制有口径 → 机制口径 + fixture 样本 + 缺失字段「null 不渲染」；参照物（旧 demo 等）的数值只能当样本，禁止当真源引用
-- **Q（待拍板）**：真源与参照物都没答案 → 列成清单问用户，**Q 项未拍板不写对应代码**（用户明说「直接做」除外）
+- **存量修正**（已有页面/组件/文案的 bug、换算、费率遗漏：无新 token、无新组件、无新页面）：走轻量路——一行假设 + 1–2 个来源引用 + 降级说明，不做三态台账，不读全套设计系统，只读命中的契约小节与文案键。查来源的停止条件：同一公式最多查两个来源（一个机制来源 + 一个数据通路来源），两个一致就动手；只有两个来源互相矛盾才继续查。轻量路只管开工：两个来源矛盾、或涉及新组件/新 token/新页面结构时升级——前者走 AskUserQuestion 或全量台账，后者直接走全量流程。
+- **新页面 / 新功能**：沿用下述全量流程。
+
+任何新页面/新功能，**写第一行代码前**先在任务回复里产出「细节台账」，每个字段/数值/文案/交互分支标三态之一（标题必须用中文全称，禁用单字母简写）：
+
+- **真源**：三仓库或本仓架构有原文 → 引用到 文件:行；界面术语与 OutrunBook 用词一致
+- **示例值**：真源只给了算法和口径、没给具体数 → 先拿旧 demo 或随手写的值顶上让页面跑起来；参照物（旧 demo 等）的数值只能当示例值，禁止当真源引用；链上有真读数就换真数，链上没这字段的不编数、直接不渲染那一槽
+- **待拍板**：真源与参照物都没答案 → 列成清单问用户，**待拍板项未拍板不写对应代码**（用户明说「直接做」除外）
 
 参照物必须逐屏截图逐字段核对，不接受一次性文字摘要。交付前逐项复核台账：G 抽查原文、S 确认样本与降级处理在位、Q 确认已拍板。「不猜」的可检验形式 = 每个细节都可追溯到三态之一；出现无出处又无降级处理的细节即违约。
 
-## UI 工作必读
+## Skill 加载纪律
 
-仓库版设计系统 skill：`.agents/skills/outrun-design-system/SKILL.md`。任何 Agent（v0 / Cursor / Claude Code / Codex）处理 UI 前都应先读取它；它再路由到本目录的设计系统真相源。
+Skill 列表进上下文时只带名称与路径，正文按需延迟加载：开工先按任务路由显式加载一次对应 Skill；无对应 Skill 不得编造名称；同一 Skill 已加载不再重复加载。
 
-任何涉及页面、组件、样式、文案的改动，先读：
+任务首条回复写明已加载的 Skill 名；同一任务内复用已加载 Skill 不再重复声明。
 
-1. `docs/design-system/README.md` — 设计系统入口、真相源层级、十条硬约束
-2. 按任务读同目录 `foundations.md` / `components.md` / `patterns.md` / `copy-and-i18n.md`
-3. 交付前按 `docs/design-system/agent-workflow.md` 验证
+### 设计与文案
 
-真相源：`DESIGN.md`（视觉定稿）→ `components/design-system/tokens.css`（唯一 token 源）→ `components/design-system/*.md`（契约）。品牌方向、色板、字体、密度的变更需要人工在 `docs/design/decision-log.md` 新增决议，Agent 不得自行执行。
+- `outrun-design-system`（仓库版，UI 任务默认入口）：路由到 `docs/design-system/README.md` 真相源层级与十条硬约束（本节不再复述细则）
+- `frontend-design`（外部视觉）：全新页面/品牌视觉方向/大改版才用；与仓库设计系统冲突时以本仓 `DESIGN.md` 与 `decision-log.md` 为准
+- `tailwind-design-system`（Token 实现）：Tailwind v4 `@theme` 写法、语义 token 分层、响应式与暗色模式
+- `impeccable`（质量评审）：`critique/audit/polish/optimize` 等子命令船新页面交付前跑一遍；`optimize` 覆盖 UI 性能诊断
+- `logo-design`（品牌标）：仅 logo 专项任务用，产出多版决策材料不是终稿
+- `universal-imagegen`（位图资产）：照片/插画/banner/mockup 生成与改图走 `scripts/image_gen.py`，密钥只读环境变量；确定性图标/图表优先用 SVG/CSS
+- `web-design-guidelines` / `writing-guidelines`（外部评审口径）：跑评审前用 WebFetch 拉最新规则再对文件逐条核对
+
+任何涉及页面、组件、样式、文案的改动先读 `docs/design-system/README.md`（入口、真相源层级、十条硬约束）再按任务读同目录 `foundations.md` / `components.md` / `patterns.md` / `copy-and-i18n.md`，交付前按 `docs/design-system/agent-workflow.md` 验证。真相源：`DESIGN.md`（视觉定稿）→ `components/design-system/tokens.css`（唯一 token 源）→ `components/design-system/*.md`（契约）。品牌方向、色板、字体、密度的变更需要人工在 `docs/design/decision-log.md` 新增决议，Agent 不得自行执行。
+
+### 性能与链交互
+
+- `vercel-react-best-practices`（React/Next 性能）：请求瀑布（`async-*`）、包体积、服务端性能、客户端取数、重渲染；点击链路 RPC 问题默认先调它
+- `viem-integration`（链交互）：viem/wagmi/钱包/provider 读写、交易发送；读 `references/` 下对应主题
+- `vercel-optimize`（线上归因）：必须先有 Vercel 生产指标与确定性门控才可动手，不做全仓 grep 式优化
+- `vercel-react-view-transitions`（视图转场）：路由/列表/弹窗状态变化的原生转场；说不清传达什么空间关系就不加
+
+### 部署与验证
+
+- `deploy-to-vercel`（部署）：默认 preview 非 production；按 linked/unlinked × git remote 有无 × CLI 认证状态选方法
+- `vercel-cli-with-tokens`（Token 部署）：无 `vercel login` 时用 `VERCEL_TOKEN` 环境变量驱动 CLI，禁止 `--token` 明文传参
+- `agent-browser`（浏览器验证）：视觉回归与交互验证走 `agent-browser skills get core` 取最新工作流，不按过期 stub 自行发挥
+- `systematic-debugging`（故障排查）：任何技术问题先走四阶段（根因→模式→假设→实现），3 次修不好停手质疑架构
+
+### 明确不用的
+
+- `vercel-composition-patterns`（组件组合）：重构布尔属性泛滥的组件库 API 时才用，日常页面任务不调
 
 ## 速记
 
@@ -61,7 +100,9 @@ pnpm node scripts/check-fixture-boundary.mjs --source   # 边界三层（另两�
 pnpm node scripts/check-architecture-compliance.mjs    # §3 版本/目录/RSC 边界
 pnpm check:design                 # 设计裸值扫描（hex/原始色类/space-*/transition:all；--self-test 自检）
 pnpm check:contrast               # tokens.css 对比度闸门（对 DESIGN.md §2 实测值防漂移）
-pnpm build:cjk-font               # 中文字体子集重切（改 copy.ts/fixtures 中文文案后必须跑，决议 029）
+pnpm check:freeze                 # 设计冻结清单闸（docs/design/final-artifacts.sha256 双向对账；改监视树后先跑 write-design-artifact-manifest.mjs 重生成清单）
+pnpm check:design-docs            # 登记/路由文档闸（docs/design-system/*.md + 根 AGENTS.md：§6 重复行 / 超长单行 / 叙事日期 FAIL；--self-test 自检）
+pnpm build:cjk-font               # 中文字体子集重切（改 copy.ts/fixtures 中文文案后必须跑）
 pnpm check:cjk-font               # 子集对账闸（已入 vitest 契约闸；--self-test 双谓词自检）
 pnpm test:e2e                     # Playwright 三档视口视觉基线 + axe 无障碍扫描（NEXT_DIST_DIR=.next-e2e 独立构建，不碰 .next）
 pnpm design:detect <file.tsx>     # impeccable 设计反模式检测（agent-workflow §3.3）
@@ -70,11 +111,26 @@ pnpm build                        # production；verify ignoreBuildErrors 未开
 pnpm dlx shadcn@latest add <component>   # pnpm workspace-root 检查会拦 dlx，加完后按现有 ui/*.tsx 手工内联
 ```
 
+## 性能纪律
+
+- **刷新粒度 = 变更作用域**：一次写操作完成后只重读该操作影响的项，禁止「清空整表 + 全量重读」——未涉及的行会集体闪烁，一次操作被放大成 N 次 RPC。展示型倒计时存绝对截止时间、不存「剩余 + 探测时刻」，否则局部刷新会让其他行的基准漂移；全量重置只允许发生在账号 / 链 / provider 变化时。参考实现：`components/faucet/faucet-claims.tsx` 的 `probeRef`（按 symbol 合并、只重读本次领取的币种）。
+- **点击链路 RPC 预算**：交易弹窗的点击链路禁止串行静态读与展示读。部署后不变的量（PSM 两边地址、decimals 等）随弹窗打开预读并缓存；弹窗 SSR 已有的数据（费率、余额、headroom）点击时不重读；`quote/estimateGas` 只进渲染的面板才读，免审阅面板不读；点击链路上只留 `allowance` 这类必须现查的读。
+
 ## 已知坑
 
-- **Tailwind v4 内容扫描遵循 .gitignore**：忽略 `components/` 这类源码目录会导致工具类整体不生成（曾致按钮布局全坏）。`.gitignore` 只定向忽略证据二进制（如 `docs/design/v0-input/*.tar.gz`），禁止忽略含 CSS/TSX 的目录。
+- **Tailwind v4 内容扫描遵循 .gitignore**：忽略 `components/` 这类源码目录会导致工具类整体不生成。`.gitignore` 只定向忽略证据二进制（如 `docs/design/v0-input/*.tar.gz`），禁止忽略含 CSS/TSX 的目录。
 - **部署纪律**：`pnpm build` 与运行中的 server 不可并发（重建 `.next` 会产生新旧 chunk 混用）；重建后必须按 PID kill 旧 `next start` 再重启（禁 `pkill -f`，会自杀会话）。
 
 ## 登记义务
 
 新 token → `tokens.css` + `token-contract.md`；新组件/页面级 class → `docs/design-system/components.md`；新领域组件行为 → `components/design-system/component-contract.md`。不登记视为未完成。
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

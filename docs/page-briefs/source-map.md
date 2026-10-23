@@ -17,8 +17,8 @@
 | 证据 | 值/路径 | 校验 |
 |---|---|---|
 | ZeroDev Kernel V3.3 tag commit | `cd697c7e21715d015e0643af22310a99aa17433b`（`v3.3`） | `docs/architecture/kernel-v3.3-evidence.md`（sha256 `01e0ebc67c9e9662…`） |
-| CSP 机器可读基准 | `docs/security/csp-origins.json` | sha256 `95b1b1d773faa19a…` |
-| 唯一架构真相 | `docs/architecture.md` | sha256 `46966b41e3214069…` |
+| CSP 机器可读基准 | `docs/security/csp-origins.json` | sha256 `5827107a69ae0b0e…`（v3：增 BSC dataseed origin，Origin 先登记再放行 §14） |
+| 唯一架构真相 | `docs/architecture.md` | sha256 `1650d7bd2d457937…`（§29 简单直调免审阅轮） |
 | pnpm-lock | `pnpm-lock.yaml` | `docs/page-briefs/pnpm-lock.sha256`（`scripts/write-file-hash.mjs` 重出） |
 | ABI 冻结 manifest（阶段 4） | `contracts/abi/v1-rc/manifest.json`（37 份 ABI + 三链合约/codehash/Kernel） | sha256 `869525639ee163c4…`（`scripts/write-file-hash.mjs`；CI=check-abi-manifest.mjs；2026-10-14 YTFlashSwapRouter 三链登记轮重出） |
 | deployments 链配置（阶段 4） | `deployments/{421614,84532,97}.json` | sha256 `3dc22bac…`(421614)/`086e48a6…`(84532)/`e0972a4c…`(97)（`scripts/write-file-hash.mjs`；同轮重出） |
@@ -36,7 +36,7 @@
 
 ## 5. 事实引用矩阵（路径均为各自仓库相对路径）
 
-### 5.1 Memeverse @ `782a672`
+### 5.1 Memeverse @ `e327abb`
 
 | # | 路径 | 覆盖的 brief 事实 |
 |---|---|---|
@@ -56,7 +56,7 @@
 | M14 | `src/swap/MemeverseUniswapHookUpgradeable.sol` | Hook 行为（R-04 Liquidity）；referral：`claimRebate`/`pendingRebateOf`/`setReferrerRebateBps`（:895-943、R-06） |
 | M15 | `docs/GLOSSARY.md` | Referral rebate 定义（Rebate in-kind/逐币累积不进国库 :34；referrer=`encodePacked` 前 20 字节打包 :33；R-06） |
 
-### 5.2 OutStake @ `0ab9782`
+### 5.2 OutStake @ `ecc67c1`
 
 | # | 路径 | 覆盖的 brief 事实 |
 |---|---|---|

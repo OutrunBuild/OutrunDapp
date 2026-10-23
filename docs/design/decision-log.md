@@ -632,3 +632,142 @@ C1 结算储备金按 spec 窄口径且 UI 不露出 · C2 建池剩余资金不
 - **补充三（2026-10-14 用户裁定「仓库内容要自洽——规则内联，不外指」）**：删 `references/complexity-map.md`（11 路由密度表=决议 014 作废蓝图）。三处规范引用按自洽口径内联进 component-contract.md 正文、不再外指：dust 域补「粉尘整笔回滚」语义；双门槛独立展开为「普通创世资金/杠杆利息两门槛各自判定、预购不计入、三口径不相加」；费率四项点名「基础 1%·逆向冲击·波动·短期冲击，硬顶 100%」。brief-template.md 密度依据字段改为字段数+操作数分级自述；DESIGN.md §8 复杂度地图条目移除；references/ 目录随清空移除。冻结清单重生成（108→107 项）。
 - **补充四（2026-10-14 用户裁定「r10-css-extract.css 删」）**：删 `review/r10-css-extract.css`（v0 r10 部署 CSS 提取件、决议 010 对账底账——纯证据无消费者，按 030 口径 git 历史回收；tokens.css 头注释引用已随并行 token 重构先行消失，DESIGN.md:9 证据链改指本日志决议 010）；`review/` 目录随清空移除。冻结清单重生成（107→106 项）。
 - **补充五（2026-10-14 用户裁定「采纳可优化点并执行」）**：①冻结闸门升级为双向——新增 `scripts/design-freeze-trees.mjs` 作为写入器/检查器共享树范围（.DS_Store/.mimosa 跳过规则同源），check-design-freeze 对「树内未登记文件」报 `FREEZE UNLISTED`（.mimosa 泄漏事件暴露的单向盲区；--self-test 增第五谓词，brand/ 探针实测拦截）；生成器收敛到共享模块并移除 references/review 死树目与 stage-01-handoff 死排除项。②DESIGN.md §8「交易 UX 来源」条目随分类源全灭整节移除，原 §9 顶替为 §8（内外零编号引用，实测）。③logo-spec §6 管线声明对齐仓库现实：`logo-vectorize/` 脚本从未入库（`script/` 仅 token-icons/），本节参数表保留为重建依据。④`.prettierignore` 清 references/visual、product-ux、inbox、logo-*、runbooks/references、generate-logo-* 六条死条目（均系被 `docs` 总忽略包含或指向已删文件）。暂缓项：eslint ignores 的 `docs/design/review/**` 与 check-design-bare-values 排除表三死目录——两文件正被并行会话注释英文化中，待其落地后另行小提交；`scripts/check-runtime.mjs` 与 `scripts/bootstrap-pnpm.mjs` 同因并行改动移出看守范围（本轮用户裁定「不把并行会话的改动提交」——清单哈希必须与入库内容一致，否则 CI freeze drift；两脚本为基础设施件、非设计资产，并行扫落地后可复入）。冻结清单重生成（106→105 项，+共享模块−两脚本）。
+
+## 决议 033 · 阶段 6 钱包/交易新文案增补（2026-10-15，用户裁定「a」）
+
+- **背景**：阶段 6 步骤 2/4/6 组件接线（钱包选择器、交易审阅面板、交易错误态、approve 无限授权开关）需要新文案；铁律要求确需改文案先走本日志新决议。既有键（close/switchChainCta/confirmPrototype/connect/txSign 系/insufficientBalance）复用不增键，不足部分一次补齐。
+- **裁定**：`components/global/copy.ts` 新增 `wallet` 节（en+zh 同构，43 键）：select（title/embeddedEntry/disconnect）、account（wrongNetworkTitle/wrongNetworkBody/upgradeTitle/upgradeBody/authTitle/authBody，authBody 含 {implementation}/{chainId} 占位——§14 授权前披露）、review（title/targetChain/activeAccount/targetContract/functionName/inputs/minOutput/fee/gasPayer/authChange/estGas/nativeBalance）、errors（simulation/reverted/replaced/gas/batch/kernel/reason/panic/unknown）、approve（unlimited/unlimitedBody/revoke）。错误行沿用一行短句、无数值插值（2026-10-04 口径）；钱包品牌名取 EIP-6963 运行时名称，不进文案。中文文案落地后跑 `pnpm build:cjk-font` 重切子集（决议 029 纪律）。
+- **验证**：tsc / vitest（含 CJK 对账闸）/ prettier（触碰文件）全绿；`pnpm check:cjk-font` 全过；e2e 视觉基线零 diff（选择器/审阅面板只在点击后挂载，基线快照不含）。
+- 签名：approved by Jasonrale（2026-10-15 用户裁定「a」）
+
+## 决议 034 · 登录弹窗重构（2026-10-16，用户裁定）
+
+- **背景**：产品设计调整——顶栏 Connect Wallet 改为 Login，弹窗仿 v0 布局：Google / X / MetaMask 三行，不再支持自定义邮箱 OTP；品牌图标用官方资产自托管，Privy 自动建钱包按官方文档配置。
+- **裁定**：`copy.common.connect/connectShort` 改为 Log in/登录；`wallet.select` 换为 title/sub/google/x/metamask/lastUsed/loginError/retry/mmMissing/mmOpenApp/mmInstall/disconnect（en+zh 同构，邮箱 OTP 键整组删除）；Privy `loginMethods: ['google','twitter','wallet']`，embedded 自动建钱包保持 `createOnLogin: 'users-without-wallets'`；品牌图标官方自托管 `public/login/`（Google G 四色、X 白色、MetaMask 狐狸，不重绘不变色）；MetaMask 未安装时行内给安装入口（移动端 universal link 进 App 内浏览器，桌面端下载页，按钮不隐藏；X 失败行内错误加重试）；顶栏显示 Google 名（无名取邮箱）/ X @username（无取 name）/ MetaMask 取地址截断，可访问名与可见文本一致；`lib/web3/login-identity.ts` 收敛身份规则与 `outrun:last-login` 上次使用徽章；旧邮箱 OTP 链路与 `wallet-select__otp/email-row` 样式删除；`lib/web3/wallets.ts` 排序 helper 随之零消费方（仅单测引用，保留不删）。
+- **验证**：tsc / eslint / prettier（触碰文件）/ vitest（login-identity + active-provider）/ check:design / check:contrast / check:design-docs / check:cjk-font 全绿；4175 onchain 重建 + CSP 三证明 + Playwright 复验三行、图标与安装入口。
+- 签名：approved by Jasonrale（用户裁定）
+
+## 决议 035 · 顶栏地址标签双省略号修复 + 地址档字体定档（2026-10-21，用户裁定「缩写方式不对」「字体与用户名不应一样、深度调一下」）
+
+- **背景**：MetaMask 连接后顶栏地址渲染成双省略号（`0xBec9…6D…`），且地址字体与用户名同为 sans 大号，用户要求地址与名字字体区分并优化观感。
+- **裁定**：根因=`AccountMenu` 的 `data-label` 以 `identity` 真值判定，而 MetaMask 身份对象非空但 `name=null`，地址误入 `[data-label='name']` 档（sans `--text-lg`/500），11 字形宽度超定宽钮内容预算，被 `text-overflow` 在 `formatHex` 已截断的串上二次省略。修法两条：① `data-label` 改按 `identity?.name` 判定（与 `AccountDialog` 同条件），地址回归 `__connected` mono 档；② 地址档正式定档 `--text-sm`(14px)/500——较按钮基号 16/600 降一档减重（16px×600 mono 笨重、即用户「不优雅」观感的来源），14px 下 `0x1234…abcd` ≈92px，桌面 160px 钮内容预算 104px、≤54rem 档 112px，全档位不再二次省略。名字档 20px/500 sans 不变；两级语言=名字是身份展示（sans 大档）、地址是数据（mono 小档），CSS 双层注释同步改写。不改宽度、不改 token、不引入新字体。
+- **验证**：tsc / vitest / check:design / check:contrast 全绿；e2e 视觉基线地址 16→14px 有意 diff，`--update-snapshots` 重切（顶栏地址仅 fixture 壳连接态入基线）；components.md 顶栏账户菜单条目「身份标签分型」改写登记。
+- 签名：approved by Jasonrale（2026-10-21 用户裁定）
+
+## 决议 035 补充 1 · 顶栏地址截断改 0x+3+3（2026-10-21，用户裁定「只显示前三位和后三位……最终视觉比例必须和谐」；当日被补充 2 回撤）
+
+- **背景**：035 修完（mono 14/500、单省略号）后用户仍觉地址在钮内偏长，裁定可见字符数让位于视觉比例。
+- **裁定**：顶栏钱包地址截断从 formatHex 默认（0x+4+4，`0xBec9…6D12`）收紧为 `formatHexTopbar`（0x+3+3，`0xBec…D12`），仅顶栏四处调用（wallet-control 可见文本+aria-label×2、account-menu label）；弹窗整地址（CopyAddress full）、CA 胶囊、推荐页表格等宽松位维持宽档不变。
+- **验证**：tsc / vitest / prettier；faucet+zh-faucet mobile 基线随 3+3 重切，其余连接态路由在 1% 容差内通过；components.md 截断口径同条改写。
+- 签名：approved by Jasonrale（2026-10-21 用户裁定）
+
+## 决议 035 补充 2 · 顶栏地址档终态：16px/500 + 0x+4+4 + 全档 space-2 内边距（2026-10-21，用户裁定「字体有点小」「有余量放四个字母的前后缀」；回撤补充 1）
+
+- **背景**：补充 1 的 14px/3+3 部署到 4175 后用户复验：字号偏小，且钮内两侧余量明显，可容纳 0x+4+4。
+- **裁定**：地址档回 `--text-base`(16px)，字重维持 500（按钮 prose 为 600，16×600 mono 即最初「笨重」来源；同号异重即可）；截断回全站默认 `formatHex`（0x+4+4），`formatHexTopbar` helper 删除；`.wallet-control` 内边距全档统一 `space-2`（移动档原值上提为基类规则，桌面档 space-4→space-2）——16px×11 字形 ≈106px，对 space-4 桌面预算 104px 又是刀尖 overflow（最初双省略号的几何根源），space-2 后桌面 120px/移动 112px 均放得下。
+- **验证**：tsc / vitest / prettier / check:design / check:contrast；faucet+zh-faucet mobile 基线重切；4175 onchain 重建重启复验。
+- 签名：approved by Jasonrale（2026-10-21 用户裁定）
+
+## 决议 036 · Faucet 审阅面板删除 + 简单直调免审阅（2026-10-22，用户裁定「直接删掉 Review UI」「钱包会展示的不需要在我们网站上展示」）
+
+- **背景**：Faucet Claim 点开后内嵌审阅面板顶开页面（破坏式），且 Minimum output/Fee/Authorization change 三行恒为 `—`（领水无输出/费用/授权变化），技术细节折叠区（账户/合约/函数/输入）消费者看不懂；Privy/MetaMask 弹框已展示 To/网络/费用，站内重复展示且重复确认（站内 Confirm + 钱包 Approve 问两遍）。
+- **裁定**：Faucet 删站内审阅面板（`faucet-claims.tsx` 移除 TxReviewPanel 渲染与预估读数块），点 Claim 经 `executeDirect` 直进钱包弹框；`use-tx-center` 加 direct 执行体（同字段 eth_call 模拟 + 同字段广播，复用既有事件链，无新事件；余额不由站内重复校验——钱包预检即拒收空账户）；`WriteSpec.kernel` 改可选（direct 不传，禁零地址）；`WriteSpec.direct` 新增；TxStatus confirmed 终态全勾不转圈（终态 spinner 视为卡死观感 bug）。架构 §29 修订（简单直调免审阅、审阅面板按交易定制）；AC-1 第 5/6 步改写（直调只核钱包弹框）；component-contract §34 发送形态行改"免审阅"。
+- **补充（同日用户复验后）**：Faucet 领取同属「简单操作」，站内进度 UI 整体删除（`faucet-claims.tsx` 的 `TxStatus` 三步条与 `errorKind` 错误行都不再渲染，`.fc-claims__status` 样式块随之移除；同决议 037 补充口径）——前述「TxStatus confirmed 终态全勾」裁定随之作废（三步条本身已不渲染）。成功感知=行内冷却/已领提示与余额变化（claim 后 probeTick 重探），失败看钱包报错，解析失败红字 FieldError 保留；`tx.running` 继续作按钮在途禁用。§34 发送形态行已按此登记。
+- **补充 2（同日用户二轮复验后）**：领取流进度 UI 删除后，direct 路径弹钱包前的站内 `eth_call` 模拟失去全部消费方（`simulation-failed`/`errorKind` 无处渲染），只剩两个负面效果——弹窗前固定 RPC 往返（用户感知的点击延迟）与必败交易无声失败（不弹窗不提示，形似按钮失灵）。裁定：direct 路径免站内模拟，点击直进钱包弹框；必败交易的失败面=钱包自身预检（MetaMask 等在确认框内红色警告或拒发），强签后链上 revert 烧微量测试网 gas，行状态由领取后重探落定。`use-tx-center` direct 分支删 `reader.call` 探针与两个孤儿 revert 解码 import，事件链原样保留（`simulation-ok` 仅作状态推进）；架构 §7/§14 加「简单直调」例外、§29 记录补二轮 bullet；§34 发送形态行同步。Get UUSD 的 session/type-4 管线不受影响（授权管线与 §6.4 gas 闸门需要自身模拟）。
+- **验证**：tsc / vitest 全量 / eslint / prettier / check:design / check:contrast / check:cjk-font / fixture-boundary / architecture-compliance / CSP 三证明；e2e faucet 基线重录（审阅 DOM 移除）；4175 onchain 重建 + 匿名冒烟。
+- 签名：approved by Jasonrale（2026-10-22 用户裁定）
+
+## 决议 037 · Get UUSD 弹窗删除审阅面板（2026-10-22，用户裁定「这个功能不需要 review，因为本身窗口里就有四项了，这个 Review 卡直接删掉」）
+
+- **背景**：决议 036 只处理了 Faucet 领取；Get UUSD 弹窗本轮接入真实 PSM 流程后又渲染了 `TxReviewPanel`，面板把弹窗撑宽（grid 隐式列按面板 min-content 撑开，金额卡/CTA 溢出弹窗右缘），且面板重复展示弹窗已有的 Rate/Fee/You receive/Mint capacity left 四行。
+- **裁定**：`faucet-swap-dialog.tsx` 移除 `TxReviewPanel`（不渲染、无确认/取消/无限授权/撤销控件），点 Get UUSD / Back to USDC 直进钱包确认；`usePsmSwap.start` 增 `skipReview` 选项，走新增的 `use-tx-center.executeSession`（session batch 保留 approval+mint 同批原子性，只是不挂审阅 UI；Portfolio Convert 弹窗仍走 `startReview` 保留面板）。
+- **补充（同日用户复验后）**：Get UUSD 属「简单操作」，站内进度 UI 删除（`TxStatus` loading 与随后的 Cancelled 卡都不再渲染，同决议 036 的领取流口径）。随后用户指出 MetaMask 本身支持 EIP-7702，失败的根因是集成路线：Privy 的 `useSign7702Authorization` 只对内嵌钱包成立（`secp256k1_sign`），外部钱包需走 EIP-5792。最终裁定：`use-tx-center` 收口为单一钱包路由 `executeByWallet`——direct → 内嵌钱包 Kernel type-4 → 外部钱包 `wallet_sendCalls`（PSM spec 自带 approval+mint 两腿，钱包弹窗内完成升级）→ 无 `calls` 的 spec 报 `wallet-unsupported`（弹窗内 `FieldError` 展示 `wallet.account.callsUnsupported`，不伪造用户取消、不谎称需升级钱包）。轮询 `wallet_getCallsStatus` 超时不判取消：保持 Confirming… 并返回 pending；关闭弹窗时 `reset()` 清态。错误归因同轮修正：只有 4001 记为取消，非 4001 的技术失败不再显示「你拒绝了请求」。
+- **补充（同日深度 review 后）**：按 EIP-5792 规范修正 5792 分支——`wallet_getCallsStatus` 参数改 `[batchId]`（原 `[{id}]` 违反 schema）；状态解析改规范数字码（100/200/400/500/600，兼容 `statusCode` 与旧 `CONFIRMED`/`PENDING` 标签），并按回执 `status` 拒绝部分失败；能力探测补 `0x0` 全链回退。执行侧：`running` 改同步 ref 防同 tick 双发，`begin/reset` 递增 run 代际阻断旧异步续写；早期失败改发可达终态（原 `authorization-signed`/`simulation-failed` 在 Preflighting 下是 no-op，状态卡死）；跨链源链回执返回 `pending`（不再谎报 confirmed），速度替换不再写终态；错误码补 5750（用户拒绝升级）、-32601/-32604、5730（未知 bundle 快速失败）。路由决策抽为 `lib/web3/write-route.ts`，轮询抽入 `lib/web3/eip5792.ts`，均补单测。
+- **补充（同日架构收口）**：执行器抽到 `lib/web3/tx-executor.ts`（`runDirect`/`runSession`/`runCalls`，端口注入，hook 只留状态机、重入锁与 run 代际）；`session-actions` 新增 `buildSessionWrite`，13 个 Router 弹窗的 `encodeSessionCalldata` 调用点同步改用它并携带 `calls`，外部钱包 5792 路径从 PSM 试点扩展到全站交易弹窗；删除只写不读的 `draft` 字段、派生重复的 `txActive`（改用 `WriteFlow.active`）与单点配置 `estimateBufferBps`。
+- **验证**：tsc / eslint / vitest 394 通过 / check:design / check:cjk-font；真实外部钱包路径仍需真机测试网复验。
+- 签名：approved by Jasonrale（2026-10-22 用户裁定）
+
+## 决议 037 · 参与面板余额改客户端现读（2026-10-22，用户裁定「余额应该用用户本地的 RPC 查询，不该走服务端浪费资源」「测试网 USDC 必须用 Mock 代币」）
+
+- **背景**：verse 参与面板 Balance/Max 仍走 cookie 账号的服务端 RPC 读（`getFixtureWalletBalances`），是 2026-10-21「个人数值不占服务端资源」裁定的漏网面；且该读只覆盖 UAsset/GenesisCredit 族，测试网正当支付资产（PSM 储备 MockUSDC）不在表内，PSM 直付路径余额恒 '--'。
+- **裁定**：onchain 侧 `getFixtureWalletBalances` 退役账号读、恒返空表（唯一消费方=verse 页）；参与面板余额改连接态经钱包 provider 客户端现读（模式=faucet PSM 弹窗同款：`useActiveEip1193Provider` 订阅+`custom` transport+`readErc20Meta`/`balanceOf`），读取范围=支付选项全集合（uAsset 伪 id 经链配置 `UAsset.<SYM>` 解析地址；储备/credit 的 option id 即地址），逐币失败该符号落 '--'；fixture/e2e 保持 SSR 样本表，基线不变。PSM 换完 UUSD 回到 verse 页无需再手动刷新（余额随面板挂载现读）。
+- **验证**：tsc / vitest 358 全过 / eslint / prettier / check:design / check:contrast / check:cjk-font / fixture-boundary / architecture-compliance；4175 onchain 重建，带账号 cookie 请求 SSR Balance 渲染 '--'（服务端零账号读）。
+- 签名：approved by Jasonrale（2026-10-22 用户裁定）
+
+## 决议 038 · 参与面板三处 EN 文案 Title Case + Preorder Cap 冒号（2026-10-22，用户裁定）
+
+- **裁定**：`copy.verse` 三键 EN 改词首大写——`One-click preorder`→`One-Click Preorder`、`Confirm participation`→`Confirm Participation`、`Preorder cap`→`Preorder Cap`；`preorderCapLabel` 渲染补 `:`+空格（Balance 行同款 JSX 惯例，两语言同构）；zh 无大小写不涉。
+- **验证**：tsc/eslint/prettier/vitest 402 全绿；e2e verse-21 三档在 1% 容差内通过（基线无需重录）；4175 onchain 重建。
+- 签名：approved by Jasonrale（2026-10-22 用户裁定）
+
+## 决议 039 · legacy 路径跳转退役（2026-10-22，用户裁定「现在还在开发早期，哪来的这种兼容方案」）
+
+- **背景**：方案 C 改 URL 结构时为 `/launch`、`/memeverse` 加了 307 收敛跳转；开发早期无公网流量与外部链接，兼容面只覆盖内部旧书签/历史/聊天残留链接，收益趋近零（用户质询成立）。
+- **裁定**：`proxy.ts` 删除 `LEGACY_PATHS` 与 `legacyRedirect`——`/launch`、`/memeverse` 不再重定向，未匹配路径照常落 `app/not-found.tsx` 兜底页；`/en/**` 307 收敛**保留**，它不是兼容项而是 x-locale 请求头防伪造守卫（内部 rewrite 不再进 proxy，仅拦外部直连，§23）。`proxy-locale.test.ts` legacy 用例改写为锁定新行为（不再重定向、直落 `/en` rewrite）；`architecture.md` §2/§23、`page-briefs/routes.json` 与 `README.md`、根 `AGENTS.md`、`routes.ts` 头注口径同步（§22:646 方案 C 历史引文按修订记录惯例保留原文）。
+- **验证**：tsc / vitest / prettier / check:design-docs / check:freeze（清单重生成）全绿。
+- 签名：approved by Jasonrale（2026-10-22 用户裁定）
+
+## 决议 040 · Button 禁用反馈清零真根因：按压位移随 pointer 事件命中禁用钮（2026-10-22，用户页内探针机械取证 + 用户裁定「回滚重查」）
+
+- **背景**：faucet 冷却行「禁用钮点击抖动」历经四轮修复（禁用视觉档/裸 :hover 门控/行级 hover 门控）均未消，用户裁定全部回滚后以页内探针取证：`pointerdown/pointerup` 在禁用 BUTTON 上真实触发（pointer 事件按规范命中禁用控件，禁用只拦 click 默认行为），`:active` 跟随触发——cva 的 `active:translate-y-px` 按压位移在禁用钮上每次按压 1px 弹跳（探针 GEOM 记录：按压 y=269.68→松开 y=268.68；无头复现 `translate: 0px 1px`）。此前无头验证误读 `transform` 属性——Tailwind v4 位移走 `translate` 属性，导致连续误诊。
+- **裁定**：`components/ui/button.tsx`：按压位移改 `enabled:active:not-aria-[haspopup]:translate-y-px`（禁用零按压位移）；禁用视觉档 `disabled:opacity-50 disabled:cursor-not-allowed`（撤 `disabled:cursor-pointer`）；cva 全部 hover 工具类 `not-disabled:` 门控；globals.css 按钮桥四处 hover 规则 `:not(:disabled)` 门控。pointer-events 保留（title 悬浮照常），交互由原生 disabled 拦截。
+- **验证**：tsc / check:design 0 命中；无头终验——禁用钮按压 translate 恒 none + opacity 0.5 + not-allowed 光标，启用钮按压位移保留（none→0px 1px）；e2e 基线随禁用视觉档重录。
+- 签名：approved by Jasonrale（2026-10-22 用户裁定）
+
+## 决议 041 · TxReviewPanel 全席废除：弹窗即审阅、点完直进钱包（2026-10-23，用户裁定）
+
+- **背景**：参与创世修复走通后，弹窗 Confirm 之后又出现一层「Review transaction」面板（TxReviewPanel），且嵌套渲染破损。用户裁定：弹窗本身就是审阅，「还能 Review 两次？」，该面板全站删除。
+- **裁定**：`tx-review-panel.tsx` 组件、`.tx-review*` CSS、`use-tx-center` 的 `startReview/cancelReview/confirm` API 全部删除；13 个消费组件（参与/Swap/四池加撤/Mint POL/Split/Merge/Flash Swap/赎回 LP/赎回 PT/YT/Vault/保护窗退出/Portfolio 三弹窗/创建注册）改 `executeSession` 直连钱包弹框；无限授权开关随面板退场，approval 一律精确额度（`UNLIMITED_APPROVAL` 消费点清零）；`spec.review` 字段保留仅作数据载荷。`reviewing` 状态恒 false，编辑作废审阅的 cancelRef 副作用一并删除。
+- **验证**：tsc 零错 / vitest 407 全绿 / prettier / check:design 0 命中 / 冻结清单重生成。
+- 签名：approved by Jasonrale（2026-10-23 用户裁定）
+
+## 决议 042 · uAsset 代币图标改暗盘霓虹铸币（2026-10-23，用户裁定「I 感觉挺不错的」）
+
+- **背景**：用户裁定原 uAsset 图标（黄盘平涂 + 品红描边）与第三方代币图标相比缺乏质感与细节（「像小学生画的」）；四轮决策材料迭代（`docs/design/uasset-icon-proposals/`，v3 材质轴 → v4 赛博轴）后从赛博朋克轴四候选中选定 I「暗盘霓虹」。
+- **裁定**：`public/tokens/uusd.svg` / `ueth.svg` / `ubnb.svg` 三枚 uAsset 图标统一为：暗琥珀币面 `#221E08` + 品牌黄外环 `#FCEE0A`（r=234/宽15）+ 霓虹品红 `#FF06B5` 字形（字形底层 `feGaussianBlur stdDeviation=13` 辉光烘焙进资产）。字形缩放逐枚重调使墨高 ≈ 盘径 71%（$ 1.12 / ETH 菱形 0.72 / BNB 风车 1.07），替换原黄盘 1.03/0.67/0.895。品牌青 `#00F0FF` 仅存在于未采纳的 F/H 候选。**豁免登记**：token 图标属品牌资产层而非 UI 数据层，字形辉光不受「数据零 glow」约束管辖；第三方图标（USDC/sUSDS/aUSDC 等）维持官方原样不随动。
+- **验证**：三档尺寸（96/28/18）浏览器实测家族一致、18px 黄环保住剪影；e2e faucet 基线按 --update-snapshots 重生成（icon 像素变更）；tsc / check:design / prettier 通过。
+- 签名：approved by Jasonrale（2026-10-23 用户裁定）
+
+## 决议 042 补充 1 · uAsset 外环加粗 15→21（2026-10-23，用户裁定「黄色圆边稍微加粗一点点」「小图看着有点隐隐约约」）
+
+- **裁定**：三枚 uAsset 图标的外环 `stroke-width` 15 → 21（其余参数不动；18px 下环宽 0.53px → 0.74px，小尺寸可辨且仍为细线）。
+- 签名：approved by Jasonrale（2026-10-23 用户裁定）
+
+## 决议 042 补充 2 · uAsset 字形缩小 6%（2026-10-23，用户裁定「洋红色标稍微缩小一点点，达到最佳视觉比例」）
+
+- **裁定**：三枚 uAsset 图标的字形缩放 $ 1.12 → 1.05 / ETH 菱形 0.72 → 0.68 / BNB 风车 1.07 → 1.01，墨高由盘径 ~71% 降至 ~66%，字形与外环之间留出呼吸空间（外环 21 不动）。
+- 签名：approved by Jasonrale（2026-10-23 用户裁定）
+
+## 决议 042 补充 3 · uAsset 字形再缩 4%（2026-10-23，用户裁定「还可以再缩小一点点，就一点点」）
+
+- **裁定**：字形缩放 $ 1.05 → 1.01 / ETH 菱形 0.68 → 0.655 / BNB 风车 1.01 → 0.97，墨高 ~66% → ~63.5%（外环 21 不动）。
+- 签名：approved by Jasonrale（2026-10-23 用户裁定）
+
+## 决议 042 补充 4 · uAsset 盘面琥珀提亮 #221E08 → #3F3609（2026-10-23，用户裁定「琥珀色背景怎么是透明的」）
+
+- **裁定**：盘面 `#221E08` 与页面底色 `#14121A` 亮度过于接近，暖色不可感知、读作镂空；提亮至 `#3F3609`（三档实测 #332B07 / #3F3609 / #4C410B 后取中档，琥珀明确可感知且不与黄环争夺）。其余参数不动。
+- 签名：approved by Jasonrale（2026-10-23 用户裁定）
+
+## 决议 042 补充 5 · uAsset 盘面定档实心琥珀 #3F3609 → #4A3F0A（2026-10-23，用户裁定「不该是不透明的吗？别人的代币图标没有透明背景的」）
+
+- **背景**：用户指出盘面读作透明背景。核查：SVG 盘面本为实心填充、无透明度属性，「透明感」是暗值与页面底色过于接近所致——本质要求是像所有主流代币图标一样有明确的实心币面。
+- **裁定**：盘面提至 `#4A3F0A`（#3F3609/#4A3F0A/#57490A/#66560C 四档实测取第二档）：实心琥珀明确、黄环层级不丢、品红字形对比保持。其余参数不动。
+- 签名：approved by Jasonrale（2026-10-23 用户裁定）
+
+## 决议 042 补充 6 · uAsset 盘面回撤至 #221E08（2026-10-23，用户裁定「老子说了不要提亮，恢复回去」）
+
+- **裁定**：回撤补充 4（`#3F3609`）与补充 5（`#4A3F0A`）的提亮，盘面恢复原始暗琥珀 `#221E08`；字形缩放（补充 2/3）与外环 21（补充 1）维持。
+- 签名：approved by Jasonrale（2026-10-23 用户裁定）
+
+## 决议 043 · 扫描线膜迁址尝试被否，全量回滚（2026-10-23，用户裁定「CRT 扫描线不能删，严重违反用户指令」「其他代币符号上面就没有扫描线」「都给我回滚回去」）
+
+- **背景**：uAsset 暗盘币面可见全站膜的条纹（机制：`.ax-scanlines` body 级 z-overlay + `mix-blend-mode:screen` 的 2% 白线，对暗面每 4px 提亮一行；`.pf-panel`/`.outrun-site` 双层 `isolation:isolate` 使图标 z-index 豁免不可行）。曾尝试把膜迁入 `.ax-hud` 背景栈，**用户立即否决**：CRT 膜是站点签名层不得动；其他代币图标（USDC 蓝、sUSDS 绿等中亮度盘面）上膜的同一提亮低到不可见，恰证明膜本身无问题——条纹可感知是本图标盘面过暗（`#221E08`）的属性，不是膜的缺陷。
+- **裁定**：膜架构全量回滚至 023 补充 10 原状（`app/layout.tsx` body 末尾唯一实例 + z-overlay:1000 + screen 混合）；`.ax-hud`/`.ax-hud-inner` 背景栈、foundations/components 登记同步回滚。盘面维持 `#221E08`（042 补充 6）。图标条纹与盘面亮度的取舍留待用户后续裁定，未拍板前不再动膜、不再动盘面色。
+- **验证**：`ax-scanlines` 引用四处（layout/tokens/foundations/components）逐一恢复原文本；tsc / 静态闸通过。
+- 签名：approved by Jasonrale（2026-10-23 用户裁定）
+
+
+- **背景**：uAsset 暗盘图标（决议 042）的币面出现全站膜的亮条纹，用户裁定币面不得含站点纹理。机制：膜（`.ax-scanlines`，body 级 `z-overlay:1000` + `mix-blend-mode:screen`，023 补充 10 所立）盖住一切不透明表面；`screen` 混合对暗面（`#221E08`）每 4px 提亮一行 → 条纹在暗盘上可见（旧亮黄盘上不可见，故此前未暴露）。图标的 z-index 豁免不可行：`.pf-panel` 与 `.outrun-site` 双层 `isolation:isolate` 封死堆叠上下文。
+- **裁定**：删除 body 级 `.ax-scanlines` 覆盖层；扫描线膜（`--scanline-white`，1px/4px）改为 `.ax-hud` / `.ax-hud-inner` 背景栈顶层——膜只随页面背景绘制，面板/弹窗/图标等内容表面天然不吃膜。023 补充 10 的「弹窗同膜」安排随之作废。页面背景区的视觉不变（膜与青网格同位）；面板损失的是 2% alpha 的膜纹（1x 不可感知）。
+- **验证**：uAsset 币面放大无条纹；页面背景区 CRT 膜纹与网格保持；tsc / check:design / check:contrast / check:design-docs / prettier 通过；e2e 基线重生成后全绿。
+- 签名：approved by Jasonrale（2026-10-23 用户裁定）

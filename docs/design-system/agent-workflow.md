@@ -33,7 +33,7 @@ pnpm check:contrast   # token 对比度双闸门（scripts/check-design-contrast
 pnpm check:design-docs # 登记文档闸（scripts/check-design-docs.mjs，--self-test 自检）
 ```
 
-登记文档闸：components.md §6 模式名重复 FAIL（防「更新时追加新行不删旧行」事故）、docs/design-system/*.md 单行超 12,000 字符 FAIL（格式改造落地后逐档下调）；叙事日期（YYYY-MM-DD）= FAIL——沿革只进 decision-log，豁免表见脚本文件头（现仅 e2e 时钟钉定值一条）。
+登记文档闸：components.md §6 模式名重复 FAIL（防「更新时追加新行不删旧行」事故）、docs/design-system/*.md 与根 AGENTS.md 单行超 12,000 字符 FAIL（格式改造落地后逐档下调）；叙事日期（YYYY-MM-DD）= FAIL（同口径覆盖根 AGENTS.md）——沿革只进 decision-log，豁免表见脚本文件头（现仅 e2e 时钟钉定值一条）。
 
 裸值扫描（实现与豁免表见脚本文件头）：产品 `components/`、`app/` 的 `.tsx` 中裸 `#hex`、Tailwind 原始调色板类、`space-x/y-*`、`transition: 'all'`（含内联样式引号形态）；注释先剥离（注释里的 issue 号 `#1178` 不误报）；豁免表唯一条目 = `app/layout.tsx` 的 viewport `themeColor`（meta 无法引用 CSS 变量，品牌锚必要镜像）。
 

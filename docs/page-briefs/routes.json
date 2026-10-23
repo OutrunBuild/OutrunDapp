@@ -3,7 +3,7 @@
     "locales": ["en", "zh"],
     "defaultLocale": "en",
     "canonical": "en 无前缀（proxy.ts 内部 rewrite 到 /en/**）；zh 带 /zh 前缀",
-    "legacyConvergence": "旧地址（/launch、/memeverse、/memeverse/create、/en/** 等）由 proxy.ts 307 收敛到 canonical；语言切换走 components/global/routes.ts 的 localePath",
+    "legacyConvergence": "外部直连 /en/** 由 proxy.ts 307 收敛到无前缀 canonical（x-locale 防伪造守卫）；legacy /launch、/memeverse 跳转已退役（决议 039）；语言切换走 components/global/routes.ts 的 localePath",
     "dynamicSegmentConvention": "[verseId]（= 链上 uint256 verseId；fixture 行 id 不进 URL）"
   },
   "entries": [

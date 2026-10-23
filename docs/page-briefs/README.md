@@ -4,7 +4,7 @@
 
 ## 登记规则
 
-1. **路由清单唯一真相 = [`routes.json`](routes.json)**：7 条产品路由（`kind: route`）+ 1 条内部工具页（`kind: internal`，/design-system）+ 1 条全局交互面（`kind: global-surface`）+ 4 条嵌入型资产动线（`kind: embedded-flow`）。URL 方案：en 无前缀（proxy.ts 内部 rewrite 到 /en/**），zh 带 /zh 前缀；旧地址由 proxy.ts 307 收敛；语言切换走 `components/global/routes.ts` 的 `localePath`。
+1. **路由清单唯一真相 = [`routes.json`](routes.json)**：7 条产品路由（`kind: route`）+ 1 条内部工具页（`kind: internal`，/design-system）+ 1 条全局交互面（`kind: global-surface`）+ 4 条嵌入型资产动线（`kind: embedded-flow`）。URL 方案：en 无前缀（proxy.ts 内部 rewrite 到 /en/**），zh 带 /zh 前缀；外部直连 /en/** 由 proxy.ts 307 收敛（防伪造守卫）；语言切换走 `components/global/routes.ts` 的 `localePath`。
 2. **状态词汇唯一真相 = [`state-catalog.md`](state-catalog.md)**：brief 不得发明状态同义词；每个状态标 `rendered-here` / `delegated` / `N/A(原因)`。
 3. **产品事实唯一真相 = [`product-intent.md`](product-intent.md)**：产品性选择（排序键、指标集、信息优先级、动线挂载）标注 `docs/design/decision-log.md` 决策 ID；未拍板条目不得携带默认值进 brief。
 4. **术语唯一真相 = [`glossary.md`](glossary.md)**：zh/en 双列；brief 文案键一律引术语表。

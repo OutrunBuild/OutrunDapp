@@ -60,7 +60,7 @@ Outrun DApp 提供 Memeverse 与 OutStake 的完整用户功能、全部核心�
 
 ## 2. 信息架构与页面清单
 
-URL 方案：zh 路径带 `/zh` 前缀；en 为无前缀 canonical（`proxy.ts` 内部 rewrite 到 `/en/**`，应用树只有 `app/[locale]`）。表中的 `/` 代表落地页（en canonical `/`、zh `/zh`）。旧地址（`/launch`、`/memeverse`、`/memeverse/create`、`/en/**` 等）由 `proxy.ts` 307 收敛到 canonical（原型期防浏览器缓存，上线换 301；2026-09-22 方案 C）。语言切换走 `components/global/routes.ts` 的 `localePath`，禁止手拼 `/${locale}`。共 7 条产品路由；另有 `/design-system` 设计系统工具页（内部，不进导航）与 4 条嵌入型资产动线（组件级，非路由）。动态段 `[verseId]` = 链上 uint256 verseId，fixture 行 id 不进 URL。
+URL 方案：zh 路径带 `/zh` 前缀；en 为无前缀 canonical（`proxy.ts` 内部 rewrite 到 `/en/**`，应用树只有 `app/[locale]`）。表中的 `/` 代表落地页（en canonical `/`、zh `/zh`）。外部直连 `/en/**` 由 `proxy.ts` 307 收敛到无前缀 canonical（x-locale 防伪造守卫，非兼容跳转；307 防浏览器缓存，URL 冻结后换 301；legacy `/launch`、`/memeverse` 跳转已按决议 039 退役，未匹配路径落 `app/not-found.tsx` 兜底页）。语言切换走 `components/global/routes.ts` 的 `localePath`，禁止手拼 `/${locale}`。共 7 条产品路由；另有 `/design-system` 设计系统工具页（内部，不进导航）与 4 条嵌入型资产动线（组件级，非路由）。动态段 `[verseId]` = 链上 uint256 verseId，fixture 行 id 不进 URL。
 
 | 路由                    | 页面职责         | 核心功能与数据                                                                        |
 | ----------------------- | ---------------- | ------------------------------------------------------------------------------------- |
@@ -114,7 +114,7 @@ URL 方案：zh 路径带 `/zh` 前缀；en 为无前缀 canonical（`proxy.ts` 
 | Test DOM environment                 | jsdom                              | 30.0.1                             | 组件测试 DOM 环境                                                                                                                                                |
 | End-to-end tests                     | Playwright                         | 1.62.1                             | 双语、响应式、视觉和交易流程测试                                                                                                                                 |
 | Accessibility scan                   | `@axe-core/playwright`             | 4.13.0                             | Playwright e2e 内嵌 axe 无障碍扫描（`check:e2e` 门禁组成部分）                                                                                                    |
-| Ethereum Virtual Machine integration | Foundry/Anvil                      | 1.8.1                              | 与合约仓一致的本地链和 fork 测试                                                                                                                                 |
+| Ethereum Virtual Machine integration | Foundry/Anvil                      | 1.8.5                              | 与合约仓一致的本地链和 fork 测试                                                                                                                                 |
 | Monitoring                           | `@sentry/nextjs`                   | 10.72.0                            | 客户端、服务端、RPC 和交易错误监控                                                                                                                               |
 
 shadcn 组件复制件依赖四个随附样式工具——`class-variance-authority 0.7.1`、`clsx 2.1.1`、`tailwind-merge 3.3.1`、`tw-animate-css 1.4.0`（variant 组合、类名合并与入场动画；版本证据见 §18）。
@@ -202,7 +202,7 @@ RPC 使用 Alchemy 主端点和 Infura fallback。公共 RPC 只用于本地开�
 
 合约地址只来自 `deployments/{chainId}.json`。未部署地址使用结构化 `undeployed` 状态，禁止零地址或占位地址进入生产构建。构建阶段校验地址、ABI 版本、部署块、实现 codehash 和代理实现。
 
-六条链统一使用 EIP-7702 Type-4 交易，`eip7702TxType` 固定为 `0x04`。交易由当前 EOA 自己签署并广播；首次启用时 authorization 与执行 calldata 放在同一 Type-4 交易中，后续交易不再重复携带 authorization。gas 由当前 EOA 支付。
+六条链统一由当前 EOA 自己签署并广播交易；首次启用时 authorization 与执行 calldata 放在同一 Type-4 交易中（`eip7702TxType` 固定为 `0x04`），已 delegated 账户的后续交易为不含 `authorizationList` 的普通 type-2 自执行交易（EIP-7702 要求 Type-4 必须携带非空 `authorizationList`，空表单为非法构造、被所有交易池拒绝，见 §28）。gas 由当前 EOA 支付。
 
 六条链的 Kernel V3.3 implementation 地址均为 `0xd6CEDDe84be40893d153Be9d467CD6aD37875b28`。2026-08-30 的链上基线如下，runtime bytecode 大小均为 24,469 bytes：
 
@@ -280,9 +280,9 @@ EIP-7702 delegation 启用和首笔 Swap 是两个独立的用户可见状态。
 
 authorization 使用当前目标 chainId，禁止使用 `chainId = 0` 的通用授权。六条链分别维护 delegation 状态和实现 codehash。
 
-所有经 Kernel 执行的 Memeverse 写操作先冻结报价与 manifest，再以 Kernel `execute` 的默认 revert-on-failure 模式编码同一 atomic callData。禁止对 `MemeverseSwapRouter.swap`、`swapWithPermit2` 或 `YTFlashSwapRouter` 单独调用 viem `simulateContract`，因为脱离 Kernel session batch 时 Hook 没有 active account session；应模拟最终 Type-4 交易的完整执行上下文。首次 delegation 的 Type-4 交易携带 chain-specific authorization，`to` 固定为用户 EOA 地址，calldata 为 Kernel 的 `execute` batch；已 delegated 账户的后续 Type-4 交易不重复携带 authorization。
+所有经 Kernel 执行的 Memeverse 写操作先冻结报价与 manifest，再以 Kernel `execute` 的默认 revert-on-failure 模式编码同一 atomic callData。禁止对 `MemeverseSwapRouter.swap`、`swapWithPermit2` 或 `YTFlashSwapRouter` 单独调用 viem `simulateContract`，因为脱离 Kernel session batch 时 Hook 没有 active account session；应模拟最终交易的完整执行上下文。首次 delegation 的 Type-4 交易携带 chain-specific authorization，`to` 固定为用户 EOA 地址，calldata 为 Kernel 的 `execute` batch；已 delegated 账户的后续交易为不含 `authorizationList` 的普通 type-2 自执行交易（§28）。
 
-直接交易准备固定遵循：读取当前 EOA pending transaction nonce `N` 和 chainId → 生成 Kernel `execute` batch callData → 如未 delegated，以当前链、Kernel 地址和 authorization nonce `N + 1` 调用 Privy `useSign7702Authorization`，并显式传入活动钱包地址 → 以 transaction nonce `N`、`authorizationList` 和 `to = EOA` 构造自执行 Type-4 交易 → 用 `publicClient.simulateContract` 在 EOA 地址上携带相同 `authorizationList` 模拟最终 Kernel batch → 用户确认后由同一钱包签署并广播完全相同的交易字段。`N + 1` 是 signer 与 Type-4 transaction sender 为同一 EOA 时的协议要求；使用 viem 原生 authorization signer 时等价配置为 `executor: 'self'`。simulation 与广播之间 EOA nonce、chainId、authorization、报价、slippage、deadline、callData、manifest 或账户代码变化时必须重新构造和模拟。Kernel `TRY_EXEC` 禁止使用；任何嵌套 revert data 统一解码到交易错误模型并显示恢复动作。
+直接交易准备固定遵循：读取当前 EOA pending transaction nonce `N` 和 chainId → 生成 Kernel `execute` batch callData → 如未 delegated，以当前链、Kernel 地址和 authorization nonce `N + 1` 调用 Privy `useSign7702Authorization`，并显式传入活动钱包地址 → 以 transaction nonce `N`、`authorizationList` 和 `to = EOA` 构造自执行 Type-4 交易（已 delegated 时不携带 `authorizationList`，即普通 type-2）→ 用 `publicClient.simulateContract` 在 EOA 地址上携带相同字段模拟最终 Kernel batch → 用户确认后由同一钱包签署并广播完全相同的交易字段。`N + 1` 是 signer 与 Type-4 transaction sender 为同一 EOA 时的协议要求；使用 viem 原生 authorization signer 时等价配置为 `executor: 'self'`。simulation 与广播之间 EOA nonce、chainId、authorization、报价、slippage、deadline、callData、manifest 或账户代码变化时必须重新构造和模拟。Kernel `TRY_EXEC` 禁止使用；任何嵌套 revert data 统一解码到交易错误模型并显示恢复动作。
 
 ### 6.4 Gas 支付
 
@@ -329,7 +329,7 @@ Cancelled
 
 每笔交易在签名前显示目标链、活动账户、目标合约、函数语义、输入、最小输出、费用、gas 支付方和授权变化，并按执行账户进入对应 simulation 路径。
 
-直接 EOA 合约写入使用 viem `simulateContract`。Kernel 写入使用第 6.3 节定义的完整 Type-4 pipeline：首次 delegation 先签 authorization，再以相同 `authorizationList` 模拟 EOA 地址上的 Kernel batch，最后签署并广播相同交易；已 delegated 账户跳过 authorization。任何 simulation 失败都禁止发送，并将解析后的 ABI custom error 或基础设施错误显示在交易中心。
+直接 EOA 合约写入使用 viem `simulateContract`，但免审阅的简单直调（无输出、无费用、无授权变化的直接 EOA 写，如 Faucet 领取）例外：点击直进钱包确认弹框，不做站内模拟——必败交易由钱包自身预检拦截（确认框内警告或拒发），强签后链上 revert 的代价为微量测试网 gas（2026-10-22 用户裁定：站内进度/错误 UI 删除后，模拟结果已无站内消费方）。Kernel 写入使用第 6.3 节定义的完整 Type-4 pipeline：首次 delegation 先签 authorization，再以相同 `authorizationList` 模拟 EOA 地址上的 Kernel batch，最后签署并广播相同交易；已 delegated 账户跳过 authorization。任何 simulation 失败都禁止发送，并将解析后的 ABI custom error 或基础设施错误显示在交易中心。
 
 跨链操作在源链确认后保持 Message pending，直到目标链事件确认。拿到源链交易 hash 不等于跨链完成。
 
@@ -421,7 +421,7 @@ Playwright 覆盖 Chromium、WebKit 和 Firefox。必测矩阵包含：
 
 ### 11.3 EVM 集成测试
 
-Anvil 使用与合约仓相同的 Foundry `1.8.1`。集成测试覆盖：
+Anvil 使用与合约仓相同的 Foundry `1.8.5`。集成测试覆盖：
 
 - Ethereum、Base 和 BSC 固定区块 fork。
 - EIP-7702 Type-4 authorization、`N / N + 1` nonce 关系、Kernel V3.3 delegation、Kernel `execute` batch、`authorizationList` 和 byte-identical submission。
@@ -498,7 +498,7 @@ Sentry 中的钱包地址默认哈希化；只有用户主动复制或进入区�
 - ZeroDev 发布新 Kernel implementation 时，前端不得自动接受。新实现必须建立新 manifest 版本、完成独立安全审查，并由用户明确签署新的 delegation。
 - delegation 使用 chain-specific authorization，禁止默认 universal authorization。
 - Type-4 交易固定由活动 EOA 支付原生 gas；余额不足时禁止进入签名阶段。
-- 所有写操作先 simulation；Kernel 路径按第 6.3 节标准 Type-4 pipeline 执行，禁止脱离 session batch 模拟 Router。账户、链、EOA nonce、authorization、报价、callData 或 deployment manifest 变化时重新准备；签名后任一交易字段变化必须废弃签名。
+- 所有写操作先 simulation；免审阅的简单直调（直接 EOA 写）例外——不做站内 eth_call，失败面=钱包自身预检与链上 revert（2026-10-22 用户裁定）。Kernel 路径按第 6.3 节标准 Type-4 pipeline 执行，禁止脱离 session batch 模拟 Router。账户、链、EOA nonce、authorization、报价、callData 或 deployment manifest 变化时重新准备；签名后任一交易字段变化必须废弃签名。
 - Approval 默认使用精确额度；只有用户明确选择时才允许无限授权，并提供撤销入口。
 - 内容安全策略（Content Security Policy，CSP）使用 Next.js App Router 的每请求 nonce 模式。Next.js 16 `proxy.ts` 必须用 Web Crypto 为每次请求生成独立高熵 nonce，将同一 nonce 写入 request 的 `x-nonce`、request CSP header 和 response CSP header；`script-src` 固定包含 `'self'`、`'nonce-<request-value>'`、`'strict-dynamic'` 与已登记的 Cloudflare challenge origin，生产环境禁止 `'unsafe-inline'`/`'unsafe-eval'`。根 locale layout 读取 `x-nonce` 并传给显式 `next/script`；Next.js 从 request CSP 自动为 framework/page scripts 附 nonce。Nonce 页面全部动态渲染，明确放弃静态优化、ISR、PPR 和默认 Edge CDN 页面缓存；这一安全取舍不得在实现阶段改回静态模式或 SRI。
 - CSP 的机器可读基准是 `docs/security/csp-origins.json`：`frame-src`/`child-src` 允许 `auth.privy.io`、WalletConnect verify 域名和 Cloudflare challenge；`connect-src` 允许 Privy auth/RPC、WalletConnect relay/explorer 以及 `'self'`。六条 RPC 和 Graph endpoint 必须以精确 origin 从 Zod 链配置注入，Sentry 只允许从配置 DSN 解析出的 origin；Vercel/其他分析域名默认不加入，启用前必须更新该文件并重新审查。禁止未登记的 bare `*` 或任意第三方脚本源。CI 必须对两次独立 production 请求证明 nonce 形状有效且互不相同、response CSP 中恰有一个 nonce，并用 Playwright 证明每个可执行 `<script>` 的 DOM `nonce` 与该响应一致；只校验 JSON、只发 `Content-Security-Policy-Report-Only` 或复用 nonce 均失败。
@@ -598,7 +598,7 @@ Sentry 中的钱包地址默认哈希化；只有用户主动复制或进入区�
 - ESLint `10.9.1`、typescript-eslint `8.68.0`：[ESLint](https://www.npmjs.com/package/eslint/v/10.9.1)、[typescript-eslint](https://www.npmjs.com/package/typescript-eslint/v/8.68.0)、[repository](https://github.com/typescript-eslint/typescript-eslint)。
 - Prettier `3.9.6`：[npm](https://www.npmjs.com/package/prettier/v/3.9.6)、[repository](https://github.com/prettier/prettier)。
 - Sentry JavaScript `10.72.0`：[release](https://github.com/getsentry/sentry-javascript/releases/tag/10.72.0)。
-- Foundry `1.8.1`：[release](https://github.com/foundry-rs/foundry/releases/tag/v1.8.1)，与 Memeverse/OutStake CI 固定版本一致。
+- Foundry `1.8.5`：[release](https://github.com/foundry-rs/foundry/releases/tag/v1.8.5)，与 Memeverse/OutStake CI 固定版本一致。
 - Vercel Node.js 版本与 Corepack 配置：[Node.js versions](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions)、[build Corepack](https://vercel.com/docs/builds/configure-a-build#corepack)。
 - Next.js App Router nonce CSP 与动态渲染代价：[Content Security Policy guide](https://nextjs.org/docs/app/guides/content-security-policy)；Vercel custom Install Command：[package managers](https://vercel.com/docs/package-managers)、[`vercel.json` installCommand](https://vercel.com/docs/project-configuration/vercel-json#installcommand)。
 - Next.js 16 TypeScript 7 build 使用项目本地 `tsc` CLI：[Using TypeScript 7](https://nextjs.org/docs/pages/api-reference/config/typescript#using-typescript-7)、[`useTypeScriptCli`](https://nextjs.org/docs/app/api-reference/config/next-config-js/useTypeScriptCli)。
@@ -656,7 +656,7 @@ x-locale 头伪造面封堵与「rewrite 二次进入」实证修正（P0-1 裁�
 
 - **rewrite 不二次进入 proxy（实证推翻 §22 原登记）**：生产构建（Next 16.3.3，`NEXT_DIST_DIR` 隔离插桩）实测每次外部请求 proxy 恰调用一次——`/zh` 单次调用即渲染中文，rewrite 修改头经 `x-middleware-request-*` 机制直达渲染，不重跑 middleware。原 `/en` 分支「已设跳过守卫」对内部流程系死代码，已删。
 - **无前缀分支无条件写 `x-locale: en`**：原条件写入把客户端预置头当内部首跳信号，伪造 `x-locale: zh` 直访 canonical URL 渲染中文（实测复现），违反「URL 前缀仍是语言唯一真源」；内部 rewrite 目标恒为 `/en/**` 不会命中该分支，无条件覆写对合法流零影响。
-- **旧 `/en/**` 直达 307 收敛到无前缀**（原「暂保持可达」提前收敛）：该分支只剩外部请求，`/en/**` → 剥前缀 307（query 保真；原型期 307 与 LEGACY_PATHS 同口径防浏览器缓存，上线换 301）。伪造头直达渲染面随入口消失而封死；站内无 `/en` 链接、e2e 无 `/en` 用例，零存量依赖。
+- **旧 `/en/**` 直达 307 收敛到无前缀**（原「暂保持可达」提前收敛）：该分支只剩外部请求，`/en/**` → 剥前缀 307（query 保真；307 防浏览器缓存，上线换 301）。伪造头直达渲染面随入口消失而封死；站内无 `/en` 链接、e2e 无 `/en` 用例，零存量依赖。
 
 ## 24. 架构修订记录（2026-10-10）
 
@@ -691,3 +691,24 @@ MemeverseYTFlashSwapRouter 三测试网补部署（阶段 4「未部署」遗留
 - 部署事实（broadcast `MemeverseScript.s.sol/{421614,84532,97}/run-1791973812~4064664.json`）：CREATE3 同址 `0x7024B5325E9A84aF01a092C0f3b82aF6bBa722BC`；tx 421614=`0xefb7140e…95637`/块 319059915、84532=`0xd4e66d84…5aa56`/块 48102821、97=`0xf858da9c…bd541`/块 136726282，三链 receipt status=1。
 - 溯源：broadcast `commit` 字段=`e327abb`（=冻结基线）；批次脚本增量（Memeverse `21ad8b3`/`6b75944`）仅 `script/`、`src/` 零改动——部署合约源码与冻结基线等同，`memeverseCommit` 不动。验证链：主树 `forge inspect bytecode`（源码同基线）= broadcast init code 前缀（构造参数=UniswapV4PoolManager/MemeverseUniswapHook/POLSplitter，逐链登记核对一致）；三链 runtime 链上实测 codehash 全等 `0x5db7231d5d4bee45931c5ac27ae0ce7b1019f1eaca46b4a649f9b0d9480e9f2d`（无链相关 immutable，与 SwapRouter 逐链分码不同）。
 - 登记：manifest `chains.*.contracts.MemeverseYTFlashSwapRouter` undeployed→deployed + `deployments/{421614,84532,97}.json` contracts 表补址；check-abi-manifest 全绿（schema/SHA256/EIP-55/交叉一致）；source-map §2 哈希同步。功能归属既有 `swap` 特性开关，无新增 flag。
+
+## 28. 架构修订记录（2026-10-20，已委托账户交易形态修复轮）
+
+阶段 6 交易管线的一个非法构造被定位并修复：`prepareType4` 对已 delegated 账户产出「空 `authorizationList` 的 Type-4」——EIP-7702 规范明确要求 Type-4 必须携带至少一张 authorization（空表单为非法构造），所有执行客户端的交易池均直接拒收。
+
+- 实证（真实测试网，dev 账户实测）：Arbitrum Sepolia 拒收（`EIP-7702 transaction with empty auth list`）、Base Sepolia 拒收（`no items in authorization list for EIP7702 transaction`，reth 系错误原文）；带授权的 Type-4 两链均上链成功（421614 `0x1f6d757d…`、84532 `0x01f5a8cc…`）；**不含 `authorizationList` 的普通 type-2 自执行交易两链均上链成功**（421614 `0x165eb5ac…`、84532 `0x8e47a3b9…`）。BSC Testnet 未复测——type-2 为基础交易形态，无链特定风险。
+- 修复：`lib/web3/type4-pipeline.ts` 已 delegated 分支不再构造空表单，`authorizationList` 字段缺省即普通 type-2；`viem-type4-adapter.ts` 发送与模拟分支同步（无表单=不传字段）；集成套件的 same-kernel refreshAuth 变通删除，deposit 发送改走管线的天然 type-2 形态。
+- 影响面收敛：N+1 授权 nonce 纪律仅存在于未 delegated 账户的首笔交易；审阅面板「授权变化」字段在后续交易自然显示「—」；§5/§6.3 相关条文按本记录口径改写。
+- 历史勘误：十月集成套件在 anvil 上撞见的「空表单被拒」当时被误登记为 anvil 缺陷并附「真实客户端应会接受」的未验证猜想，本轮真网实测证伪——anvil 行为正确，管线构造非法。教训登记：症状归因链不得以未验证猜想代替规范原文核对。
+
+## 29. 架构修订记录（2026-10-22，简单直调免审阅轮）
+
+用户裁定（消费产品视角：审阅面板的技术项——活动账户、目标合约、函数语义、技术输入、授权变化——消费者看不懂；钱包弹框已展示 To/网络/费用，站内不重复展示；简单直调如 Faucet 领水无输出/费用/授权变化，九项面板全是噪音）：
+
+- §7「每笔交易签名前显示九项」修订为按交易定制：简单直调（Faucet claim/batchClaim 这类无输出、无费用、无授权变化的直接 EOA 写）跳过站内审阅面板，点 Claim 直进钱包确认弹框；复杂交易（创世/参与/Swap/POL/治理等）保留审阅面板。审阅面板本身是按交易定制的 UI，不是全站写死的九项。
+- 直调仍受 §14 约束：同字段 eth_call 模拟先行（`use-tx-center` direct 分支）、签名后字段变化废弃。余额不由站内重复校验——空账户过不了钱包自己的预检（节点在 mempool 前拒收，无任何花费）。免的是站内确认 UI 与重复校验，不是模拟。
+- AC-1 第 5/6 步同步改写：有审阅面板的交易抄面板核钱包弹框；直调交易只核钱包弹框 To/网络（见 acceptance-checklist.md）。
+- 同轮补充（Get UUSD，2026-10-22 用户裁定）：PSM 面值兑换弹窗自带 Rate/Fee/You receive/Mint capacity left 四行、无滑点/deadline，站内审阅卡同样删除；该流仍需 approval+mint 同批，故走无面板的 `executeSession`，不是 direct。Portfolio Convert 弹窗不受影响，仍保留审阅面板。
+- 三轮补充（钱包路由，2026-10-22 用户指出 MetaMask 本身支持 EIP-7702）：`use-tx-center` 的执行入口收口为 `executeByWallet` 单一分派（决策体抽到 `lib/web3/write-route.ts`），`confirm`/`executeSession`/`executeDirect` 全部经它：direct 直调 → Privy 内嵌钱包 Kernel type-4（`useSign7702Authorization` 的 `secp256k1_sign` 仅内嵌钱包可用）→ 外部钱包 EIP-5792 `wallet_sendCalls`（spec 携带 `calls` 时；钱包在自己的弹窗内完成 7702 升级，dapp 不签 authorization）→ 无 `calls` 的 spec 返回 `unsupported`（`wallet-unsupported` 状态，不伪装成用户取消）。执行管线抽到 `lib/web3/tx-executor.ts`（端口注入、无 React/Privy 依赖）；`session-actions` 的 `buildSessionWrite` 同时产出 5792 `calls` 与 Kernel `calldata`，全部 Router 弹窗（Swap/POL/池/金库/创建/参与/Portfolio 桥/保护窗）共用，外部钱包无需逐弹窗适配。`wallet_getCapabilities` 探测失败只影响该笔，不标脏全局 provider capability；`wallet_getCallsStatus` 参数为 `[batchId]`、状态按规范数字码解析（100/200/400/500/600），轮询超时保持 Confirming…（pending），不判取消；`begin/reset` 递增 run 代际，旧异步续写不得写入新流程。
+- 二轮补充（直调免模拟，2026-10-22 用户裁定「必败交易为什么不是钱包自己模拟」）：免审阅的直接 EOA 写连站内 eth_call 也删除——点击直进钱包弹框，必败交易由钱包自身预检拦截（MetaMask 等在确认框内红色警告；强签则链上 revert、烧微量测试网 gas）。领取流站内进度/错误 UI 删除后，模拟结果（`simulation-failed`/`errorKind`）已无站内消费方，保留只剩弹窗前固定 RPC 往返与必败时无声失败两个负面效果。§7 直调句与 §14「所有写操作先 simulation」按此加简单直调例外；`use-tx-center` direct 分支事件链原样保留（`simulation-ok` 仅作状态推进，无链上读）。Get UUSD 的 session/type-4 管线不受影响——授权管线与 §6.4 gas 闸门需要自身模拟。
+- 四轮补充（审阅面板全席废除，2026-10-23 用户裁定「弹窗即审阅，不能 Review 两次」）：上条「复杂交易保留审阅面板」作废——TxReviewPanel 站内审阅站全站删除（组件/CSS/`startReview`/`cancelReview`/`confirm` API 一并退役），所有 Router 弹窗（参与/Swap/四池/POL/金库/创建/Portfolio）与直调统一走「动作弹窗 Confirm → `executeSession`/`executeDirect` → 钱包弹框」单段审阅；钱包弹框是技术细节的唯一展示位（To/网络/费用/数据），站内不再镜像。§7 审阅九项条款至此整体退役（决议 041）。
