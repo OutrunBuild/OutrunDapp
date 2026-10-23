@@ -607,9 +607,13 @@ export function ParticipationPanel({
       }
       // Allowances are the only must-read-now reads on the click path; one per pull token.
       const approvalLegs: BatchExecution[] = []
+      const approvalDisplays: string[] = []
       for (const leg of pulls) {
         const { allowance } = await readErc20State(reader, leg.token, eoa, spender)
-        if (allowance < leg.amount) approvalLegs.push(approvalCall(leg.token, spender, leg.amount))
+        if (allowance < leg.amount) {
+          approvalLegs.push(approvalCall(leg.token, spender, leg.amount))
+          approvalDisplays.push(leg.display)
+        }
       }
       const { calls, calldata: batch } = buildSessionWrite({
         hook,
@@ -647,7 +651,9 @@ export function ParticipationPanel({
           minOutput: '—',
           fee: '—',
           gasPayer: eoa,
-          authorizationChange: approvalLegs.length > 0 ? pulls.map((leg) => leg.display).join(' + ') : '—',
+          // Lists exactly the approvals the batch executes — a pull leg already covered by
+          // its allowance is not an authorization change.
+          authorizationChange: approvalDisplays.length > 0 ? approvalDisplays.join(' + ') : '—',
           estimatedGas,
           nativeBalance,
         },
