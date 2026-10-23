@@ -44,7 +44,7 @@
     "MockOutrunSUSDSSY": "0x8Ea94c65E2915ee0d23267f2c37DfbA3c2D04190",
     "OutrunSlisBNBSY": "0xd144e56C7b69224e51F9A9ad84cAfb67C4480383",
     "MemeverseRegistrationCenter": "0xA8101c6D52479f9B73A7b806fCeCAD0D07975046",
-    "GenesisCreditFactory": "0x32b847cBB95aB9337aF0a99290f04f7ffc3d2005",
+    "GenesisCreditRegistry": "0x32b847cBB95aB9337aF0a99290f04f7ffc3d2005",
     "GenesisCredit.UETH": "0xCd6BEaAfFE62c6Df3cA1F8b63053Bf2C0f61C541",
     "GenesisCredit.UUSD": "0x97B1Fc3ad6547366B2721fc58459dD3e8e8540A3",
     "GenesisCredit.UBNB": "0xAC0ccDB39739c6A3835Be04dd044305D1ed91ef4",
