@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { PAGES, ZH_PAGES } from './pages';
+import { FALLBACK_PAGES, PAGES, ZH_PAGES } from './pages';
 
 // axe accessibility regression gate: full WCAG 2.0/2.1
 // A+AA scan compared against the e2e/a11y-baseline.json baseline — a new rule
@@ -30,7 +30,9 @@ function readBaseline(): Baseline {
   }
 }
 
+// Full-page sweep (19 routes × axe scan): needs more than the 60s default.
 test('axe: no new WCAG A/AA violations (baseline comparison)', async ({ page }, testInfo) => {
+  test.setTimeout(240_000);
   test.skip(testInfo.project.name !== 'desktop-1280', 'axe scan runs on the desktop tier only');
 
   const baseline = readBaseline();
@@ -41,14 +43,18 @@ test('axe: no new WCAG A/AA violations (baseline comparison)', async ({ page }, 
   // a different DOM — copy/layout variants can introduce violations invisible to
   // the en scan; the "mobile same DOM" tier-skipping rationale covers viewport
   // only, not language variants.
-  for (const { name, path, connectWallet } of [...PAGES, ...ZH_PAGES]) {
+  for (const { name, path, connectWallet } of [...PAGES, ...ZH_PAGES, ...FALLBACK_PAGES]) {
     await page.goto(path, { waitUntil: 'networkidle' });
     // connectWallet entries scan the connected-state full DOM (same standard as the
     // visual baseline); *-disconnected scans the default state
     if (connectWallet) {
       const control = page.locator('.wallet-control');
+      // Fixture builds toggle the harness on the Login button: the click swaps the
+      // button for the account-menu trigger. Connected = the swap happened.
+      // (Opening the menu itself is covered by unit tests; e2e keeps the menu
+      // closed for scans, matching the old baseline.)
       await control.click();
-      await expect(control).toHaveAttribute('aria-pressed', 'true');
+      await expect(control).toHaveAttribute('aria-haspopup', 'menu');
     }
     const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
     const found: Entry[] = results.violations.map((v) => ({

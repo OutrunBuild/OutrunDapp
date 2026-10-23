@@ -202,15 +202,12 @@ test('chain selector dialog: DialogTitle wiring + focus trap + Esc close restore
   await expect(page.locator(DIALOG)).toHaveCount(0);
   await expect(trigger).toBeFocused();
 
-  // select semantics preserved (the chain dialog is the sole entry point for
-  // chain switching): picking a non-first chain writes ?chain=, picking the first
-  // chain again removes the param
+  // wallet-only switch: picking a chain closes the dialog and never writes URL
+  // state (the discovery ?chain= governance filter is owned by that page's own
+  // dropdown, independent of this selector)
   await trigger.click();
   await expect(dialog).toBeVisible();
   await dialog.locator('.chain-dialog__option').nth(1).click();
-  await expect(page).toHaveURL(/chain=/);
-  await trigger.click();
-  await expect(dialog).toBeVisible();
-  await dialog.locator('.chain-dialog__option').first().click();
+  await expect(page.locator(DIALOG)).toHaveCount(0);
   await expect(page).not.toHaveURL(/chain=/);
 });

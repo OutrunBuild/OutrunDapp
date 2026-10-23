@@ -9,7 +9,13 @@
 // gate failure from leaking data back onto pages).
 export const FIXED_NOW = new Date('2026-10-01T00:00:00Z');
 
-export type VisualPage = { name: string; path: string; connectWallet?: boolean };
+export type VisualPage = {
+  name: string;
+  path: string;
+  connectWallet?: boolean;
+  /** zh fallback baselines lock the mobile tier only (same standard as ZH_PAGES) */
+  mobileOnly?: boolean;
+};
 
 export const PAGES: VisualPage[] = [
   { name: 'home', path: '/' },
@@ -34,4 +40,13 @@ export const ZH_PAGES: VisualPage[] = [
   { name: 'zh-portfolio', path: '/zh/portfolio', connectWallet: true },
   { name: 'zh-faucet', path: '/zh/faucet', connectWallet: true },
   { name: 'zh-faucet-disconnected', path: '/zh/faucet' },
+];
+
+// Route-level 404 fallback: unmatched paths (the proxy rewrites everything to
+// /en/**) bubble to the root app/not-found.tsx boundary. Status is asserted by
+// the dedicated visual.spec block (200 streamed / 404 non-streamed are both
+// legitimate for a dynamic not-found page).
+export const FALLBACK_PAGES: VisualPage[] = [
+  { name: 'not-found', path: '/not-found-baseline' },
+  { name: 'zh-not-found', path: '/zh/not-found-baseline', mobileOnly: true },
 ];

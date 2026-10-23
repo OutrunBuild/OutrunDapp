@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { FIXED_NOW, PAGES, ZH_PAGES } from './pages';
+import { FALLBACK_PAGES, FIXED_NOW, PAGES, ZH_PAGES } from './pages';
 
 // Visual baselines: full-page screenshots of routes in
 // the baseline across the three viewport tiers.
@@ -49,13 +49,26 @@ async function connectWallet(page: Page) {
   // The product shell has exactly one wallet button, in product-topbar
   // (marketing-header only exists on the home shell)
   const control = page.locator('.wallet-control');
+  // Fixture builds toggle the harness on the Login button: the click swaps the
+  // button for the account-menu trigger (same .wallet-control footprint) instead
+  // of opening anything. Assert the swap, then open the menu explicitly.
   await control.click();
-  await expect(control).toHaveAttribute('aria-pressed', 'true');
+  // Connected = the Login button swapped for the account-menu trigger.
+  // (Opening the menu itself is covered by unit tests; e2e keeps the
+  // menu closed for screenshots/scans, matching the old baseline.)
+  await expect(control).toHaveAttribute('aria-haspopup', 'menu');
 }
 
-async function shoot(page: Page, name: string, path: string, connect = false) {
+async function shoot(
+  page: Page,
+  name: string,
+  path: string,
+  connect = false,
+  expectStatus: number | number[] = 200,
+) {
   const res = await page.goto(path, { waitUntil: 'networkidle' });
-  expect(res?.status(), `${path} should return 200`).toBe(200);
+  const allowed = Array.isArray(expectStatus) ? expectStatus : [expectStatus];
+  expect(allowed, `${path} should return ${allowed.join('|')}`).toContain(res?.status());
   if (connect) await connectWallet(page);
   await stabilize(page);
   await expect(page).toHaveScreenshot(`${name}.png`, { fullPage: true });
@@ -72,5 +85,17 @@ for (const { name, path, connectWallet } of ZH_PAGES) {
   test(`visual: ${name}`, async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'mobile-390', 'zh runs on the mobile tier only');
     await shoot(page, name, path, connectWallet === true);
+  });
+}
+
+// Route-level 404 fallback: a dynamic not-found page may resolve as a streamed
+// 200 or a non-streamed 404 — both are the documented contract, so accept either
+for (const { name, path, mobileOnly } of FALLBACK_PAGES) {
+  test(`visual: ${name}`, async ({ page }, testInfo) => {
+    test.skip(
+      mobileOnly === true && testInfo.project.name !== 'mobile-390',
+      'zh runs on the mobile tier only',
+    );
+    await shoot(page, name, path, false, [200, 404]);
   });
 }

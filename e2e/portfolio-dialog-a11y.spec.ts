@@ -19,8 +19,12 @@ const SHEET = '[data-slot="sheet-content"]';
 
 async function connectWallet(page: Page) {
   const control = page.locator('.wallet-control');
+  // Fixture builds toggle the harness on the Login button: the click swaps the
+  // button for the account-menu trigger. Connected = the swap happened.
+  // (Opening the menu itself is covered by unit tests; e2e keeps the menu
+  // closed, matching the old baseline.)
   await control.click();
-  await expect(control).toHaveAttribute('aria-pressed', 'true');
+  await expect(control).toHaveAttribute('aria-haspopup', 'menu');
 }
 
 /** DialogTitle/SheetTitle anchor: the layer's aria-labelledby resolves to an in-place title */
