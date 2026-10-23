@@ -29,12 +29,19 @@ function boundedProgress(value: number) {
   return Math.min(Math.max(value, 0), 100)
 }
 
-/** Governance chain first, remaining mainnet chains follow in fixture whitelist order
- *  (omnichain deployment surface) */
+/** Onchain build: the verse's registered omnichainIds are the truth (ids resolved against the
+ *  full chain table; unresolvable ids drop out — null-render discipline). Fixture build
+ *  (omnichainIds=null): governance chain first, remaining mainnet chains follow in fixture
+ *  whitelist order (sample face, e2e baseline). */
 function omnichainChains(verse: FixtureVerse, chains: FixtureChain[]) {
+  if (verse.omnichainIds != null) {
+    return verse.omnichainIds
+      .map((id) => chains.find((chain) => chain.chainId === id))
+      .filter((chain): chain is FixtureChain => chain != null)
+  }
   return [
-    ...chains.filter((chain) => chain.chainId === verse.governanceChain),
-    ...chains.filter((chain) => chain.chainId !== verse.governanceChain),
+    ...chains.filter((chain) => chain.env === 'mainnet' && chain.chainId === verse.governanceChain),
+    ...chains.filter((chain) => chain.env === 'mainnet' && chain.chainId !== verse.governanceChain),
   ]
 }
 
@@ -194,7 +201,16 @@ export function EconomyCard({ locale, verse, chains, onOpen }: EconomyCardProps)
 
       <Link className="economy-card__media" href={verseHref(locale, verse.id)} aria-label={verse.name}>
         <span className="economy-card__media-frame">
-          <img src={`/verses/${verse.id}.svg`} alt="" loading="lazy" />
+          {/* Onchain-registered verses have no bundled media asset (only fixture rows ship
+              /verses/*.svg); a 404 hides the img — the empty frame is the null-render slot */}
+          <img
+            src={`/verses/${verse.id}.svg`}
+            alt=""
+            loading="lazy"
+            onError={(event) => {
+              event.currentTarget.style.display = 'none'
+            }}
+          />
         </span>
       </Link>
       <div className="economy-card__body">
@@ -233,9 +249,9 @@ export function EconomyCard({ locale, verse, chains, onOpen }: EconomyCardProps)
       ) : (
         <dl className="economy-card__facts">
           <div>
-            <dt>{copy.discovery.totalRaised}</dt>
+            <dt>{copy.discovery.omniRaised}</dt>
             <dd data-numeric>
-              {formatAmount(verse.participationSize, locale, true)} {verse.raiseAsset}
+              {formatAmount(verse.omniRaised, locale, true)} {verse.raiseAsset}
             </dd>
           </div>
           <div>

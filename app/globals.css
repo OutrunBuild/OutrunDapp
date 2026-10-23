@@ -341,6 +341,10 @@ svg {
   color: var(--color-text-secondary);
   font-size: var(--text-sm);
   letter-spacing: var(--label-tracking);
+  /* Chain name stays one line: flex squeeze must never spend the trigger's
+    label as wrap slack ("Base Sepolia" folding onto two lines); the desktop
+    squeeze budget belongs to the marketing nav's dense tier instead */
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -403,6 +407,86 @@ svg {
 }
 
 .chain-dialog__option[data-active='true'] {
+  color: var(--or-cyan);
+}
+
+/* Wallet selector (own dialog shell, rows shared with the chain dialog) */
+.wallet-select__title {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  /* Magenta offset echo (same language as .empty-state h3): brand signal
+     within the 1-2px contract */
+  text-shadow: 0.06em 0.06em 0 var(--accent-echo);
+}
+
+.wallet-select__note {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+div > .wallet-select__note:last-child {
+  margin-block-start: var(--space-3);
+}
+
+/* Login dialog: wordmark + tagline over the provider rows */
+.login-dialog {
+  inline-size: min(420px, 94vw);
+  /* Provider rows are invisible boxes at rest (transparent until hover):
+     the visible glyph plane sits ~12px above the row-box bottom, so the
+     bottom padding shrinks to keep that plane even with the wordmark's
+     top gap (25px measured both sides) */
+  padding: var(--space-5) var(--space-5) var(--space-3);
+}
+
+.login__head {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: var(--space-3);
+  margin-block-end: var(--space-4);
+}
+
+.login__wordmark {
+  inline-size: 160px;
+  block-size: auto;
+}
+
+.login__option {
+  justify-content: center;
+  font-size: var(--text-base);
+}
+
+.login__option .chain-dialog__option-name img {
+  inline-size: 20px;
+  block-size: 20px;
+}
+
+/* X glyph runs wide: optical compensation so it reads at the same weight */
+.login__option .chain-dialog__option-name img[src*='/login/x.svg'] {
+  inline-size: 18px;
+  block-size: 18px;
+}
+
+.login__tagline {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: var(--display-tracking);
+  color: var(--color-text);
+  text-shadow:
+    -0.06em -0.06em 0 var(--or-cyan),
+    0.06em 0.06em 0 var(--accent-echo);
+}
+
+.login__list {
+  gap: 0;
+}
+
+.login__link {
   color: var(--or-cyan);
 }
 
@@ -564,7 +648,9 @@ svg {
   .degrade-skeleton__line,
   .degrade-skeleton__badge,
   .degrade-skeleton__chain,
-  .degrade-skeleton__media-fill {
+  .degrade-skeleton__media-fill,
+  .wallet-control[data-restoring] [data-icon='inline-start'],
+  .wallet-control__placeholder-bar {
     animation: none;
   }
 }
@@ -682,6 +768,166 @@ svg {
   color: var(--or-cyan);
 }
 
+/* Account menu (connected identity dropdown): GitHub-style identity header +
+   icon rows + danger row. Layout reuses .locale-menu__item; only the account
+   anatomy below is new. */
+.account-menu__identity {
+  cursor: default;
+  justify-content: flex-start;
+}
+
+.account-menu__identity:hover,
+.account-menu__identity[data-highlighted] {
+  background: none;
+  outline: none;
+}
+
+.account-menu__identity-text {
+  display: grid;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+.locale-menu__item[data-tone='danger'] {
+  color: var(--color-danger);
+}
+
+.locale-menu__item[data-tone='danger'] svg {
+  color: var(--color-danger);
+}
+
+.account-menu__item {
+  justify-content: flex-start;
+}
+
+.locale-menu__item[data-tone='danger']:hover,
+.locale-menu__item[data-tone='danger'][data-highlighted] {
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  outline: 1px solid var(--color-danger);
+  outline-offset: -1px;
+}
+
+.locale-menu__item svg.size-4 {
+  color: var(--color-text-secondary);
+  flex: none;
+}
+
+/* Account dialog (grouped): identity header + Wallet/Backup sections. Shell
+   reuses .chain-dialog__panel; only the account anatomy below is new. */
+.account-dialog.account-dialog {
+  /* Exact fit for the fixed-length 42-char EVM address row: 344px text at
+     14px mono + 16px icon separation + 16px copy icon + 2 × 24px side padding */
+  inline-size: min(424px, 94vw);
+  /* DialogContent ships a max-w-sm utility that silently caps inline-size
+     at 384px — lift it or the width above never takes effect */
+  max-inline-size: none;
+  /* Head row centers the title against the 40px close control, so the top
+     needs less padding than the bottom to read evenly */
+  padding: var(--space-3) var(--space-5) var(--space-5);
+}
+
+.account-dialog__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* Title = the site's bidirectional misregistration echo (cyan upper-left +
+   magenta lower-right, same pair as .ax-glitch-text) on readable sans type:
+   sentence case, normal tracking — the old readability offenders were the
+   mono face, uppercase and 0.08em tracking, not the echo pair */
+.account-dialog__title {
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-semibold);
+  text-shadow:
+    -0.06em -0.06em 0 var(--or-cyan),
+    0.06em 0.06em 0 var(--accent-echo);
+}
+
+.account-dialog__identity {
+  display: grid;
+  /* Label-to-value gap unified with .account-dialog__group (same label/value
+     rhythm across the sheet) */
+  gap: var(--space-3);
+  margin-block-start: var(--space-4);
+}
+
+.account-dialog__close {
+  display: inline-flex;
+  align-items: center;
+  /* Glyph flush with the content-box right edge — a centered 16px glyph in
+     the 40px target reads as 12px short of every other element's right line
+     (copy icon, Export button); the 40px hit area extends leftward only */
+  justify-content: flex-end;
+  min-inline-size: var(--control-height);
+  min-block-size: var(--control-height);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.account-dialog__close:hover {
+  color: var(--color-text);
+}
+
+/* Identity headline: primary text + semibold (the name is the row's anchor,
+   not a footnote); margin zeroed so the label→value gap is the same 12px
+   grid gap the Wallet group uses — the :last-child mirror keeps this rule
+   ahead of div > .wallet-select__note:last-child (0,2,1) in specificity */
+.account-dialog__identity .wallet-select__note:last-child {
+  margin-block-start: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Full-row address layout: text anchors left, copy icon anchors right
+   (GitHub-sheet pattern); gap = the separation at exact-fit width —
+   space-4 reads as adjacent-but-not-glued (user-calibrated) */
+.account-dialog__group .token-strip__copy {
+  min-inline-size: 0;
+  inline-size: 100%;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 0;
+  border: none;
+  background: none;
+  clip-path: none;
+  text-align: start;
+}
+
+.account-dialog__group .token-strip__copy > span:first-child {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Below the exact-fit breakpoint the 94vw cap wins and the one-line address
+   would clip — let it wrap instead (overflow-wrap above already arms it) */
+@media (max-width: 30rem) {
+  .account-dialog__group .token-strip__copy,
+  .account-dialog__group .token-strip__copy > span:first-child {
+    white-space: normal;
+  }
+}
+
+.account-dialog__group {
+  display: grid;
+  gap: var(--space-3);
+  margin-block-start: var(--space-3);
+  padding-block-start: var(--space-3);
+  border-block-start: 1px solid var(--color-border);
+}
+
+/* Field micro-labels: uppercase + tracking (the standard settings-sheet
+   convention); zh labels are unaffected by the transform */
+.account-dialog__label {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
 /* Buttons unified as a "signal panel" anatomy: one button system site-wide, unifying Swap/the
    four tabs, texture over flatness — body = solid raised face, chamfer kept, all four edges
    identical (no machined bevel of top-edge inset light + bottom-edge inset dark);
@@ -735,7 +981,7 @@ svg {
   color: var(--color-bg) !important;
 }
 
-[data-slot='button'][data-variant='default']:hover {
+[data-slot='button'][data-variant='default']:not(:disabled):hover {
   --cb-bg: var(--cta-hover);
 }
 
@@ -751,8 +997,8 @@ svg {
   color: var(--accent-primary) !important;
 }
 
-[data-slot='button'][data-variant='default'].swap-panel__cta:hover,
-[data-slot='button'][data-variant='default'].ax-ghost-cta:hover {
+[data-slot='button'][data-variant='default'].swap-panel__cta:not(:disabled):hover,
+[data-slot='button'][data-variant='default'].ax-ghost-cta:not(:disabled):hover {
   --cb-bg: var(--accent-primary);
   --cb-border: var(--accent-primary);
   color: var(--color-bg) !important;
@@ -773,6 +1019,19 @@ svg {
   color: var(--accent-primary) !important;
 }
 
+/* Session-restore degrade (state-matrix D1): while Privy restores, the wallet
+   control drops its accent chrome — border pinned to the default gray, content
+   to the strong gray (the skeleton gray-black degrade look; yellow on a control
+   that cannot act yet is a false action light). Hover included so the disabled
+   placeholder never flashes the yellow power-up; specificity sits one tier
+   above the ghost skin (and its hover) on purpose */
+[data-slot='button'][data-variant='default'].ax-ghost-cta[data-restoring],
+[data-slot='button'][data-variant='default'].ax-ghost-cta[data-restoring]:hover {
+  --cb-border: var(--color-border);
+  --cb-bg: transparent;
+  color: var(--color-border-strong) !important;
+}
+
 /* Secondary action button "cyan signal panel" (one button system site-wide): cyan tinted
    border + readable secondary text,
    body/light feel from the base class; hover powers up (cyan border + cyan text + cyan tinted
@@ -787,7 +1046,7 @@ svg {
   color: var(--color-text-secondary) !important;
 }
 
-[data-slot='button'][data-variant='outline']:hover {
+[data-slot='button'][data-variant='outline']:not(:disabled):hover {
   --cb-border: var(--or-cyan);
   --cb-bg: color-mix(in srgb, var(--or-cyan) 8%, var(--color-surface-raised));
   color: var(--or-cyan) !important;
@@ -882,11 +1141,12 @@ svg {
   translate: 0 1px;
 }
 
-/* Disabled visual tiers removed entirely (there are no disabled-looking buttons at all):
-   disabled and enabled render pixel-identical; the disabled attribute is kept only as an interaction
-   gate (unclickable/aria), hover/title unchanged. cva's disabled:opacity-50 is already removed in
-   ui/button.tsx,
-   no compensating rules needed here */
+/* Disabled buttons carry zero hover feedback here too (2026-10-22: raw :hover matches disabled
+   elements): every bridge hover rule is :not(:disabled)-gated, matching the cva not-disabled:
+   hover gates. cva also carries the visible disabled grade (opacity 50 + not-allowed cursor)
+   and gates its press nudge on enabled — pointerdown hits disabled controls and :active
+   followed it, nudging dead buttons 1px per press (user-probe-proven root cause of the
+   reported click jitter) */
 
 .wallet-control__label-short {
   display: none;
@@ -895,9 +1155,22 @@ svg {
 .wallet-control {
   /* Same width before/after connect: width keyed to "icon + truncated address + status dot", label
     state centers within it; the address never widens the control */
+  display: inline-flex;
+  align-items: center;
   inline-size: calc(var(--control-height) * 4);
   min-inline-size: 0;
+  /* Never flex-shrink below the fixed budget: the label already carries
+    formatHex's own ellipsis, so any CSS re-truncation renders a double
+    ellipsis (0xBec9…6D…); width squeeze belongs to the nav side (dense tier) */
+  flex-shrink: 0;
   justify-content: center;
+  gap: var(--space-2);
+  /* Space-2 padding at every tier (决议 035 补充 2): the 11-glyph address at
+     --text-base needs ~106px; space-4 side padding leaves the desktop tier at
+     104px — knife-edge overflow re-truncated an already-truncated address
+     (double ellipsis). Space-2 (both tiers unified, mobile already used it)
+     buys 120px desktop / 112px mobile */
+  padding-inline: var(--space-2) !important;
   /* Topbar desktop tier 36px (both shells unified; !important counters the
     [data-slot='button'] 40px !important baseline — this block comes later in the same cascade and
     wins; ≤54rem mobile tier 32px see the mobile block) */
@@ -907,16 +1180,69 @@ svg {
 .wallet-control__connected {
   display: inline-flex;
   max-inline-size: 100%;
+  min-inline-size: 0;
   align-items: center;
   gap: var(--space-2);
   font-family: var(--font-data);
   font-variant-numeric: tabular-nums;
+  /* Address tier (决议 035 补充 2): mono + tabular at the button's base 16px but
+     weight 500, not the button prose 600 (600 mono at 16px reads as a slab — the
+     original "not elegant" complaint; 14px read too small next to the 16px icon);
+     truncation stays the site-wide formatHex default `0xBec9…6D12` (0x+4+4),
+     ~106px inside the 120px desktop / 112px mobile content budgets */
+  font-size: var(--text-base);
+  font-weight: 500;
+}
+
+.wallet-control__connected > span {
+  min-inline-size: 0;
 }
 
 .wallet-control__connected > span:last-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Identity label typography: addresses are numeric data (mono + tabular at
+   --text-sm/500 — the __connected base); Google/X names are prose — inherit the
+   button's sans two tiers up at medium (--text-lg/500 vs the address tier's
+   --text-sm/500): the name is the identity display, and at button size it read
+   smaller than the 16px glyph it sits next to; conversely the address is data and
+   stays a tier below the icon — the two-tier split IS the address≠name distinction
+   (决议 035) */
+.wallet-control__connected[data-label='name'] {
+  font-family: inherit;
+  font-variant-numeric: normal;
+  font-size: var(--text-lg);
+  font-weight: 500;
+}
+
+/* Script specialization: the body stack already splits per script (Latin =
+   IBM Plex Sans, CJK = Noto Sans SC via per-glyph fallback), but CJK glyphs fill
+   the full em box, so equal px reads a tier larger than Latin — CJK names drop
+   one size tier for optical parity with the 20px Latin tier above */
+.wallet-control__connected[data-label='name'][data-script='cjk'] {
+  font-size: var(--text-md);
+}
+
+/* Session-restore label slot: word-scale ghost of the pending label — the
+   final labels measure 40px ("Login", 16px IBM Plex Sans) to ~106px (mono
+   address, 16px tier per 决议 035 补充 2), so 72px reads as a word for either landing; 8px = the 16px
+   label's x-height tier; sharp ends, same gray as the icon (in the real
+   states icon and label share one color). Icon and bar breathe as one cluster
+   (same pulse as the degrade-skeleton atoms; own class because
+   degrade-skeleton names double as the scenario-boundary sentinel) */
+.wallet-control__placeholder-bar {
+  display: inline-block;
+  inline-size: calc(var(--space-8) * 2 + var(--space-2));
+  block-size: var(--space-2);
+  background: var(--color-border-strong);
+}
+
+.wallet-control[data-restoring] [data-icon='inline-start'],
+.wallet-control__placeholder-bar {
+  animation: scenario-pulse 1.2s ease-in-out infinite;
 }
 
 /* Page-level connect CTA for no-user-participation states:
@@ -1075,6 +1401,30 @@ svg {
 
 .marketing-nav__link:hover .marketing-nav__index {
   color: var(--accent-primary);
+}
+
+/* Dense tier for the desktop band where the text nav is still visible but the
+   viewport can no longer fund the resting gaps: the nav compresses in step
+   (column gaps, link padding, index margin each drop one tier) so the squeeze
+   lands here instead of the right cluster — with the chain trigger nowrap and
+   the wallet non-shrinking, this tier is what keeps the header overflow-free
+   from 1024px up */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .marketing-header {
+    gap: var(--space-3);
+  }
+
+  .marketing-nav {
+    gap: var(--space-3);
+  }
+
+  .marketing-nav__link {
+    padding-inline: var(--space-2);
+  }
+
+  .marketing-nav__index {
+    margin-inline-end: var(--space-1);
+  }
 }
 
 @media (max-width: 1023px) {
@@ -3078,6 +3428,61 @@ svg {
 
 .empty-state p {
   color: var(--color-text-secondary);
+}
+
+/* Route-level fallback pages (app/not-found.tsx / error.tsx / global-error.tsx):
+   the empty-state signal language at page scale — full-viewport centered card on the
+   root-layout canvas (scanlines and the paint film already live at body level); the
+   h1 reuses the misregistered magenta echo (same treatment as .empty-state h3 and
+   .verse-identity h1) */
+.route-fallback {
+  display: grid;
+  min-block-size: 100svh;
+  place-items: center;
+  padding: var(--space-6);
+}
+
+.route-fallback__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  max-inline-size: 36rem;
+  padding: var(--space-8) var(--space-6);
+  text-align: center;
+}
+
+/* Error tone (patterns §5: danger frame + human reason + recovery action, no stack
+   traces); the neutral 404 tone stays frameless */
+.route-fallback__card[data-tone='danger'] {
+  border: 1px solid var(--color-destructive);
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--chamfer-panel)) 0,
+    100% var(--chamfer-panel),
+    100% 100%,
+    0 100%
+  );
+}
+
+.route-fallback__card h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: var(--display-tracking);
+  text-shadow: 0.06em 0.06em 0 var(--accent-echo);
+}
+
+.route-fallback__card p {
+  color: var(--color-text-secondary);
+}
+
+/* Digest id line: production RSC errors are redacted to the digest on the client —
+   the only server-log correlation id available for support */
+.route-fallback__digest {
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
 }
 
 /* TikTok-style misregistered text effect: white main glyphs + cyan
@@ -7789,6 +8194,17 @@ svg {
   display: none;
 }
 
+/* ⊙ info trigger in the cap-row FieldDescription: the trigger button's
+   synthesized baseline floats the icon above the surrounding text; sink it
+   back onto the line (same -2px tuning as the .swap-panel__details dt
+   .create-info precedent). Equal inline margins both sides — the box needs
+   real air next to the label and the colon; glyph bearings alone leave it
+   glued to both neighbours */
+.participation-form .create-info {
+  margin-inline: calc(var(--space-1) * 0.75);
+  vertical-align: -2px;
+}
+
 /* Pay asset + amount side by side (one row each wastes too much space;
    two equal-width columns) */
 .participation-duo {
@@ -7996,10 +8412,63 @@ svg {
   color: var(--color-text);
 }
 
+/* Dual CTA on 1fr twin tracks = equal width, full-row span centers the pair
+   (pf-card/pool-card __actions syntax; user ruling 2026-10-21) */
 .participation-review__actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
+}
+
+/* Review dialog body (2026-10-21 rounds 6–7: inline card → smaller popup; figures render as
+   hairline LEDGER ROWS, not floating numbers — label left secondary / mono value right); the
+   shell head already separates, so the inline card's top padding is zeroed */
+.participation-review--dialog {
+  padding-block-start: 0;
+}
+
+.participation-review__rows {
+  border-block-start: 1px solid var(--color-border);
+}
+
+.participation-review__row {
+  display: flex;
+  min-block-size: var(--row-height);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  border-block-end: 1px solid var(--color-border);
+}
+
+.participation-review__row > span:first-child {
+  color: var(--color-text-secondary);
+}
+
+/* Row-value color coding: enter-genesis values cyan (functional/receive signal; yellow
+   reserved for the CTA and the you-pay readout), you-pay total brand yellow + semibold
+   (token semantics "key readouts", user rulings 2026-10-21 rounds 3/5/7) */
+.participation-review__row--genesis > span:last-child {
+  color: var(--accent-link);
+}
+
+.participation-review__row--pay > span:last-child {
+  color: var(--accent-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* You-pay group label mirrors its yellow value — the two groups are color-coded end to end
+   (enter-genesis: cyan label + cyan rows; you-pay: yellow label + yellow row), mirroring the
+   enter-genesis precedent of title-and-values sharing the signal color */
+.participation-review__group--pay .participation-review__group-label {
+  color: var(--accent-primary);
+}
+
+/* Review header meta strip: mode + pay asset context line; in the wallet-review stage the
+   deal amounts join it (echo while the grouped body is hidden) */
+.participation-review__meta {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
 }
 
 /* Transaction signature status list (state flow: awaiting signature → on-chain confirmation →
@@ -8008,7 +8477,10 @@ svg {
 .tx-status {
   display: grid;
   gap: var(--space-2);
-  margin: 0;
+  /* The list centers as one block; rows inside stay left-aligned so the dots
+     hold a single column (user ruling 2026-10-23) */
+  inline-size: fit-content;
+  margin-inline: auto;
   padding: 0;
   list-style: none;
 }
@@ -8083,12 +8555,12 @@ svg {
   }
 }
 
-/* T6 confirmed: the echo-confirmation moment = raised fade-in entrance (dao-fund-dialog same
-   recipe) + result summary + destination CTA */
+/* T6 confirmed = the receipt's closing stamp (user ruling redesign): centered check+title
+   head, then the dialog's own ledger language closes it out — full-width hairline paid row
+   (yellow value, --pay row vocabulary, hero numeral inside the row) + full-width CTA */
 .tx-success {
   display: grid;
   gap: var(--space-3);
-  justify-items: start;
   animation: tx-success-in var(--motion-base) var(--ease-out);
 }
 
@@ -8102,13 +8574,33 @@ svg {
 .tx-success__head {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-3);
+  justify-self: center;
+}
+
+/* Success context turns the house check plate green (create-success accent precedent) */
+.tx-success__head .review-check {
+  border-color: var(--color-success);
+  color: var(--color-success);
 }
 
 .tx-success__title {
   margin: 0;
   font-size: var(--text-md);
   font-weight: var(--font-weight-semibold);
+}
+
+/* Paid row rides the dialog's ledger-row anatomy; the value carries the hero numeral
+   (data font, --text-lg — one step down from num-lg, --pay yellow) */
+.tx-success__paid > span:last-child {
+  font-family: var(--font-data);
+  font-size: var(--text-lg);
+  line-height: 1.1;
+}
+
+.tx-success > .ax-ghost-cta {
+  justify-self: stretch;
 }
 
 .tx-success__summary {
@@ -8164,33 +8656,6 @@ svg {
 /* Enter-genesis group title and values both cyan (the two groups' titles
    distinguished by color; group order = enter genesis first, you pay after) */
 .participation-review__group--genesis .participation-review__group-label {
-  color: var(--accent-link);
-}
-
-.participation-review__rows {
-  border-block-start: 1px solid var(--color-border);
-}
-
-.participation-review__row {
-  display: flex;
-  min-block-size: var(--row-height);
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  border-block-end: 1px solid var(--color-border);
-}
-
-.participation-review__row > span:first-child {
-  color: var(--color-text-secondary);
-}
-
-.participation-review__row--total {
-  font-weight: var(--font-weight-semibold);
-}
-
-/* Enter-genesis group values = cyan (functional/receive signal; yellow reserved for the single
-   primary-action CTA) */
-.participation-review__row--genesis > span:last-child {
   color: var(--accent-link);
 }
 
@@ -8928,13 +9393,14 @@ svg {
     min-block-size: calc(var(--control-height) - var(--space-2)) !important;
     /* Fixed width 152px — the
       shrink = the slack budget after
-      removing the green dot; padding space-3→space-2 in step; the address "0x1111…0001" measured
-      110px
-      (IBM Plex Mono 16px) displays fully at the 152 tier with margin equal to the 160 tier (4px).
+      removing the green dot; padding space-3→space-2 in step (now base-class
+      rule, 决议 035 补充 2); the address "0x1111…0001" measures
+      ~106px
+      (IBM Plex Mono 16px) and displays fully at both the 152 tier
+      (content budget 112px) and the 160 desktop tier (120px).
       Base-class fixed width = the "icon + truncated address" budget, see the .wallet-control base
       class */
     inline-size: calc(var(--control-height) * 4 - var(--space-2));
-    padding-inline: var(--space-2) !important;
   }
 
   .product-main {
@@ -9157,9 +9623,11 @@ svg {
     display: block;
   }
 
+  /* Padding stays on the 决议 035 补充 2 all-tier space-2: space-3 here left the
+    connected address a 104px budget against its ~106px width — the original
+    knife-edge double-ellipsis geometry */
   .marketing-header .wallet-control {
-    min-inline-size: 0;
-    padding-inline: var(--space-3) !important;
+    padding-inline: var(--space-2) !important;
   }
 
   .marketing-header .wallet-control__label-full,
@@ -9359,8 +9827,8 @@ svg {
     grid-template-columns: 1fr;
   }
 
-  .participation-review__actions [data-slot='button'] {
-    inline-size: 100%;
+  .participation-review__actions {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -9503,7 +9971,20 @@ svg {
 }
 
 .discovery-filters [data-slot='field'] {
+  min-inline-size: calc(var(--space-8) * 2.25);
+}
+
+/* Chain identity (logo + full testnet name) needs more room than the short mode/sort labels */
+.discovery-filters [data-slot='field']:has(#governance-chain) {
   min-inline-size: calc(var(--space-8) * 2.75);
+}
+
+/* Widen the chain field only where the tools row has slack, so the search placeholder keeps
+   its full text and narrow desktops never overflow */
+@media (min-width: 80rem) {
+  .discovery-filters [data-slot='field']:has(#governance-chain) {
+    min-inline-size: calc(var(--space-8) * 4);
+  }
 }
 
 .discovery-order-toggle[data-slot='button'] {
@@ -10195,6 +10676,12 @@ button.pf-action__link {
     accessible name; the green dot is removed
     so the connection signal is carried by the signature line; this tier goes pure icon) */
   .product-topbar .wallet-control__connected > span {
+    display: none;
+  }
+
+  /* Placeholder bar follows the same pure-icon collapse: the interim state is
+    icon-only at this tier too, mirroring the two final states */
+  .product-topbar .wallet-control__placeholder-bar {
     display: none;
   }
 
@@ -13002,34 +13489,29 @@ button.pf-action__link {
 
 .fc-claims__uusd strong {
   color: var(--color-text);
+  /* Same emphasis tier as the claim-row titles (.pf-claim-row__id strong): the browser-default
+     bold on <strong> read as a different font next to them */
+  font-weight: var(--font-weight-semibold);
 }
 
-/* UUSD brand plate optical-balancing final values (y=-1.5px box-center correction, x=1px rightward
-   to tighten the gap with the text;
-   the USDC side (.fc-claims__asset img) is tuned
-   independently; this value stays frozen) */
-.fc-claims__uusd img {
-  translate: 1px -1.5px;
+/* The "Swap from USDC" inline unit: leading text + icon + symbol on one flex centerline.
+   Both footer icons inherit their position from the same align-items:center chain, so they
+   share one horizontal centerline at any zoom/DPI — the previous per-icon translate /
+   vertical-align optical offsets were tuned for a single rendering environment and drifted
+   apart elsewhere; --space-1 gaps bind the icon to "USDC" and to the leading text equally */
+.fc-claims__from {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  white-space: nowrap;
 }
 
-/* The "Redeemed from USDC" inline asset unit: icon + symbol as an
-   unsplittable atomic unit
-   (inline-flex + nowrap); 16px plate;
-   a negative vertical-align explicitly pins the position — inline-flex's own baseline derives from
-   the img's bottom edge
-   (replaced elements have no text baseline) and would ride above the row's baseline; the negative
-   value drops
-   the unit back into the line and optically balances it with the text's ink center */
+/* Icon + symbol as an unsplittable atomic unit (inline-flex + nowrap) */
 .fc-claims__asset {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
   white-space: nowrap;
-  vertical-align: -5px;
-}
-
-.fc-claims__asset img {
-  translate: 0 -1.5px;
 }
 
 /* One-tap claim-everything row (at the claim group's tail, hairline-divided; same anatomy as the

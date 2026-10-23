@@ -19,9 +19,11 @@ export function formatPercent(value: number, locale: Locale) {
   }).format(value)
 }
 
-/** Address/tx-hash truncation: site-wide `0x1234…abcd` (first 6 + … + last 4) */
-export function formatHex(value: string) {
-  return `${value.slice(0, 6)}…${value.slice(-4)}`
+/** Address/tx-hash truncation: site-wide `0x1234…abcd` (first 6 + … + last 4);
+ * pass head/tail to widen (e.g. roomy dialog rows) — defaults keep every
+ * existing call site unchanged */
+export function formatHex(value: string, head = 6, tail = 4) {
+  return `${value.slice(0, head)}…${value.slice(-tail)}`
 }
 
 /** Compact market-cap format: fixed B/M/K abbreviations + two decimals; no locale-based

@@ -6,9 +6,27 @@ import { X } from 'lucide-react'
 import type { Locale, FixturePolPosition, FixtureVerse } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
-import { useMockWallet } from '../global/mock-wallet'
-import { formatAmount } from '../global/signal-ui'
+import { useAccountCenter } from '../global/use-account-center'
+import { useTxCenter, type WriteSpec } from '../global/use-tx-center'
+import { TxStatus } from '../global/tx-status'
+import {
+  estimateSession,
+  readErc20Meta,
+  readErc20State,
+  resolveVerseSession,
+} from '../global/execution-reads'
+import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
+import {
+  approvalCall,
+  buildSessionWrite,
+  redeemMemecoinLiquidityCall,
+} from '@/lib/web3/session-actions'
+import { useParams } from 'next/navigation'
+import { parseVerseIdParam } from '../global/routes'
+import { SwitchChainCta, useVerseExecChain } from '../global/switch-chain-cta'
+import { formatUnits, parseUnits, type Hex } from 'viem'
 import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
+import { formatAmount } from '../global/signal-ui'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -48,9 +66,17 @@ export function PolRedeemLpDialog({
 }) {
   const copy = getCopy(locale).verseDesk
   const common = getCopy(locale).common
-  const { connected, toggle } = useMockWallet()
+  const center = useAccountCenter()
+  const { connected, connectAction: toggle } = center
+  const { execChain, wrongChain, switchChain } = useVerseExecChain(verse.governanceChain)
+  const tx = useTxCenter()
+  const params = useParams()
+  const rawVerseId = params?.verseId
+  const verseId = parseVerseIdParam(rawVerseId)
   // Opens with empty input (amount input defaults to empty 0.00, not prefilled with balance)
   const [amount, setAmount] = useState('')
+  const [resolving, setResolving] = useState(false)
+  const [resolveFailed, setResolveFailed] = useState(false)
   const balanceErrorId = useId()
 
   const polSymbol = `POL-${verse.symbol}`
@@ -63,6 +89,80 @@ export function PolRedeemLpDialog({
   const overBalance = parsed > pol.myPol
   // 1:1 identity by main-pool construction (amountInLP=amountInPOL), no sample/slot branch
   const lpOut = valid ? parsed : null
+  // POL burn by the launcher proxy spends the holder's allowance (MemePol.burn third-party
+  // path), so the approval leg rides along when allowance is short.
+  const executionReady =
+    center.source === 'real' &&
+    connected &&
+    center.chainSupported &&
+    !wrongChain &&
+    center.chainId != null &&
+    center.address != null &&
+    verseId != null
+
+  async function startRedeemReview(): Promise<void> {
+    if (!executionReady || !valid || overBalance || resolving) return
+    const provider = getActiveEip1193Provider()
+    const eoa = center.address as Hex | null
+    const chainId = center.chainId
+    if (!provider || !eoa || chainId == null || verseId == null) return
+    setResolving(true)
+    setResolveFailed(false)
+    try {
+      const session = await resolveVerseSession({
+        request: provider.request,
+        chainId,
+        eoa,
+        verseId: BigInt(verseId),
+      })
+      const launcher = session.contracts.MemeverseLauncher as Hex
+      const { decimals } = await readErc20Meta(session.reader, session.verse.pol)
+      const amountBase = parseUnits(amount, decimals)
+      const { allowance } = await readErc20State(session.reader, session.verse.pol, eoa, launcher)
+      const approval =
+        allowance < amountBase
+          ? approvalCall(session.verse.pol, launcher, amountBase)
+          : undefined
+      const action = redeemMemecoinLiquidityCall(launcher, { verseId: BigInt(verseId), amountInPOL: amountBase })
+      const { calls, calldata: batch } = buildSessionWrite({ hook: session.hook, action, approval })
+      const { estimatedGas, nativeBalance } = await estimateSession(
+        { client: session.client, reader: session.reader, eoa },
+        batch,
+      )
+      const spec: WriteSpec = {
+        review: {
+          chainId,
+          account: eoa,
+          targetContract: launcher,
+          functionName: 'redeemMemecoinLiquidity',
+          inputs: `${formatUnits(amountBase, decimals)} ${polSymbol}`,
+          minOutput: `${formatUnits(amountBase, decimals)} ${lpSymbol}`,
+          fee: '—',
+          gasPayer: eoa,
+          authorizationChange: approval
+              ? `${formatUnits(amountBase, decimals)} ${polSymbol}`
+              : '—',
+          estimatedGas,
+          nativeBalance,
+        },
+        kernel: session.kernel,
+        expectedChainId: chainId,
+        batchCallData: batch,
+        calls,
+        quoteId: `redeem-lp:${verseId}:${amountBase}`,
+        minOutput: amountBase.toString(),
+        slippageBps: 0,
+        deadline: Math.floor(Date.now() / 1000) + 3600,
+        manifestVersion: session.manifestVersion,
+        crossChain: false,
+      }
+      void tx.executeSession(spec)
+    } catch {
+      setResolveFailed(true)
+    } finally {
+      setResolving(false)
+    }
+  }
 
   return (
     <Dialog>
@@ -126,14 +226,31 @@ export function PolRedeemLpDialog({
           </dl>
 
           {connected ? (
-            <Button className="swap-panel__cta" disabled>
-              {copy.redeemPol}
-            </Button>
+            wrongChain ? (
+              <SwitchChainCta
+                locale={locale}
+                execChain={execChain}
+                chainName={verse.governanceChainName}
+                onSwitch={switchChain}
+                className="swap-panel__cta"
+              />
+            ) : (
+              <Button
+                className="swap-panel__cta"
+                disabled={!valid || overBalance || !executionReady || resolving || tx.running}
+                onClick={() => void startRedeemReview()}
+              >
+                {copy.redeemPol}
+              </Button>
+            )
           ) : (
             <Button className="swap-panel__cta" onClick={toggle}>
               {copy.swapCta}
             </Button>
           )}
+          {resolveFailed ? <FieldError>{common.degrade.errorBody}</FieldError> : null}
+          
+          {tx.active && !tx.reviewing ? <TxStatus locale={locale} state={tx.display} /> : null}
         </div>
       </DialogContent>
     </Dialog>

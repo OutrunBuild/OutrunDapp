@@ -1,9 +1,11 @@
-// Scenario protocol: only screenshot-freeze hooks for transient views, invisible to real users
-// (gated to fixture-mode data). These hooks exist so screenshot capture can freeze pages in
-// transient states. Data states (paused/zero-balance etc.) are expressed by the fixture data
-// itself, not by scenarios.
-// Index lag degrades silently (list data slightly stale; real-time readings such as balances are
-// unaffected): there is no user-visible index-lag banner.
+// Scenario freeze hooks (loading/empty/error): screenshot-only, invisible to real users.
+// Server/client-isomorphic: NO 'use client' directive — the discovery RSC calls these during
+// SSR. The client harness (web3-harness.ts) only owns the wallet store.
+
+// NEXT_PUBLIC_ mirror is the client-inlinable projection; the server var covers SSR.
+const ONCHAIN_BUILD =
+  process.env.NEXT_PUBLIC_OUTRUN_DATA_SOURCE === 'onchain' ||
+  process.env.OUTRUN_DATA_SOURCE === 'onchain';
 
 /** Whitelist of screenshot-freeze hook ids */
 export const SCENARIO_IDS = ['loading', 'empty', 'error'] as const;
@@ -15,13 +17,11 @@ export function isScenarioView(value: string): value is Exclude<ScenarioView, 'n
 }
 
 /**
- * Scenario param parsing. Onchain-data mode runs with OUTRUN_DATA_SOURCE=onchain in the server
- * environment (read at runtime — a build without it silently re-enables scenario parsing) and
- * neither parses nor injects -- onchain-mode access carrying this param is handled via the
- * default path.
+ * Scenario param parsing. Onchain builds neither parse nor inject — onchain access carrying
+ * this param falls through to the default path.
  */
 export function parseScenarioParam(value: string | string[] | undefined): ScenarioView | null {
-  if (process.env.OUTRUN_DATA_SOURCE === 'onchain') return null;
+  if (ONCHAIN_BUILD) return null;
   const raw = Array.isArray(value) ? value[0] : value;
   if (!raw) return null;
   return isScenarioView(raw) ? raw : null;

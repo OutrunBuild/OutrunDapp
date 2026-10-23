@@ -6,13 +6,31 @@ import { ArrowDown, ArrowLeftRight } from 'lucide-react'
 import type { Locale, FixturePolPosition, FixtureVerse } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
-import { useMockWallet } from '../global/mock-wallet'
+import { useAccountCenter } from '../global/use-account-center'
 import { ActionDialogShell, DialogCta } from '../global/action-dialogs'
+import { useTxCenter, type WriteSpec } from '../global/use-tx-center'
+import { TxStatus } from '../global/tx-status'
+import {
+  estimateSession,
+  readErc20Meta,
+  readErc20State,
+  resolveVerseSession,
+} from '../global/execution-reads'
+import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
+import {
+  approvalCall,
+  buildSessionWrite,
+  mintPolCall,
+} from '@/lib/web3/session-actions'
+import { useParams } from 'next/navigation'
+import { formatUnits, parseUnits, type Hex } from 'viem'
 import { SwapSettings } from '../global/swap-settings'
 import { formatAmount } from '../global/signal-ui'
 import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
 import { fmtTokenAmount, fmtUsd } from '../global/amount-format'
 import { getSlippageIssue, slippageToNumber } from '../global/slippage-input'
+import { parseVerseIdParam } from '../global/routes'
+import { useVerseExecChain } from '../global/switch-chain-cta'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 import { FieldError } from '@/components/ui/field'
@@ -28,7 +46,7 @@ import { Input } from '@/components/ui/input'
  * uAssetPerPol=fixture); meta copy such as "illustrative" or "reads on-chain values" never
  * enters the UI — no disclaimers needed;
  * the CTA does not fake on-chain execution (disconnected=Connect
- * Wallet clickable to toggle mock connection; connected=Mint disabled).
+ * Wallet clickable to toggle connection; connected=Mint disabled).
  */
 export function PolMintDialog({
   locale,
@@ -47,7 +65,13 @@ export function PolMintDialog({
 }) {
   const copy = getCopy(locale).verseDesk
   const common = getCopy(locale).common
-  const { connected, toggle } = useMockWallet()
+  const center = useAccountCenter()
+  const { connected, connectAction: toggle } = center
+  const { execChain, wrongChain, switchChain } = useVerseExecChain(verse.governanceChain)
+  const tx = useTxCenter()
+  const params = useParams()
+  const rawVerseId = params?.verseId
+  const verseId = parseVerseIdParam(rawVerseId)
   const [memeAmount, setMemeAmount] = useState('')
   const receiveLabelId = useId()
   const memeBalanceErrorId = useId()
@@ -59,6 +83,8 @@ export function PolMintDialog({
   const [slippageText, setSlippageText] = useState('0.5')
   const [deadlineText, setDeadlineText] = useState('10')
   const [rateInverted, setRateInverted] = useState(false)
+  const [resolving, setResolving] = useState(false)
+  const [resolveFailed, setResolveFailed] = useState(false)
 
   const polSymbol = `POL-${verse.symbol}`
   const memeVal = Number(memeAmount)
@@ -73,6 +99,108 @@ export function PolMintDialog({
   const slippage = slippageToNumber(slippageText)
   const slippageIssue = getSlippageIssue(slippage)
   const minPol = polOut != null && slippageIssue == null ? polOut * (1 - slippage / 100) : null
+  const executionReady =
+    center.source === 'real' &&
+    connected &&
+    center.chainSupported &&
+    !wrongChain &&
+    center.chainId != null &&
+    center.address != null &&
+    verseId != null
+
+  async function startMintReview(): Promise<void> {
+    if (!executionReady || !valid || memeOver || uOver || slippageIssue != null || resolving) return
+    const provider = getActiveEip1193Provider()
+    const eoa = center.address as Hex | null
+    const chainId = center.chainId
+    if (!provider || !eoa || chainId == null || verseId == null) return
+    setResolving(true)
+    setResolveFailed(false)
+    try {
+      const session = await resolveVerseSession({
+        request: provider.request,
+        chainId,
+        eoa,
+        verseId: BigInt(verseId),
+      })
+      const launcher = session.contracts.MemeverseLauncher as Hex
+      const [memeDecimals, uDecimals, polDecimals] = await Promise.all([
+        readErc20Meta(session.reader, session.verse.memecoin).then((meta) => meta.decimals),
+        readErc20Meta(session.reader, session.verse.uAsset).then((meta) => meta.decimals),
+        readErc20Meta(session.reader, session.verse.pol).then((meta) => meta.decimals),
+      ])
+      const memeDesired = parseUnits(memeAmount, memeDecimals)
+      const uDesired = parseUnits(uAmount, uDecimals)
+      const slippageBps = Math.round(slippage * 100)
+      const memeMin = (memeDesired * BigInt(10000 - slippageBps)) / 10000n
+      const uMin = (uDesired * BigInt(10000 - slippageBps)) / 10000n
+      const outDesired = polOut != null ? parseUnits(String(polOut), polDecimals) : 0n
+      const deadlineSecs = BigInt(Math.floor(Date.now() / 1000) + (Number(deadlineText) || 10) * 60)
+      const [memeAllow, uAllow] = await Promise.all([
+        readErc20State(session.reader, session.verse.memecoin, eoa, launcher).then((state) => state.allowance),
+        readErc20State(session.reader, session.verse.uAsset, eoa, launcher).then((state) => state.allowance),
+      ])
+      const approvals = [
+        ...(memeAllow < memeDesired
+          ? [approvalCall(session.verse.memecoin, launcher, memeDesired)]
+          : []),
+        ...(uAllow < uDesired
+          ? [approvalCall(session.verse.uAsset, launcher, uDesired)]
+          : []),
+      ]
+      const action = mintPolCall(launcher, {
+        verseId: BigInt(verseId),
+        amountInUAssetDesired: uDesired,
+        amountInMemecoinDesired: memeDesired,
+        amountInUAssetMin: uMin,
+        amountInMemecoinMin: memeMin,
+        amountOutDesired: outDesired,
+        deadline: deadlineSecs,
+      })
+      const { calls, calldata: batch } = buildSessionWrite({
+        hook: session.hook,
+        approvals,
+        action,
+      })
+      const { estimatedGas, nativeBalance } = await estimateSession(
+        { client: session.client, reader: session.reader, eoa },
+        batch,
+      )
+      const spec: WriteSpec = {
+        review: {
+          chainId,
+          account: eoa,
+          targetContract: launcher,
+          functionName: 'mintPOLToken',
+          inputs: `${formatUnits(memeDesired, memeDecimals)} ${verse.symbol} + ${formatUnits(uDesired, uDecimals)} ${verse.raiseAsset}`,
+          minOutput: polOut != null ? `${formatUnits(outDesired, polDecimals)} ${polSymbol}` : '—',
+          fee: '—',
+          gasPayer: eoa,
+          authorizationChange:
+            approvals.length > 0
+              ? `${verse.symbol} + ${verse.raiseAsset}`
+              : '—',
+          estimatedGas,
+          nativeBalance,
+        },
+        kernel: session.kernel,
+        expectedChainId: chainId,
+        batchCallData: batch,
+        calls,
+        quoteId: `mint:${verseId}:${memeDesired}:${uDesired}`,
+        minOutput: outDesired.toString(),
+        slippageBps,
+        deadline: Number(deadlineSecs),
+        manifestVersion: session.manifestVersion,
+        crossChain: false,
+      }
+      void tx.executeSession(spec)
+    } catch {
+      setResolveFailed(true)
+    } finally {
+      setResolving(false)
+    }
+  }
 
   // Two-side linkage: both sides equal in value across the main pool's full range;
   // the other side is back-computed at the price ratio
@@ -247,9 +375,19 @@ export function PolMintDialog({
             locale={locale}
             connected={connected}
             onConnect={toggle}
+            onAction={() => void startMintReview()}
             label={copy.mintPol}
             connectLabel={copy.swapCta}
+            disabled={!valid || memeOver || uOver || slippageIssue != null || !executionReady || resolving || tx.running}
+            switchChainTo={
+              wrongChain
+                ? { execChain, chainName: verse.governanceChainName, onSwitch: switchChain }
+                : undefined
+            }
           />
+          {resolveFailed ? <FieldError>{common.degrade.errorBody}</FieldError> : null}
+          
+          {tx.active && !tx.reviewing ? <TxStatus locale={locale} state={tx.display} /> : null}
       </ActionDialogShell>
     </Dialog>
   )

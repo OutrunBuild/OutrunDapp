@@ -91,6 +91,21 @@ export type FixtureVerse = SourceRecord & {
   scenario: readonly string[];
   governanceChain: number;
   governanceChainName: string;
+  /** Viewing chain id: the chain whose local genesis state this row shows (equals governanceChain
+   * in the fixture build; in the onchain build each omnichain verse expands to one row per
+   * registered chain, each row carrying that chain's own raised/progress/participants). Detail
+   * links keep the verse id only — the detail page scopes to the governance chain. */
+  chainId: number;
+  chainName: string;
+  /** Cross-chain totals for the fact row (same uAsset denomination on every chain): the verse's
+   * raised sums across all registered chains. Single-chain Progress/Success-threshold meters
+   * never use these — each chain settles its own genesis independently. */
+  omniRaised: number;
+  omniParticipantCount: number;
+  /** Registered omnichain chain ids, first = governance chain (on-chain registration truth).
+   * Fixture snapshot lacks the field -> null: the identity row falls back to the
+   * chains-fixture sample face (fixture build only). */
+  omnichainIds: number[] | null;
   createdAt: string;
   participantCount: number;
   /** One-line description (registration-phase metadata); fixture missing=null -> UI does not render */
@@ -140,6 +155,9 @@ export type FixtureAsset = SourceRecord & {
   anchorNote?: string;
   /** sy asset to anchor-asset conversion sample rate (1 sy ≈ N anchor assets -> N uAsset, changes in real time; missing=falls back to face value 1, no slot) */
   anchorValue?: number;
+  /** PSM mint-side fee (tin) for a reserve payable on the face-value direct path; null/absent=rate unread
+   *  (par preview, fee row not rendered) */
+  psmFeeIn?: number | null;
 };
 
 export type FixtureSnapshot = {
@@ -226,6 +244,11 @@ function getSnapshot(): FixtureSnapshot {
       governanceChain: verse.governanceChain,
       governanceChainName:
         chainMeta.get(verse.governanceChain)?.name ?? String(verse.governanceChain),
+      // Fixture source has no per-chain participation split: the row views its governance
+      // chain, and the cross-chain totals equal the single-chain values
+      chainId: verse.governanceChain,
+      chainName: chainMeta.get(verse.governanceChain)?.name ?? String(verse.governanceChain),
+      omnichainIds: null,
       createdAt: verse.createdAt,
       participantCount: verse.participants,
       description: verse.description ?? null,
@@ -245,6 +268,8 @@ function getSnapshot(): FixtureSnapshot {
       leverageInterest,
       preorderRaised,
       participationSize: normalRaised + leverageInterest + preorderRaised,
+      omniRaised: normalRaised + leverageInterest + preorderRaised,
+      omniParticipantCount: verse.participants,
       normalProgress: progress(normalRaised, threshold),
       leverageProgress: progress(leverageInterest, threshold),
       preorderProgress: progress(preorderRaised, threshold),
@@ -322,14 +347,71 @@ export function getFixtureSnapshot() {
   return getSnapshot();
 }
 
+/** Chain-scoped verse rows for the discovery browser: one row per verse, viewing its
+ * governance chain (the fixture source has no per-chain participation split). Onchain twin:
+ * components/data/onchain-adapter.ts getFixtureChainVerses — one row per (verse, chain). */
+export function getFixtureChainVerses(): FixtureVerse[] {
+  return getSnapshot().verses;
+}
+
+/** Chain ids backing the discovery chain filter (fixture: distinct governance chains) */
+export function getFixtureVerseChainIds(): number[] {
+  return [...new Set(getSnapshot().verses.map((verse) => verse.governanceChain))].sort(
+    (a, b) => a - b,
+  );
+}
+
+export type ChainVersePage = {
+  rows: FixtureVerse[];
+  total: number;
+  hasMore: boolean;
+  chainIds: number[];
+};
+
+/** One discovery page on one chain (fixture: in-memory slice of the governance-chain rows).
+ * Onchain twin: components/data/onchain-adapter.ts getFixtureChainVersePage — paged subgraph
+ * read, bounded server memory and RSC payload at any verse volume. */
+export function getFixtureChainVersePage(
+  chainId: number,
+  filter: { stage?: VerseStage; fastGenesis?: boolean; query?: string },
+  first: number,
+  skip: number,
+): ChainVersePage {
+  const size = Math.max(1, Math.min(Math.floor(first) || 24, 100));
+  const offset = Math.max(0, Math.floor(skip) || 0);
+  const chainIds = getFixtureVerseChainIds();
+  // Chain-0 probe (option-set discovery before chain resolution): static option set, zero reads
+  if (chainId === 0) return { rows: [], total: 0, hasMore: false, chainIds };
+  const query = filter.query?.trim().toLowerCase();
+  const matching = getSnapshot().verses.filter(
+    (verse) =>
+      verse.chainId === chainId &&
+      (!filter.stage || verse.stage === filter.stage) &&
+      (filter.fastGenesis === undefined || verse.fastGenesis === filter.fastGenesis) &&
+      (!query ||
+        verse.name.toLowerCase().includes(query) ||
+        verse.symbol.toLowerCase().includes(query) ||
+        (verse.memecoinAddress?.toLowerCase().includes(query) ?? false)),
+  );
+  const rows = matching.slice(offset, offset + size);
+  return {
+    rows,
+    total: matching.length,
+    hasMore: offset + size < matching.length,
+    chainIds,
+  };
+}
+
 /** Detail page URL segment parsing: accepts numeric form (/memeverse/21, = on-chain uint256 verseId convention) and the legacy verse-021 form */
 export function getFixtureVerse(verseId: string) {
   const match = /^(?:verse-)?(\d+)$/i.exec(verseId);
   if (!match) return null;
-  const numeric = Number(match[1]);
+  // uint256 ids exceed Number precision — compare normalized decimal strings
+  const digits = match[1].replace(/^0+(?=\d)/, '');
   return (
-    getSnapshot().verses.find((verse) => Number(verse.id.replace(/^verse-/, '')) === numeric) ??
-    null
+    getSnapshot().verses.find(
+      (verse) => verse.id.replace(/^verse-/, '').replace(/^0+(?=\d)/, '') === digits,
+    ) ?? null
   );
 }
 
@@ -378,6 +460,12 @@ export function getFixtureParticipationOptions(
           .map((pair) => pair.reserveId)
       : [],
   );
+  // PSM mint-side fee (tin) per reserve: the face-value path pays it before uAsset is minted
+  const psmFeeByReserve = new Map(
+    (raiseAsset ? fixtureData.psm.items.filter((pair) => pair.uAssetId === raiseAsset.id) : []).map(
+      (pair) => [pair.reserveId, Number(pair.tin.raw) / 1e4] as const,
+    ),
+  );
   const assetById = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
   const toAsset = (asset: (typeof fixtureData.assets.items)[number]) => ({
     id: asset.id,
@@ -399,7 +487,9 @@ export function getFixtureParticipationOptions(
           anchorNote: raiseAsset.anchorNote,
         }
       : null,
-    reserves: fixtureData.assets.items.filter((asset) => reserveIds.has(asset.id)).map(toAsset),
+    reserves: fixtureData.assets.items
+      .filter((asset) => reserveIds.has(asset.id))
+      .map((asset) => ({ ...toAsset(asset), psmFeeIn: psmFeeByReserve.get(asset.id) ?? null })),
     yieldSourceRegistry: fixtureData.yieldSources.items
       .filter((source) => source.anchor === family)
       .map((source) => ({

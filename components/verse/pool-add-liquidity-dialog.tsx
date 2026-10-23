@@ -6,13 +6,32 @@ import { ArrowDown, ArrowLeftRight } from 'lucide-react'
 import type { Locale, FixturePolPosition, FixtureVerseTrade } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
-import { useMockWallet } from '../global/mock-wallet'
+import { useAccountCenter } from '../global/use-account-center'
 import { ActionDialogShell, DialogCta } from '../global/action-dialogs'
+import { useTxCenter, type WriteSpec } from '../global/use-tx-center'
+import { TxStatus } from '../global/tx-status'
+import {
+  estimateSession,
+  readErc20Meta,
+  readErc20State,
+  resolvePoolTokens,
+  resolveVerseSession,
+} from '../global/execution-reads'
+import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
+import {
+  addLiquidityCall,
+  approvalCall,
+  buildSessionWrite,
+} from '@/lib/web3/session-actions'
+import { useParams } from 'next/navigation'
+import { formatUnits, parseUnits, type Hex } from 'viem'
 import { SwapSettings } from '../global/swap-settings'
 import { formatAmount } from '../global/signal-ui'
 import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
 import { fmtTokenAmount, fmtUsd } from '../global/amount-format'
 import { getSlippageIssue, slippageToNumber } from '../global/slippage-input'
+import { parseVerseIdParam } from '../global/routes'
+import { useVerseExecChain } from '../global/switch-chain-cta'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 import { FieldError } from '@/components/ui/field'
@@ -36,7 +55,7 @@ import { Input } from '@/components/ui/input'
  * marketPricePerPol sample, the two PT pools=anchor-rate derivation sample (see the
  * ptAnchorRatio note below).
  * Same discipline as Mint: the quote is a linear-derivation sample; CTA disconnected=
- * Connect Wallet clickable to toggle mock connection,
+ * Connect Wallet clickable to toggle connection,
  * connected=Add Liquidity disabled, no faked on-chain execution.
  */
 export function PoolAddLiquidityDialog({
@@ -45,6 +64,8 @@ export function PoolAddLiquidityDialog({
   pol,
   price,
   uAssetUsd,
+  governanceChain,
+  governanceChainName,
 }: {
   locale: Locale
   /** Pool card row data (pool identifier + both sides' symbols) */
@@ -55,11 +76,22 @@ export function PoolAddLiquidityDialog({
   price: number | null
   /** uAsset USD sample price; null=hide the USD conversion row */
   uAssetUsd: number | null
+  /** Verse governance chain + display name (execution-chain gate; SwitchChainCta target) */
+  governanceChain: number
+  governanceChainName: string
 }) {
   const copy = getCopy(locale).verseDesk
   const common = getCopy(locale).common
-  const { connected, toggle } = useMockWallet()
+  const center = useAccountCenter()
+  const { connected, connectAction: toggle } = center
+  const { execChain, wrongChain, switchChain } = useVerseExecChain(governanceChain)
+  const tx = useTxCenter()
+  const params = useParams()
+  const rawVerseId = params?.verseId
+  const verseId = parseVerseIdParam(rawVerseId)
   const [baseAmount, setBaseAmount] = useState('')
+  const [resolving, setResolving] = useState(false)
+  const [resolveFailed, setResolveFailed] = useState(false)
   const receiveLabelId = useId()
   const baseBalanceErrorId = useId()
   const quoteBalanceErrorId = useId()
@@ -105,6 +137,120 @@ export function PoolAddLiquidityDialog({
   const quoteOver = quoteBalance != null && quoteVal > quoteBalance
   // LP minted = quote side × lpPerQuote (mint rate fixture sample, linear derivation; production reads on-chain values)
   const lpOut = valid && pool.lpPerQuote != null && pool.lpPerQuote > 0 ? quoteVal * pool.lpPerQuote : null
+  // Pool side → token resolution (main=[memecoin,uAsset], pol-uasset=[POL,uAsset],
+  // pt-uasset=[PT,uAsset], pt-pol=[PT,POL]); PT via splitter view.
+  const executionReady =
+    center.source === 'real' &&
+    connected &&
+    center.chainSupported &&
+    !wrongChain &&
+    center.chainId != null &&
+    center.address != null &&
+    verseId != null
+
+  async function startAddReview(): Promise<void> {
+    if (!executionReady || !valid || baseOver || quoteOver || slippageIssue != null || resolving) return
+    const provider = getActiveEip1193Provider()
+    const eoa = center.address as Hex | null
+    const chainId = center.chainId
+    if (!provider || !eoa || chainId == null || verseId == null) return
+    setResolving(true)
+    setResolveFailed(false)
+    try {
+      const session = await resolveVerseSession({
+        request: provider.request,
+        chainId,
+        eoa,
+        verseId: BigInt(verseId),
+      })
+      const router = session.contracts.MemeverseSwapRouter as Hex
+      const reader = session.reader
+      const { base: baseToken, quote: quoteToken } = await resolvePoolTokens(
+        reader,
+        session,
+        pool.pool,
+        BigInt(verseId),
+      )
+      const [baseDecimals, quoteDecimals] = await Promise.all([
+        readErc20Meta(reader, baseToken).then((meta) => meta.decimals),
+        readErc20Meta(reader, quoteToken).then((meta) => meta.decimals),
+      ])
+      const baseDesired = parseUnits(baseAmount, baseDecimals)
+      const quoteDesired = parseUnits(quoteAmount, quoteDecimals)
+      const slippageBps = Math.round(slippage * 100)
+      const baseMin = (baseDesired * BigInt(10000 - slippageBps)) / 10000n
+      const quoteMin = (quoteDesired * BigInt(10000 - slippageBps)) / 10000n
+      const deadlineSecs = BigInt(Math.floor(Date.now() / 1000) + (Number(deadlineText) || 10) * 60)
+      // Uniswap v4 currency order: currency0 < currency1.
+      const sorted = baseToken.toLowerCase() < quoteToken.toLowerCase()
+      const currency0 = (sorted ? baseToken : quoteToken) as Hex
+      const currency1 = (sorted ? quoteToken : baseToken) as Hex
+      const amount0Desired = sorted ? baseDesired : quoteDesired
+      const amount1Desired = sorted ? quoteDesired : baseDesired
+      const amount0Min = sorted ? baseMin : quoteMin
+      const amount1Min = sorted ? quoteMin : baseMin
+      const [allow0, allow1] = await Promise.all([
+        readErc20State(reader, currency0, eoa, router).then((state) => state.allowance),
+        readErc20State(reader, currency1, eoa, router).then((state) => state.allowance),
+      ])
+      const approvals = [
+        ...(allow0 < amount0Desired
+          ? [approvalCall(currency0, router, amount0Desired)]
+          : []),
+        ...(allow1 < amount1Desired
+          ? [approvalCall(currency1, router, amount1Desired)]
+          : []),
+      ]
+      const action = addLiquidityCall(router, {
+        currency0,
+        currency1,
+        amount0Desired,
+        amount1Desired,
+        amount0Min,
+        amount1Min,
+        to: eoa,
+        deadline: deadlineSecs,
+      })
+      const { calls, calldata: batch } = buildSessionWrite({ hook: session.hook, approvals, action })
+      const { estimatedGas, nativeBalance } = await estimateSession(
+        { client: session.client, reader: session.reader, eoa },
+        batch,
+      )
+      const spec: WriteSpec = {
+        review: {
+          chainId,
+          account: eoa,
+          targetContract: router,
+          functionName: 'addLiquidity',
+          inputs: `${formatUnits(baseDesired, baseDecimals)} ${pool.baseSymbol} + ${formatUnits(quoteDesired, quoteDecimals)} ${pool.quoteSymbol}`,
+          minOutput: lpOut != null ? `${lpOut} ${lpSymbol}` : '—',
+          fee: '—',
+          gasPayer: eoa,
+          authorizationChange:
+            approvals.length > 0
+              ? `${pool.baseSymbol} + ${pool.quoteSymbol}`
+              : '—',
+          estimatedGas,
+          nativeBalance,
+        },
+        kernel: session.kernel,
+        expectedChainId: chainId,
+        batchCallData: batch,
+        calls,
+        quoteId: `addliq:${verseId}:${pool.pool}:${amount0Desired}:${amount1Desired}`,
+        minOutput: lpOut != null ? String(lpOut) : '—',
+        slippageBps,
+        deadline: Number(deadlineSecs),
+        manifestVersion: session.manifestVersion,
+        crossChain: false,
+      }
+      void tx.executeSession(spec)
+    } catch {
+      setResolveFailed(true)
+    } finally {
+      setResolving(false)
+    }
+  }
   // Slippage validation (see getSlippageIssue/slippageToNumber in global/slippage-input):
   // while out of bounds, protected-value derivation falls back to the '--' slot
   const slippage = slippageToNumber(slippageText)
@@ -317,9 +463,19 @@ export function PoolAddLiquidityDialog({
             locale={locale}
             connected={connected}
             onConnect={toggle}
+            onAction={() => void startAddReview()}
             label={copy.addLiquidity}
             connectLabel={copy.swapCta}
+            disabled={!valid || baseOver || quoteOver || slippageIssue != null || !executionReady || resolving || tx.running}
+            switchChainTo={
+              wrongChain
+                ? { execChain, chainName: governanceChainName, onSwitch: switchChain }
+                : undefined
+            }
           />
+          {resolveFailed ? <FieldError>{common.degrade.errorBody}</FieldError> : null}
+          
+          {tx.active && !tx.reviewing ? <TxStatus locale={locale} state={tx.display} /> : null}
       </ActionDialogShell>
     </Dialog>
   )

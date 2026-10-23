@@ -43,11 +43,15 @@ import type {
 import { ChainLogoMark } from '../global/chain-icons'
 import { DiscordIcon, TelegramIcon, XIcon } from '../global/brand-icons'
 import { getCopy } from '../global/copy'
-import { useMockWallet } from '../global/mock-wallet'
+import { useAccountCenter } from '../global/use-account-center'
+import { useTxCenter, type WriteSpec } from '../global/use-tx-center'
 import { verseHref } from '../global/routes'
 import { SourceRef, formatAmount } from '../global/signal-ui'
 import { TxStatus } from '../global/tx-status'
-import { useTxSimulation } from '../global/tx-simulation'
+import { getClientChainConfig } from '@/lib/web3/chains'
+import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
+import { buildSessionWrite, registerAtCenterCall, registerAtSpokeCall } from '@/lib/web3/session-actions'
+import { createPublicClient, custom, formatUnits, parseEther, type Hex } from 'viem'
 
 // Registration param scope = durationDays/name/symbol/uri/desc/uAsset/
 // omnichainIds; initial pricing / minimum success amount are not registration params;
@@ -123,6 +127,7 @@ function CreateSuccessDialog({
   name,
   symbol,
   chainName,
+  hideVerseLink,
 }: {
   locale: Locale
   open: boolean
@@ -130,6 +135,7 @@ function CreateSuccessDialog({
   name: string
   symbol: string
   chainName: string
+  hideVerseLink?: boolean
 }) {
   const copy = getCopy(locale)
   return (
@@ -157,13 +163,15 @@ function CreateSuccessDialog({
             <p className="tx-success__summary">
               {fill(copy.create.launchSummary, { name, symbol, chain: chainName })}
             </p>
-            <Button
-              className="ax-ghost-cta"
-              nativeButton={false}
-              render={<Link href={verseHref(locale, SAMPLE_VERSE_ID)} />}
-            >
-              {copy.create.successViewVerse}
-            </Button>
+            {hideVerseLink ? null : (
+              <Button
+                className="ax-ghost-cta"
+                nativeButton={false}
+                render={<Link href={verseHref(locale, SAMPLE_VERSE_ID)} />}
+              >
+                {copy.create.successViewVerse}
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>
@@ -195,7 +203,7 @@ export function CreateForm({
   // Wallet connected chain = the quote's "origin chain" dimension (no cross-chain notice shown —
   // cross-chain is the norm for registration,
   // a notice would imply "cross-chain happens only in this case")
-  const { connected, chainId: walletChainId, toggle: toggleWallet } = useMockWallet()
+  const { connected, chainId: walletChainId, connectAction: toggleWallet } = useAccountCenter()
   // Error association: the id is only referenced back by aria-describedby while the error renders,
   // avoiding references to non-existent nodes
   const logoErrorId = useId()
@@ -228,9 +236,14 @@ export function CreateForm({
   // Registration success display = dialog; after closing, the card
   // keeps a completed step + View Verse CTA fallback
   const [successOpen, setSuccessOpen] = useState(false)
-  // Tx signing simulation: after confirmation the frontend advances on a
-  // timer, no wallet; reaching the success step auto-opens the success dialog
-  const { txState, beginSigning, resetTx } = useTxSimulation(() => setSuccessOpen(true))
+  // Tx pipeline (replaces the retired timer simulation): review card → TxReviewPanel →
+  // Type-4 session registration(). Spoke fan-out rides the same session batch (payable legs
+  // carry the quoted native fees); the center generates uniqueId on-chain (§M8 protocol).
+  const center = useAccountCenter()
+  const tx = useTxCenter()
+  const [resolving, setResolving] = useState(false)
+  const [resolveFailed, setResolveFailed] = useState(false)
+  const [realFlow, setRealFlow] = useState(false)
   // object URL lifetime = component lifetime: replace/remove/unmount all reclaim it here in one
   // place (cleanup runs after the DOM image swap, so the old URL has no remaining references);
   // pickLogo/removeLogo no longer scatter revoke calls
@@ -309,6 +322,124 @@ export function CreateForm({
   // Zero state (fee truly 0 = local-chain origin and no Spoke selected): hide the whole cross-chain
   // fee block, keep only the launch button
   const showFee = config != null && govChainOption != null && crossChainFee > 0
+
+  // Onchain registration (RegistrationCenter.registration; uniqueId is center-generated, §M8):
+  // execution chain = gov testnet (mainnet gov maps to its testnet stand-in, §26 chainset).
+  const MAINNET_TO_TESTNET: Record<number, number> = { 1: 421614, 8453: 84532, 56: 97 }
+  const govChainId = govChainOption != null ? govChainOption.chainId : null
+  const execChainId =
+    govChainId != null ? (MAINNET_TO_TESTNET[govChainId] ?? govChainId) : null
+  const uAssetKey = `UAsset.${fundType}`
+  const executionReady =
+    center.source === 'real' &&
+    connected &&
+    center.chainSupported &&
+    execChainId != null &&
+    center.chainId === execChainId &&
+    govChainOption != null
+
+  async function buildAndStart(): Promise<void> {
+    if (!executionReady || resolving || execChainId == null || govChainOption == null) return
+    const provider = getActiveEip1193Provider()
+    const eoa = center.address as Hex | null
+    if (!provider || !eoa) return
+    const resolved = getClientChainConfig(execChainId)
+    if (resolved.status !== 'ok' || resolved.config.contracts.status !== 'deployed') return
+    const contracts = resolved.config.contracts.addresses
+    // Hub (97) takes RegistrationCenter.registration; spokes take
+    // RegistrarOmnichain.registerAtCenter (same param, forwarded to the hub).
+    const centerAddr = contracts.MemeverseRegistrationCenter as Hex | undefined
+    const spokeAddr = contracts.MemeverseRegistrarOmnichain as Hex | undefined
+    const hook = contracts.MemeverseUniswapHook as Hex
+    const kernel = resolved.config.kernel7702Implementation as Hex
+    const uAsset = contracts[uAssetKey] as Hex | undefined
+    if (!uAsset || (!centerAddr && !spokeAddr)) {
+      setResolveFailed(true)
+      return
+    }
+    const omnichainIds: number[] = []
+    for (const id of [govChainId, ...selectedChains.map((chain) => chain.chainId)]) {
+      if (id == null) continue
+      const entry = getClientChainConfig(id)
+      if (entry.status === 'ok') omnichainIds.push(entry.config.layerZeroEid)
+    }
+    setResolving(true)
+    setResolveFailed(false)
+    try {
+      const value = crossChainFee > 0 ? parseEther(String(crossChainFee)) : 0n
+      const param = {
+        name: name.trim(),
+        symbol: symbol.trim(),
+        uri: '',
+        desc: desc.trim(),
+        communities: [],
+        durationDays: BigInt(numericDuration),
+        omnichainIds,
+        uAsset,
+        flashGenesis: fast,
+      }
+      const action =
+        centerAddr != null
+          ? registerAtCenterCall(centerAddr, param, value)
+          : registerAtSpokeCall(spokeAddr as Hex, param, value)
+      const targetContract = (centerAddr ?? spokeAddr) as Hex
+      const { calls, calldata: batch } = buildSessionWrite({ hook, action })
+      const client = createPublicClient({
+        chain: resolved.config.viemChain,
+        transport: custom({ request: provider.request }),
+      })
+      let estimatedGas = '—'
+      let nativeBalance = '—'
+      try {
+        const [gas, balance] = await Promise.all([
+          client.estimateGas({ account: eoa, to: eoa, data: batch, value }),
+          client.getBalance({ address: eoa }),
+        ])
+        estimatedGas = gas.toString()
+        nativeBalance = formatUnits(balance, 18)
+      } catch {
+        const balance = await client.getBalance({ address: eoa })
+        nativeBalance = formatUnits(balance, 18)
+      }
+      const spec: WriteSpec = {
+        review: {
+          chainId: execChainId,
+          account: eoa,
+          targetContract,
+          functionName: centerAddr != null ? 'registration' : 'registerAtCenter',
+          inputs: `${name.trim()} (${symbol.trim()})`,
+          minOutput: '—',
+          fee: crossChainFee > 0 ? `${crossChainFee} ${nativeSymbol}` : '—',
+          gasPayer: eoa,
+          authorizationChange: '—',
+          estimatedGas,
+          nativeBalance,
+        },
+        kernel,
+        expectedChainId: execChainId,
+        batchCallData: batch,
+        calls,
+        value,
+        quoteId: `register:${symbol.trim()}:${govChain}:${selectedChainIds.join(',')}`,
+        minOutput: '—',
+        slippageBps: 0,
+        deadline: Math.floor(Date.now() / 1000) + 3600,
+        manifestVersion: resolved.config.contracts.abiVersion,
+        crossChain: selectedChains.length > 0,
+      }
+      setRealFlow(true)
+      void tx.executeSession(spec)
+    } catch {
+      setResolveFailed(true)
+    } finally {
+      setResolving(false)
+    }
+  }
+
+  // Success dialog opens on real confirm.
+  useEffect(() => {
+    if (tx.display === 'confirmed') setSuccessOpen(true)
+  }, [tx.display])
   // Review rows grouped by platform (bare values side by side are unreadable); icons match the
   // form input blocks
   const linkItems = [
@@ -415,7 +546,7 @@ export function CreateForm({
         ) : null}
         {/* No user involvement: the submit slot is wholly replaced by a
             connect-wallet button — the slot keeps the ax-ghost-cta skin as-is (same
-            style as the header wallet button); clicking it hits the same mock toggle
+            style as the header wallet button); clicking it hits the same connection toggle
             as the header, and Launch returns unchanged after connecting; form fields stay fillable
             as usual and connecting resets no entered drafts */}
         {connected ? (
@@ -525,48 +656,58 @@ export function CreateForm({
             {/* Payment note merged into the review card along with the sidebar (below the total row,
                 same copy as the sidebar) */}
             {showFee ? <FieldDescription>{copy.create.quotePaidNote}</FieldDescription> : null}
-            {txState === 'idle' ? (
+            {tx.display === 'idle' ? (
               <div className="participation-review__actions">
                 <Button
                   variant="outline"
                   onClick={() => {
                     setReviewing(false)
-                    resetTx()
+                    tx.reset()
                   }}
                 >
                   <RotateCcw data-icon="inline-start" aria-hidden="true" />
                   {copy.create.revise}
                 </Button>
-                <Button className="ax-ghost-cta" onClick={beginSigning}>
+                <Button
+                  className="ax-ghost-cta"
+                  disabled={resolving || tx.running || (center.source === 'real' && !executionReady)}
+                  onClick={() => void buildAndStart()}
+                >
                   {copy.verse.confirmPrototype}
                 </Button>
               </div>
-            ) : txState === 'confirmed' ? (
+            ) : tx.display === 'confirmed' ? (
               <>
                 {/* The dialog already carries the success display; the
-                    card keeps a completed step + View Verse fallback */}
+                    card keeps a completed step + View Verse fallback (real flows hide the
+                    sample link — the verse id only exists after indexing) */}
                 <TxStatus locale={locale} state="confirmed" />
-                <Button
-                  className="ax-ghost-cta"
-                  nativeButton={false}
-                  render={<Link href={verseHref(locale, SAMPLE_VERSE_ID)} />}
-                >
-                  {copy.create.successViewVerse}
-                </Button>
+                {realFlow ? null : (
+                  <Button
+                    className="ax-ghost-cta"
+                    nativeButton={false}
+                    render={<Link href={verseHref(locale, SAMPLE_VERSE_ID)} />}
+                  >
+                    {copy.create.successViewVerse}
+                  </Button>
+                )}
               </>
             ) : (
-              <TxStatus locale={locale} state={txState} />
+              <TxStatus locale={locale} state={tx.display} />
             )}
+            {resolveFailed ? <FieldError>{copy.common.degrade.errorBody}</FieldError> : null}
+            
           </div>
         </div>
       </div>
       <CreateSuccessDialog
         locale={locale}
-        open={txState === 'confirmed' && successOpen}
+        open={tx.display === 'confirmed' && successOpen}
         onOpenChange={setSuccessOpen}
         name={name}
         symbol={symbol}
         chainName={govChainOption?.name ?? ''}
+        hideVerseLink={realFlow}
       />
       </>
     )
@@ -577,7 +718,7 @@ export function CreateForm({
       <div className="workbench-primary">
         {/* required only carries the required-field semantics for screen-reader announcement;
             validation goes through handleSubmit (noValidate disables native constraints) */}
-        <form id="create-form" className="create-form" onSubmit={handleSubmit} noValidate>
+        <form id="create-form" className="create-form" onSubmit={handleSubmit} noValidate autoComplete="off">
           {/* First form item: Fast Genesis = label + ⊙ + toggle switch; off by default so it is
               naturally optional, no badge attached */}
           <Field>

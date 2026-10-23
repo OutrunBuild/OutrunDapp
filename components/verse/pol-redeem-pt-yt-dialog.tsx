@@ -6,9 +6,30 @@ import { X } from 'lucide-react'
 import type { Locale, FixturePolPosition, FixtureVerse } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
-import { useMockWallet } from '../global/mock-wallet'
-import { formatAmount } from '../global/signal-ui'
+import { useAccountCenter } from '../global/use-account-center'
+import { useTxCenter, type WriteSpec } from '../global/use-tx-center'
+import { TxStatus } from '../global/tx-status'
+import {
+  estimateSession,
+  readErc20Meta,
+  readErc20State,
+  resolveVerseSession,
+  type ContractReader,
+} from '../global/execution-reads'
+import { splitterAbi } from '@/lib/web3/abis'
+import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
+import {
+  approvalCall,
+  buildSessionWrite,
+  redeemPtCall,
+  redeemYtCall,
+} from '@/lib/web3/session-actions'
+import { useParams } from 'next/navigation'
+import { parseVerseIdParam } from '../global/routes'
+import { SwitchChainCta, useVerseExecChain } from '../global/switch-chain-cta'
+import { formatUnits, parseUnits, type Hex } from 'viem'
 import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
+import { formatAmount } from '../global/signal-ui'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -63,10 +84,18 @@ export function PolRedeemPtYtDialog({
 }) {
   const copy = getCopy(locale).verseDesk
   const common = getCopy(locale).common
-  const { connected, toggle } = useMockWallet()
+  const center = useAccountCenter()
+  const { connected, connectAction: toggle } = center
+  const { execChain, wrongChain, switchChain } = useVerseExecChain(verse.governanceChain)
+  const tx = useTxCenter()
+  const params = useParams()
+  const rawVerseId = params?.verseId
+  const verseId = parseVerseIdParam(rawVerseId)
   // Opens with empty input (amount input defaults to empty 0.00, not prefilled with balance);
   // recalculates as usual after clearing/changing the number
   const [amount, setAmount] = useState('')
+  const [resolving, setResolving] = useState(false)
+  const [resolveFailed, setResolveFailed] = useState(false)
   const receiveLabelId = useId()
   const balanceErrorId = useId()
 
@@ -90,6 +119,88 @@ export function PolRedeemPtYtDialog({
   const balance = mode === 'pt' ? pol.myPt : pol.myYt
   const tokenSymbol = mode === 'pt' ? ptSymbol : ytSymbol
   const overBalance = parsed > balance
+  const executionReady =
+    center.source === 'real' &&
+    connected &&
+    center.chainSupported &&
+    !wrongChain &&
+    center.chainId != null &&
+    center.address != null &&
+    verseId != null
+
+  async function startRedeemReview(): Promise<void> {
+    if (!executionReady || !valid || overBalance || resolving) return
+    const provider = getActiveEip1193Provider()
+    const eoa = center.address as Hex | null
+    const chainId = center.chainId
+    if (!provider || !eoa || chainId == null || verseId == null) return
+    setResolving(true)
+    setResolveFailed(false)
+    try {
+      const session = await resolveVerseSession({
+        request: provider.request,
+        chainId,
+        eoa,
+        verseId: BigInt(verseId),
+      })
+      const splitter = session.contracts.POLSplitter as Hex
+      const reader: ContractReader = session.reader
+      const burnToken = (await reader.read({
+        address: splitter,
+        abi: splitterAbi,
+        functionName: mode === 'pt' ? 'getPT' : 'getYT',
+        args: [BigInt(verseId)],
+      })) as Hex
+      const { decimals } = await readErc20Meta(reader, burnToken)
+      const amountBase = parseUnits(amount, decimals)
+      const { allowance } = await readErc20State(reader, burnToken, eoa, splitter)
+      const approval =
+        allowance < amountBase
+          ? approvalCall(burnToken, splitter, amountBase)
+          : undefined
+      const action =
+        mode === 'pt'
+          ? redeemPtCall(splitter, { verseId: BigInt(verseId), ptAmount: amountBase, to: eoa })
+          : redeemYtCall(splitter, { verseId: BigInt(verseId), ytAmount: amountBase, to: eoa })
+      const { calls, calldata: batch } = buildSessionWrite({ hook: session.hook, action, approval })
+      const { estimatedGas, nativeBalance } = await estimateSession(
+        { client: session.client, reader: session.reader, eoa },
+        batch,
+      )
+      const spec: WriteSpec = {
+        review: {
+          chainId,
+          account: eoa,
+          targetContract: splitter,
+          functionName: mode === 'pt' ? 'redeemPT' : 'redeemYT',
+          inputs: `${formatUnits(amountBase, decimals)} ${tokenSymbol}`,
+          minOutput: mode === 'pt' && ptOut != null ? `${ptOut} ${verse.raiseAsset}` : '—',
+          fee: '—',
+          gasPayer: eoa,
+          authorizationChange: approval
+              ? `${formatUnits(amountBase, decimals)} ${tokenSymbol}`
+              : '—',
+          estimatedGas,
+          nativeBalance,
+        },
+        kernel: session.kernel,
+        expectedChainId: chainId,
+        batchCallData: batch,
+        calls,
+        quoteId: `redeem-${mode}:${verseId}:${amountBase}`,
+        minOutput: mode === 'pt' && ptOut != null ? String(ptOut) : '—',
+        slippageBps: 0,
+        deadline: Math.floor(Date.now() / 1000) + 3600,
+        manifestVersion: session.manifestVersion,
+        crossChain: false,
+      }
+      void tx.executeSession(spec)
+    } catch {
+      setResolveFailed(true)
+    } finally {
+      setResolving(false)
+    }
+  }
 
   return (
     <Dialog>
@@ -210,14 +321,31 @@ export function PolRedeemPtYtDialog({
           )}
 
           {connected ? (
-            <Button className="swap-panel__cta" disabled>
-              {mode === 'pt' ? copy.redeemPt : copy.redeemYt}
-            </Button>
+            wrongChain ? (
+              <SwitchChainCta
+                locale={locale}
+                execChain={execChain}
+                chainName={verse.governanceChainName}
+                onSwitch={switchChain}
+                className="swap-panel__cta"
+              />
+            ) : (
+              <Button
+                className="swap-panel__cta"
+                disabled={!valid || overBalance || !executionReady || resolving || tx.running}
+                onClick={() => void startRedeemReview()}
+              >
+                {mode === 'pt' ? copy.redeemPt : copy.redeemYt}
+              </Button>
+            )
           ) : (
             <Button className="swap-panel__cta" onClick={toggle}>
               {copy.swapCta}
             </Button>
           )}
+          {resolveFailed ? <FieldError>{common.degrade.errorBody}</FieldError> : null}
+          
+          {tx.active && !tx.reviewing ? <TxStatus locale={locale} state={tx.display} /> : null}
         </div>
       </DialogContent>
     </Dialog>

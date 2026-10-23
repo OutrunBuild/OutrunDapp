@@ -128,9 +128,18 @@ export async function VersePage({
     : []
   // Deployment-face scope consistent with the Explore cards: mainnet chains other than the
   // governance chain are Spoke chains (omnichain deployment face)
-  const spokeChains = (await getFixtureChains()).filter(
-    (chain) => chain.env === 'mainnet' && chain.chainId !== verse.governanceChain,
-  )
+  const chains = await getFixtureChains()
+  // Identity-row spokes: the verse's registered omnichainIds (minus governance) are the truth
+  // on the onchain build; a null field (fixture snapshot) keeps the chains-fixture sample face
+  const spokeChains =
+    verse.omnichainIds == null
+      ? chains.filter((chain) => chain.env === 'mainnet' && chain.chainId !== verse.governanceChain)
+      : verse.omnichainIds
+          .filter((id) => id !== verse.governanceChain)
+          .map((id) => ({
+            chainId: id,
+            name: chains.find((chain) => chain.chainId === id)?.name ?? String(id),
+          }))
   // Sample account's participated funds in this Verse (standard+leverage interest+preorder, all in uAsset — participations fixture)
   const myParticipation = allParticipations
     .filter(
@@ -185,17 +194,19 @@ export async function VersePage({
                   <TooltipContent>{verse.governanceChainName}</TooltipContent>
                 </Tooltip>
               </span>
-              <span>
-                {copy.verse.spokeChains}
-                {spokeChains.map((chain) => (
-                  <Tooltip key={chain.chainId}>
-                    <TooltipTrigger className="verse-identity__chain" aria-label={chain.name}>
-                      <ChainLogoMark chainId={chain.chainId} size={16} />
-                    </TooltipTrigger>
-                    <TooltipContent>{chain.name}</TooltipContent>
-                  </Tooltip>
-                ))}
-              </span>
+              {spokeChains.length > 0 ? (
+                <span>
+                  {copy.verse.spokeChains}
+                  {spokeChains.map((chain) => (
+                    <Tooltip key={chain.chainId}>
+                      <TooltipTrigger className="verse-identity__chain" aria-label={chain.name}>
+                        <ChainLogoMark chainId={chain.chainId} size={16} />
+                      </TooltipTrigger>
+                      <TooltipContent>{chain.name}</TooltipContent>
+                    </Tooltip>
+                  ))}
+                </span>
+              ) : null}
             </div>
             {verse.socials.length > 0 ? (
               <div className="verse-identity__socials" aria-label={copy.verse.socialLinks}>
@@ -322,6 +333,8 @@ export async function VersePage({
             leverageInterestRaised={verse.leverageInterest}
             walletBalances={await getFixtureWalletBalances()}
             sourceRef={verse.sourceRef}
+            governanceChain={verse.governanceChain}
+            governanceChainName={verse.governanceChainName}
           />
         </section>
 

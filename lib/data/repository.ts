@@ -24,6 +24,7 @@ import {
   hookAbi,
   hookLensAbi,
   launcherAbi,
+  polendAbi,
   psmAbi,
   registrationCenterAbi,
   stakingPositionAbi,
@@ -97,10 +98,10 @@ export type FaucetStatusView = {
     psm: string;
     uAsset: string;
     reserve: string;
-    /** mint fee in bps (tin) */
-    tinBps: bigint;
-    /** redeem fee in bps (tout) */
-    toutBps: bigint;
+    /** mint fee as 18-dec point value (1e18 = 100%; OutrunPSMUpgradeable tin) */
+    tinWad: bigint;
+    /** redeem fee as 18-dec point value (1e18 = 100%; OutrunPSMUpgradeable tout) */
+    toutWad: bigint;
     /** stockCap − netUAssetMinted, clamped at 0 */
     headroom: bigint;
     /** account-scoped balances; null when no account was given */
@@ -150,12 +151,25 @@ export type VerseRuntimeView = {
   uAsset: string;
 };
 
+/** Genesis financial params (R-04): registration-time constraints the participation UI needs —
+ * preorder capacity ratio (launcher parameters, bps), min success threshold (per-uAsset fund
+ * metadata), leverage lend-market rate + debt cap (POLend). Raw units; scaling is the
+ * consumer's concern. */
+export type VerseFinancialsView = {
+  preorderCapRatioBps: bigint;
+  minTotalFund: bigint;
+  interestRate: bigint;
+  debtCap: bigint;
+};
+
 export type PsmStateView = {
   psm: string;
   reserve: string;
   uAsset: string;
-  tinBps: bigint;
-  toutBps: bigint;
+  /** mint fee as 18-dec point value (1e18 = 100%; OutrunPSMUpgradeable tin) */
+  tinWad: bigint;
+  /** redeem fee as 18-dec point value (1e18 = 100%; OutrunPSMUpgradeable tout) */
+  toutWad: bigint;
   stockCap: bigint;
   netMinted: bigint;
 };
@@ -227,6 +241,12 @@ export interface OnchainRepository {
   ): Promise<DataResult<GenesisEntitlementsView>>;
   /** R-04 verse: stage/pause/capacity runtime state */
   getVerseRuntime(chainId: number, verseId: bigint): Promise<DataResult<VerseRuntimeView>>;
+  /** R-04 verse: genesis financial params (preorder ratio / min success / leverage rate+cap) */
+  getVerseFinancials(
+    chainId: number,
+    verseId: bigint,
+    uAsset: string,
+  ): Promise<DataResult<VerseFinancialsView>>;
   /** Rates/capacity reads (§9.1) */
   getPsmState(chainId: number, psm: string): Promise<DataResult<PsmStateView>>;
   getUsrVaultState(
@@ -440,7 +460,7 @@ class RpcOnchainRepository implements OnchainRepository {
         spec(psm.data, psmAbi, 'uAsset'),
         spec(psm.data, psmAbi, 'reserveToken'),
       ])) as [bigint, bigint, bigint, bigint, string, string];
-      const [tinBps, toutBps, stockCap, netMinted, uAsset, reserve] = psmState;
+      const [tinWad, toutWad, stockCap, netMinted, uAsset, reserve] = psmState;
       const balances = account
         ? await port.multicall([
             spec(uAsset, erc20ReadAbi, 'balanceOf', [account]),
@@ -455,8 +475,8 @@ class RpcOnchainRepository implements OnchainRepository {
           psm: psm.data,
           uAsset,
           reserve,
-          tinBps,
-          toutBps,
+          tinWad,
+          toutWad,
           headroom: stockCap > netMinted ? stockCap - netMinted : 0n,
           myUAsset: balances ? (balances[0] as bigint) : null,
           myReserve: balances ? (balances[1] as bigint) : null,
@@ -606,6 +626,46 @@ class RpcOnchainRepository implements OnchainRepository {
     });
   }
 
+  async getVerseFinancials(
+    chainId: number,
+    verseId: bigint,
+    uAsset: string,
+  ): Promise<DataResult<VerseFinancialsView>> {
+    const c = this.chain(chainId);
+    if (c.status !== 'ok') return c;
+    const launcher = this.requireContract(c.data.config, 'MemeverseLauncher');
+    if (launcher.status !== 'ok') return launcher;
+    const polend = this.requireContract(c.data.config, 'POLend');
+    if (polend.status !== 'ok') return polend;
+    const { port } = c.data;
+    const raw = await this.guard(() =>
+      port.multicall([
+        spec(launcher.data, launcherAbi, 'getLauncherParameters'),
+        spec(launcher.data, launcherAbi, 'fundMetaDatas', [uAsset]),
+        spec(polend.data, polendAbi, 'getLeveragedDebtInfo', [verseId]),
+      ]),
+    );
+    if (raw.status !== 'ok') return raw;
+    // viem decode shape (decodeTuple: all-named components -> object, unnamed -> array):
+    // getLauncherParameters/getLeveragedDebtInfo return single named structs -> objects keyed
+    // by component name; fundMetaDatas returns two unnamed outputs -> positional array.
+    // LauncherParameters = {executorRewardRate, preorderCapRatio, preorderVestingDuration,
+    // oftReceiveGasLimit, yieldDispatcherGasLimit}; LeveragedDebtInfo = {totalInterest,
+    // totalDebt, interestRate, debtCap, remainingAdditionalInterest}; FundMetaData =
+    // [minTotalFund, fundBasedAmount]
+    const [params, fundMeta, debtInfo] = raw.data as [
+      { preorderCapRatio: bigint },
+      [bigint, bigint],
+      { interestRate: bigint; debtCap: bigint },
+    ];
+    return ok({
+      preorderCapRatioBps: params.preorderCapRatio,
+      minTotalFund: fundMeta[0],
+      interestRate: debtInfo.interestRate,
+      debtCap: debtInfo.debtCap,
+    });
+  }
+
   async getPsmState(chainId: number, psm: string): Promise<DataResult<PsmStateView>> {
     const c = this.chain(chainId);
     if (c.status !== 'ok') return c;
@@ -621,7 +681,7 @@ class RpcOnchainRepository implements OnchainRepository {
       ]),
     );
     if (raw.status !== 'ok') return raw;
-    const [tinBps, toutBps, stockCap, netMinted, uAsset, reserve] = raw.data as [
+    const [tinWad, toutWad, stockCap, netMinted, uAsset, reserve] = raw.data as [
       bigint,
       bigint,
       bigint,
@@ -629,7 +689,7 @@ class RpcOnchainRepository implements OnchainRepository {
       string,
       string,
     ];
-    return ok({ psm, reserve, uAsset, tinBps, toutBps, stockCap, netMinted });
+    return ok({ psm, reserve, uAsset, tinWad, toutWad, stockCap, netMinted });
   }
 
   async getUsrVaultState(

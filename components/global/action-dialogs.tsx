@@ -18,6 +18,7 @@ import type { Locale } from '@/lib/data/fixture-repository'
 
 import { getCopy } from './copy'
 import { formatAmount } from './signal-ui'
+import { SwitchChainCta } from './switch-chain-cta'
 import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from './amount-input'
 import { Button } from '@/components/ui/button'
 import { DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog'
@@ -142,19 +143,24 @@ export function DetailRows({ rows }: { rows: Array<[string, React.ReactNode]> })
 /** Primary CTA: disconnected = Connect (clickable); connected = action button (disabled
  * by default — no faked execution; pass a conditional predicate to disabled for gating,
  * e.g. PSM Convert's balance/allowance predicate; title carries the hover note for the
- * connected-disabled state) */
+ * connected-disabled state). Pass onAction to arm the real pipeline (review → Type-4);
+ * without it the button stays inert, exactly the prototype convention. */
 export function DialogCta({
   locale,
   connected,
   onConnect,
+  onAction,
   label,
   disabled = true,
   title,
   connectLabel,
+  switchChainTo,
 }: {
   locale: Locale
   connected: boolean
   onConnect: () => void
+  /** Real-pipeline entry (optional): clicked instead of staying disabled when connected */
+  onAction?: () => void
   label: string
   /** Disabled predicate for the connected action button (default = always disabled,
    * prototype convention) */
@@ -165,9 +171,27 @@ export function DialogCta({
   /** Copy override for the disconnected button (default = common.connect; verse trading
    * contexts use verseDesk.swapCta) */
   connectLabel?: string
+  /** Wrong-chain override (user ruling 2026-10-22): when set and connected, the CTA becomes the
+   * network switch instead of the action — the desk never fires on-chain reads off-chain */
+  switchChainTo?: {
+    execChain: number
+    chainName: string
+    onSwitch: (chainId: number) => void
+  }
 }) {
+  if (connected && switchChainTo) {
+    return (
+      <SwitchChainCta
+        locale={locale}
+        execChain={switchChainTo.execChain}
+        chainName={switchChainTo.chainName}
+        onSwitch={switchChainTo.onSwitch}
+        className="swap-panel__cta"
+      />
+    )
+  }
   return connected ? (
-    <Button className="swap-panel__cta" disabled={disabled} title={title}>
+    <Button className="swap-panel__cta" disabled={onAction ? disabled : true} title={title} onClick={onAction}>
       {label}
     </Button>
   ) : (

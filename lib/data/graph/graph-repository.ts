@@ -115,6 +115,129 @@ const VERSE_AGGREGATE_QUERY = `query VerseAggregates {
   ${META_FRAGMENT}
 }`;
 
+type VersePageRow = VerseRow;
+
+type VersePageData = {
+  verses: VersePageRow[];
+  genesisParticipations: GenesisRow[];
+  preorderParticipations: PreorderRow[];
+  leveragedGenesisParticipations: LeveragedRow[];
+};
+
+/** Paged verse listing: only the requested window of verse rows is read (VersePageRows),
+ * then the participation sums are scoped to exactly those verseIds (VersePageLegs,
+ * verseId_in) — no full pulls at any volume. Sort key = verseId ascending (registration
+ * order); stage/mode/query ride the subgraph where clause (query fans out to name/symbol
+ * substring matches).
+ *
+ * NOTE (pre-redeploy): the mapping-accumulated totals (totalGenesisFunds/…) land with the
+ * pending subgraph redeploy — until then every page sums its own participation rows. The
+ * totals fields stay in schema.graphql + mappings; this reader adds them back after deploy. */
+
+const VERSE_PAGE_SIZE_MAX = 100;
+
+function versePageWhere(filter: VerseListFilter): Record<string, unknown> {
+  const and: Record<string, unknown>[] = [];
+  if (filter.stage) and.push({ stage: filter.stage });
+  if (filter.flashGenesis !== undefined) and.push({ flashGenesis: filter.flashGenesis });
+  const q = filter.query?.trim();
+  if (q) and.push({ or: [{ name_contains_nocase: q }, { symbol_contains_nocase: q }] });
+  if (and.length === 0) return {};
+  if (and.length === 1) return and[0] as Record<string, unknown>;
+  return { and };
+}
+
+function toSummaryView(
+  chainId: number,
+  verse: VersePageRow,
+  sums?: { raised: VerseSummaryView['raised']; participantCount: number },
+): VerseSummaryView {
+  return {
+    chainId,
+    verseId: BigInt(verse.verseId),
+    name: verse.name,
+    symbol: verse.symbol,
+    stage: verse.stage as VerseSummaryView['stage'],
+    flashGenesis: verse.flashGenesis,
+    uAsset: verse.uAsset,
+    memecoin: verse.memecoin,
+    pol: verse.pol,
+    yieldVault: verse.yieldVault,
+    governor: verse.governor,
+    incentivizer: verse.incentivizer,
+    endTime: BigInt(verse.endTime),
+    unlockTime: BigInt(verse.unlockTime),
+    omnichainIds: verse.omnichainIds.map((v) => BigInt(v)),
+    communities: verse.communities,
+    registeredAt: BigInt(verse.registeredAtTimestamp),
+    raised: sums?.raised ?? { genesis: 0n, leveraged: 0n, preorder: 0n },
+    participantCount: sums?.participantCount ?? 0,
+  };
+}
+
+function sumPageRows(
+  verses: VersePageRow[],
+  data: VersePageData,
+): Map<string, { raised: VerseSummaryView['raised']; participantCount: number }> {
+  const out = new Map<string, { raised: VerseSummaryView['raised']; participantCount: number }>();
+  const sumBy = (rows: Array<Record<string, string>>, field: string) => {
+    const map = new Map<string, bigint>();
+    for (const row of rows) {
+      const cur = map.get(row.verseId!) ?? 0n;
+      map.set(row.verseId!, cur + BigInt(row[field]!));
+    }
+    return map;
+  };
+  const collectBy = (rows: Array<Record<string, string>>, field: string) => {
+    const map = new Map<string, Set<string>>();
+    for (const row of rows) {
+      const cur = map.get(row.verseId!) ?? new Set<string>();
+      cur.add(row[field]!);
+      map.set(row.verseId!, cur);
+    }
+    return map;
+  };
+  const genesisSum = sumBy(
+    data.genesisParticipations as unknown as Array<Record<string, string>>,
+    'amount',
+  );
+  const preorderSum = sumBy(
+    data.preorderParticipations as unknown as Array<Record<string, string>>,
+    'amountInUAsset',
+  );
+  const leveragedSum = sumBy(
+    data.leveragedGenesisParticipations as unknown as Array<Record<string, string>>,
+    'amount',
+  );
+  const genesisAddr = collectBy(
+    data.genesisParticipations as unknown as Array<Record<string, string>>,
+    'depositer',
+  );
+  const preorderAddr = collectBy(
+    data.preorderParticipations as unknown as Array<Record<string, string>>,
+    'user',
+  );
+  const leveragedAddr = collectBy(
+    data.leveragedGenesisParticipations as unknown as Array<Record<string, string>>,
+    'user',
+  );
+  for (const verse of verses) {
+    out.set(verse.verseId, {
+      raised: {
+        genesis: genesisSum.get(verse.verseId) ?? 0n,
+        leveraged: leveragedSum.get(verse.verseId) ?? 0n,
+        preorder: preorderSum.get(verse.verseId) ?? 0n,
+      },
+      participantCount: new Set([
+        ...(genesisAddr.get(verse.verseId) ?? []),
+        ...(preorderAddr.get(verse.verseId) ?? []),
+        ...(leveragedAddr.get(verse.verseId) ?? []),
+      ]).size,
+    });
+  }
+  return out;
+}
+
 type CacheEntry = {
   /** when the settled value landed (0 = nothing fresh yet); TTL window starts here */
   at: number;
@@ -124,9 +247,37 @@ type CacheEntry = {
   inflight: Promise<DataResult<never>> | null;
 };
 
+export type VerseListFilter = {
+  stage?: 'genesis' | 'refund' | 'locked' | 'unlocked';
+  flashGenesis?: boolean;
+  /** substring match on name or symbol (case-insensitive) */
+  query?: string;
+};
+
+/** One page of verses from a single chain's subgraph. raised/participantCount prefer the
+ * mapping-accumulated stored totals; when the deployment predates the totals fields, the
+ * repository falls back to summing the page's own participation rows. */
+export type VersePageView = {
+  chainId: number;
+  verses: VerseSummaryView[];
+  /** true when more rows exist past this page */
+  hasMore: boolean;
+};
+
 export interface GraphOnchainRepository {
   getVerseSummaries(chainId: number): Promise<DataResult<VerseSummaryView[]>>;
   getVerseDetail(chainId: number, verseId: bigint): Promise<DataResult<VerseSummaryView | null>>;
+  getVersePage(
+    chainId: number,
+    filter: VerseListFilter,
+    first: number,
+    skip: number,
+  ): Promise<DataResult<VersePageView>>;
+  /** Raised sums for an explicit verse set (powers the omni sidecar without full pulls) */
+  getRaisedSums(
+    chainId: number,
+    verseIds: readonly bigint[],
+  ): Promise<DataResult<Map<string, VerseSummaryView['raised']>>>;
   getHomeMetrics(chainId: number): Promise<DataResult<HomeMetricsView>>;
   getParticipationHistory(
     chainId: number,
@@ -146,7 +297,8 @@ class GraphRepository implements GraphOnchainRepository {
     private readonly configFor: ConfigResolver = getChainConfig,
     private readonly safeBlockFor: SafeBlockResolver = (chainId) =>
       resolveDataSource().getSafeBlockNumber(chainId),
-    private readonly ttlMs = 15_000,
+    // Graph list/aggregate TTL (verse summaries, home metrics): low churn, 60s.
+    private readonly ttlMs = 60_000,
     private readonly now = () => Date.now(),
     /** cross-process seed namespace; null (tests) keeps the cache memory-only */
     private readonly persistNs: string | null = null,
@@ -314,6 +466,89 @@ class GraphRepository implements GraphOnchainRepository {
     const list = await this.getVerseSummaries(chainId);
     if (list.status !== 'ok') return list;
     return ok(list.data.find((verse) => verse.verseId === verseId) ?? null);
+  }
+
+  async getVersePage(
+    chainId: number,
+    filter: VerseListFilter,
+    first: number,
+    skip: number,
+  ): Promise<DataResult<VersePageView>> {
+    const size = Math.max(
+      1,
+      Math.min(Math.floor(first) || VERSE_PAGE_SIZE_MAX, VERSE_PAGE_SIZE_MAX),
+    );
+    const offset = Math.max(0, Math.floor(skip) || 0);
+    const where = versePageWhere(filter);
+    // verse window first (ids unknown until rows land); the participation legs then scope to
+    // exactly those ids — two round trips, neither ever a full pull
+    const rows = await this.querySilently<{ verses: VersePageRow[] }>(
+      chainId,
+      `query VersePageRows($where: Verse_filter, $first: Int!, $skip: Int!) {
+        verses(first: $first, skip: $skip, orderBy: verseId, orderDirection: asc, where: $where) {
+          verseId name symbol stage flashGenesis uAsset memecoin pol yieldVault governor incentivizer
+          endTime unlockTime omnichainIds communities registeredAtTimestamp
+        }
+        ${META_FRAGMENT}
+      }`,
+      { where, first: size + 1, skip: offset },
+    );
+    if (rows.status !== 'ok') return rows;
+    const window = rows.data.verses;
+    const hasMore = window.length > size;
+    const page = hasMore ? window.slice(0, size) : window;
+    if (page.length === 0) return ok({ chainId, verses: [], hasMore: false });
+    const ids = page.map((verse) => verse.verseId);
+    const legs = await this.querySilently<Omit<VersePageData, 'verses'>>(
+      chainId,
+      `query VersePageLegs($ids: [BigInt!]) {
+        genesisParticipations(first: 1000, where: { verseId_in: $ids }) { verseId payer depositer amount }
+        preorderParticipations(first: 1000, where: { verseId_in: $ids }) { verseId caller user amountInUAsset }
+        leveragedGenesisParticipations(first: 1000, where: { verseId_in: $ids }) { verseId payer user amount }
+        ${META_FRAGMENT}
+      }`,
+      { ids },
+    );
+    if (legs.status !== 'ok') return legs;
+    // Pre-redeploy path: every page sums its own participation rows (see the note above
+    // — stored totals plug back in here after the subgraph redeploy)
+    const sums = sumPageRows(page, { verses: page, ...legs.data });
+    const verses = page.map((verse) => toSummaryView(chainId, verse, sums.get(verse.verseId)));
+    return ok({ chainId, verses, hasMore });
+  }
+
+  async getRaisedSums(
+    chainId: number,
+    verseIds: readonly bigint[],
+  ): Promise<DataResult<Map<string, VerseSummaryView['raised']>>> {
+    if (verseIds.length === 0) return ok(new Map());
+    const ids = [...new Set(verseIds.map(String))];
+    // Pre-redeploy: legs only (the verses row carries no totals yet — see the note above)
+    const r = await this.querySilently<{
+      genesisParticipations: GenesisRow[];
+      preorderParticipations: PreorderRow[];
+      leveragedGenesisParticipations: LeveragedRow[];
+    }>(
+      chainId,
+      `query VerseRaisedSums($ids: [BigInt!]) {
+        genesisParticipations(first: 1000, where: { verseId_in: $ids }) { verseId payer depositer amount }
+        preorderParticipations(first: 1000, where: { verseId_in: $ids }) { verseId caller user amountInUAsset }
+        leveragedGenesisParticipations(first: 1000, where: { verseId_in: $ids }) { verseId payer user amount }
+        ${META_FRAGMENT}
+      }`,
+      { ids },
+    );
+    if (r.status !== 'ok') return r;
+    const sums = sumPageRows(
+      ids.map((verseId) => ({ verseId }) as VersePageRow),
+      {
+        verses: [],
+        genesisParticipations: r.data.genesisParticipations,
+        preorderParticipations: r.data.preorderParticipations,
+        leveragedGenesisParticipations: r.data.leveragedGenesisParticipations,
+      },
+    );
+    return ok(new Map([...sums].map(([id, sums]) => [id, sums.raised] as const)));
   }
 
   async getHomeMetrics(chainId: number): Promise<DataResult<HomeMetricsView>> {

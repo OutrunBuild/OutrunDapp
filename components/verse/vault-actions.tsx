@@ -6,7 +6,27 @@ import { Info, Zap } from 'lucide-react'
 import type { Locale, FixtureStaking } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
-import { useMockWallet } from '../global/mock-wallet'
+import { useAccountCenter } from '../global/use-account-center'
+import { useTxCenter, type WriteSpec } from '../global/use-tx-center'
+import { TxStatus } from '../global/tx-status'
+import {
+  estimateSession,
+  readErc20Meta,
+  readErc20State,
+  resolveVerseSession,
+} from '../global/execution-reads'
+import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
+import {
+  approvalCall,
+  buildSessionWrite,
+  vaultDepositCall,
+  vaultRequestRedeemCall,
+  vaultWithdrawCall,
+} from '@/lib/web3/session-actions'
+import { useParams } from 'next/navigation'
+import { parseVerseIdParam } from '../global/routes'
+import { SwitchChainCta } from '../global/switch-chain-cta'
+import { formatUnits, parseUnits, type Hex } from 'viem'
 import { formatAmount, formatDay } from '../global/signal-ui'
 import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
 import { fmtTokenAmount } from '../global/amount-format'
@@ -23,7 +43,7 @@ type RedeemMode = 'redeem' | 'withdraw'
  * the header chain selector only exposes testnets — the "connected on the governance chain"
  * check uses the governance chain's corresponding testnet
  * (same-name mainnet/testnet family: Ethereum/Base/BNB each with their Sepolia series) */
-const GOVERNANCE_TESTNET: Record<number, number> = { 1: 11155111, 8453: 84532, 56: 97 }
+const GOVERNANCE_TESTNET: Record<number, number> = { 1: 421614, 8453: 84532, 56: 97 }
 
 /** EVM address scope (governance chain family = Ethereum/Base/BNB): 0x + 40 hex digits; accepts any casing, no EIP-55 validation */
 const EVM_ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/
@@ -68,10 +88,10 @@ function RedeemCountdown({ remainingMs, template }: { remainingMs: number; templ
  * Chain awareness (all vault operations go through the
  * governance chain):
  * - Connected network = the header chain selector is the only entry
- * (no in-card chip), driven by the mock wallet's chainId;
+ * (no in-card chip), driven by the account-center chainId;
  * - Stake with connected chain≠governance chain → cross-chain mode (LayerZero banner +
  * cross-chain fee row + Cross-chain Stake CTA);
- * - Redeem/Withdraw with ≠governance chain → the CTA switches chain first (mock switchChain,
+ * - Redeem/Withdraw with ≠governance chain → the CTA switches chain first (switchChainAction,
  * not an on-chain write).
  * Status lists live inside the tabs: the Redeem
  * tab's tail=Pending Redemptions
@@ -119,7 +139,14 @@ export function VaultActions({
   initialRedeemMode?: 'withdraw'
 }) {
   const copy = getCopy(locale).verseDesk
-  const { connected, chainId, toggle, switchChain } = useMockWallet()
+  const center = useAccountCenter()
+  const { connected, chainId, connectAction: toggle, switchChainAction: switchChain } = center
+  const tx = useTxCenter()
+  const params = useParams()
+  const rawVerseId = params?.verseId
+  const verseId = parseVerseIdParam(rawVerseId)
+  const [resolving, setResolving] = useState(false)
+  const [resolveFailed, setResolveFailed] = useState(false)
   const [redeemMode, setRedeemMode] = useState<RedeemMode>(initialRedeemMode ?? 'redeem')
   /** Two cards on screen: left/right column amounts are independent (sharing would bleed values between the two cards) */
   const [stakeAmount, setStakeAmount] = useState('')
@@ -129,6 +156,112 @@ export function VaultActions({
 
   const governanceWalletChain = GOVERNANCE_TESTNET[governanceChain] ?? governanceChain
   const wrongChain = connected && chainId !== governanceWalletChain
+  // Execution chain uses the current §26 chainset (the display mapping above predates it and
+  // stays untouched); custom delegate addresses block execution (no silent drop of intent).
+  const MAINNET_TO_TESTNET: Record<number, number> = { 1: 421614, 8453: 84532, 56: 97 }
+  const execChain = MAINNET_TO_TESTNET[governanceChain] ?? governanceChain
+  const customDelegate = !delegateSelf || delegateAddress !== ''
+  const executionReady =
+    center.source === 'real' &&
+    connected &&
+    center.chainSupported &&
+    center.chainId === execChain &&
+    center.address != null &&
+    verseId != null
+
+  async function startVaultReview(
+    kind: 'stake' | 'redeem' | 'withdraw',
+  ): Promise<void> {
+    if (!executionReady || resolving) return
+    if (kind === 'stake' && (!stakeValid || stakeOver || customDelegate)) return
+    if (kind === 'redeem' && (!redeemValid || redeemOver)) return
+    if (kind === 'withdraw' && claimableTotal <= 0) return
+    const provider = getActiveEip1193Provider()
+    const eoa = center.address as Hex | null
+    const chainId = center.chainId
+    if (!provider || !eoa || chainId == null || verseId == null) return
+    setResolving(true)
+    setResolveFailed(false)
+    try {
+      const session = await resolveVerseSession({
+        request: provider.request,
+        chainId,
+        eoa,
+        verseId: BigInt(verseId),
+      })
+      const vault = session.verse.yieldVault
+      const reader = session.reader
+      const [memeDecimals, shareDecimals] = await Promise.all([
+        readErc20Meta(reader, session.verse.memecoin).then((meta) => meta.decimals),
+        readErc20Meta(reader, vault).then((meta) => meta.decimals),
+      ])
+      let action
+      let functionName: string
+      let inputs: string
+      let approval
+      if (kind === 'stake') {
+        const assets = parseUnits(String(stakeParsed), memeDecimals)
+        const { allowance } = await readErc20State(reader, session.verse.memecoin, eoa, vault)
+        approval =
+          allowance < assets
+            ? approvalCall(session.verse.memecoin, vault, assets)
+            : undefined
+        action = vaultDepositCall(vault, assets, eoa)
+        functionName = 'deposit'
+        inputs = `${formatUnits(assets, memeDecimals)} ${symbol}`
+      } else if (kind === 'redeem') {
+        const shares = parseUnits(String(redeemParsed), shareDecimals)
+        action = vaultRequestRedeemCall(vault, { shares, controller: eoa, owner: eoa })
+        functionName = 'requestRedeem'
+        inputs = `${formatUnits(shares, shareDecimals)} ${shareSymbol}`
+        approval = undefined
+      } else {
+        const assets = parseUnits(String(claimableTotal), memeDecimals)
+        action = vaultWithdrawCall(vault, { assets, receiver: eoa, owner: eoa })
+        functionName = 'withdraw'
+        inputs = `${formatUnits(assets, memeDecimals)} ${symbol}`
+        approval = undefined
+      }
+      const { calls, calldata: batch } = buildSessionWrite({ hook: session.hook, action, approval })
+      const { estimatedGas, nativeBalance } = await estimateSession(
+        { client: session.client, reader: session.reader, eoa },
+        batch,
+      )
+      const spec: WriteSpec = {
+        review: {
+          chainId,
+          account: eoa,
+          targetContract: vault,
+          functionName,
+          inputs,
+          minOutput: kind === 'stake' && stakeOut != null ? `${stakeOut} ${shareSymbol}` : '—',
+          fee: '—',
+          gasPayer: eoa,
+          authorizationChange:
+            approval != null
+              ? `${inputs}`
+              : '—',
+          estimatedGas,
+          nativeBalance,
+        },
+        kernel: session.kernel,
+        expectedChainId: chainId,
+        batchCallData: batch,
+        calls,
+        quoteId: `vault:${verseId}:${kind}:${inputs}`,
+        minOutput: '—',
+        slippageBps: 0,
+        deadline: Math.floor(Date.now() / 1000) + 3600,
+        manifestVersion: session.manifestVersion,
+        crossChain: false,
+      }
+      void tx.executeSession(spec)
+    } catch {
+      setResolveFailed(true)
+    } finally {
+      setResolving(false)
+    }
+  }
   const stakeParsed = Number(stakeAmount)
   const stakeValid = Number.isFinite(stakeParsed) && stakeParsed > 0
   const stakeOut = stakeValid ? stakeParsed / assetsPerShare : null
@@ -150,9 +283,14 @@ export function VaultActions({
   /* Outline channel for the right column's same CTAs (the yellow channel is reserved for the
      left column's Stake — one primary CTA per screen) */
   const switchCtaAlt = (
-    <Button variant="outline" className="swap-panel__cta" onClick={() => switchChain(governanceWalletChain)}>
-      {copy.switchChainCta.replace('{chain}', governanceChainName)}
-    </Button>
+    <SwitchChainCta
+      locale={locale}
+      execChain={governanceWalletChain}
+      chainName={governanceChainName}
+      onSwitch={switchChain}
+      variant="outline"
+      className="swap-panel__cta"
+    />
   )
   const connectCtaAlt = (
     <Button variant="outline" className="swap-panel__cta" onClick={toggle}>
@@ -310,11 +448,18 @@ export function VaultActions({
             {copy.stakeCrossCta.replace('{symbol}', symbol)}
           </Button>
         ) : (
-          <Button className="swap-panel__cta" disabled>
+          <Button
+            className="swap-panel__cta"
+            disabled={!stakeValid || stakeOver || customDelegate || !executionReady || resolving || tx.running}
+            onClick={() => void startVaultReview('stake')}
+          >
             {copy.stakeCta.replace('{symbol}', symbol)}
           </Button>
         )}
         {wrongChain ? <p className="panel-note">{copy.crossNote}</p> : null}
+        {resolveFailed ? <FieldError>{getCopy(locale).common.degrade.errorBody}</FieldError> : null}
+        
+        {tx.active && !tx.reviewing ? <TxStatus locale={locale} state={tx.display} /> : null}
       </div>
 
       <div className="vault-card">
@@ -385,7 +530,12 @@ export function VaultActions({
               </div>
             </dl>
             {!connected ? connectCtaAlt : wrongChain ? switchCtaAlt : (
-              <Button variant="outline" className="swap-panel__cta" disabled>
+              <Button
+                variant="outline"
+                className="swap-panel__cta"
+                disabled={!redeemValid || redeemOver || !executionReady || resolving || tx.running}
+                onClick={() => void startVaultReview('redeem')}
+              >
                 {copy.redeemCta.replace('{share}', shareSymbol)}
               </Button>
             )}
@@ -442,7 +592,12 @@ export function VaultActions({
               </div>
             </dl>
             {!connected ? connectCtaAlt : wrongChain ? switchCtaAlt : (
-              <Button variant="outline" className="swap-panel__cta" disabled>
+              <Button
+                variant="outline"
+                className="swap-panel__cta"
+                disabled={claimableTotal <= 0 || !executionReady || resolving || tx.running}
+                onClick={() => void startVaultReview('withdraw')}
+              >
                 {copy.withdrawAll.replace('{symbol}', symbol)}
               </Button>
             )}

@@ -6,9 +6,30 @@ import { X } from 'lucide-react'
 import type { Locale, FixturePolPosition, FixtureVerse } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
-import { useMockWallet } from '../global/mock-wallet'
-import { formatAmount } from '../global/signal-ui'
+import { useAccountCenter } from '../global/use-account-center'
+import { useTxCenter, type WriteSpec } from '../global/use-tx-center'
+import { TxStatus } from '../global/tx-status'
+import {
+  estimateSession,
+  readErc20Meta,
+  readErc20State,
+  resolveVerseSession,
+  type ContractReader,
+} from '../global/execution-reads'
+import { splitterAbi } from '@/lib/web3/abis'
+import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
+import {
+  approvalCall,
+  buildSessionWrite,
+  mergeCall,
+  splitCall,
+} from '@/lib/web3/session-actions'
+import { useParams } from 'next/navigation'
+import { parseVerseIdParam } from '../global/routes'
+import { SwitchChainCta, useVerseExecChain } from '../global/switch-chain-cta'
+import { formatUnits, parseUnits, type Hex } from 'viem'
 import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
+import { formatAmount } from '../global/signal-ui'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -53,9 +74,17 @@ export function PolSplitMergeDialog({
 }) {
   const copy = getCopy(locale).verseDesk
   const common = getCopy(locale).common
-  const { connected, toggle } = useMockWallet()
+  const center = useAccountCenter()
+  const { connected, connectAction: toggle } = center
+  const { execChain, wrongChain, switchChain } = useVerseExecChain(verse.governanceChain)
+  const tx = useTxCenter()
+  const params = useParams()
+  const rawVerseId = params?.verseId
+  const verseId = parseVerseIdParam(rawVerseId)
   // merge's two sides are always equal (the contract burns the same amount on both sides) → a single state drives both input boxes
   const [amount, setAmount] = useState('')
+  const [resolving, setResolving] = useState(false)
+  const [resolveFailed, setResolveFailed] = useState(false)
   const balanceErrorId = useId()
 
   const polSymbol = `POL-${verse.symbol}`
@@ -66,7 +95,103 @@ export function PolSplitMergeDialog({
   // merge's two inputs share one amount → the error row mounts in a single place after the YT
   // box, both inputs carry the same aria
   const parsed = Number(amount)
+  const valid = Number.isFinite(parsed) && parsed > 0
   const overBalance = mode === 'split' ? parsed > pol.myPol : parsed > maxMerge
+  const executionReady =
+    center.source === 'real' &&
+    connected &&
+    center.chainSupported &&
+    !wrongChain &&
+    center.chainId != null &&
+    center.address != null &&
+    verseId != null
+
+  async function startSplitMergeReview(): Promise<void> {
+    if (!executionReady || !valid || overBalance || resolving) return
+    const provider = getActiveEip1193Provider()
+    const eoa = center.address as Hex | null
+    const chainId = center.chainId
+    if (!provider || !eoa || chainId == null || verseId == null) return
+    setResolving(true)
+    setResolveFailed(false)
+    try {
+      const session = await resolveVerseSession({
+        request: provider.request,
+        chainId,
+        eoa,
+        verseId: BigInt(verseId),
+      })
+      const splitter = session.contracts.POLSplitter as Hex
+      const reader: ContractReader = session.reader
+      // Merge pulls PT+YT (resolved via splitter views); split pulls POL.
+      const [pt, yt] =
+        mode === 'merge'
+          ? ((await Promise.all([
+              reader.read({ address: splitter, abi: splitterAbi, functionName: 'getPT', args: [BigInt(verseId)] }),
+              reader.read({ address: splitter, abi: splitterAbi, functionName: 'getYT', args: [BigInt(verseId)] }),
+            ])) as [Hex, Hex])
+          : [null, null]
+      const pullTokens = mode === 'split' ? [session.verse.pol] : [pt as Hex, yt as Hex]
+      const decimalsList = await Promise.all(
+        pullTokens.map((token) => readErc20Meta(reader, token).then((meta) => meta.decimals)),
+      )
+      // 1:1 identity: one display amount, each pull token parsed in its own decimals.
+      const amounts = pullTokens.map((_, index) => parseUnits(amount, decimalsList[index] ?? 18))
+      const allowances = await Promise.all(
+        pullTokens.map((token) => readErc20State(reader, token, eoa, splitter).then((state) => state.allowance)),
+      )
+      const approvals = pullTokens.flatMap((token, index) => {
+        const want = amounts[index] as bigint
+        return (allowances[index] as bigint) < want
+          ? [approvalCall(token, splitter, want)]
+          : []
+      })
+      const action =
+        mode === 'split'
+          ? splitCall(splitter, BigInt(verseId), amounts[0] as bigint)
+          // Sibling PT/YT share decimals in practice; the single merge amount rides the PT leg.
+          : mergeCall(splitter, BigInt(verseId), amounts[0] as bigint)
+      const { calls, calldata: batch } = buildSessionWrite({ hook: session.hook, approvals, action })
+      const { estimatedGas, nativeBalance } = await estimateSession(
+        { client: session.client, reader: session.reader, eoa },
+        batch,
+      )
+      const inputSymbol = mode === 'split' ? polSymbol : `${ptSymbol} + ${ytSymbol}`
+      const spec: WriteSpec = {
+        review: {
+          chainId,
+          account: eoa,
+          targetContract: splitter,
+          functionName: mode,
+          inputs: `${formatUnits(amounts[0] as bigint, decimalsList[0] ?? 18)} ${inputSymbol}`,
+          minOutput: `${formatUnits(amounts[0] as bigint, decimalsList[0] ?? 18)} ${mode === 'split' ? `${ptSymbol} + ${ytSymbol}` : polSymbol}`,
+          fee: '—',
+          gasPayer: eoa,
+          authorizationChange:
+            approvals.length > 0
+              ? `${amount} ${inputSymbol}`
+              : '—',
+          estimatedGas,
+          nativeBalance,
+        },
+        kernel: session.kernel,
+        expectedChainId: chainId,
+        batchCallData: batch,
+        calls,
+        quoteId: `${mode}:${verseId}:${amount}`,
+        minOutput: amount,
+        slippageBps: 0,
+        deadline: Math.floor(Date.now() / 1000) + 3600,
+        manifestVersion: session.manifestVersion,
+        crossChain: false,
+      }
+      void tx.executeSession(spec)
+    } catch {
+      setResolveFailed(true)
+    } finally {
+      setResolving(false)
+    }
+  }
 
   return (
     <Dialog>
@@ -185,14 +310,31 @@ export function PolSplitMergeDialog({
           )}
 
           {connected ? (
-            <Button className="swap-panel__cta" disabled>
-              {mode === 'split' ? copy.splitPol : copy.mergePol}
-            </Button>
+            wrongChain ? (
+              <SwitchChainCta
+                locale={locale}
+                execChain={execChain}
+                chainName={verse.governanceChainName}
+                onSwitch={switchChain}
+                className="swap-panel__cta"
+              />
+            ) : (
+              <Button
+                className="swap-panel__cta"
+                disabled={!valid || overBalance || !executionReady || resolving || tx.running}
+                onClick={() => void startSplitMergeReview()}
+              >
+                {mode === 'split' ? copy.splitPol : copy.mergePol}
+              </Button>
+            )
           ) : (
             <Button className="swap-panel__cta" onClick={toggle}>
               {copy.swapCta}
             </Button>
           )}
+          {resolveFailed ? <FieldError>{common.degrade.errorBody}</FieldError> : null}
+          
+          {tx.active && !tx.reviewing ? <TxStatus locale={locale} state={tx.display} /> : null}
         </div>
       </DialogContent>
     </Dialog>

@@ -5,6 +5,7 @@ import { productFontClassName } from '@/components/design-system/fonts';
 import { FontPreloadLinks } from '@/components/design-system/font-preload';
 import { PaintSkin } from '@/components/design-system/paint-skin';
 import { getCopy } from '@/components/global/copy';
+import { Web3Providers } from '@/components/global/web3-providers';
 import { getDisplayLocale } from '@/lib/locale';
 
 import './globals.css';
@@ -94,7 +95,7 @@ export default async function RootLayout({
             </filter>
           </defs>
         </svg>
-        {children}
+        <Web3Providers>{children}</Web3Providers>
         {/* Site-wide CRT scanlines, mounted at body level: a single horizontal-stripe component — when it
             hung at the end of the shell, dialog portals (mounted on body, z-50) painted above it and missed the film; at body level
             z-overlay covers all content including dialogs, so pages and dialogs share one film */}

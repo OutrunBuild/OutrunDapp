@@ -2,10 +2,10 @@
 
 import type { ReactNode } from 'react'
 
-import { useMockWallet } from './mock-wallet'
+import { useAccountCenter } from './use-account-center'
 
 /**
- * User-data gate: when there is no user participation (mock wallet disconnected —
+ * User-data gate: when there is no user participation (account center disconnected —
  * the only "participation" signal), the subtree is not rendered — the yield
  * portfolio/referral pages hide their data cards wholesale instead of showing zeros;
  * mechanism-introduction content (e.g. how referral works) is not governed by this
@@ -15,7 +15,7 @@ import { useMockWallet } from './mock-wallet'
  * snapshots are always disconnected, so there is no hydration flicker.
  */
 export function UserDataGate({ children }: { children: ReactNode }) {
-  const { connected } = useMockWallet()
+  const { connected } = useAccountCenter()
   if (!connected) return null
   return <>{children}</>
 }

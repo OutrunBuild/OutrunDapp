@@ -5,45 +5,152 @@
  * stakeForGenesis without touching UUSD): two-way PSM face-value swap (Get = USDC→UUSD mint /
  * Back = UUSD→USDC redeem), mechanism facts (face value 1:1, tin/tout fees, mint bounded
  * by stockCap headroom, no slippage/deadline params → no settings gear). Primitives reuse
- * global/action-dialogs; CTA semantics = when disconnected, a clickable Connect toggles the mock
- * connection; when connected, the action button is gated only by input (no onClick, no faked
- * settlement) — same as ConvertDialog.
+ * global/action-dialogs; CTA semantics = when connected, the action button is
+ * gated only by input (no faked settlement) — same as ConvertDialog. Balance display:
+ * the SSR payload carries accountless values only — the connected wallet reads its own
+ * PSM-pair balances through its provider when the dialog opens (2026-10-21 ruling). Signed-out
+ * gate (2026-10-20 ruling): on onchain builds the yellow trigger keeps its look
+ * but opens the login selector instead of the dialog; the harness (e2e/fixture)
+ * path opens the dialog as before so baselines stay meaningful.
  */
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import { createPublicClient, custom, formatUnits, type Hex } from 'viem'
 
 import type { FixtureFaucet, Locale } from '@/lib/data/fixture-repository'
+import { erc20ReadAbi, psmAbi } from '@/lib/web3/abis'
+import { getClientChainConfig } from '@/lib/web3/chains'
+import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
 
 import { ActionDialogShell, AmountField, DetailRows, DialogCta } from '../global/action-dialogs'
 import { getCopy } from '../global/copy'
-import { useMockWallet } from '../global/mock-wallet'
+import { readErc20Meta, type ContractReader } from '../global/execution-reads'
+import { useAccountCenter } from '../global/use-account-center'
+import { usePsmSwap } from '../global/use-psm-swap'
 import { formatAmount, formatPercent } from '../global/signal-ui'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogTrigger } from '@/components/ui/dialog'
+import { FieldError } from '@/components/ui/field'
 
 export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: FixtureFaucet['swap'] }) {
   const copy = getCopy(locale).faucet
-  const { connected, toggle } = useMockWallet()
+  const psm = usePsmSwap(locale, swap.uAssetSymbol)
+  const {
+    connected,
+    toggle,
+    tx,
+    executionReady,
+    resolving,
+    resolveFailed,
+    walletUnsupported,
+    executionFailed,
+  } = psm
   const [mode, setMode] = useState<'get' | 'back'>('get')
   const [amount, setAmount] = useState('')
+  // Each mode pays a different token, so a carried-over amount would be read against the
+  // other side's balance and fee; switching direction clears the field.
+  const switchMode = (next: 'get' | 'back') => {
+    if (next === mode) return
+    setMode(next)
+    setAmount('')
+  }
+  const [open, setOpen] = useState(false)
+  // Closing discards the transaction center state: a batch left Confirming… (poll deadline)
+  // must not keep the CTA disabled the next time the dialog opens.
+  useEffect(() => {
+    if (!open) tx.reset()
+  }, [open, tx.reset])
   const parsed = Number(amount)
   const valid = Number.isFinite(parsed) && parsed > 0
   const fee = mode === 'get' ? swap.feeIn : swap.feeOut
-  const balance = mode === 'get' ? swap.myReserve : swap.myUAsset
   const paySymbol = mode === 'get' ? swap.reserveSymbol : swap.uAssetSymbol
   const outSymbol = mode === 'get' ? swap.uAssetSymbol : swap.reserveSymbol
 
+  const center = useAccountCenter()
+  const lockTrigger = center.source === 'real' && !connected
+  const liveBalances = center.source === 'real' && connected
+
+  // Connected balances are read client-side through the wallet provider when the dialog opens
+  // (2026-10-21 ruling: personal values never ride the SSR path — the server carries accountless
+  // values only). In flight / failed → null → AmountField '--' (null-不渲染); disconnected → the
+  // server-passed value (fixture sample in fixture mode, 0 in onchain mode).
+  const [balances, setBalances] = useState<{ uAsset: number; reserve: number } | null>(null)
+  // Confirmed swap re-read key: bumped only on a confirmed write, so only the post-trade
+  // refresh re-runs the balances effect — never a full reset, never on every render.
+  const [settledTick, setSettledTick] = useState(0)
+  const prevDisplayRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (tx.display === 'confirmed' && prevDisplayRef.current !== 'confirmed') {
+      setSettledTick((tick) => tick + 1)
+    }
+    prevDisplayRef.current = tx.display
+  }, [tx.display])
+  useEffect(() => {
+    if (!open || !liveBalances || center.chainId == null || center.address == null) return
+    const provider = getActiveEip1193Provider()
+    const eoa = center.address as Hex
+    const resolved = getClientChainConfig(center.chainId)
+    if (!provider || resolved.status !== 'ok' || resolved.config.contracts.status !== 'deployed') return
+    const psmAddr = resolved.config.contracts.addresses[`OutrunPSM.${swap.uAssetSymbol}`] as Hex | undefined
+    if (!psmAddr) return
+    let cancelled = false
+    const client = createPublicClient({
+      chain: resolved.config.viemChain,
+      transport: custom({ request: provider.request }),
+    })
+    const reader: ContractReader = {
+      read: (readParams) => client.readContract(readParams) as Promise<unknown>,
+    }
+    const readBalance = async (token: Hex) => {
+      const [raw, { decimals }] = await Promise.all([
+        reader.read({ address: token, abi: erc20ReadAbi, functionName: 'balanceOf', args: [eoa] }),
+        readErc20Meta(reader, token),
+      ])
+      return Number(formatUnits(BigInt(String(raw)), decimals))
+    }
+    void (async () => {
+      try {
+        const [uAsset, reserve] = (await Promise.all([
+          reader.read({ address: psmAddr, abi: psmAbi, functionName: 'uAsset' }),
+          reader.read({ address: psmAddr, abi: psmAbi, functionName: 'reserveToken' }),
+        ])) as [Hex, Hex]
+        const [myUAsset, myReserve] = await Promise.all([readBalance(uAsset), readBalance(reserve)])
+        if (!cancelled) setBalances({ uAsset: myUAsset, reserve: myReserve })
+      } catch {
+        // silent degrade: AmountField keeps '--'
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [open, liveBalances, center.chainId, center.address, swap.uAssetSymbol, settledTick])
+
+  const fallbackBalance = mode === 'get' ? swap.myReserve : swap.myUAsset
+  const balance = !liveBalances
+    ? fallbackBalance
+    : balances == null
+      ? null
+      : mode === 'get'
+        ? balances.reserve
+        : balances.uAsset
+
   return (
-    <Dialog>
-      <DialogTrigger data-slot="button" render={<Button className="ax-ghost-cta" size="sm" />}>
-        {copy.swapCta}
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={setOpen}>
+      {lockTrigger ? (
+        <Button className="ax-ghost-cta" size="sm" onClick={toggle}>
+          {copy.swapCta}
+        </Button>
+      ) : (
+        <DialogTrigger data-slot="button" render={<Button className="ax-ghost-cta" size="sm" />}>
+          {copy.swapCta}
+        </DialogTrigger>
+      )}
       <ActionDialogShell title={copy.swapTitle} closeLabel={getCopy(locale).common.close}>
         <div className="pf-dialog__chips" role="group">
-          <button type="button" data-selected={mode === 'get' || undefined} onClick={() => setMode('get')}>
+          <button type="button" data-selected={mode === 'get' || undefined} onClick={() => switchMode('get')}>
             {copy.modeGet}
           </button>
-          <button type="button" data-selected={mode === 'back' || undefined} onClick={() => setMode('back')}>
+          <button type="button" data-selected={mode === 'back' || undefined} onClick={() => switchMode('back')}>
             {copy.modeBack}
           </button>
         </div>
@@ -110,9 +217,37 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fixtu
           locale={locale}
           connected={connected}
           onConnect={toggle}
+          onAction={() =>
+            void psm.start(
+              mode === 'get' ? 'mint' : 'redeem',
+              amount,
+              {
+                paySymbol,
+                outSymbol,
+                feeText: fee != null ? `${formatPercent(fee * 100, locale)}%` : '—',
+              },
+              // No review panel (§29): the dialog's four detail rows already carry the deal
+              // facts, so the wallet popup is the only confirmation.
+              { skipReview: true },
+            )
+          }
           label={mode === 'get' ? copy.ctaGet : copy.ctaBack}
-          disabled={!valid}
+          disabled={
+            !valid ||
+            !executionReady ||
+            resolving ||
+            tx.running ||
+            tx.display === 'confirming' ||
+            walletUnsupported
+          }
         />
+        {walletUnsupported ? (
+          <FieldError>{getCopy(locale).wallet.account.callsUnsupported}</FieldError>
+        ) : null}
+        {executionFailed ? (
+          <FieldError>{getCopy(locale).wallet.errors.txFailed}</FieldError>
+        ) : null}
+        {resolveFailed ? <FieldError>{getCopy(locale).common.degrade.errorBody}</FieldError> : null}
       </ActionDialogShell>
     </Dialog>
   )

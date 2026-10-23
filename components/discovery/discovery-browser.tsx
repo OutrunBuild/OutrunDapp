@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { ArrowDownWideNarrow, ArrowUp, ArrowUpNarrowWide, Search, SlidersHorizontal } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { degradeToneFor } from '@/lib/prototype/scenario'
+import { degradeToneFor, type ScenarioView } from '../global/scenario-view'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import {
@@ -25,8 +25,9 @@ import type {
 } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
+import { ChainLogoMark } from '../global/chain-icons'
 import { verseHref } from '../global/routes'
-import { clearFiltersHref, discoveryHref, stageTabHref } from './discovery-href'
+import { clearFiltersHref, discoveryHref, nextPageHref, stageTabHref } from './discovery-href'
 import { EconomyCard } from './economy-card'
 import { SORT_OPTIONS_BY_STAGE, sortVerses } from './sort-options'
 
@@ -37,6 +38,10 @@ type DiscoveryBrowserProps = {
   scenario?: string | null,
   verses: FixtureVerse[]
   chains: FixtureChain[]
+  /** all indexed chain ids (filter options; from the page result, never a second pull) */
+  chainIds: number[]
+  hasMore: boolean
+  initialPage: number
   initialStage: VerseStage
   initialSort: string
   initialOrder: 'asc' | 'desc'
@@ -46,7 +51,7 @@ type DiscoveryBrowserProps = {
   initialQuery: string
 }
 
-/** Infinite scroll: per-batch load size (= 3 columns × 2 rows) */
+/** Infinite scroll: per-batch reveal size (= 3 columns × 2 rows) within the loaded server page */
 const GRID_BATCH_SIZE = 6
 
 export function DiscoveryBrowser({
@@ -54,6 +59,9 @@ export function DiscoveryBrowser({
   locale,
   verses,
   chains,
+  chainIds,
+  hasMore,
+  initialPage,
   initialStage,
   initialSort,
   initialOrder,
@@ -77,14 +85,15 @@ export function DiscoveryBrowser({
     order: initialOrder,
     chain: initialChain,
     mode: initialMode,
-    q: initialQuery,
+    query: initialQuery,
+    page: initialPage,
   }
 
   function makeHref(changes: Partial<typeof currentParams>) {
     return discoveryHref(pathname, currentParams, changes)
   }
 
-  const view = scenario ? (scenario as never as import('@/lib/prototype/scenario').ScenarioView) : null
+  const view = scenario ? (scenario as never as ScenarioView) : null
   const tone = view ? degradeToneFor(view) : null
   const dg = copy.common.degrade
   const banner = tone
@@ -103,46 +112,48 @@ export function DiscoveryBrowser({
     })
   }
 
-  const normalizedQuery = initialQuery.trim().toLowerCase()
-  // Search spans all stages (refund verses are reachable only via search: badge visible, detail
-  // accessible); without a search term, browse by stage (Refund is not a public browsing state)
-  const visibleVerses = sortVerses(
-    verses
-      .filter((verse) => (normalizedQuery ? true : verse.stage === initialStage))
-      .filter((verse) => initialChain === 'all' || String(verse.governanceChain) === initialChain)
-      .filter(
-        (verse) =>
-          initialMode === 'all' ||
-          (initialMode === 'fast' ? verse.fastGenesis : !verse.fastGenesis),
-      )
-      .filter(
-        (verse) =>
-          !normalizedQuery ||
-          verse.name.toLowerCase().includes(normalizedQuery) ||
-          verse.symbol.toLowerCase().includes(normalizedQuery) ||
-          (verse.memecoinAddress?.toLowerCase().includes(normalizedQuery) ?? false),
-      ),
-    initialSort,
-    initialOrder,
-  )
+  // Server-side filtering is already applied (stage/chain/mode/query at the data layer);
+  // the client only sorts the loaded page (existing sortVerses semantics, single pass).
+  const visibleVerses = sortVerses(verses, initialSort, initialOrder)
 
+  // Within-page reveal: show the first batches instantly, reveal more on scroll; crossing
+  // the page boundary navigates to ?page=+1 (server renders the next window, scroll preserved)
   const shownVerses = visibleVerses.slice(0, visibleCount)
-  const hasMore = shownVerses.length < visibleVerses.length
+  const pageExhausted = shownVerses.length >= visibleVerses.length
+  const nextHref = hasMore && pageExhausted ? nextPageHref(pathname, currentParams) : null
 
   useEffect(() => {
     const node = sentinelRef.current
-    if (!node || !hasMore) return
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setVisibleCount((count) => Math.min(count + GRID_BATCH_SIZE, visibleVerses.length))
-        }
-      },
-      { rootMargin: '320px 0px' },
-    )
-    observer.observe(node)
-    return () => observer.disconnect()
-  }, [hasMore, visibleVerses.length])
+    if (!node) return
+    if (nextHref) {
+      router.prefetch(nextHref)
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting)) {
+            startTransition(() => {
+              router.replace(nextHref, { scroll: false })
+            })
+          }
+        },
+        { rootMargin: '320px 0px' },
+      )
+      observer.observe(node)
+      return () => observer.disconnect()
+    }
+    if (!pageExhausted) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting)) {
+            setVisibleCount((count) => Math.min(count + GRID_BATCH_SIZE, visibleVerses.length))
+          }
+        },
+        { rootMargin: '320px 0px' },
+      )
+      observer.observe(node)
+      return () => observer.disconnect()
+    }
+    return undefined
+  }, [nextHref, pageExhausted, visibleVerses.length, router])
 
   useEffect(() => {
     const onScroll = () => setShowBackToTop(window.scrollY > 480)
@@ -170,19 +181,20 @@ export function DiscoveryBrowser({
     value,
     label: sortLabels[value],
   }))
-  const chainItems = [
-    { value: 'all', label: copy.discovery.allChains },
-    ...verses
-      .map((verse) => ({ value: String(verse.governanceChain), label: verse.governanceChainName }))
-      .filter((item, index, items) => items.findIndex((candidate) => candidate.value === item.value) === index),
-  ]
+  // Chain options come from the page result's indexed id set (static TESTNETS onchain,
+  // governance chains in fixture) so spoke chains stay selectable
+  const chainItems = chainIds
+    .map((id) => ({
+      value: String(id),
+      label: chains.find((chain) => chain.chainId === id)?.name ?? String(id),
+    }))
+    .filter((item, index, items) => items.findIndex((candidate) => candidate.value === item.value) === index)
   const modeItems = [
     { value: 'all', label: copy.discovery.allModes },
     { value: 'normal', label: copy.discovery.normalMode },
     { value: 'fast', label: copy.discovery.fastGenesis },
   ]
-  const hasActiveFilters =
-    initialChain !== 'all' || initialMode !== 'all' || Boolean(initialQuery)
+  const hasActiveFilters = initialMode !== 'all' || Boolean(initialQuery)
 
   return (
     <div className="discovery-browser" aria-busy={pending}>
@@ -243,9 +255,11 @@ export function DiscoveryBrowser({
                   <p className="economy-card__chains">
                     <span className="degrade-skeleton__line degrade-skeleton__line--chains-label" />
                     <span className="economy-card__chain-icons">
-                      {chains.map((chain) => (
-                        <span className="degrade-skeleton__chain" key={chain.chainId} />
-                      ))}
+                      {chains
+                        .filter((chain) => chain.env === 'mainnet')
+                        .map((chain) => (
+                          <span className="degrade-skeleton__chain" key={chain.chainId} />
+                        ))}
                     </span>
                   </p>
                   <div className="economy-card__signal">
@@ -282,9 +296,10 @@ export function DiscoveryBrowser({
       <section className="discovery-tools" aria-label={copy.discovery.filterTitle}>
         <form
           className="discovery-search"
+          autoComplete="off"
           onSubmit={(event) => {
             event.preventDefault()
-            replaceQuery({ q: queryInput.trim() })
+            replaceQuery({ query: queryInput.trim(), page: 1 })
           }}
         >
           <Field>
@@ -335,7 +350,7 @@ export function DiscoveryBrowser({
                 value={initialMode}
                 onValueChange={(value) => {
                   const mode = value === 'fast' || value === 'normal' ? value : 'all'
-                  replaceQuery({ mode })
+                  replaceQuery({ mode, page: 1 })
                 }}
               >
                 <SelectTrigger id="genesis-mode">
@@ -361,15 +376,27 @@ export function DiscoveryBrowser({
               name="governance-chain"
               items={chainItems}
               value={initialChain}
-              onValueChange={(value) => replaceQuery({ chain: value ?? 'all' })}
+              onValueChange={(value) => replaceQuery({ chain: value ?? String(chainIds[0] ?? ''), page: 1 })}
             >
               <SelectTrigger id="governance-chain">
-                <SelectValue />
+                {/* Chain identity rides the trigger too: official logo + name */}
+                <SelectValue>
+                  {(value: string | null) => {
+                    const item = chainItems.find((candidate) => candidate.value === value)
+                    return (
+                      <>
+                        {item ? <ChainLogoMark chainId={Number(item.value)} size={16} /> : null}
+                        {item?.label ?? ''}
+                      </>
+                    )
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false} align="start">
                 <SelectGroup>
                   {chainItems.map((item) => (
                     <SelectItem key={item.value} value={item.value}>
+                      <ChainLogoMark chainId={Number(item.value)} size={16} />
                       {item.label}
                     </SelectItem>
                   ))}

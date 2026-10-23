@@ -110,6 +110,8 @@ export async function LiquidityPanel({
                 pol={pol}
                 price={trade.tokenStats.price}
                 uAssetUsd={uAssetUsd}
+                governanceChain={verse.governanceChain}
+                governanceChainName={verse.governanceChainName}
               />
               <PoolRemoveLiquidityDialog
                 locale={locale}
@@ -117,6 +119,8 @@ export async function LiquidityPanel({
                 pol={pol}
                 price={trade.tokenStats.price}
                 uAssetUsd={uAssetUsd}
+                governanceChain={verse.governanceChain}
+                governanceChainName={verse.governanceChainName}
               />
             </div>
           </li>

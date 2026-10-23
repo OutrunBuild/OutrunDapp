@@ -1,17 +1,40 @@
 'use client'
 
 import { useId, useState } from 'react'
+import { useParams } from 'next/navigation'
 import { ArrowLeftRight, ArrowUpDown } from 'lucide-react'
+import { createPublicClient, custom, formatUnits, parseUnits, type Hex } from 'viem'
 
 import type {
   Locale,
   FixturePolPosition,
 } from '@/lib/data/fixture-repository'
+import { getClientChainConfig } from '@/lib/web3/chains'
+import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
+import {
+  approvalCall,
+  buildSessionWrite,
+  limitForDirection,
+  swapExactInputCall,
+  type PoolKey,
+} from '@/lib/web3/session-actions'
 
 import { getCopy } from '../global/copy'
-import { useMockWallet } from '../global/mock-wallet'
+import { useAccountCenter } from '../global/use-account-center'
+import { useTxCenter, type WriteSpec } from '../global/use-tx-center'
+import { TxStatus } from '../global/tx-status'
+import {
+  readErc20Meta,
+  readErc20State,
+  readPoolKey,
+  readSwapQuote,
+  readVerseAddresses,
+  type ContractReader,
+} from '../global/execution-reads'
 import { formatAmount } from '../global/signal-ui'
 import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
+import { parseVerseIdParam } from '../global/routes'
+import { useVerseExecChain } from '../global/switch-chain-cta'
 import { fmtTokenAmount, fmtUsd } from '../global/amount-format'
 import { getSlippageIssue, slippageToNumber } from '../global/slippage-input'
 import { SwapSettings } from '../global/swap-settings'
@@ -28,9 +51,10 @@ type MemeTokenId = 'meme' | 'pol' | 'pt'
 /**
  * Standard Swap panel: the top-right settings button holds slippage/deadline;
  * the details rows keep only reference price/price impact/min received/route; no static explainer copy.
- * CTA wired to mock connection (the connect-wallet button is clickable):
+ * CTA wired to the account center (the connect-wallet button is clickable):
  * disconnected=Connect Wallet clickable, sharing the switch with the header's WalletControl;
- * connected=Swap action disabled (no faked on-chain execution).
+ * connected + onchain + uAsset↔memecoin pair = review → Type-4 session swap;
+ * otherwise the action stays disabled (no faked on-chain execution).
  * The input/output side tokens open a select dialog: stable side=
  * uAsset + its PSM-paired reserves
  * (par 1:1), Meme side=memecoin/POL/PT; the quote converts linearly via both sides' reference
@@ -52,6 +76,8 @@ export function SwapPanel({
   reserves,
   reserveBalance,
   pol,
+  governanceChain,
+  governanceChainName,
 }: {
   locale: Locale
   /** The verse's memecoin ticker */
@@ -72,10 +98,21 @@ export function SwapPanel({
   reserveBalance: number | null
   /** POL/PT pool price and balance sample (pol-positions fixture; null=quote/balance slot state) */
   pol: FixturePolPosition | null
+  /** Verse governance chain + display name (execution-chain gate; SwitchChainCta target) */
+  governanceChain: number
+  governanceChainName: string
 }) {
   const copy = getCopy(locale).verseDesk
   const common = getCopy(locale).common
-  const { connected, toggle } = useMockWallet()
+  const center = useAccountCenter()
+  const { connected, connectAction: toggle } = center
+  const { execChain, wrongChain, switchChain } = useVerseExecChain(governanceChain)
+  const tx = useTxCenter()
+  const params = useParams()
+  const rawVerseId = params?.verseId
+  const verseId = parseVerseIdParam(rawVerseId)
+  const [resolving, setResolving] = useState(false)
+  const [resolveFailed, setResolveFailed] = useState(false)
   const [direction, setDirection] = useState<'stable-to-meme' | 'meme-to-stable'>('stable-to-meme')
   const buyLabelId = useId()
   const [stableId, setStableId] = useState(uAssetSymbol)
@@ -160,6 +197,128 @@ export function SwapPanel({
   const slippage = slippageToNumber(slippageText)
   const slippageIssue = getSlippageIssue(slippage)
   const minReceived = quote != null && slippageIssue == null ? quote * (1 - slippage / 100) : null
+  // Onchain execution (uAsset↔memecoin exact-input only; reserves/POL/PT legs resolve no
+  // addresses and stay disabled). Everything resolves through the wallet provider: verse
+  // registry → pool key → quote (trader = execution EOA, §M2 trader contract) → approval →
+  // session batch. No page prop threading: verseId comes from the route.
+  const verseIdValid = verseId != null
+  const executionReady =
+    center.source === 'real' &&
+    connected &&
+    center.chainSupported &&
+    !wrongChain &&
+    center.chainId != null &&
+    center.address != null &&
+    verseIdValid &&
+    stableSide.id === uAssetSymbol &&
+    memeSide.id === 'meme'
+
+  async function startSwapReview(): Promise<void> {
+    if (!executionReady || !valid || slippageIssue != null || resolving) return
+    const provider = getActiveEip1193Provider()
+    const eoa = center.address as Hex | null
+    const chainId = center.chainId
+    if (!provider || !eoa || chainId == null) return
+    const resolved = getClientChainConfig(chainId)
+    if (resolved.status !== 'ok' || resolved.config.contracts.status !== 'deployed') return
+    const contracts = resolved.config.contracts.addresses
+    const router = contracts.MemeverseSwapRouter as Hex
+    const hook = contracts.MemeverseUniswapHook as Hex
+    const launcher = contracts.MemeverseLauncher as Hex
+    const kernel = resolved.config.kernel7702Implementation as Hex
+    setResolving(true)
+    setResolveFailed(false)
+    try {
+      const client = createPublicClient({
+        chain: resolved.config.viemChain,
+        transport: custom({ request: provider.request }),
+      })
+      const reader: ContractReader = {
+        read: (readParams) => client.readContract(readParams) as Promise<unknown>,
+      }
+      const verse = await readVerseAddresses(reader, launcher, BigInt(verseId))
+      const tokenIn = (direction === 'stable-to-meme' ? verse.uAsset : verse.memecoin) as Hex
+      const tokenOut = (direction === 'stable-to-meme' ? verse.memecoin : verse.uAsset) as Hex
+      const key: PoolKey = await readPoolKey(reader, router, tokenIn, tokenOut)
+      const zeroForOne = tokenIn.toLowerCase() === key.currency0.toLowerCase()
+      const [{ decimals: decimalsIn }, { decimals: decimalsOut }] = await Promise.all([
+        readErc20Meta(reader, tokenIn),
+        readErc20Meta(reader, tokenOut),
+      ])
+      const amountIn = parseUnits(amount, decimalsIn)
+      const swapQuote = await readSwapQuote(
+        reader,
+        router,
+        key,
+        { zeroForOne, amountSpecified: -amountIn, sqrtPriceLimitX96: limitForDirection(zeroForOne) },
+        eoa,
+      )
+      const slippageBps = Math.round(slippage * 100)
+      const minOut =
+        (swapQuote.estimatedUserOutputAmount * BigInt(10000 - slippageBps)) / 10000n
+      const deadlineSecs = BigInt(Math.floor(Date.now() / 1000) + (Number(deadlineText) || 10) * 60)
+      const { allowance } = await readErc20State(reader, tokenIn, eoa, router)
+      const approval =
+        allowance < amountIn
+          ? approvalCall(tokenIn, router, amountIn)
+          : undefined
+      const action = swapExactInputCall(router, {
+        key,
+        zeroForOne,
+        amountIn,
+        amountOutMinimum: minOut,
+        recipient: eoa,
+        deadline: deadlineSecs,
+      })
+      const { calls, calldata: batch } = buildSessionWrite({ hook, action, approval })
+      let estimatedGas = '—'
+      let nativeBalance = '—'
+      try {
+        const [gas, balance] = await Promise.all([
+          client.estimateGas({ account: eoa, to: eoa, data: batch }),
+          client.getBalance({ address: eoa }),
+        ])
+        estimatedGas = gas.toString()
+        nativeBalance = formatUnits(balance, 18)
+      } catch {
+        const balance = await client.getBalance({ address: eoa })
+        nativeBalance = formatUnits(balance, 18)
+      }
+      const spec: WriteSpec = {
+        review: {
+          chainId,
+          account: eoa,
+          targetContract: router,
+          functionName: 'swap',
+          inputs: `${formatUnits(amountIn, decimalsIn)} ${sellToken.symbol}`,
+          minOutput: `${formatUnits(minOut, decimalsOut)} ${buyToken.symbol}`,
+          fee: `${swapQuote.feeBps} bps`,
+          gasPayer: eoa,
+          authorizationChange: approval
+              ? `${formatUnits(amountIn, decimalsIn)} ${sellToken.symbol}`
+              : '—',
+          estimatedGas,
+          nativeBalance,
+        },
+        kernel,
+        expectedChainId: chainId,
+        batchCallData: batch,
+        calls,
+        quoteId: `${verseId}:${tokenIn}:${tokenOut}:${amountIn}`,
+        minOutput: minOut.toString(),
+        slippageBps,
+        deadline: Number(deadlineSecs),
+        manifestVersion: resolved.config.contracts.abiVersion,
+        crossChain: false,
+      }
+      void tx.executeSession(spec)
+    } catch {
+      setResolveFailed(true)
+    } finally {
+      setResolving(false)
+    }
+  }
+
   // USD conversion: each side's uAsset price × uAssetUsd (reserves borrow the PSM
   // par-equivalent uAsset price);
   // display formatting goes through global/amount-format (fmtUsd/fmtTokenAmount) — raw float
@@ -329,10 +488,22 @@ export function SwapPanel({
         locale={locale}
         connected={connected}
         onConnect={toggle}
+        onAction={() => void startSwapReview()}
         label={copy.swapAction}
+        disabled={!valid || overBalance || slippageIssue != null || !executionReady || resolving || tx.running}
         title={copy.swapActionNote}
         connectLabel={copy.swapCta}
+        switchChainTo={
+          wrongChain
+            ? { execChain, chainName: governanceChainName, onSwitch: switchChain }
+            : undefined
+        }
       />
+      {resolveFailed ? (
+        <FieldError>{common.degrade.errorBody}</FieldError>
+      ) : null}
+      
+      {tx.active && !tx.reviewing ? <TxStatus locale={locale} state={tx.display} /> : null}
     </section>
   )
 }

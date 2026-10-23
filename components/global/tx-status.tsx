@@ -43,7 +43,9 @@ export function TxStatus({ locale, state }: { locale: Locale; state: TxState }) 
     )
   }
 
-  const current = TX_ORDER.indexOf(state as 'signing' | 'confirming' | 'confirmed')
+  // Terminal confirmed renders all steps done: the spinner is progress-only and
+  // must never spin on a settled state (a stuck spinner reads as "hung").
+  const current = state === 'confirmed' ? TX_ORDER.length : TX_ORDER.indexOf(state as 'signing' | 'confirming')
 
   return (
     <ol className="tx-status" aria-live="assertive">

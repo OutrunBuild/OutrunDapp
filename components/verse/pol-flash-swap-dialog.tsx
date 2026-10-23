@@ -6,8 +6,31 @@ import { ArrowDown, ArrowLeftRight } from 'lucide-react'
 import type { Locale, FixturePolPosition, FixtureVerse } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
-import { useMockWallet } from '../global/mock-wallet'
+import { useAccountCenter } from '../global/use-account-center'
 import { ActionDialogShell, DialogCta } from '../global/action-dialogs'
+import { useTxCenter, type WriteSpec } from '../global/use-tx-center'
+import { TxStatus } from '../global/tx-status'
+import {
+  estimateSession,
+  readErc20Meta,
+  readErc20State,
+  resolveVerseSession,
+  type ContractReader,
+} from '../global/execution-reads'
+import { splitterAbi } from '@/lib/web3/abis'
+import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
+import {
+  approvalCall,
+  buildSessionWrite,
+  flashPolToYtCall,
+  flashYtToPolCall,
+  MAX_SQRT_PRICE_X96,
+  MIN_SQRT_PRICE_X96,
+} from '@/lib/web3/session-actions'
+import { useParams } from 'next/navigation'
+import { parseVerseIdParam } from '../global/routes'
+import { useVerseExecChain } from '../global/switch-chain-cta'
+import { formatUnits, parseUnits, type Hex } from 'viem'
 import { SettingsTip, SwapSettings } from '../global/swap-settings'
 import { formatAmount, formatPercent } from '../global/signal-ui'
 import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
@@ -55,8 +78,16 @@ export function PolFlashSwapDialog({
 }) {
   const copy = getCopy(locale).verseDesk
   const common = getCopy(locale).common
-  const { connected, toggle } = useMockWallet()
+  const center = useAccountCenter()
+  const { connected, connectAction: toggle } = center
+  const { execChain, wrongChain, switchChain } = useVerseExecChain(verse.governanceChain)
+  const tx = useTxCenter()
+  const params = useParams()
+  const rawVerseId = params?.verseId
+  const verseId = parseVerseIdParam(rawVerseId)
   const [mode, setMode] = useState<'buy' | 'sell'>('buy')
+  const [resolving, setResolving] = useState(false)
+  const [resolveFailed, setResolveFailed] = useState(false)
   const legLabelId = useId()
   const balanceErrorId = useId()
   // Opens with empty input (amount input defaults to empty 0.00)
@@ -93,6 +124,140 @@ export function PolFlashSwapDialog({
     uAssetLeg != null && slippageIssue == null
       ? uAssetLeg * (mode === 'buy' ? 1 + slippage / 100 : 1 - slippage / 100)
       : null
+  // Execution: buy = POL→exact YT (maxPOLIn bound), sell = exact YT→POL (minPOLOut floor).
+  // POL legs derive from the uAsset-denominated display via the POL/uAsset pool price.
+  const executionReady =
+    center.source === 'real' &&
+    connected &&
+    center.chainSupported &&
+    !wrongChain &&
+    center.chainId != null &&
+    center.address != null &&
+    verseId != null &&
+    pol.marketPricePerPol > 0
+
+  async function startFlashReview(): Promise<void> {
+    if (!executionReady || !valid || overBalance || slippageIssue != null || resolving) return
+    const provider = getActiveEip1193Provider()
+    const eoa = center.address as Hex | null
+    const chainId = center.chainId
+    if (!provider || !eoa || chainId == null || verseId == null) return
+    setResolving(true)
+    setResolveFailed(false)
+    try {
+      const session = await resolveVerseSession({
+        request: provider.request,
+        chainId,
+        eoa,
+        verseId: BigInt(verseId),
+      })
+      const contracts = session.contracts
+      const router = contracts.MemeverseYTFlashSwapRouter as Hex
+      const splitter = contracts.POLSplitter as Hex
+      const reader: ContractReader = session.reader
+      const yt = (await reader.read({
+        address: splitter,
+        abi: splitterAbi,
+        functionName: 'getYT',
+        args: [BigInt(verseId)],
+      })) as Hex
+      const [ytDecimals, polDecimals] = await Promise.all([
+        readErc20Meta(reader, yt).then((meta) => meta.decimals),
+        readErc20Meta(reader, session.verse.pol).then((meta) => meta.decimals),
+      ])
+      const ytAmount = parseUnits(amount, ytDecimals)
+      const protectedPol =
+        protectedLeg != null && pol.marketPricePerPol > 0
+          ? protectedLeg / pol.marketPricePerPol
+          : null
+      if (protectedPol == null) {
+        setResolveFailed(true)
+        return
+      }
+      const deadlineSecs = BigInt(Math.floor(Date.now() / 1000) + 600)
+      let action
+      let pullToken: Hex
+      let pullAmount: bigint
+      let functionName: string
+      let inputs: string
+      let minOutput: string
+      if (mode === 'buy') {
+        const maxPolIn = parseUnits(String(protectedPol), polDecimals)
+        action = flashPolToYtCall(router, {
+          verseId: BigInt(verseId),
+          exactYTOut: ytAmount,
+          maxPOLIn: maxPolIn,
+          sqrtPriceLimitX96: MAX_SQRT_PRICE_X96 - 1n,
+          recipient: eoa,
+          deadline: deadlineSecs,
+        })
+        pullToken = session.verse.pol
+        pullAmount = maxPolIn
+        functionName = 'swapPOLForExactYT'
+        inputs = `${formatUnits(ytAmount, ytDecimals)} ${ytSymbol}`
+        minOutput = `${formatUnits(ytAmount, ytDecimals)} ${ytSymbol}`
+      } else {
+        const minPolOut = parseUnits(String(protectedPol), polDecimals)
+        action = flashYtToPolCall(router, {
+          verseId: BigInt(verseId),
+          exactYTIn: ytAmount,
+          minPOLOut: minPolOut,
+          sqrtPriceLimitX96: MIN_SQRT_PRICE_X96 + 1n,
+          recipient: eoa,
+          deadline: deadlineSecs,
+        })
+        pullToken = yt
+        pullAmount = ytAmount
+        functionName = 'swapExactYTForPOL'
+        inputs = `${formatUnits(ytAmount, ytDecimals)} ${ytSymbol}`
+        minOutput = `${formatUnits(minPolOut, polDecimals)} POL-${verse.symbol}`
+      }
+      const { allowance } = await readErc20State(reader, pullToken, eoa, router)
+      const approval =
+        allowance < pullAmount
+          ? approvalCall(pullToken, router, pullAmount)
+          : undefined
+      const { calls, calldata: batch } = buildSessionWrite({ hook: session.hook, action, approval })
+      const { estimatedGas, nativeBalance } = await estimateSession(
+        { client: session.client, reader: session.reader, eoa },
+        batch,
+      )
+      const pullDecimals = mode === 'buy' ? polDecimals : ytDecimals
+      const pullSymbol = mode === 'buy' ? `POL-${verse.symbol}` : ytSymbol
+      const spec: WriteSpec = {
+        review: {
+          chainId,
+          account: eoa,
+          targetContract: router,
+          functionName,
+          inputs,
+          minOutput,
+          fee: '—',
+          gasPayer: eoa,
+          authorizationChange: approval
+              ? `${formatUnits(pullAmount, pullDecimals)} ${pullSymbol}`
+              : '—',
+          estimatedGas,
+          nativeBalance,
+        },
+        kernel: session.kernel,
+        expectedChainId: chainId,
+        batchCallData: batch,
+        calls,
+        quoteId: `flash:${verseId}:${mode}:${ytAmount}`,
+        minOutput: mode === 'buy' ? ytAmount.toString() : minOutput,
+        slippageBps: Math.round(slippage * 100),
+        deadline: Number(deadlineSecs),
+        manifestVersion: session.manifestVersion,
+        crossChain: false,
+      }
+      void tx.executeSession(spec)
+    } catch {
+      setResolveFailed(true)
+    } finally {
+      setResolving(false)
+    }
+  }
   // Large-number layering scope=global/amount-format (fmtUsd/fmtTokenAmount; raw products carry
   // float64 tail noise and must go through the layer);
   // fee row=user fee rate sample (relative to the paid amount, read directly from fixture with no
@@ -257,9 +422,19 @@ export function PolFlashSwapDialog({
             locale={locale}
             connected={connected}
             onConnect={toggle}
+            onAction={() => void startFlashReview()}
             label={mode === 'buy' ? copy.flashBuy : copy.flashSell}
             connectLabel={copy.swapCta}
+            disabled={!valid || overBalance || slippageIssue != null || !executionReady || resolving || tx.running}
+            switchChainTo={
+              wrongChain
+                ? { execChain, chainName: verse.governanceChainName, onSwitch: switchChain }
+                : undefined
+            }
           />
+          {resolveFailed ? <FieldError>{common.degrade.errorBody}</FieldError> : null}
+          
+          {tx.active && !tx.reviewing ? <TxStatus locale={locale} state={tx.display} /> : null}
       </ActionDialogShell>
     </Dialog>
   )

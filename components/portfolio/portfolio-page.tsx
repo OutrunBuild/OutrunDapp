@@ -138,11 +138,7 @@ export async function PortfolioPage({ locale }: { locale: Locale }) {
   ]
 
   return (
-    <OutrunShell
-      locale={locale}
-      current="portfolio"
-      accountAddress={snapshot.sampleAccount.address}
-    >
+    <OutrunShell locale={locale} accountAddress={snapshot.sampleAccount.address}>
       <header className="page-intro">
         <div>
           <h1 className="ax-fault-title">

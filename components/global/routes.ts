@@ -2,8 +2,7 @@
 // internally rewrites to /en/**), zh carries the /zh prefix; the memeverse detail page
 // uses a numeric segment (= the on-chain uint256 verseId convention), fixture row ids
 // (verse-021) stay in the data layer. The create and discovery pages live under the
-// /memeverse/* domain — /memeverse/launch and /memeverse/explore; legacy addresses
-// 307-redirect at the proxy to the current paths.
+// /memeverse/* domain — /memeverse/launch and /memeverse/explore.
 // Zero-side-effect language switching: /zh/** is likewise rewritten to /en/** inside
 // the proxy; cross-language navigation shares one route tree (soft navigation does not
 // remount, component state fully preserved);
@@ -18,11 +17,29 @@ export function localePath(locale: Locale, path: string): string {
   return path === '' || path === '/' ? '/' : path
 }
 
+/** Client-side display language for shell-less fallback surfaces
+ * (app/error.tsx / app/global-error.tsx): the URL prefix is the sole language
+ * source of truth, and client fallbacks cannot read the x-locale request header,
+ * so derive it from the visible pathname (/zh/** → zh, anything else → en — same
+ * branch semantics as the proxy's zh rewrite). Lives here, not lib/locale.ts,
+ * because that module imports next/headers (server-only) */
+export function localeFromPathname(pathname: string): Locale {
+  return pathname === '/zh' || pathname.startsWith('/zh/') ? 'zh' : 'en'
+}
+
 /** Fixture row id (verse-021) → numeric URL segment (21); returns the input unchanged
  * if parsing fails */
 export function versePathSegment(verseId: string): string {
   const match = /^verse-0*(\d+)$/i.exec(verseId)
   return match ? match[1] : verseId
+}
+
+/** Route verseId segment → exact decimal string, or null when absent/non-numeric.
+ * The value is an on-chain uint256 (up to 78 digits) and must stay a string end to
+ * end: Number() silently destroys precision (5.28e76), so downstream BigInt(verseId)
+ * would target a wrong/nonexistent verse id on-chain. */
+export function parseVerseIdParam(raw: unknown): string | null {
+  return typeof raw === 'string' && /^\d+$/.test(raw) ? raw : null
 }
 
 /** The trading desk's four tab keys (?tab= deep-link whitelist — matches VerseTabs'

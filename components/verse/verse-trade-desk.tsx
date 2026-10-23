@@ -182,6 +182,8 @@ export async function VerseTradeDesk({
           reserves={(await getFixtureParticipationOptions(verse.raiseAsset)).reserves}
           reserveBalance={pol?.myReserve ?? null}
           pol={pol}
+          governanceChain={verse.governanceChain}
+          governanceChainName={verse.governanceChainName}
         />
       </div>
     </section>
