@@ -41,7 +41,9 @@
     ".next-reentry-probe/types/**/*.ts",
     ".next-reentry-probe/dev/types/**/*.ts",
     ".next-stage3/types/**/*.ts",
-    ".next-stage3/dev/types/**/*.ts"
+    ".next-stage3/dev/types/**/*.ts",
+    ".next-dev/types/**/*.ts",
+    ".next-dev/dev/types/**/*.ts"
   ],
   "exclude": ["node_modules", "subgraph"]
 }

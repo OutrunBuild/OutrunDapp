@@ -12,6 +12,8 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['tests/unit/**/*.test.ts'],
+    // Integration suites live beside unit tests but only activate with ANVIL_URL set, so a
+    // plain `pnpm test` never needs a local fork (runbook step 8 runs them explicitly).
+    include: ['tests/unit/**/*.test.ts', 'tests/integration/**/*.test.ts'],
   },
 });

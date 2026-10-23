@@ -195,8 +195,9 @@ describe('R-07 faucet status', () => {
     p.enqueue('symbol', 'USDC', 'aUSDC');
     p.enqueue('name', 'Mock USDC', 'Mock Aave USDC');
     p.enqueue('claim', 'ok', new Error('ClaimTooSoon'));
-    p.enqueue('tin', 10n);
-    p.enqueue('tout', 10n);
+    // PSM tin/tout are 18-dec point values (1e18 = 100%): 1e15 = 0.1%
+    p.enqueue('tin', 1_000_000_000_000_000n);
+    p.enqueue('tout', 1_000_000_000_000_000n);
     p.enqueue('stockCap', 100n);
     p.enqueue('netUAssetMinted', 30n);
     p.enqueue('uAsset', '0xuusd');
@@ -212,8 +213,8 @@ describe('R-07 faucet status', () => {
       psm: r.data.swap.psm,
       uAsset: '0xuusd',
       reserve: '0xusdc',
-      tinBps: 10n,
-      toutBps: 10n,
+      tinWad: 1_000_000_000_000_000n,
+      toutWad: 1_000_000_000_000_000n,
       headroom: 70n,
       myUAsset: 7n,
       myReserve: 8n,
@@ -360,12 +361,48 @@ describe('R-04 verse entitlements and runtime', () => {
   });
 });
 
+describe('R-04 verse financials (preorder ratio / min success / leverage market)', () => {
+  it('maps launcher parameters + fund metadata + POLend lend market (viem struct shapes)', async () => {
+    const { repo, port } = setup();
+    const p = port(97);
+    // Named structs decode as objects (viem decodeTuple), unnamed outputs as arrays —
+    // the mock returns post-decode values exactly as the port contract receives them
+    // (enqueue: each argument is one call's response)
+    p.enqueue('getLauncherParameters', {
+      executorRewardRate: 1n,
+      preorderCapRatio: 8000n,
+      preorderVestingDuration: 60n,
+      oftReceiveGasLimit: 300000n,
+      yieldDispatcherGasLimit: 200000n,
+    });
+    p.enqueue('fundMetaDatas', [1000000n * 10n ** 18n, 1000n]);
+    p.enqueue('getLeveragedDebtInfo', {
+      totalLeveragedInterest: 0n,
+      totalLeveragedDebt: 0n,
+      interestRate: 2n * 10n ** 17n,
+      debtCap: 2000000n * 10n ** 18n,
+      remainingAdditionalInterest: 0n,
+    });
+    const r = await repo.getVerseFinancials(97, 21n, '0xuusd');
+    expect(r).toEqual({
+      status: 'ok',
+      data: {
+        preorderCapRatioBps: 8000n,
+        minTotalFund: 1000000n * 10n ** 18n,
+        interestRate: 2n * 10n ** 17n,
+        debtCap: 2000000n * 10n ** 18n,
+      },
+    });
+  });
+});
+
 describe('PSM / USR vault / CDP reads (rates & capacity)', () => {
   it('maps PSM tin/tout/stockCap/netMinted', async () => {
     const { repo, port } = setup();
     const p = port(97);
-    p.enqueue('tin', 10n);
-    p.enqueue('tout', 10n);
+    // PSM tin/tout are 18-dec point values (1e18 = 100%): 1e15 = 0.1%
+    p.enqueue('tin', 1_000_000_000_000_000n);
+    p.enqueue('tout', 1_000_000_000_000_000n);
     p.enqueue('stockCap', 100n);
     p.enqueue('netUAssetMinted', 1n);
     p.enqueue('uAsset', '0xuusd');
@@ -377,6 +414,8 @@ describe('PSM / USR vault / CDP reads (rates & capacity)', () => {
       psm: '0xpsm',
       uAsset: '0xuusd',
       reserve: '0xusdc',
+      tinWad: 1_000_000_000_000_000n,
+      toutWad: 1_000_000_000_000_000n,
       stockCap: 100n,
     });
   });

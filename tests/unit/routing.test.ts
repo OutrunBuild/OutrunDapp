@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import {
   localePath,
   narrowVerseQuery,
+  parseVerseIdParam,
   verseHref,
   versePathSegment,
 } from '../../components/global/routes';
@@ -58,6 +59,36 @@ describe('versePathSegment / verseHref', () => {
     expect(verseHref('en', 'verse-999999999999999999999999')).toBe(
       '/memeverse/999999999999999999999999',
     );
+  });
+});
+
+describe('parseVerseIdParam (uint256 precision)', () => {
+  // The registered BSC smoke verse — 77 digits, far past Number.MAX_SAFE_INTEGER
+  const SMOKE_VERSE_ID =
+    '52837714424155436352242994144496188832833587031649586216523996295503828439311';
+
+  it('returns the exact decimal string for a 77-digit verseId', () => {
+    expect(parseVerseIdParam(SMOKE_VERSE_ID)).toBe(SMOKE_VERSE_ID);
+    expect(BigInt(parseVerseIdParam(SMOKE_VERSE_ID) as string)).toBe(BigInt(SMOKE_VERSE_ID));
+  });
+
+  it('Number coercion would destroy the id — the regression this parser guards against', () => {
+    expect(String(Number(SMOKE_VERSE_ID))).not.toBe(SMOKE_VERSE_ID);
+    expect(BigInt(Math.trunc(Number(SMOKE_VERSE_ID)))).not.toBe(BigInt(SMOKE_VERSE_ID));
+  });
+
+  it('rejects legacy, scientific, empty and non-string forms', () => {
+    expect(parseVerseIdParam('verse-021')).toBeNull();
+    expect(parseVerseIdParam('1e3')).toBeNull();
+    expect(parseVerseIdParam('')).toBeNull();
+    expect(parseVerseIdParam(undefined)).toBeNull();
+    expect(parseVerseIdParam(21)).toBeNull();
+    expect(parseVerseIdParam(['21'])).toBeNull();
+  });
+
+  it('small numeric segments pass through unchanged', () => {
+    expect(parseVerseIdParam('21')).toBe('21');
+    expect(parseVerseIdParam('0')).toBe('0');
   });
 });
 

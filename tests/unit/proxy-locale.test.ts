@@ -4,8 +4,7 @@
 // the proxy per the URL — the no-prefix branch must unconditionally overwrite
 // a client-preset value (the internal rewrite target is always /en/**, so it
 // never re-enters that branch); direct /en/** hits are 307-converged to the
-// no-prefix form (entry disappears = forgery surface disappears); LEGACY_PATHS
-// old addresses are 307-converged.
+// no-prefix form (entry disappears = forgery surface disappears).
 import { describe, expect, it } from 'vitest';
 import { NextRequest } from 'next/server';
 
@@ -52,20 +51,12 @@ describe('proxy x-locale (URL prefix is the single source of truth for locale)',
     );
   });
 
-  it('legacy paths (LEGACY_PATHS): 307 to the new domain, locale prefix and query preserved', () => {
+  it('retired legacy paths are NOT redirected: /launch falls through to the /en rewrite (not-found surface)', () => {
     const res = proxy(requestFor('/launch'));
-    expect(res.status).toBe(307);
-    expect(res.headers.get('location')).toBe('http://localhost/memeverse/launch');
-    expect(proxy(requestFor('/memeverse')).headers.get('location')).toBe(
-      'http://localhost/memeverse/explore',
-    );
-    // /en/launch first hop of the whole chain: legacyRedirect keeps the /en
-    // prefix (second hop is covered by the case above)
-    expect(proxy(requestFor('/en/launch?tab=pol')).headers.get('location')).toBe(
-      'http://localhost/en/memeverse/launch?tab=pol',
-    );
-    expect(proxy(requestFor('/zh/memeverse')).headers.get('location')).toBe(
-      'http://localhost/zh/memeverse/explore',
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-middleware-rewrite')).toContain('/en/launch');
+    expect(proxy(requestFor('/memeverse')).headers.get('x-middleware-rewrite')).toContain(
+      '/en/memeverse',
     );
   });
 });

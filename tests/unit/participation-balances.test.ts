@@ -4,7 +4,10 @@
 // (-- + Max disabled)
 import { describe, expect, it } from 'vitest';
 
-import { getFixtureWalletBalances } from '../../lib/data/fixture-repository';
+import {
+  getFixtureParticipationOptions,
+  getFixtureWalletBalances,
+} from '../../lib/data/fixture-repository';
 
 describe('getFixtureWalletBalances: per-symbol cross-chain totals', () => {
   const balances = getFixtureWalletBalances();
@@ -23,5 +26,17 @@ describe('getFixtureWalletBalances: per-symbol cross-chain totals', () => {
     expect(balances.USDT).toBeUndefined();
     expect(balances.sUSDe).toBeUndefined();
     expect(balances.wstETH).toBeUndefined();
+  });
+});
+
+describe('getFixtureParticipationOptions: reserve PSM mint fee rides the option', () => {
+  const options = getFixtureParticipationOptions('UUSD');
+
+  it('UUSD reserves carry psmFeeIn = psm.json tin / 1e4 (regression: Genesis amount must deduct tin)', () => {
+    expect(options.reserves.length).toBeGreaterThan(0);
+    for (const reserve of options.reserves) {
+      // psm-001/psm-004: tin raw 10 bps -> 0.001
+      expect(reserve.psmFeeIn).toBeCloseTo(0.001, 9);
+    }
   });
 });

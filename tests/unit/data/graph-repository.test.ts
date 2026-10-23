@@ -288,3 +288,106 @@ describe('short cache + in-flight dedup (§9)', () => {
     expect(port.calls).toBe(2);
   });
 });
+
+describe('④ paged verse listing (no full pulls at any volume)', () => {
+  const E = 10n ** 18n;
+  // Pre-redeploy shape: verse rows carry no totals (the fields land with the pending
+  // subgraph redeploy) — every page sums its own scoped participation rows.
+  const row = (verseId: string) => ({
+    verseId,
+    name: `Verse ${verseId}`,
+    symbol: `V${verseId}`,
+    stage: 'genesis',
+    flashGenesis: false,
+    uAsset: '0xuusd',
+    memecoin: null,
+    pol: null,
+    yieldVault: null,
+    governor: null,
+    incentivizer: null,
+    endTime: '1800000000',
+    unlockTime: '1831536000',
+    omnichainIds: ['97'],
+    communities: [],
+    registeredAtTimestamp: '1790000000',
+  });
+
+  class PagePort implements GraphPort {
+    calls: Array<{ document: string; variables?: Record<string, unknown> }> = [];
+    constructor(private readonly rows: ReturnType<typeof row>[]) {}
+    async query<T>(endpoint: string, document: string, variables?: Record<string, unknown>) {
+      void endpoint;
+      this.calls.push({ document, variables });
+      if (document.includes('VersePageRows')) {
+        const skip = (variables?.skip as number) ?? 0;
+        const first = (variables?.first as number) ?? 100;
+        return {
+          data: { verses: this.rows.slice(skip, skip + first) } as unknown as T,
+          meta: { block: { number: 1_000, hasIndexingErrors: false } },
+        };
+      }
+      // legs / sums: scope to the requested ids
+      const ids = new Set((variables?.ids as string[]) ?? []);
+      const inScope = (verseId: string) => ids.size === 0 || ids.has(verseId);
+      return {
+        data: {
+          verses: this.rows.filter((r) => inScope(r.verseId)),
+          genesisParticipations: [
+            { verseId: '1', payer: '0xa', depositer: '0xa', amount: String(2n * E) },
+            { verseId: '2', payer: '0xb', depositer: '0xb', amount: String(1n * E) },
+          ].filter((r) => inScope(r.verseId)),
+          preorderParticipations: [],
+          leveragedGenesisParticipations: [],
+        } as unknown as T,
+        meta: { block: { number: 1_000, hasIndexingErrors: false } },
+      };
+    }
+  }
+
+  const paged = (rows: ReturnType<typeof row>[]) => {
+    const port = new PagePort(rows);
+    const repo = buildGraphRepository(
+      port,
+      (chainId) => resolveOutrunChain(chainId, ENV),
+      async () => ({ status: 'ok', data: 1_000 }) as DataResult<number>,
+    );
+    return { repo, port };
+  };
+
+  it('reads one window, reports hasMore, and sums the scoped legs', async () => {
+    const { repo, port } = paged([row('1'), row('2'), row('3')]);
+    const page = await repo.getVersePage(97, { stage: 'genesis' }, 2, 0);
+    expect(page.status).toBe('ok');
+    if (page.status !== 'ok') return;
+    expect(page.data.verses.map((v) => String(v.verseId))).toEqual(['1', '2']);
+    expect(page.data.hasMore).toBe(true);
+    expect(page.data.verses[0]!.raised).toEqual({
+      genesis: 2n * E,
+      leveraged: 0n,
+      preorder: 0n,
+    });
+    expect(page.data.verses[0]!.participantCount).toBe(1);
+    expect(page.data.verses[1]!.raised.genesis).toBe(1n * E);
+    // verse window + scoped legs: two round trips, legs carry verseId_in
+    expect(port.calls).toHaveLength(2);
+    expect(port.calls[1]!.variables).toMatchObject({ ids: ['1', '2'] });
+  });
+
+  it('empty window returns an empty page without touching the legs', async () => {
+    const { repo, port } = paged([row('1'), row('2')]);
+    const page = await repo.getVersePage(97, {}, 10, 99);
+    expect(page.status).toBe('ok');
+    if (page.status !== 'ok') return;
+    expect(page.data).toEqual({ chainId: 97, verses: [], hasMore: false });
+    expect(port.calls).toHaveLength(1);
+  });
+
+  it('getRaisedSums answers the omni sidecar for an explicit verse set', async () => {
+    const { repo } = paged([row('1'), row('2')]);
+    const sums = await repo.getRaisedSums(97, [1n, 2n]);
+    expect(sums.status).toBe('ok');
+    if (sums.status !== 'ok') return;
+    expect(sums.data.get('1')).toEqual({ genesis: 2n * E, leveraged: 0n, preorder: 0n });
+    expect(sums.data.get('2')).toEqual({ genesis: 1n * E, leveraged: 0n, preorder: 0n });
+  });
+});

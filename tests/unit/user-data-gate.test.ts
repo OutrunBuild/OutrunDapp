@@ -7,7 +7,7 @@ import { PortfolioPage } from '../../components/portfolio/portfolio-page';
 import { ReferralPage } from '../../components/referral/referral-page';
 
 // Same as app-shell.test: the three header widgets depend on App Router /
-// mock-wallet context; stub them out to finish SSR render in a node environment
+// wallet context; stub them out to finish SSR render in a node environment
 vi.mock('@/components/global/chain-selector-dialog', () => ({
   ChainSelectorDialog: () => createElement('div', { 'data-testid': 'chain-stub' }),
 }));
@@ -22,16 +22,12 @@ vi.mock('@/components/global/locale-menu', () => ({
 // declared before the module-level renders further down (vi.mock factories are hoisted, but
 // the flag read happens at render time).
 let mockConnected = false;
-vi.mock('@/components/global/mock-wallet', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/components/global/mock-wallet')>();
-  return {
-    ...actual,
-    useMockWallet: () => ({ connected: mockConnected, toggle: () => {} }),
-  };
-});
+vi.mock('@/components/global/use-account-center', () => ({
+  useAccountCenter: () => ({ connected: mockConnected }),
+}));
 
 // Regression guard for the no-user-participation state:
-// SSR is always disconnected (mock-wallet server snapshot false), so
+// SSR is always disconnected (harness server snapshot false), so
 // UserDataGate must keep data cards entirely out of the SSR HTML — e2e visual
 // baselines are sensitive to "what got rendered extra" but insensitive to a
 // single attribute, so assert card class-name absence/presence here directly.

@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { OutrunShell } from '../../components/global/app-shell';
 
 // The three header widgets (chain selector / wallet / locale menu) depend on
-// App Router and mock-wallet context; none of them are subjects of the
+// App Router and wallet context; none of them are subjects of the
 // nav-ownership semantics under test, so stub them out to finish SSR render
 // in a node environment.
 vi.mock('@/components/global/chain-selector-dialog', () => ({
@@ -23,7 +23,7 @@ vi.mock('@/components/global/locale-menu', () => ({
 // 0 pixel diff), so assert at the SSR HTML layer here.
 async function renderShell(
   props: {
-    current?: 'home' | 'discover' | 'create' | 'portfolio' | 'referral' | 'faucet';
+    current?: 'home' | 'discover' | 'create' | 'referral' | 'faucet';
     locale?: 'en' | 'zh';
   } = {},
 ) {
@@ -65,25 +65,24 @@ describe('OutrunShell nav-ownership semantics', () => {
     expect(count(html, 'aria-current="page"')).toBe(0);
   });
 
-  it('current="home": header five-entry nav + chain switcher + locale/wallet', async () => {
+  it('current="home": header four-entry nav + chain switcher + locale/wallet', async () => {
     const html = await renderShell({ current: 'home' });
-    expect(count(html, 'marketing-nav__link')).toBe(5);
+    expect(count(html, 'marketing-nav__link')).toBe(4);
     expect(html).toContain('>Explore<');
-    expect(html).toContain('>Portfolio<');
     expect(html).toContain('>Launch<');
     expect(html).toContain('>Referral<');
     expect(html).toContain('>Faucet<');
+    expect(html).not.toContain('>Portfolio<');
     // Terminal index numbers: mono decorative numbering is
     // aria-hidden and stays out of the accessible name
-    expect(count(html, 'marketing-nav__index')).toBe(5);
-    expect(count(html, 'aria-hidden="true">0')).toBe(5);
+    expect(count(html, 'marketing-nav__index')).toBe(4);
+    expect(count(html, 'aria-hidden="true">0')).toBe(4);
     // Order guard: indexes map 1:1 to entries (Launch=02, same order as
-    // sidebar navItems), Explore→Launch→Portfolio→Referral→Faucet
+    // sidebar navItems), Explore→Launch→Referral→Faucet
     expect(html).toContain('aria-hidden="true">01</span>Explore');
     expect(html).toContain('aria-hidden="true">02</span>Launch');
-    expect(html).toContain('aria-hidden="true">03</span>Portfolio');
-    expect(html).toContain('aria-hidden="true">04</span>Referral');
-    expect(html).toContain('aria-hidden="true">05</span>Faucet');
+    expect(html).toContain('aria-hidden="true">03</span>Referral');
+    expect(html).toContain('aria-hidden="true">04</span>Faucet');
     expect(html).toContain('data-testid="chain-stub"');
     expect(html).toContain('data-testid="locale-stub"');
     expect(html).toContain('data-testid="wallet-stub"');
