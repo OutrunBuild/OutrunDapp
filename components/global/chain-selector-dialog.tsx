@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Check, ChevronDown } from 'lucide-react'
 
 import { ChainLogoMark } from './chain-icons'
@@ -9,43 +8,49 @@ import { ChainLogoMark } from './chain-icons'
 import type { Locale, FixtureChain } from '@/lib/data/fixture-repository'
 
 import { getCopy } from './copy'
-import { useMockWallet } from './mock-wallet'
+import { useAccountCenter } from './use-account-center'
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 
 /**
- * Header view-chain selector: the trigger shows the current chain;
+ * Header wallet-chain selector: the trigger shows the wallet's current chain;
  * the dialog lists the chains passed in (the shell passes only the 3 testnets).
- * Selection writes URL ?chain={chainId} — the discovery page reads that param to
- * filter data (real linkage); other pages merely remember the view chain.
- * This selector is the single entry point for chain switching — the current-chain
- * state lives in the mock wallet's chainId (consumed by Yield Vault chain awareness),
- * and opening the dialog still syncs from the URL deep link.
- * Esc/focus trapping/focus restore to the trigger are built into the ui/dialog
- * primitive; backdrop blur uses the global [data-slot='dialog-backdrop'] skin.
+ * Selection switches the wallet only — it never writes URL state. The discovery
+ * page's `?chain` governance filter is owned by that page's own dropdown and is
+ * independent of this selector.
+ * This selector is the single entry point for wallet chain switching — the
+ * current-chain state lives in the account center (consumed by Yield Vault chain
+ * awareness). Esc/focus trapping/focus restore to the trigger are built into the
+ * ui/dialog primitive; backdrop blur uses the global [data-slot='dialog-backdrop']
+ * skin.
  */
 export function ChainSelectorDialog({ locale, chains }: { locale: Locale; chains: FixtureChain[] }) {
   const copy = getCopy(locale)
-  const router = useRouter()
   const [open, setOpen] = useState(false)
-  const { chainId: activeId, switchChain } = useMockWallet()
+  const {
+    chainId: centerChainId,
+    switchChainAction,
+    switchChainError,
+    clearSwitchChainError,
+  } = useAccountCenter()
+  const [switching, setSwitching] = useState(false)
 
   useEffect(() => {
-    if (!open) return
-    const params = new URLSearchParams(window.location.search)
-    const fromUrl = Number(params.get('chain'))
-    if (chains.some((c) => c.chainId === fromUrl)) switchChain(fromUrl)
-  }, [open, chains, switchChain])
+    if (!open) clearSwitchChainError()
+  }, [open, clearSwitchChainError])
 
+  const activeId = centerChainId ?? chains[0]?.chainId
   const active = chains.find((c) => c.chainId === activeId) ?? chains[0]
 
+  // Wallet-only switch: success closes the dialog, failures keep it open with
+  // retry copy — never a silent no-op, never a URL write.
   const select = (chainId: number) => {
-    switchChain(chainId)
-    setOpen(false)
-    const params = new URLSearchParams(window.location.search)
-    if (chainId === chains[0]?.chainId) params.delete('chain')
-    else params.set('chain', String(chainId))
-    const qs = params.toString()
-    router.replace(qs ? `${window.location.pathname}?${qs}` : window.location.pathname, { scroll: false })
+    if (switching) return
+    setSwitching(true)
+    void switchChainAction(chainId).then((ok) => {
+      setSwitching(false)
+      if (!ok) return
+      setOpen(false)
+    })
   }
 
   return (
@@ -57,6 +62,11 @@ export function ChainSelectorDialog({ locale, chains }: { locale: Locale; chains
       </DialogTrigger>
       <DialogContent className="chain-dialog__panel">
         <DialogTitle className="sr-only">{copy.common.viewChain}</DialogTitle>
+        {switchChainError ? (
+          <p className="wallet-select__note" role="alert">
+            {copy.common.switchChainFailed}
+          </p>
+        ) : null}
         <ul className="chain-dialog__list">
           {chains.map((c) => (
             <li key={c.chainId}>

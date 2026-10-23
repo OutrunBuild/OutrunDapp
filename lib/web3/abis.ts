@@ -1,7 +1,7 @@
 // Frozen ABI registry (contracts/abi/v1-rc/, governed by manifest.json + check-abi-manifest in CI).
-// Only the read-side ABIs the RPC data layer calls are imported; write-path ABIs (Router/Kernel/
-// Permit2) land with the stage-6 transaction pipeline. The generic ERC20 read ABI is the frozen
-// MockUSDC ABI (balanceOf/allowance/decimals/symbol/totalSupply are chain-standard).
+// Only the ABIs the RPC data layer and the stage-6 transaction pipeline call are imported.
+// The generic ERC20 read ABI is the frozen MockUSDC ABI (balanceOf/allowance/decimals/symbol/
+// totalSupply are chain-standard); ERC20 approve calldata for session batches reuses it.
 import type { Abi } from 'viem';
 import mockUsdcJson from '../../contracts/abi/v1-rc/MockUSDC.json';
 import faucetJson from '../../contracts/abi/v1-rc/Faucet.json';
@@ -13,6 +13,17 @@ import hookLensJson from '../../contracts/abi/v1-rc/MemeverseUniswapHookLens.jso
 import psmJson from '../../contracts/abi/v1-rc/OutrunPSMUpgradeable.json';
 import usrVaultJson from '../../contracts/abi/v1-rc/OutrunUSRVaultUpgradeable.json';
 import stakingPositionJson from '../../contracts/abi/v1-rc/OutrunStakingPositionUpgradeable.json';
+import kernelJson from '../../contracts/abi/v1-rc/Kernel.json';
+import swapRouterJson from '../../contracts/abi/v1-rc/MemeverseSwapRouter.json';
+import ytFlashRouterJson from '../../contracts/abi/v1-rc/MemeverseYTFlashSwapRouter.json';
+import outrunRouterJson from '../../contracts/abi/v1-rc/OutrunRouter.json';
+import permit2Json from '../../contracts/abi/v1-rc/Permit2.json';
+import polendJson from '../../contracts/abi/v1-rc/POLendUpgradeable.json';
+import governorJson from '../../contracts/abi/v1-rc/MemecoinDaoGovernorUpgradeable.json';
+import registrarOmnichainJson from '../../contracts/abi/v1-rc/MemeverseRegistrarOmnichain.json';
+import splitterJson from '../../contracts/abi/v1-rc/POLSplitterUpgradeable.json';
+import universalAssetsJson from '../../contracts/abi/v1-rc/OutrunUniversalAssetsUpgradeable.json';
+import yieldVaultJson from '../../contracts/abi/v1-rc/MemecoinYieldVault.json';
 
 const asAbi = (json: unknown) => json as Abi;
 
@@ -26,3 +37,16 @@ export const hookLensAbi = asAbi(hookLensJson);
 export const psmAbi = asAbi(psmJson);
 export const usrVaultAbi = asAbi(usrVaultJson);
 export const stakingPositionAbi = asAbi(stakingPositionJson);
+// Stage-6 write path (Kernel session batches + Router entries + Permit2).
+export const kernelAbi = asAbi(kernelJson);
+export const swapRouterAbi = asAbi(swapRouterJson);
+export const ytFlashRouterAbi = asAbi(ytFlashRouterJson);
+export const outrunRouterAbi = asAbi(outrunRouterJson);
+export const permit2Abi = asAbi(permit2Json);
+export const polendAbi = asAbi(polendJson);
+export const governorAbi = asAbi(governorJson);
+export const registrarOmnichainAbi = asAbi(registrarOmnichainJson);
+export const splitterAbi = asAbi(splitterJson);
+// UAsset OFT surface (send/quoteSend) lives on the UniversalAssets ABI.
+export const uAssetOftAbi = asAbi(universalAssetsJson);
+export const yieldVaultAbi = asAbi(yieldVaultJson);

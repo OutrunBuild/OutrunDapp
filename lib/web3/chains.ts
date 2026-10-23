@@ -6,6 +6,7 @@
 // fails closed to not-configured; public RPCs never enter onchain fallback transports.
 import { z } from 'zod';
 import type { Chain } from 'viem';
+import { getAddress } from 'viem';
 import { arbitrumSepolia, base, baseSepolia, bsc, bscTestnet, mainnet } from 'viem/chains';
 import deployment421614 from '../../deployments/421614.json';
 import deployment84532 from '../../deployments/84532.json';
@@ -222,6 +223,14 @@ export function resolveOutrunChain(chainId: number, env: EnvLookup = process.env
   }
   const subgraph = resolveTemplate(d.subgraphEndpoint, env);
 
+  // EIP-55 normalization at the registry boundary (AC-3): deployment files carry raw hex
+  // casing, but every viem send path validates checksums — normalize once here so all
+  // downstream readers, encoders and comparisons see canonical addresses.
+  const checksumValues = (record: Record<string, string>): Record<string, string> =>
+    Object.fromEntries(Object.entries(record).map(([key, value]) => [key, getAddress(value)]));
+  const checksumKeys = (record: Record<string, string>): Record<string, string> =>
+    Object.fromEntries(Object.entries(record).map(([key, value]) => [getAddress(key), value]));
+
   return {
     status: 'ok',
     config: {
@@ -233,12 +242,12 @@ export function resolveOutrunChain(chainId: number, env: EnvLookup = process.env
       finalityPolicy: d.finalityPolicy,
       contracts: {
         status: 'deployed',
-        addresses: d.contracts,
+        addresses: checksumValues(d.contracts),
         abiVersion: d.abiVersion,
         deploymentBlock: d.deploymentBlock,
-        implementationCodehashes: d.implementationCodehashes,
+        implementationCodehashes: checksumKeys(d.implementationCodehashes),
       },
-      kernel7702Implementation: d.kernel7702Implementation,
+      kernel7702Implementation: getAddress(d.kernel7702Implementation),
       kernel7702Codehash: d.kernel7702Codehash,
       eip7702TxType: '0x04',
       authorizationPolicy: 'chain-specific',
@@ -258,6 +267,101 @@ export function getChainConfig(chainId: number): ResolvedChain {
   if (!r) {
     r = resolveOutrunChain(chainId);
     resolvedCache.set(chainId, r);
+  }
+  return r;
+}
+
+function buildClientOkConfig(
+  chainId: number,
+  viemChain: Chain,
+  d: z.infer<typeof deploymentSchema>,
+): ResolvedChain {
+  const checksumValues = (record: Record<string, string>): Record<string, string> =>
+    Object.fromEntries(Object.entries(record).map(([key, value]) => [key, getAddress(value)]));
+  const checksumKeys = (record: Record<string, string>): Record<string, string> =>
+    Object.fromEntries(Object.entries(record).map(([key, value]) => [getAddress(key), value]));
+  return {
+    status: 'ok',
+    config: {
+      chainId,
+      environment: d.environment,
+      viemChain,
+      explorer: d.explorer,
+      layerZeroEid: d.layerZeroEid,
+      finalityPolicy: d.finalityPolicy,
+      contracts: {
+        status: 'deployed',
+        addresses: checksumValues(d.contracts),
+        abiVersion: d.abiVersion,
+        deploymentBlock: d.deploymentBlock,
+        implementationCodehashes: checksumKeys(d.implementationCodehashes),
+      },
+      kernel7702Implementation: getAddress(d.kernel7702Implementation),
+      kernel7702Codehash: d.kernel7702Codehash,
+      eip7702TxType: '0x04',
+      authorizationPolicy: 'chain-specific',
+      gasPaymentPolicy: 'user-pays-native',
+      // Client path never carries RPC endpoints or subgraph URLs: reads and sends ride
+      // the active wallet's EIP-1193 provider; server keys stay server-side (§14).
+      rpc: null,
+      subgraphEndpoint: null,
+      features: d.features,
+    },
+  };
+}
+
+/**
+ * Client-safe chain resolution (browser-safe): deployment addresses + kernel + viemChain
+ * only, no ENV lookup. Wallet-provider reads/sends use this; server RPC stays on
+ * resolveOutrunChain/getChainConfig with fail-closed RPC gating.
+ */
+export function resolveClientChain(chainId: number): ResolvedChain {
+  const entry = REGISTRY.get(chainId);
+  if (!entry) return { status: 'not-configured', reason: `unknown chainId ${chainId}` };
+  if (entry.kind === 'undeployed') {
+    // Undeployed mainnet entries carry no ENV dependence — same shape as the server path.
+    const parsed = undeployedEntrySchema.safeParse(entry.meta);
+    if (!parsed.success || parsed.data.chainId !== entry.viemChain.id) {
+      return { status: 'not-configured', reason: `mainnet ${chainId} entry rejected` };
+    }
+    return {
+      status: 'ok',
+      config: {
+        chainId,
+        environment: 'mainnet',
+        viemChain: entry.viemChain,
+        explorer: parsed.data.explorer,
+        layerZeroEid: parsed.data.layerZeroEid,
+        finalityPolicy: null,
+        contracts: { status: 'undeployed' },
+        kernel7702Implementation: parsed.data.kernel7702Implementation,
+        kernel7702Codehash: parsed.data.kernel7702Codehash,
+        eip7702TxType: '0x04',
+        authorizationPolicy: 'chain-specific',
+        gasPaymentPolicy: 'user-pays-native',
+        rpc: null,
+        subgraphEndpoint: null,
+        features: [],
+      },
+    };
+  }
+  const parsed = parseDeployment(entry.deployment, chainId);
+  if (!parsed.ok) return { status: 'not-configured', reason: parsed.reason };
+  const d = parsed.data;
+  if (d.chainId !== entry.viemChain.id) {
+    return { status: 'not-configured', reason: `chainId ${chainId} mismatches viem chain` };
+  }
+  return buildClientOkConfig(chainId, entry.viemChain, d);
+}
+
+const clientResolvedCache = new Map<number, ResolvedChain>();
+
+/** Cached client-safe resolution (browser + unit-test safe, no ENV dependence). */
+export function getClientChainConfig(chainId: number): ResolvedChain {
+  let r = clientResolvedCache.get(chainId);
+  if (!r) {
+    r = resolveClientChain(chainId);
+    clientResolvedCache.set(chainId, r);
   }
   return r;
 }

@@ -6,6 +6,7 @@ import type { SVGProps } from 'react'
 const CHAIN_LOGO: Record<number, string> = {
   1: '/chains/ethereum.png',
   11155111: '/chains/sepolia.png',
+  421614: '/chains/arbitrum.png',
   8453: '/chains/base.png',
   84532: '/chains/base.png',
   56: '/chains/bnb.png',

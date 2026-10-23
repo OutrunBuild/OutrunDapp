@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import type { SVGProps } from 'react'
-import { Compass, Droplets, Home, Users, WalletCards } from 'lucide-react'
+import { Compass, Droplets, Home, Users } from 'lucide-react'
 
 import { ChainSelectorDialog } from './chain-selector-dialog'
 
@@ -32,12 +32,11 @@ const navItems = [
   { key: 'home', href: '', icon: Home, available: true },
   { key: 'discover', href: '/memeverse/explore', icon: Compass, available: true },
   { key: 'create', href: '/memeverse/launch', icon: LaunchSparkIcon, available: true },
-  { key: 'portfolio', href: '/portfolio', icon: WalletCards, available: true },
   // referral: joins the primary nav in both the sidebar
   // and the mobile bottom bar; the mobile bottom bar renders all available items
   { key: 'referral', href: '/referral', icon: Users, available: true },
   // faucet: testnet faucet page; sidebar + mobile bottom bar follow all
-  // available items (6 slots)
+  // available items (5 slots)
   { key: 'faucet', href: '/faucet', icon: Droplets, available: true },
 ] as const
 
@@ -91,7 +90,6 @@ function MarketingHeader({
         {[
           { href: '/memeverse/explore', label: copy.common.discover },
           { href: '/memeverse/launch', label: copy.common.create },
-          { href: '/portfolio', label: copy.common.portfolio },
           { href: '/referral', label: copy.common.referral },
           { href: '/faucet', label: copy.common.faucet },
         ].map((item, index) => (
@@ -152,10 +150,9 @@ function ProductSidebar({ locale, current }: Omit<ShellProps, 'children'>) {
 
 function MobileNavigation({ locale, current }: { locale: Locale; current?: NavKey }) {
   const copy = getCopy(locale)
-  // Bottom-bar short labels: portfolio and referral use
-  // their short forms; keys not listed fall back to the full label
+  // Bottom-bar short labels: referral uses its short form;
+  // keys not listed fall back to the full label
   const shortLabels: Partial<Record<NavKey, string>> = {
-    portfolio: copy.common.portfolioShort,
     referral: copy.common.referralShort,
   }
   // All available items; disabled placeholder items stay off the bottom bar

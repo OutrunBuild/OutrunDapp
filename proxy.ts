@@ -4,10 +4,16 @@
 // per-request nonce and break the CSP.
 import { NextResponse, type NextRequest } from 'next/server';
 
+import cspOrigins from './docs/security/csp-origins.json';
+
 function buildNonce(): string {
   return Buffer.from(crypto.randomUUID()).toString('base64');
 }
 
+// connect-src / frame-src / child-src come from docs/security/csp-origins.json (the §14
+// machine-readable baseline) — never hardcode new origins here; register them in the JSON
+// first. Six-chain RPC/Graph exact origins stay server-side (wallet provider path serves
+// browser calls), so the browser policy only carries the JSON's wallet/auth origins.
 function cspHeader(nonce: string, dev: boolean): string {
   const scriptSrc = [
     "'self'",
@@ -17,12 +23,16 @@ function cspHeader(nonce: string, dev: boolean): string {
     ...(dev ? ["'unsafe-eval'"] : []), // development only
   ].join(' ');
 
+  const directives = cspOrigins.directives as Record<string, string[]>;
+  const join = (key: string): string => directives[key].join(' ');
   return [
     `script-src ${scriptSrc}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self' data:",
-    "connect-src 'self'",
+    `connect-src ${join('connect-src')}`,
+    `frame-src ${join('frame-src')}`,
+    `child-src ${join('child-src')}`,
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -36,34 +46,11 @@ function cspHeader(nonce: string, dev: boolean): string {
 // (Googlebot has no cookie, so the canonical English content at '/' is unaffected).
 const LOCALE_COOKIE = 'OUTRUN_LOCALE';
 
-// Legacy URL convergence: the launch page and discovery page live under the /memeverse/* domain,
-// so their old addresses redirect:
-// /launch → /memeverse/launch, /memeverse → /memeverse/explore;
-// 307 so browsers do not cache the redirect and keep re-checking the legacy path; switch to 301
-// only after the legacy paths are retired.
-const LEGACY_PATHS: Record<string, string> = {
-  '/launch': '/memeverse/launch',
-  '/memeverse': '/memeverse/explore',
-};
-
-function legacyRedirect(request: NextRequest): NextResponse | null {
-  const { pathname, search } = request.nextUrl;
-  const localeMatch = /^\/(?:zh|en)(?=\/|$)/.exec(pathname);
-  const rest = localeMatch ? pathname.slice(localeMatch[0].length) : pathname;
-  const target = LEGACY_PATHS[rest];
-  if (!target) return null;
-  const prefix = localeMatch ? localeMatch[0] : '';
-  return NextResponse.redirect(new URL(`${prefix}${target}${search}`, request.url), 307);
-}
-
 function localeRouting(
   request: NextRequest,
   requestHeaders: Headers,
   csp: string,
 ): NextResponse | null {
-  const legacy = legacyRedirect(request);
-  if (legacy) return legacy;
-
   const { pathname, search } = request.nextUrl;
 
   // zh prefix: internally also rewritten to /en/**,
@@ -86,7 +73,7 @@ function localeRouting(
 
   // Legacy /en/** addresses converge to the canonical prefix-less form.
   // Internal rewrites never re-enter the proxy, so this branch only sees external direct requests.
-  // 307 follows the same LEGACY_PATHS redirect policy (same no-cache rationale and 301 timing);
+  // 307 so browsers do not cache the redirect (flip to 301 once URLs freeze at launch);
   // redirecting /en/** away also removes the URL surface a client-forged x-locale could pair with.
   if (pathname === '/en' || pathname.startsWith('/en/')) {
     const rest = pathname === '/en' ? '/' : pathname.slice(3);

@@ -8,7 +8,7 @@ import type { Locale } from '@/lib/data/fixture-repository'
 
 import { getCopy } from './copy'
 import { localePath } from './routes'
-import { useMockWallet } from './mock-wallet'
+import { useAccountCenter } from './use-account-center'
 
 /**
  * Page-level connect CTA for the no-user-participation state:
@@ -16,8 +16,8 @@ import { useMockWallet } from './mock-wallet'
  * data cards once connected — the dual face of the gate semantics). Styling = same
  * ax-ghost-cta as the header wallet button (transparent body + yellow border and
  * yellow text, powered up on hover), horizontally centered;
- * clicking = the same mock connect toggle as the header WalletControl (toggle), not
- * an on-chain write.
+ * clicking = the account-center connect action (harness toggle in fixture/e2e builds,
+ * wallet selector onchain), not an on-chain write.
  * Slot rhythm differences go through `className` modifier tiers (portfolio page
  * defaults to space-7; the referral page passes connect-cta--ref to sit in-card at
  * space-6); the same-style button at the Launch form's submit slot is inlined in
@@ -30,7 +30,7 @@ export function ConnectWalletCta({
   locale: Locale
   className?: string
 }) {
-  const { connected, toggle } = useMockWallet()
+  const { connected, connectAction } = useAccountCenter()
   const copy = getCopy(locale)
   if (connected) return null
   return (
@@ -39,7 +39,7 @@ export function ConnectWalletCta({
         type="button"
         variant="default"
         className="ax-ghost-cta connect-cta__button"
-        onClick={toggle}
+        onClick={connectAction}
       >
         <WalletCards data-icon="inline-start" aria-hidden="true" />
         {copy.common.connect}
@@ -55,7 +55,7 @@ export function ConnectWalletCta({
  * mounts it only in the all-zones-empty state, so data present ⇒ not rendered.
  */
 export function ExploreCta({ locale }: { locale: Locale }) {
-  const { connected } = useMockWallet()
+  const { connected } = useAccountCenter()
   const copy = getCopy(locale).portfolio
   if (!connected) return null
   // Discovery's no-match pattern lifted into the page slot: .empty-state + h3 + lg ghost CTA
