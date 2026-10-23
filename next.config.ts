@@ -4,6 +4,13 @@ import type { NextConfig } from 'next';
 // builds redirect the fixture repository module to the onchain adapter, so fixtures/** is
 // statically unreachable in the compiled graph (two-build rule; runtime env flips cannot change
 // an already-built artifact). The default (fixture) build resolves the real module untouched.
+// Client projection of the build-mode switch: non-NEXT_PUBLIC_ vars never inline into the
+// browser bundle, so mirror the switch into NEXT_PUBLIC_OUTRUN_DATA_SOURCE (same value,
+// build-time pin, no operator action). Client code reads the mirror; the server var stays
+// the source of truth for SSR and the resolveAlias switch below.
+if (process.env.OUTRUN_DATA_SOURCE === 'onchain' && !process.env.NEXT_PUBLIC_OUTRUN_DATA_SOURCE) {
+  process.env.NEXT_PUBLIC_OUTRUN_DATA_SOURCE = process.env.OUTRUN_DATA_SOURCE;
+}
 const ONCHAIN_MODE = process.env.OUTRUN_DATA_SOURCE === 'onchain';
 const FIXTURE_MODULE = '@/lib/data/fixture-repository';
 const ONCHAIN_ADAPTER = './components/data/onchain-adapter';

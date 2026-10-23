@@ -1,6 +1,7 @@
 // Verse registration / lifecycle (MemeverseLauncher + registration hub) and plain genesis /
 // preorder participation history. Event shapes come from the frozen ABIs; the RegisterMemeverse
 // tuple carries every dynamically deployed contract address, which is where templates attach.
+import { BigInt, Bytes } from '@graphprotocol/graph-ts';
 import {
   ChangeStage,
   ClaimNormalFees,
@@ -19,6 +20,7 @@ import {
   ParticipationRefund,
   PreorderParticipation,
   Verse,
+  VerseParticipant,
   VerseStageChange,
 } from '../generated/schema';
 import {
@@ -28,6 +30,36 @@ import {
   Memecoin as MemecoinTemplate,
 } from '../generated/templates';
 import { chainId, chainIdInt, scopedId, stageName } from './utils';
+
+function zero(): BigInt {
+  return BigInt.fromI32(0);
+}
+
+/** Add participation amounts to the verse's running totals and register the distinct
+ * participant (idempotent: the same address counts once no matter how many legs it uses). */
+export function accumulateFunds(
+  verseId: BigInt,
+  genesisAmount: BigInt,
+  leveragedAmount: BigInt,
+  preorderAmount: BigInt,
+  account: Bytes,
+): void {
+  const verse = Verse.load(chainId() + '-' + verseId.toString());
+  if (verse === null) return;
+  verse.totalGenesisFunds = verse.totalGenesisFunds.plus(genesisAmount);
+  verse.totalLeveragedInterest = verse.totalLeveragedInterest.plus(leveragedAmount);
+  verse.totalPreorderFunds = verse.totalPreorderFunds.plus(preorderAmount);
+  const markerId = chainId() + '-' + verseId.toString() + '-' + account.toHexString();
+  if (VerseParticipant.load(markerId) === null) {
+    const marker = new VerseParticipant(markerId);
+    marker.chainId = chainIdInt();
+    marker.verseId = verseId;
+    marker.account = account;
+    marker.save();
+    verse.participantCount = verse.participantCount + 1;
+  }
+  verse.save();
+}
 
 export function handleRegisterMemeverse(event: RegisterMemeverse): void {
   const verse = new Verse(chainId() + '-' + event.params.verseId.toString());
@@ -52,6 +84,10 @@ export function handleRegisterMemeverse(event: RegisterMemeverse): void {
   verse.registeredAtBlock = event.block.number;
   verse.registeredAtTimestamp = event.block.timestamp;
   verse.registeredTx = event.transaction.hash;
+  verse.totalGenesisFunds = zero();
+  verse.totalLeveragedInterest = zero();
+  verse.totalPreorderFunds = zero();
+  verse.participantCount = 0;
   verse.save();
 
   MemecoinTemplate.create(event.params.verse.memecoin);
@@ -97,6 +133,7 @@ export function handleGenesis(event: Genesis): void {
   e.blockTimestamp = event.block.timestamp;
   e.tx = event.transaction.hash;
   e.save();
+  accumulateFunds(event.params.verseId, event.params.amount, zero(), zero(), event.params.depositer);
 }
 
 export function handlePreorder(event: Preorder): void {
@@ -109,6 +146,7 @@ export function handlePreorder(event: Preorder): void {
   e.blockTimestamp = event.block.timestamp;
   e.tx = event.transaction.hash;
   e.save();
+  accumulateFunds(event.params.verseId, zero(), zero(), event.params.amountInUAsset, event.params.user);
 }
 
 export function handleRefund(event: Refund): void {

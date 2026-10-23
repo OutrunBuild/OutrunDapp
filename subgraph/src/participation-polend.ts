@@ -13,8 +13,28 @@ import {
   LeveragedGenesisParticipation,
   ParticipationClaim,
   ParticipationRefund,
+  Verse,
+  VerseParticipant,
 } from '../generated/schema';
 import { chainId, chainIdInt, scopedId } from './utils';
+
+/** Mirror of verse-participation accumulateFunds (one copy per mapping file: mappings are
+ * per-datasource and cannot share code that touches the other's entities). */
+function accumulateLeveraged(verseId: BigInt, amount: BigInt, account: Bytes): void {
+  const verse = Verse.load(chainId() + '-' + verseId.toString());
+  if (verse === null) return;
+  verse.totalLeveragedInterest = verse.totalLeveragedInterest.plus(amount);
+  const markerId = chainId() + '-' + verseId.toString() + '-' + account.toHexString();
+  if (VerseParticipant.load(markerId) === null) {
+    const marker = new VerseParticipant(markerId);
+    marker.chainId = chainIdInt();
+    marker.verseId = verseId;
+    marker.account = account;
+    marker.save();
+    verse.participantCount = verse.participantCount + 1;
+  }
+  verse.save();
+}
 
 function leveraged(eventKind: string, kind: string, verseId: BigInt, payer: Bytes, user: Bytes, amount: BigInt, event: ethereum.Event): void {
   const e = new LeveragedGenesisParticipation(scopedId(verseId.toString() + '-' + eventKind, event));
@@ -31,10 +51,12 @@ function leveraged(eventKind: string, kind: string, verseId: BigInt, payer: Byte
 
 export function handleLeveragedGenesis(event: LeveragedGenesis): void {
   leveraged('lev-genesis', 'direct', event.params.verseId, event.params.payer, event.params.user, event.params.interestAmount, event);
+  accumulateLeveraged(event.params.verseId, event.params.interestAmount, event.params.user);
 }
 
 export function handleLeveragedGenesisWithCredit(event: LeveragedGenesisWithCredit): void {
   leveraged('lev-genesis-credit', 'credit', event.params.verseId, event.params.payer, event.params.user, event.params.creditAmount, event);
+  accumulateLeveraged(event.params.verseId, event.params.creditAmount, event.params.user);
 }
 
 export function handlePolendClaimRefund(event: ClaimRefund): void {

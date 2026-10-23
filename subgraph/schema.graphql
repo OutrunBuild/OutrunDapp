@@ -30,6 +30,13 @@ type Verse @entity(immutable: false) {
   registeredAtBlock: BigInt!
   registeredAtTimestamp: BigInt!
   registeredTx: Bytes!
+  # --- Per-verse running totals (accumulated by the participation mappings; list pages read
+  # these instead of pulling every participation row. participantCount counts distinct
+  # depositer/user addresses across genesis + preorder + leveraged legs) ---
+  totalGenesisFunds: BigInt!
+  totalLeveragedInterest: BigInt!
+  totalPreorderFunds: BigInt!
+  participantCount: Int!
 }
 
 type VerseStageChange @entity(immutable: true) {
@@ -40,6 +47,16 @@ type VerseStageChange @entity(immutable: true) {
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   tx: Bytes!
+}
+
+# Distinct participant marker: one row per (verse, address) across the genesis + preorder +
+# leveraged legs. The verse's participantCount is the count of these rows (maintained by the
+# participation mappings); no address set is ever pulled to the client.
+type VerseParticipant @entity(immutable: true) {
+  id: ID! # {chainId}-{verseId}-{address}
+  chainId: Int!
+  verseId: BigInt!
+  account: Bytes!
 }
 
 type SymbolRegistration @entity(immutable: true) {

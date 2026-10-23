@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Registration doc gate (check:design-docs)
 //
-// Scope: Markdown docs under docs/design-system/
+// Scope: Markdown docs under docs/design-system/ plus the root AGENTS.md
 // Predicates:
 //   1) FAIL  duplicate pattern-name rows in section 6 of the components doc -- guards against the
 //            "append a new row on update without deleting the old one" accident
@@ -19,7 +19,10 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const DOCS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'design-system');
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const DOCS_DIR = join(REPO_ROOT, 'docs', 'design-system');
+// Root files outside DOCS_DIR that share the same registration rules.
+const ROOT_FILES = ['AGENTS.md'];
 const MAX_LINE_CHARS = 12000;
 const DATE_RE = /\d{4}-\d{2}-\d{2}/g;
 const EXEMPT_DATES = [{ file: 'agent-workflow.md', span: '时钟钉 2026-10-01' }];
@@ -72,9 +75,12 @@ function findNarrativeDates(files) {
 }
 
 function runChecks() {
-  const files = readdirSync(DOCS_DIR)
-    .filter((f) => f.endsWith('.md'))
-    .map((f) => [f, readFileSync(join(DOCS_DIR, f), 'utf8')]);
+  const files = [
+    ...readdirSync(DOCS_DIR)
+      .filter((f) => f.endsWith('.md'))
+      .map((f) => [f, readFileSync(join(DOCS_DIR, f), 'utf8')]),
+    ...ROOT_FILES.map((f) => [f, readFileSync(join(REPO_ROOT, f), 'utf8')]),
+  ];
 
   const failures = [];
 
@@ -146,4 +152,4 @@ if (failures.length) {
   for (const f of failures) console.error(`FAIL ${f}`);
   process.exit(1);
 }
-console.log('docs/design-system registration doc gate: all checks passed');
+console.log('registration doc gate (docs/design-system + AGENTS.md): all checks passed');

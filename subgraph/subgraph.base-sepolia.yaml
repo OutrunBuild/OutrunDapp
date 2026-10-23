@@ -18,6 +18,7 @@ dataSources:
       entities:
       - Verse
       - VerseStageChange
+      - VerseParticipant
       - GenesisParticipation
       - PreorderParticipation
       - ParticipationRefund
@@ -59,6 +60,8 @@ dataSources:
       apiVersion: 0.0.7
       language: wasm/assemblyscript
       entities:
+      - Verse
+      - VerseParticipant
       - LeveragedGenesisParticipation
       - ParticipationRefund
       - ParticipationClaim

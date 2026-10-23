@@ -76,6 +76,7 @@ const STATIC_SOURCES = [
     [
       'Verse',
       'VerseStageChange',
+      'VerseParticipant',
       'GenesisParticipation',
       'PreorderParticipation',
       'ParticipationRefund',
@@ -95,7 +96,13 @@ const STATIC_SOURCES = [
       ['ClaimLeveragedYT', 'handleClaimLeveragedYT'],
       ['ClaimResidual', 'handleClaimResidual'],
     ],
-    ['LeveragedGenesisParticipation', 'ParticipationRefund', 'ParticipationClaim'],
+    [
+      'Verse',
+      'VerseParticipant',
+      'LeveragedGenesisParticipation',
+      'ParticipationRefund',
+      'ParticipationClaim',
+    ],
   ],
   [
     'PolSplitter',

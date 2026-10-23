@@ -73,6 +73,7 @@ docs/prototype
 
 # Playwright e2e（.next-e2e 独立构建产物与运行报告；快照基线 e2e/*-snapshots/ 需入库）
 .next-e2e/
+.next-dev/
 test-results/
 playwright-report/
 
