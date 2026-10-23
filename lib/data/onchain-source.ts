@@ -11,23 +11,23 @@
 // contracts (e.g. pending-referral area unmounts on zero rows). The faucet cooldown slot is null
 // by the 2026-10-14 user ruling (no on-chain source; claimable set comes from claim() probes).
 import type {
-  FixtureAsset,
-  FixtureCreateConfig,
-  FixtureFaucet,
-  FixtureGovernanceState,
-  FixtureParticipation,
-  FixtureParticipationOptions,
-  FixtureParticipationRow,
-  FixturePolPosition,
-  FixturePortfolioAction,
-  FixturePsmPair,
-  FixtureReferral,
-  FixtureStaking,
-  FixtureUsrSavings,
-  FixtureVaultRow,
-  FixtureVerse,
-  FixtureVerseTrade,
-  FixtureWalletAsset,
+  Asset,
+  CreateConfig,
+  Faucet,
+  GovernanceState,
+  Participation,
+  ParticipationOptions,
+  ParticipationRow,
+  PolPosition,
+  PortfolioAction,
+  PsmPair,
+  Referral,
+  Staking,
+  UsrSavings,
+  VaultRow,
+  Verse,
+  VerseTrade,
+  WalletAsset,
 } from '@/lib/data/fixture-repository';
 import type { DataResult } from '@/lib/data/repository';
 import { getOnchainRepository } from '@/lib/data/repository';
@@ -35,7 +35,7 @@ import { getGraphRepository } from '@/lib/data/graph/graph-repository';
 import type { VerseSummaryView } from '@/lib/data/graph/graph-repository';
 import { readSeed, writeSeed } from '@/lib/data/persisted-swr';
 import { CHAIN_IDS, MAINNET_CHAIN_IDS, resolveOutrunChain } from '@/lib/web3/chains';
-import type { FixtureChain } from '@/lib/data/types';
+import type { ChainInfo } from '@/lib/data/types';
 
 // 24h liquidity protection window — single source in lib/data/types (client-safe)
 export { PROTECTION_WINDOW_MS } from '@/lib/data/types';
@@ -134,8 +134,8 @@ function deployedContracts(chainId: number): Record<string, string> {
 
 /** Raise-asset whitelist from the deployment tables (UAsset.<SYM> per chain, deduped) — the
  * create page's fund-type dropdown and submit gate (assets.length===0) stay alive onchain */
-function deployedAssets(): FixtureAsset[] {
-  const bySymbol = new Map<string, FixtureAsset>();
+function deployedAssets(): Asset[] {
+  const bySymbol = new Map<string, Asset>();
   for (const chainId of TESTNETS) {
     for (const [key, addr] of Object.entries(deployedContracts(chainId))) {
       if (!key.startsWith('UAsset.')) continue;
@@ -158,7 +158,7 @@ function chainNameOf(chainId: number): string {
 /** Build one chain-scoped row from a single chain's subgraph view. Raised/progress/participants
  * are that chain's own local genesis state — each chain settles its own genesis independently,
  * so these are never summed across chains. */
-function toFixtureVerse(view: VerseSummaryView): FixtureVerse {
+function toVerse(view: VerseSummaryView): Verse {
   const raiseAsset = uAssetSymbol(view.uAsset);
   const normalRaised = Number(view.raised.genesis) / E18;
   const leverageInterest = Number(view.raised.leveraged) / E18;
@@ -181,6 +181,8 @@ function toFixtureVerse(view: VerseSummaryView): FixtureVerse {
     chainId: view.chainId,
     chainName: chainNameOf(view.chainId),
     omnichainIds,
+    // Filled by the callers that know the cross-chain group (chain rows / paged sidecar)
+    deployedChainIds: null,
     createdAt: iso(view.registeredAt),
     participantCount: view.participantCount,
     description: null,
@@ -230,7 +232,7 @@ function canonicalViewOf(group: VerseSummaryView[]): VerseSummaryView {
 }
 
 export type ChainVersePage = {
-  rows: FixtureVerse[];
+  rows: Verse[];
   /** verses on the selected chain (page-scoped count for the pager) */
   total: number;
   hasMore: boolean;
@@ -242,8 +244,8 @@ export type ChainVersePage = {
  * chain option set, and the raw views for the detail overlay — every page getter below reads
  * from one build, never a second subgraph pull. */
 async function buildChainRows(): Promise<{
-  rows: FixtureVerse[];
-  canonical: FixtureVerse[];
+  rows: Verse[];
+  canonical: Verse[];
   chainIds: number[];
   views: Map<string, VerseSummaryView>;
 }> {
@@ -260,26 +262,28 @@ async function buildChainRows(): Promise<{
       }
     }
   }
-  const rows: FixtureVerse[] = [];
-  const canonical: FixtureVerse[] = [];
+  const rows: Verse[] = [];
+  const canonical: Verse[] = [];
   const views = new Map<string, VerseSummaryView>();
   for (const [id, group] of byVerseId) {
     const canonicalView = canonicalViewOf(group);
     views.set(id, canonicalView);
-    const omniRaised =
-      group.reduce(
-        (sum, view) =>
-          sum + Number(view.raised.genesis + view.raised.leveraged + view.raised.preorder) / E18,
-        0,
-      );
+    const omniRaised = group.reduce(
+      (sum, view) =>
+        sum + Number(view.raised.genesis + view.raised.leveraged + view.raised.preorder) / E18,
+      0,
+    );
     const omniParticipantCount = group.reduce((sum, view) => sum + view.participantCount, 0);
-    let canonicalRow: FixtureVerse | null = null;
+    // The group is exactly the set of chains whose subgraph holds this verse — the landed set.
+    // The requested omnichainIds can name chains that never received the registration message.
+    const deployedChainIds = group.map((view) => view.chainId);
+    let canonicalRow: Verse | null = null;
     for (const view of group) {
-      const row = { ...toFixtureVerse(view), omniRaised, omniParticipantCount };
+      const row = { ...toVerse(view), omniRaised, omniParticipantCount, deployedChainIds };
       rows.push(row);
       if (view === canonicalView) canonicalRow = row;
     }
-    canonical.push(canonicalRow ?? toFixtureVerse(canonicalView));
+    canonical.push(canonicalRow ?? { ...toVerse(canonicalView), deployedChainIds });
   }
   snapshotViews = views;
   return {
@@ -290,13 +294,15 @@ async function buildChainRows(): Promise<{
   };
 }
 
-export async function getFixtureSnapshot() {
+export async function getSnapshot() {
   const { canonical } = await buildChainRows();
   // The snapshot keeps one row per verse (governance-chain canonical) so every existing
   // consumer — home metrics, detail page, portfolio lookups — is untouched; the discovery
-  // browser reads the full chain-scoped rows via getFixtureChainVerses directly
+  // browser reads the full chain-scoped rows via getChainVerses directly
   const verses = canonical;
-  const deployedVerseCount = verses.filter((v) => v.stage === 'locked' || v.stage === 'unlocked').length;
+  const deployedVerseCount = verses.filter(
+    (v) => v.stage === 'locked' || v.stage === 'unlocked',
+  ).length;
   return {
     timeAnchor: new Date().toISOString(),
     verses,
@@ -308,7 +314,7 @@ export async function getFixtureSnapshot() {
       participantCount: verses.reduce((sum, v) => sum + v.participantCount, 0),
       sourceRefs: ['subgraph:testnets'],
     },
-    sampleAccount: { address: '', sourceRef: 'onchain:wallet' },
+    displayAccount: { address: '', sourceRef: 'onchain:wallet' },
   };
 }
 
@@ -316,20 +322,24 @@ export async function getFixtureSnapshot() {
  * chain's own local genesis state. The discovery browser filters rows by the selected chain —
  * no 'all chains' merged view exists because each chain settles its own genesis independently.
  * A chain whose subgraph failed simply contributes no rows. */
-export async function getFixtureChainVerses(): Promise<FixtureVerse[]> {
+export async function getChainVerses(): Promise<Verse[]> {
   return (await buildChainRows()).rows;
 }
 
 /** Chain ids that have at least one indexed verse — the discovery chain filter's option set */
-export async function getFixtureVerseChainIds(): Promise<number[]> {
+export async function getVerseChainIds(): Promise<number[]> {
   return (await buildChainRows()).chainIds;
 }
 
 /** One discovery page on one chain: the paged subgraph read keeps server memory and the RSC
  * payload bounded at any verse volume; the omni sidecar sums only the page's verses. */
-export async function getFixtureChainVersePage(
+export async function getChainVersePage(
   chainId: number,
-  filter: { stage?: 'genesis' | 'refund' | 'locked' | 'unlocked'; fastGenesis?: boolean; query?: string },
+  filter: {
+    stage?: 'genesis' | 'refund' | 'locked' | 'unlocked';
+    fastGenesis?: boolean;
+    query?: string;
+  },
   first: number,
   skip: number,
 ): Promise<ChainVersePage> {
@@ -343,39 +353,56 @@ export async function getFixtureChainVersePage(
     return { rows: [], total: 0, hasMore: false, chainIds: [] };
   }
   const verseIds = list.verses.map((view) => view.verseId);
-  // Omni sidecar: the page verses' sums on every sibling chain (bounded: one verseId_in query
-  // per sibling, only for the page's ids)
+  // Omni sidecar: the page verses' sums and landed presence on every sibling chain (bounded:
+  // one verseId_in query per sibling, only for the page's ids)
   const siblings = await Promise.all(
-    TESTNETS.filter((id) => id !== chainId).map(async (sibling) =>
-      unwrap(await graph().getRaisedSums(sibling, verseIds)),
-    ),
+    TESTNETS.filter((id) => id !== chainId).map(async (sibling) => ({
+      chainId: sibling,
+      sidecar: unwrap(await graph().getRaisedSums(sibling, verseIds)),
+    })),
   );
   const rows = list.verses.map((view) => {
     const own = Number(view.raised.genesis + view.raised.leveraged + view.raised.preorder) / E18;
     const omniRaised =
       own +
-      siblings.reduce((sum, sums) => {
-        const raised = sums?.get(String(view.verseId));
+      siblings.reduce((sum, { sidecar }) => {
+        const raised = sidecar?.sums.get(String(view.verseId));
         return (
-          sum +
-          (raised
-            ? Number(raised.genesis + raised.leveraged + raised.preorder) / E18
-            : 0)
+          sum + (raised ? Number(raised.genesis + raised.leveraged + raised.preorder) / E18 : 0)
         );
       }, 0);
-    return { ...toFixtureVerse(view), omniRaised, omniParticipantCount: view.participantCount };
+    // Landed set = this chain plus every sibling whose subgraph returned a Verse row for the id.
+    const deployedChainIds = TESTNETS.filter(
+      (id) =>
+        id === chainId ||
+        siblings.some(
+          (sibling) =>
+            sibling.chainId === id && sibling.sidecar?.present.has(String(view.verseId)) === true,
+        ),
+    );
+    return {
+      ...toVerse(view),
+      omniRaised,
+      omniParticipantCount: view.participantCount,
+      deployedChainIds,
+    };
   });
   // TESTNETS membership is static config: the option set is the deployed testnets, not a second
   // subgraph pull. A verse-less chain still offers its filter (empty page, not a missing option).
-  return { rows, total: skip + rows.length + (list.hasMore ? 1 : 0), hasMore: list.hasMore, chainIds: [...TESTNETS] };
+  return {
+    rows,
+    total: skip + rows.length + (list.hasMore ? 1 : 0),
+    hasMore: list.hasMore,
+    chainIds: [...TESTNETS],
+  };
 }
 
-export async function getFixtureVerse(verseId: string): Promise<FixtureVerse | null> {
+export async function getVerse(verseId: string): Promise<Verse | null> {
   const match = /^(?:verse-)?(\d+)$/i.exec(verseId);
   if (!match) return null;
   // uint256 ids exceed Number precision — compare normalized decimal strings
   const digits = match[1].replace(/^0+(?=\d)/, '');
-  const snapshot = await getFixtureSnapshot();
+  const snapshot = await getSnapshot();
   const verse =
     snapshot.verses.find((verse) => verse.id.replace(/^0+(?=\d)/, '') === digits) ?? null;
   const view = verse ? (snapshotViews.get(verse.id) ?? null) : null;
@@ -416,21 +443,23 @@ export async function getFixtureVerse(verseId: string): Promise<FixtureVerse | n
 
 // --- chains / registration --------------------------------------------------------------
 
-export async function getFixtureChains(): Promise<FixtureChain[]> {
+export async function getChains(): Promise<ChainInfo[]> {
   return CHAIN_IDS.map((chainId) => {
     const resolved = resolveOutrunChain(chainId);
     const config = resolved.status === 'ok' ? resolved.config : null;
     return {
       chainId,
       name: config?.viemChain.name ?? String(chainId),
-      env: (MAINNET_CHAIN_IDS as readonly number[]).includes(chainId) ? ('mainnet' as const) : ('testnet' as const),
+      env: (MAINNET_CHAIN_IDS as readonly number[]).includes(chainId)
+        ? ('mainnet' as const)
+        : ('testnet' as const),
       nativeSymbol: config?.viemChain.nativeCurrency.symbol ?? '',
       sourceRef: 'lib/web3/chains.ts',
     };
   });
 }
 
-export async function getFixtureCreateConfig(): Promise<FixtureCreateConfig | null> {
+export async function getCreateConfig(): Promise<CreateConfig | null> {
   return cachedConfig('create-config', async () => {
     const preview = unwrap(await rpc().getRegistrationPreview('PROBE'));
     if (!preview) return null;
@@ -446,27 +475,31 @@ export async function getFixtureCreateConfig(): Promise<FixtureCreateConfig | nu
   });
 }
 
-export async function getFixtureOccupiedSymbols(): Promise<string[]> {
+export async function getOccupiedSymbols(): Promise<string[]> {
   return [];
 }
 
-export async function getFixtureParticipationOptions(
+export async function getParticipationOptions(
   raiseAssetSymbol: string,
-): Promise<FixtureParticipationOptions> {
+): Promise<ParticipationOptions> {
   // Deployment-table wired: the raise uAsset's paired GenesisCredit (leverage-credit direct
   // pay) and its PSM pair reserve (face-value direct swap). Stake sources stay empty until the
   // OutStake adapter registry is wired (cross-repo) — the route stays hidden, never faked.
   const creditAsset = contractAsset(`GenesisCredit.${raiseAssetSymbol}`);
   const reserve = await psmReserveAsset(raiseAssetSymbol);
   return {
-    raiseAsset: { id: `uasset:${raiseAssetSymbol}`, sourceRef: 'lib/web3/chains.ts', symbol: raiseAssetSymbol },
+    raiseAsset: {
+      id: `uasset:${raiseAssetSymbol}`,
+      sourceRef: 'lib/web3/chains.ts',
+      symbol: raiseAssetSymbol,
+    },
     reserves: reserve ? [reserve] : [],
     yieldSourceRegistry: [],
     creditAsset,
   };
 }
 
-function contractAsset(key: string): FixtureAsset | null {
+function contractAsset(key: string): Asset | null {
   for (const chainId of TESTNETS) {
     const addr = deployedContracts(chainId)[key];
     if (addr) {
@@ -481,7 +514,7 @@ function contractAsset(key: string): FixtureAsset | null {
   return null;
 }
 
-async function psmReserveAsset(uAssetSymbol: string): Promise<FixtureAsset | null> {
+async function psmReserveAsset(uAssetSymbol: string): Promise<Asset | null> {
   for (const chainId of TESTNETS) {
     const psm = deployedContracts(chainId)[`OutrunPSM.${uAssetSymbol}`];
     if (!psm) continue;
@@ -514,7 +547,7 @@ async function psmReserveAsset(uAssetSymbol: string): Promise<FixtureAsset | nul
 // (balances, claim probes) moved client-side (FaucetSwapDialog reads PSM balances through the
 // wallet provider; FaucetClaims already probes claim()). The server keeps only the accountless
 // config read (limits/fees/headroom), fully SWR-cached (§9).
-export async function getFixtureFaucet(): Promise<FixtureFaucet | null> {
+export async function getFaucet(): Promise<Faucet | null> {
   return cachedConfig('faucet-97', async () => {
     const status = unwrap(await rpc().getFaucetStatus(REGISTRATION_HUB));
     if (!status) return null;
@@ -550,9 +583,14 @@ export async function getFixtureFaucet(): Promise<FixtureFaucet | null> {
 // 2026-10-21 ruling: the SSR path is accountless — referrerRebateBps is a global hook config
 // (identical for the zero address), so the cached config read serves the rate; per-referrer
 // pending/history stay client/graph-driven (empty until wired, same as before).
-export async function getFixtureReferral(): Promise<FixtureReferral | null> {
+export async function getReferral(): Promise<Referral | null> {
   const snapshot = await cachedConfig('referral-97', async () =>
-    unwrap(await rpc().getReferralSnapshot(REGISTRATION_HUB, '0x0000000000000000000000000000000000000000')),
+    unwrap(
+      await rpc().getReferralSnapshot(
+        REGISTRATION_HUB,
+        '0x0000000000000000000000000000000000000000',
+      ),
+    ),
   );
   const ratePercent = snapshot?.ratePercent ?? 0;
   return {
@@ -571,8 +609,8 @@ export async function getFixtureReferral(): Promise<FixtureReferral | null> {
 
 // --- verse detail sections ----------------------------------------------------------------
 
-export async function getFixtureVerseTrade(verseId: string): Promise<FixtureVerseTrade | null> {
-  const verse = await getFixtureVerse(verseId);
+export async function getVerseTrade(verseId: string): Promise<VerseTrade | null> {
+  const verse = await getVerse(verseId);
   if (!verse) return null;
   return {
     candles: [],
@@ -591,29 +629,29 @@ export async function getFixtureVerseTrade(verseId: string): Promise<FixtureVers
   };
 }
 
-export async function getFixtureStaking(_verseId: string): Promise<FixtureStaking | null> {
+export async function getStaking(_verseId: string): Promise<Staking | null> {
   return null;
 }
 
-export async function getFixturePolPosition(_verseId: string): Promise<FixturePolPosition | null> {
+export async function getPolPosition(_verseId: string): Promise<PolPosition | null> {
   return null;
 }
 
-export async function getFixtureGovernanceState(_verseId: string): Promise<FixtureGovernanceState | null> {
+export async function getGovernanceState(_verseId: string): Promise<GovernanceState | null> {
   return null;
 }
 
-export async function getFixtureAssetUsdSample(_symbol: string): Promise<number | null> {
+export async function getAssetUsdPrice(_symbol: string): Promise<number | null> {
   return null;
 }
 
 // --- portfolio sections (aggregates; empty until per-account wiring in stage 6+) ------------
 
-export async function getFixtureWalletAssets(): Promise<FixtureWalletAsset[]> {
+export async function getWalletAssets(): Promise<WalletAsset[]> {
   return [];
 }
 
-export async function getFixtureReserveBalances(): Promise<Record<string, number>> {
+export async function getReserveBalances(): Promise<Record<string, number>> {
   const account = await connectedAccount();
   if (!account) return {};
   // Per-request reads (account-scoped, no disk seed); symbols summed cross-chain like the
@@ -626,9 +664,7 @@ export async function getFixtureReserveBalances(): Promise<Record<string, number
         key.startsWith('OutrunPSM.'),
       );
       const states = (
-        await Promise.all(
-          psms.map(([, psm]) => rpc().getPsmState(chainId, psm).then(unwrap)),
-        )
+        await Promise.all(psms.map(([, psm]) => rpc().getPsmState(chainId, psm).then(unwrap)))
       ).filter((state): state is NonNullable<typeof state> => state != null);
       const reserves = [...new Set(states.map((state) => state.reserve))];
       if (reserves.length === 0) return;
@@ -645,54 +681,53 @@ export async function getFixtureReserveBalances(): Promise<Record<string, number
 // never ride the server path) applied to its last consumer, the verse participation panel,
 // which now reads pay-asset balances client-side through the wallet provider. Accountless on
 // onchain; fixture-mode samples live in the fixture repository (untouched, baselines keep them).
-export async function getFixtureWalletBalances(): Promise<Record<string, number>> {
+export async function getWalletBalances(): Promise<Record<string, number>> {
   return {};
 }
 
-export async function getFixturePsmPair(_uAssetSymbol: string): Promise<FixturePsmPair | null> {
+export async function getPsmPair(_uAssetSymbol: string): Promise<PsmPair | null> {
   return null;
 }
 
-export async function getFixtureCdpPositions(): Promise<never[]> {
+export async function getCdpPositions(): Promise<never[]> {
   return [];
 }
 
-export async function getFixtureUsrSavings(): Promise<FixtureUsrSavings[]> {
+export async function getUsrSavings(): Promise<UsrSavings[]> {
   return [];
 }
 
-export async function getFixtureVaultRows(): Promise<FixtureVaultRow[]> {
+export async function getVaultRows(): Promise<VaultRow[]> {
   return [];
 }
 
-export async function getFixturePortfolioActions(): Promise<FixturePortfolioAction[]> {
+export async function getPortfolioActions(): Promise<PortfolioAction[]> {
   return [];
 }
 
-export async function getFixtureParticipationRows(): Promise<FixtureParticipationRow[]> {
+export async function getParticipationRows(): Promise<ParticipationRow[]> {
   return [];
 }
 
-export async function getFixturePortfolioSignals() {
+export async function getPortfolioSignals() {
   return { actionCount: 0, claimableVerses: 0 };
 }
 
-export async function getFixtureParticipations(): Promise<FixtureParticipation[]> {
+export async function getParticipations(): Promise<Participation[]> {
   return [];
 }
 
-export async function getFixtureBridgeMessages(): Promise<never[]> {
+export async function getBridgeMessages(): Promise<never[]> {
   return [];
 }
 
 // Warm the cold caches at server boot so the first navigation doesn't pay the network round
 // trips (fire-and-forget; failures degrade silently per §9/§24). Only in the onchain runtime —
 // never during `next build` (NEXT_PHASE) and never in fixture-mode test processes.
-if (process.env.OUTRUN_DATA_SOURCE === 'onchain' && process.env.NEXT_PHASE !== 'phase-production-build') {
-  void Promise.allSettled([
-    getFixtureSnapshot(),
-    getFixtureFaucet(),
-    getFixtureReferral(),
-    getFixtureCreateConfig(),
-  ]);
+if (
+  process.env.OUTRUN_DATA_SOURCE === 'onchain' &&
+  process.env.NEXT_PHASE !== 'phase-production-build'
+) {
+  void Promise.allSettled([getSnapshot(), getFaucet(), getReferral(), getCreateConfig()]);
 }
+export const getAssetUsdSample = getAssetUsdPrice;
