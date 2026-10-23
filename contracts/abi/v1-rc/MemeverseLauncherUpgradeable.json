@@ -266,34 +266,6 @@
   },
   {
     "type": "function",
-    "name": "genesisAndPreorder",
-    "inputs": [
-      {
-        "name": "verseId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "genesisAmount",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "preorderAmount",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "user",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "getCanonicalSwapDependencies",
     "inputs": [],
     "outputs": [

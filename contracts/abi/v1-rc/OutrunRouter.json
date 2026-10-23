@@ -17,6 +17,98 @@
   },
   {
     "type": "function",
+    "name": "genesisAndPreorder",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "genesisInput",
+        "type": "tuple",
+        "internalType": "struct IOutrunRouter.FundInput",
+        "components": [
+          {
+            "name": "source",
+            "type": "uint8",
+            "internalType": "enum IOutrunRouter.FundSource"
+          },
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "sp",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "minSyOut",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minUAssetMinted",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "preorderInput",
+        "type": "tuple",
+        "internalType": "struct IOutrunRouter.FundInput",
+        "components": [
+          {
+            "name": "source",
+            "type": "uint8",
+            "internalType": "enum IOutrunRouter.FundSource"
+          },
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "sp",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "minSyOut",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minUAssetMinted",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
     "name": "genesisByPSM",
     "inputs": [
       {
@@ -119,6 +211,98 @@
         "name": "minUAssetMinted",
         "type": "uint256",
         "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "leveragedGenesisAndPreorder",
+    "inputs": [
+      {
+        "name": "verseId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "genesisInput",
+        "type": "tuple",
+        "internalType": "struct IOutrunRouter.FundInput",
+        "components": [
+          {
+            "name": "source",
+            "type": "uint8",
+            "internalType": "enum IOutrunRouter.FundSource"
+          },
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "sp",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "minSyOut",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minUAssetMinted",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "preorderInput",
+        "type": "tuple",
+        "internalType": "struct IOutrunRouter.FundInput",
+        "components": [
+          {
+            "name": "source",
+            "type": "uint8",
+            "internalType": "enum IOutrunRouter.FundSource"
+          },
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "sp",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "minSyOut",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minUAssetMinted",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "outputs": [],
@@ -670,6 +854,33 @@
   },
   {
     "type": "error",
+    "name": "FundFieldMustBeZero",
+    "inputs": [
+      {
+        "name": "source",
+        "type": "uint8",
+        "internalType": "enum IOutrunRouter.FundSource"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "FundSourceNotAllowed",
+    "inputs": [
+      {
+        "name": "source",
+        "type": "uint8",
+        "internalType": "enum IOutrunRouter.FundSource"
+      },
+      {
+        "name": "leveragedFamily",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "GenesisLauncherMismatch",
     "inputs": [
       {
@@ -719,6 +930,17 @@
     "type": "error",
     "name": "NativeTransferFailed",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NoCreditForUAsset",
+    "inputs": [
+      {
+        "name": "uAsset",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
     "type": "error",

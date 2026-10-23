@@ -1,10 +1,10 @@
 {
   "abiVersion": "v1-rc",
-  "memeverseCommit": "e327abbdb682c2a505f2c6a93af02019d08bfd92",
-  "outstakeCommit": "ecc67c14d91884039a271452f5628fbd66bc4725",
+  "memeverseCommit": "254f5d4846636acd4feae62d554486ed62140d0d",
+  "outstakeCommit": "72237ef2282c9b7f4111dedcce5ba82045c399ad",
   "kernelTagCommit": "cd697c7e21715d015e0643af22310a99aa17433b",
   "abis": {
-    "OutrunRouter": "249f9d1f540dbc0c5f4250662853003e8b4b600815bc5f8bc459a87a13f40cb3",
+    "OutrunRouter": "051749eaabc7d548ecf5d46b9ccd0aaa458c5f5642c4b511e5f36bfee9742640",
     "OutrunStakingPositionUpgradeable": "20587bdf6488f14653a669f22fc93eeba620471e51750fa2c4aa1f43b9f56ae3",
     "OutrunPSMUpgradeable": "d59021c5407fe2791841744fde2d1b82d27e94dc49b01a0063b591bf61bf7699",
     "OutrunUSRVaultUpgradeable": "dbf9e49166d769462a1c847d7f509296e287522483ccef2b8687f4546a541adb",
@@ -19,7 +19,7 @@
     "OutrunStakedUSDeSYUpgradeable": "174cd1974592d9ee4e05c05ee0cd966841fc5590232bad00d3094ca9db0cbe5a",
     "OutrunSlisBNBSYUpgradeable": "dbfbbccb7e40e093df4be3fdaea99c91cbd2d038e5a9065c10f81dd1975eb742",
     "OutrunAaveV3SYUpgradeable": "c30832c7628a8fc34821cb0c02966249a2b7abf56f1c34acf179bb73cd2e81de",
-    "MemeverseLauncherUpgradeable": "878f6ce4e309923920b30328484ad8ec06d3c6e0e82e74934587aeb230dc3851",
+    "MemeverseLauncherUpgradeable": "05132baebd5cb7998033f11263da83a9ec12a13189bd2af1f38525d665df38fe",
     "MemeverseRegistrationCenterUpgradeable": "42d4792d50a205fae73302c4368dd0401aedb7e61c2486dbfecf007cb3b3d0f1",
     "MemeverseRegistrarOmnichain": "5954bfd3111f2eb84f6ab15984afdae23746204914db840b64cfaa46494aa639",
     "MemeverseFeePreviewReader": "7edbd84b9590a18266f59bde3235a26487aa62822cb196e8c0d29db03d04b786",

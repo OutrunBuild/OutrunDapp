@@ -3,9 +3,9 @@
 // with unlimited as an explicit opt-in; session assembly keeps approval? → begin →
 // action → end.
 import { describe, expect, it } from 'vitest';
-import { decodeFunctionData, maxUint256, padHex, type Hex } from 'viem';
+import { decodeFunctionData, getFunctionSelector, maxUint256, padHex, type Hex } from 'viem';
 
-import { faucetAbi, kernelAbi, launcherAbi } from '../../../lib/web3/abis';
+import { faucetAbi, kernelAbi, launcherAbi, outrunRouterAbi } from '../../../lib/web3/abis';
 import {
   approvalCall,
   beginSessionCall,
@@ -15,8 +15,11 @@ import {
   faucetBatchClaimCall,
   faucetClaimCall,
   flashPolToYtCall,
+  fundCreditInput,
+  fundUAssetInput,
   genesisAndPreorderCall,
   genesisCall,
+  leveragedGenesisAndPreorderCall,
   limitForDirection,
   MAX_SQRT_PRICE_X96,
   mergeCall,
@@ -79,8 +82,8 @@ describe('session legs', () => {
     expect(
       genesisAndPreorderCall(ROUTER, {
         verseId: 21n,
-        genesisAmount: 50n,
-        preorderAmount: 10n,
+        genesis: fundUAssetInput(50n),
+        preorder: fundUAssetInput(10n),
         user: EOA,
       }),
     ).toMatchSnapshot();
@@ -247,5 +250,75 @@ describe('overload resolution', () => {
     const decoded = decodeFunctionData({ abi: launcherAbi, data: leg.callData });
     expect(decoded.functionName).toBe('redeemMemecoinLiquidity');
     expect(decoded.args).toEqual([21n, 10n, true, 5n, 6n, 9999999999n]);
+  });
+});
+
+describe('combined router entrypoints', () => {
+  // Both entrypoints share the FundInput shape: (uint8,address,uint256,address,uint256,uint256).
+  const fundInputSig = '(uint8,address,uint256,address,uint256,uint256)';
+  const zeroAddress = '0x0000000000000000000000000000000000000000' as Hex;
+  const uAssetLeg = (amount: bigint) => ({
+    source: 0,
+    token: zeroAddress,
+    amount,
+    sp: zeroAddress,
+    minSyOut: 0n,
+    minUAssetMinted: 0n,
+  });
+
+  it('genesisAndPreorder targets the router with two uAsset FundInput legs', () => {
+    const leg = genesisAndPreorderCall(ROUTER, {
+      verseId: 21n,
+      genesis: fundUAssetInput(50n),
+      preorder: fundUAssetInput(10n),
+      user: EOA,
+    });
+    expect(leg.target).toBe(ROUTER);
+    expect(leg.value).toBe(0n);
+    expect(leg.callData.slice(0, 10)).toBe(
+      getFunctionSelector(`genesisAndPreorder(uint256,${fundInputSig},${fundInputSig},address)`),
+    );
+    const decoded = decodeFunctionData({ abi: outrunRouterAbi, data: leg.callData });
+    expect(decoded.functionName).toBe('genesisAndPreorder');
+    expect(decoded.args).toEqual([21n, uAssetLeg(50n), uAssetLeg(10n), EOA]);
+  });
+
+  it('leveragedGenesisAndPreorder composes credit/uAsset legs per route', () => {
+    const credit = leveragedGenesisAndPreorderCall(ROUTER, {
+      verseId: 21n,
+      genesis: fundCreditInput(7n),
+      preorder: fundUAssetInput(10n),
+      user: EOA,
+    });
+    expect(credit.target).toBe(ROUTER);
+    expect(credit.callData.slice(0, 10)).toBe(
+      getFunctionSelector(
+        `leveragedGenesisAndPreorder(uint256,${fundInputSig},${fundInputSig},address)`,
+      ),
+    );
+    const decodedCredit = decodeFunctionData({ abi: outrunRouterAbi, data: credit.callData });
+    expect(decodedCredit.functionName).toBe('leveragedGenesisAndPreorder');
+    expect(decodedCredit.args).toEqual([
+      21n,
+      {
+        source: 3,
+        token: zeroAddress,
+        amount: 7n,
+        sp: zeroAddress,
+        minSyOut: 0n,
+        minUAssetMinted: 0n,
+      },
+      uAssetLeg(10n),
+      EOA,
+    ]);
+
+    const uAsset = leveragedGenesisAndPreorderCall(ROUTER, {
+      verseId: 21n,
+      genesis: fundUAssetInput(5n),
+      preorder: fundUAssetInput(10n),
+      user: EOA,
+    });
+    const decodedUAsset = decodeFunctionData({ abi: outrunRouterAbi, data: uAsset.callData });
+    expect(decodedUAsset.args).toEqual([21n, uAssetLeg(5n), uAssetLeg(10n), EOA]);
   });
 });

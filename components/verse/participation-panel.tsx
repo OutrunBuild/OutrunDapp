@@ -49,11 +49,15 @@ import { getActiveEip1193Provider, useActiveEip1193Provider } from '@/lib/web3/a
 import {
   approvalCall,
   buildSessionWrite,
+  fundCreditInput,
+  fundUAssetInput,
   genesisAndPreorderCall,
   genesisCall,
+  leveragedGenesisAndPreorderCall,
   leveragedGenesisCall,
   leveragedGenesisWithCreditCall,
   preorderCall,
+  type BatchExecution,
 } from '@/lib/web3/session-actions'
 import { useParams, useRouter } from 'next/navigation'
 import { createPublicClient, custom, formatUnits, parseUnits, type Hex } from 'viem'
@@ -380,17 +384,26 @@ export function ParticipationPanel({
   // legs resolve no token addresses and stay disabled onchain).
   const payIsUAsset = payAsset !== '' && payAsset === raiseAssetSymbol
   const preorderPayIsUAsset = preorderRowAsset !== '' && preorderRowAsset === raiseAssetSymbol
-  type WiredKind = 'genesis' | 'genesis-preorder' | 'preorder-only' | 'leverage'
+  type WiredKind = 'genesis' | 'genesis-preorder' | 'preorder-only' | 'leverage' | 'leverage-preorder'
   const wiredKind: WiredKind | null =
     mode === 'leverage'
-      ? !preorderEnabled && leverageReady
-        ? // Two wired leverage routes mirror the two on-chain entries: credit escrow and
-          // uAsset-direct interest; the reserve leg (direct route, non-uAsset pay) resolves
-          // no pull token and stays disabled
-          effectiveRoute === 'credit' || (effectiveRoute === 'direct' && payIsUAsset)
-          ? 'leverage'
-          : null
-        : null
+      ? !leverageReady
+        ? null
+        : preorderEnabled
+          ? // Leveraged combined entry rides the router's leveragedGenesisAndPreorder: the
+            // interest route mirrors the single-leg matrix (credit escrow / uAsset-direct)
+            // and the preorder leg must be uAsset-paid (a Psm preorder leg stays unwired);
+            // reserve legs resolve no pull token and stay disabled
+            (effectiveRoute === 'credit' || (effectiveRoute === 'direct' && payIsUAsset)) &&
+              preorderPayIsUAsset
+              ? 'leverage-preorder'
+              : null
+          : // Two wired leverage routes mirror the two on-chain entries: credit escrow and
+            // uAsset-direct interest; the reserve leg (direct route, non-uAsset pay) resolves
+            // no pull token and stays disabled
+            effectiveRoute === 'credit' || (effectiveRoute === 'direct' && payIsUAsset)
+            ? 'leverage'
+            : null
       : preorderOnly
         ? payIsUAsset
           ? 'preorder-only'
@@ -444,6 +457,7 @@ export function ParticipationPanel({
     const contracts = resolved.config.contracts.addresses
     const launcher = contracts.MemeverseLauncher as Hex
     const polend = contracts.POLend as Hex
+    const router = contracts.OutrunRouter as Hex
     const kernel = resolved.config.kernel7702Implementation as Hex
     const hook = contracts.MemeverseUniswapHook as Hex
     setResolving(true)
@@ -461,35 +475,41 @@ export function ParticipationPanel({
       const { decimals } = await readErc20Meta(reader, uAsset)
       const toBase = (display: number): bigint =>
         parseUnits(String(display), decimals)
-      // Per-kind amounts (display → base units) and the pull target for approval.
+      // Per-kind amounts (display → base units) and the pull legs behind the approval:
+      // same-token legs arrive merged (one approve per token — ERC20 approve replaces, two
+      // legs on one token must never emit two approves).
       let action
       let functionName: string
       let inputs: string
       let spender: Hex
-      let pullAmount: bigint
-      // Approval pull token follows the route: uAsset for genesis/preorder/uAsset-direct
-      // leverage, the family credit for the leverage-credit escrow entry
-      let pullToken: Hex = uAsset
+      let pulls: { token: Hex; amount: bigint; display: string }[]
       if (wiredKind === 'genesis') {
         const amountBase = toBase(numericAmount)
         action = genesisCall(launcher, { verseId: BigInt(verseId), amountInUAsset: amountBase, user: eoa })
         functionName = 'genesis'
         inputs = `${formatUnits(amountBase, decimals)} ${raiseAssetSymbol}`
         spender = launcher
-        pullAmount = amountBase
+        pulls = [
+          { token: uAsset, amount: amountBase, display: `${formatUnits(amountBase, decimals)} ${raiseAssetSymbol}` },
+        ]
       } else if (wiredKind === 'genesis-preorder') {
+        // Combined entry moved to the router (IOutrunRouter.genesisAndPreorder): both legs
+        // draw the raise uAsset, so one merged uAsset pull approves the router for the total.
         const genesisBase = toBase(numericAmount)
         const preorderBase = toBase(numericPreorder)
-        action = genesisAndPreorderCall(launcher, {
+        const totalBase = genesisBase + preorderBase
+        action = genesisAndPreorderCall(router, {
           verseId: BigInt(verseId),
-          genesisAmount: genesisBase,
-          preorderAmount: preorderBase,
+          genesis: fundUAssetInput(genesisBase),
+          preorder: fundUAssetInput(preorderBase),
           user: eoa,
         })
         functionName = 'genesisAndPreorder'
         inputs = `${formatUnits(genesisBase, decimals)} + ${formatUnits(preorderBase, decimals)} ${raiseAssetSymbol}`
-        spender = launcher
-        pullAmount = genesisBase + preorderBase
+        spender = router
+        pulls = [
+          { token: uAsset, amount: totalBase, display: `${formatUnits(totalBase, decimals)} ${raiseAssetSymbol}` },
+        ]
       } else if (wiredKind === 'preorder-only') {
         const preorderBase = toBase(preorderRowAmount)
         action = preorderCall(launcher, {
@@ -500,7 +520,52 @@ export function ParticipationPanel({
         functionName = 'preorder'
         inputs = `${formatUnits(preorderBase, decimals)} ${raiseAssetSymbol}`
         spender = launcher
-        pullAmount = preorderBase
+        pulls = [
+          { token: uAsset, amount: preorderBase, display: `${formatUnits(preorderBase, decimals)} ${raiseAssetSymbol}` },
+        ]
+      } else if (wiredKind === 'leverage-preorder') {
+        // Router leveragedGenesisAndPreorder: the interest leg funds per route and the
+        // preorder leg stays uAsset. Credit route pulls two tokens → two approve legs; the
+        // uAsset-direct route merges into one pull like genesis-preorder.
+        const preorderBase = toBase(numericPreorder)
+        const preorderDisplay = `${formatUnits(preorderBase, decimals)} ${raiseAssetSymbol}`
+        if (effectiveRoute === 'credit') {
+          // Deployment tables key credits per family (GenesisCredit.<SYM>); a bare key exists
+          // nowhere — fail visibly instead of handing undefined to readErc20Meta
+          const credit = contracts[`GenesisCredit.${raiseAssetSymbol}`] as Hex | undefined
+          if (!credit) throw new Error(`GenesisCredit.${raiseAssetSymbol} not deployed`)
+          const { decimals: creditDecimals } = await readErc20Meta(reader, credit)
+          const interestBase = parseUnits(String(numericAmount), creditDecimals)
+          action = leveragedGenesisAndPreorderCall(router, {
+            verseId: BigInt(verseId),
+            genesis: fundCreditInput(interestBase),
+            preorder: fundUAssetInput(preorderBase),
+            user: eoa,
+          })
+          functionName = 'leveragedGenesisAndPreorder'
+          inputs = `${formatUnits(interestBase, creditDecimals)} ${payAsset} + ${preorderDisplay}`
+          spender = router
+          pulls = [
+            { token: credit, amount: interestBase, display: `${formatUnits(interestBase, creditDecimals)} ${payAsset}` },
+            { token: uAsset, amount: preorderBase, display: preorderDisplay },
+          ]
+        } else {
+          // uAsset-direct leverage interest: both legs pay the raise asset itself
+          const interestBase = toBase(numericAmount)
+          const totalBase = interestBase + preorderBase
+          action = leveragedGenesisAndPreorderCall(router, {
+            verseId: BigInt(verseId),
+            genesis: fundUAssetInput(interestBase),
+            preorder: fundUAssetInput(preorderBase),
+            user: eoa,
+          })
+          functionName = 'leveragedGenesisAndPreorder'
+          inputs = `${formatUnits(interestBase, decimals)} + ${preorderDisplay}`
+          spender = router
+          pulls = [
+            { token: uAsset, amount: totalBase, display: `${formatUnits(totalBase, decimals)} ${raiseAssetSymbol}` },
+          ]
+        }
       } else {
         // Two on-chain leverage entries mirror the two wired routes (IPOLend): the credit
         // route escrows GenesisCredit via leveragedGenesisWithCredit; the uAsset-direct
@@ -521,8 +586,9 @@ export function ParticipationPanel({
           functionName = 'leveragedGenesisWithCredit'
           inputs = `${formatUnits(interestBase, creditDecimals)} ${payAsset}`
           spender = polend
-          pullAmount = interestBase
-          pullToken = credit
+          pulls = [
+            { token: credit, amount: interestBase, display: `${formatUnits(interestBase, creditDecimals)} ${payAsset}` },
+          ]
         } else {
           // uAsset-direct leverage: interest paid in the raise asset itself
           const interestBase = toBase(numericAmount)
@@ -534,16 +600,23 @@ export function ParticipationPanel({
           functionName = 'leveragedGenesis'
           inputs = `${formatUnits(interestBase, decimals)} ${payAsset}`
           spender = polend
-          pullAmount = interestBase
+          pulls = [
+            { token: uAsset, amount: interestBase, display: `${formatUnits(interestBase, decimals)} ${payAsset}` },
+          ]
         }
       }
-      const { decimals: pullDecimals } = await readErc20Meta(reader, pullToken)
-      const { allowance } = await readErc20State(reader, pullToken, eoa, spender)
-      const approval =
-        allowance < pullAmount
-          ? approvalCall(pullToken, spender, pullAmount)
-          : undefined
-      const { calls, calldata: batch } = buildSessionWrite({ hook, action, approval })
+      // Allowances are the only must-read-now reads on the click path; one per pull token.
+      const approvalLegs: BatchExecution[] = []
+      for (const leg of pulls) {
+        const { allowance } = await readErc20State(reader, leg.token, eoa, spender)
+        if (allowance < leg.amount) approvalLegs.push(approvalCall(leg.token, spender, leg.amount))
+      }
+      const { calls, calldata: batch } = buildSessionWrite({
+        hook,
+        action,
+        ...(approvalLegs.length === 1 ? { approval: approvalLegs[0] } : {}),
+        ...(approvalLegs.length > 1 ? { approvals: approvalLegs } : {}),
+      })
       let estimatedGas = '—'
       let nativeBalance = '—'
       try {
@@ -561,15 +634,20 @@ export function ParticipationPanel({
         review: {
           chainId,
           account: eoa,
-          targetContract: wiredKind === 'leverage' ? polend : launcher,
+          // Combined entrypoints live on the router; single-leg genesis/preorder stay on
+          // the launcher and single-leg leverage on POLend.
+          targetContract:
+            wiredKind === 'leverage'
+              ? polend
+              : wiredKind === 'genesis' || wiredKind === 'preorder-only'
+                ? launcher
+                : router,
           functionName,
           inputs,
           minOutput: '—',
           fee: '—',
           gasPayer: eoa,
-          authorizationChange: approval
-            ? `${formatUnits(pullAmount, pullDecimals)} ${wiredKind === 'leverage' ? payAsset : raiseAssetSymbol}`
-            : '—',
+          authorizationChange: approvalLegs.length > 0 ? pulls.map((leg) => leg.display).join(' + ') : '—',
           estimatedGas,
           nativeBalance,
         },
@@ -577,7 +655,7 @@ export function ParticipationPanel({
         expectedChainId: chainId,
         batchCallData: batch,
         calls,
-        quoteId: `${verseId}:${wiredKind}:${pullAmount}`,
+        quoteId: `${verseId}:${wiredKind}:${pulls.reduce((sum, leg) => sum + leg.amount, 0n)}`,
         minOutput: '—',
         slippageBps: 0,
         deadline: Math.floor(Date.now() / 1000) + 3600,

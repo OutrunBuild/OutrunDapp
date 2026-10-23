@@ -202,17 +202,81 @@ export function genesisCall(
   };
 }
 
+// IOutrunRouter.FundSource — combined-entrypoint funding sources (router ABI).
+export const FUND_SOURCE = {
+  UAsset: 0,
+  Psm: 1,
+  Stake: 2,
+  Credit: 3,
+} as const;
+
+export type FundSourceId = (typeof FUND_SOURCE)[keyof typeof FUND_SOURCE];
+
+/** FundInput: zero-address token/sp placeholders; the min floors are Stake-source-only
+ * (ABI tuple encodes field by field). Non-zero unused fields revert FundFieldMustBeZero. */
+export type FundInput = {
+  source: FundSourceId;
+  token: Hex;
+  amount: bigint;
+  sp: Hex;
+  minSyOut: bigint;
+  minUAssetMinted: bigint;
+};
+
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as Hex;
+
+export function fundUAssetInput(amount: bigint): FundInput {
+  return {
+    source: FUND_SOURCE.UAsset,
+    token: ZERO_ADDRESS,
+    amount,
+    sp: ZERO_ADDRESS,
+    minSyOut: 0n,
+    minUAssetMinted: 0n,
+  };
+}
+
+export function fundCreditInput(amount: bigint): FundInput {
+  return {
+    source: FUND_SOURCE.Credit,
+    token: ZERO_ADDRESS,
+    amount,
+    sp: ZERO_ADDRESS,
+    minSyOut: 0n,
+    minUAssetMinted: 0n,
+  };
+}
+
+/** Combined genesis+preorder entry (IOutrunRouter genesisAndPreorder): both legs pull the
+ * raise uAsset from the session account, so the approval spender is the router. */
 export function genesisAndPreorderCall(
-  launcher: Hex,
-  input: { verseId: bigint; genesisAmount: bigint; preorderAmount: bigint; user: Hex },
+  router: Hex,
+  input: { verseId: bigint; genesis: FundInput; preorder: FundInput; user: Hex },
 ): BatchExecution {
   return {
-    target: launcher,
+    target: router,
     value: 0n,
     callData: encodeFunctionData({
-      abi: launcherAbi,
+      abi: outrunRouterAbi,
       functionName: 'genesisAndPreorder',
-      args: [input.verseId, input.genesisAmount, input.preorderAmount, input.user],
+      args: [input.verseId, input.genesis, input.preorder, input.user],
+    }),
+  };
+}
+
+/** Leveraged combined entry (IOutrunRouter leveragedGenesisAndPreorder): the interest leg
+ * funds per route (credit escrow or uAsset-direct) and the preorder leg stays uAsset. */
+export function leveragedGenesisAndPreorderCall(
+  router: Hex,
+  input: { verseId: bigint; genesis: FundInput; preorder: FundInput; user: Hex },
+): BatchExecution {
+  return {
+    target: router,
+    value: 0n,
+    callData: encodeFunctionData({
+      abi: outrunRouterAbi,
+      functionName: 'leveragedGenesisAndPreorder',
+      args: [input.verseId, input.genesis, input.preorder, input.user],
     }),
   };
 }
