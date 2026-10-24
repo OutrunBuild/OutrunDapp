@@ -16,6 +16,7 @@
     "POLend": "0x9f263401c17f4Dd5c5E1E8EB4Dd68A5049580bB8",
     "POLSplitter": "0x1F8cE4a2f4bE978B53967deE87B54E759906B56d",
     "MemeverseSwapRouter": "0x59CC3EebA9f7b16d86EEB96742D834D759F528a5",
+    "MemeverseYTFlashSwapRouter": "0x2Fc878A8fBA98FA4816Db0C5acF65C5aF5b8cc0c",
     "MemeverseUniswapHookLens": "0xbe69c81Fa578832C98F7B69Bf98B5418Cdc75b7F",
     "MemeverseUniswapHook": "0x56eDfD9077f78aaEc23B9BcF6883E718B9f428cc",
     "Permit2": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
@@ -48,10 +49,9 @@
     "GenesisCredit.UETH": "0xCd6BEaAfFE62c6Df3cA1F8b63053Bf2C0f61C541",
     "GenesisCredit.UUSD": "0x97B1Fc3ad6547366B2721fc58459dD3e8e8540A3",
     "GenesisCredit.UBNB": "0xAC0ccDB39739c6A3835Be04dd044305D1ed91ef4",
-    "UniswapV4PoolManager": "0xEE88a92d87ed2e037a0C2f1bED6BAb49E375Be0C",
-    "MemeverseYTFlashSwapRouter": "0x7024B5325E9A84aF01a092C0f3b82aF6bBa722BC"
+    "UniswapV4PoolManager": "0xEE88a92d87ed2e037a0C2f1bED6BAb49E375Be0C"
   },
-  "deploymentBlock": 136487789,
+  "deploymentBlock": 136487795,
   "abiVersion": "v1-rc",
   "implementationCodehashes": {
     "0x7c27638704CEda3Fd8b9D94b912f8F89f0BA6D7a": "0x636843e114a4d8ac034dc149827ccb2dcff4e77b8af513f72f64488041698410",

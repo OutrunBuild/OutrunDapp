@@ -16,8 +16,8 @@ const REPO = new URL('.', import.meta.url).pathname + '../';
 const full = JSON.parse(readFileSync('/tmp/outrun-deploy-full.json', 'utf8'));
 
 const COMMITS = {
-  memeverse: 'e327abbdb682c2a505f2c6a93af02019d08bfd92',
-  outstake: 'ecc67c14d91884039a271452f5628fbd66bc4725',
+  memeverse: 'f07e068120a815762f80de6898ff074edab27da8',
+  outstake: '2c033a89a247013d76482af2bd10ec2670b0647f',
   kernel: 'cd697c7e21715d015e0643af22310a99aa17433b',
 };
 const KERNEL = {
@@ -191,10 +191,10 @@ function manifestContracts(chain) {
       abi: 'MemeverseSwapRouter',
       row: row(chain, 'MemeverseSwapRouter'),
     }),
-    MemeverseYTFlashSwapRouter: undeployedEntry(
-      'MemeverseYTFlashSwapRouter',
-      'no deploy path in frozen scripts; YT flash swap stays read-only until the contract repo ships a batch',
-    ),
+    MemeverseYTFlashSwapRouter: deployedEntry({
+      abi: 'MemeverseYTFlashSwapRouter',
+      row: row(chain, 'MemeverseYTFlashSwapRouter'),
+    }),
     MemeverseUniswapHookLens: deployedEntry({
       abi: 'MemeverseUniswapHookLens',
       row: row(chain, 'MemeverseUniswapHookLens'),
@@ -308,21 +308,24 @@ function manifestContracts(chain) {
       abi: 'MemeverseRegistrationCenterUpgradeable',
       row: row(chain, 'MemeverseRegistrationCenter'),
     });
-    c.GenesisCreditFactory = deployedEntry({
-      abi: 'GenesisCredit',
-      row: row(chain, 'GenesisCreditFactory'),
-      note: 'factory mints per-verse GenesisCredit credits (home chain = BSC Testnet per GENESIS_CREDIT_HOME_EID); abi field points at the credit token ABI — the factory itself is not a frontend call target',
-    });
-    c.GenesisCredit = instancesEntry({
-      abi: 'GenesisCredit',
-      instances: {
-        UETH: row(chain, 'cUETH'),
-        UUSD: row(chain, 'cUUSD'),
-        UBNB: row(chain, 'cUBNB'),
-      },
-      note: "this generation's credit trio, dispensed via Faucet claimHeld",
-    });
   }
+  // GenesisCreditRegistry and the credit trio live on ALL three chains (CREATE3
+  // same address everywhere): BSC is the claim home chain (merkle minting is
+  // homeChainEid-gated), Base/Arb instances are OFT bridge endpoints only.
+  c.GenesisCreditRegistry = deployedEntry({
+    abi: 'GenesisCredit',
+    row: row(chain, 'GenesisCreditRegistry'),
+    note: 'registry dispenses per-verse GenesisCredit credits (home chain = BSC Testnet per GENESIS_CREDIT_HOME_EID); abi field points at the credit token ABI — the registry itself is not a frontend call target',
+  });
+  c.GenesisCredit = instancesEntry({
+    abi: 'GenesisCredit',
+    instances: {
+      UETH: row(chain, 'cUETH'),
+      UUSD: row(chain, 'cUUSD'),
+      UBNB: row(chain, 'cUBNB'),
+    },
+    note: "this generation's credit trio, dispensed via Faucet claimHeld",
+  });
   return c;
 }
 
