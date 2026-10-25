@@ -12,15 +12,30 @@
  */
 'use client'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { formatUnits, type Hex } from 'viem'
 
-import type { FixtureParticipationRow, Locale, VerseStage } from '@/lib/data/fixture-repository'
+import type { ParticipationRow, Locale, VerseStage } from '@/lib/data/fixture-repository'
+import { erc20ReadAbi, launcherAbi, polendAbi } from '@/lib/web3/abis'
 
 import { getCopy } from '../global/copy'
-import { verseHref } from '../global/routes'
+import { publishLiveParticipations } from '../global/live-participations'
+import { parseVerseIdParam, verseHref } from '../global/routes'
 import { formatAmount, formatDay, SectionHeading, StageBadge } from '../global/signal-ui'
+import { useAccountCenter } from '../global/use-account-center'
+import { useWalletProviderReader } from '../global/wallet-provider-reader'
 
 const GROUP_ORDER: VerseStage[] = ['genesis', 'locked', 'unlocked']
+
+/** viem multicall with allowFailure wraps every entry as {status, result}: a reverted leg
+ *  unwraps to null so one bad verse skips its row instead of poisoning the whole scan */
+function multicallLeg(entry: { status: string; result?: unknown } | undefined): unknown {
+  return entry?.status === 'success' && entry.result !== undefined ? entry.result : null
+}
+
+/** uAsset decimals by token address: token metadata is deployment-stable, so one on-chain read
+ *  per token serves every later scan — steady-state scan pays a single ledger round */
+const uAssetDecimalsCache = new Map<string, number>()
 
 /** Breakdown line: unit inline, zeros omitted (LP = four-pool total not shown);
  *  returns null when all zero */
@@ -29,7 +44,7 @@ function MakeupLine({
   holdings,
 }: {
   locale: Locale
-  holdings: NonNullable<FixtureParticipationRow['holdings']>
+  holdings: NonNullable<ParticipationRow['holdings']>
 }) {
   const parts: string[] = []
   if (holdings.pol > 0) parts.push(`${formatAmount(holdings.pol, locale, true)} POL`)
@@ -39,7 +54,7 @@ function MakeupLine({
   return <span className="pf-participation-row__makeup">{parts.join(' · ')}</span>
 }
 
-function ParticipationRow({ locale, row }: { locale: Locale; row: FixtureParticipationRow }) {
+function ParticipationRow({ locale, row }: { locale: Locale; row: ParticipationRow }) {
   const copy = getCopy(locale).portfolio.participations
   const href = verseHref(locale, row.verse.id)
   const claimable = row.holdings?.claimableYt ?? 0
@@ -123,13 +138,149 @@ function ParticipationRow({ locale, row }: { locale: Locale; row: FixturePartici
   )
 }
 
-export function ParticipationsZone({ locale, rows }: { locale: Locale; rows: FixtureParticipationRow[] }) {
+/** Genesis-stage verse head for the client-side participation scan (onchain builds: the
+ *  connected wallet's legs read through the wallet provider on the wallet's current chain) */
+export type ParticipationCandidate = ParticipationRow['verse'] & { execChain: number }
+
+export function ParticipationsZone({
+  locale,
+  rows,
+  candidates,
+}: {
+  locale: Locale
+  /** SSR sample rows (participations fixture; empty on onchain builds) */
+  rows: ParticipationRow[]
+  /** Genesis-stage verse heads eligible for the live scan (empty legs never render rows) */
+  candidates: ParticipationCandidate[]
+}) {
   const copy = getCopy(locale).portfolio.participations
   const [claimableOnly, setClaimableOnly] = useState(false)
-  const claimableCount = rows.filter((row) => (row.holdings?.claimableYt ?? 0) > 0).length
+  const center = useAccountCenter()
+  const real = center.source === 'real'
+  const walletReady = real && center.connected && center.address != null && center.chainId != null
+  const providerReader = useWalletProviderReader(walletReady ? (center.chainId as number) : null)
+  const [liveRows, setLiveRows] = useState<ParticipationRow[] | null>(null)
+  // Focus re-read: participations confirmed elsewhere (verse page in this tab included) bump
+  // the on-chain ledgers without remounting this zone.
+  const [readNonce, setReadNonce] = useState(0)
+
+  useEffect(() => {
+    if (!walletReady || providerReader == null) return
+    const onFocus = () => {
+      if (document.visibilityState === 'visible') setReadNonce((nonce) => nonce + 1)
+    }
+    document.addEventListener('visibilitychange', onFocus)
+    window.addEventListener('focus', onFocus)
+    return () => {
+      document.removeEventListener('visibilitychange', onFocus)
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [walletReady, providerReader])
+
+  // Live scan (onchain builds): the wallet's genesis legs for every genesis-stage verse on the
+  // wallet's current chain — one ledger multicall round (4 reads per verse); the decimals round
+  // only runs for uAssets missing from the session cache (steady state = one round trip), never
+  // one RPC per verse per read.
+  useEffect(() => {
+    if (!walletReady || providerReader == null) return
+    const account = center.address as Hex
+    const chainId = center.chainId as number
+    const launcher = providerReader.addresses.MemeverseLauncher as Hex | undefined
+    const polend = providerReader.addresses.POLend as Hex | undefined
+    if (!launcher || !polend) return
+    const scoped = candidates
+      .map((head) => ({ head, id: parseVerseIdParam(head.id) }))
+      .filter((entry) => entry.id != null && entry.head.execChain === chainId)
+    if (scoped.length === 0) {
+      setLiveRows([])
+      publishLiveParticipations(false)
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      try {
+        const ledgerCalls = scoped.flatMap(({ id }) => {
+          const verseId = BigInt(id as string)
+          return [
+            { address: launcher, abi: launcherAbi, functionName: 'userGenesisData', args: [verseId, account] },
+            { address: launcher, abi: launcherAbi, functionName: 'userPreorderData', args: [verseId, account] },
+            { address: polend, abi: polendAbi, functionName: 'totalInterestPaid', args: [verseId, account] },
+            { address: launcher, abi: launcherAbi, functionName: 'getUAssetByVerseId', args: [verseId] },
+          ]
+        })
+        const ledgerResults = (await providerReader.client.multicall({
+          contracts: ledgerCalls,
+          allowFailure: true,
+        })) as Array<{ status: string; result?: unknown }>
+        const uAssetByVerse = scoped.map((_, index) => multicallLeg(ledgerResults[index * 4 + 3]))
+        const uniqueUAssets = [
+          ...new Set(
+            uAssetByVerse.filter(
+              (value): value is string => typeof value === 'string' && value.startsWith('0x'),
+            ),
+          ),
+        ]
+        const uncachedAssets = uniqueUAssets.filter((address) => !uAssetDecimalsCache.has(address))
+        if (uncachedAssets.length > 0) {
+          const decimalsResults = (await providerReader.client.multicall({
+            contracts: uncachedAssets.map((address) => ({
+              address: address as Hex,
+              abi: erc20ReadAbi,
+              functionName: 'decimals',
+            })),
+            allowFailure: true,
+          })) as Array<{ status: string; result?: unknown }>
+          uncachedAssets.forEach((address, index) => {
+            const value = multicallLeg(decimalsResults[index])
+            if (typeof value === 'number') uAssetDecimalsCache.set(address, value)
+          })
+        }
+        const next: ParticipationRow[] = []
+        scoped.forEach(({ head }, index) => {
+          const genesis = multicallLeg(ledgerResults[index * 4]) as [bigint, boolean, boolean] | null
+          const preorder = multicallLeg(ledgerResults[index * 4 + 1]) as [bigint, bigint, boolean] | null
+          const interest = multicallLeg(ledgerResults[index * 4 + 2]) as bigint | null
+          const uAsset = uAssetByVerse[index]
+          if (!genesis || !preorder || interest == null || typeof uAsset !== 'string') return
+          const decimals = uAssetDecimalsCache.get(uAsset)
+          if (decimals == null) return
+          const normal = Number(formatUnits(genesis[0], decimals))
+          const leverage = Number(formatUnits(interest, decimals))
+          const preorderAmount = Number(formatUnits(preorder[0], decimals))
+          const total = normal + leverage + preorderAmount
+          if (total <= 0) return
+          next.push({
+            verse: head,
+            // stakeRoute is not derivable on-chain (the ledger records uAsset regardless of the
+            // pay route) — the stake badge stays a fixture-sample marker
+            genesis: { total, normal, leverage, preorder: preorderAmount, stakeRoute: false },
+            holdings: null,
+          })
+        })
+        next.sort((a, b) => a.verse.id.localeCompare(b.verse.id))
+        if (!cancelled) {
+          setLiveRows(next)
+          publishLiveParticipations(next.length > 0)
+        }
+      } catch {
+        // wholesale read failure → keep the list hidden (no fabricated rows)
+        if (!cancelled) {
+          setLiveRows(null)
+          publishLiveParticipations(false)
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [walletReady, center.address, center.chainId, providerReader, candidates, readNonce])
+
+  const displayRows = !real ? rows : (liveRows ?? [])
+  const rowsToRender = displayRows
+  const claimableCount = rowsToRender.filter((row) => (row.holdings?.claimableYt ?? 0) > 0).length
   const visible = claimableOnly
-    ? rows.filter((row) => (row.holdings?.claimableYt ?? 0) > 0)
-    : rows
+    ? rowsToRender.filter((row) => (row.holdings?.claimableYt ?? 0) > 0)
+    : rowsToRender
 
   const filterToggle = claimableCount > 0 && (
     <nav className="pf-participations__filter" aria-label={copy.filterClaimable}>
@@ -152,8 +303,8 @@ export function ParticipationsZone({ locale, rows }: { locale: Locale; rows: Fix
     </nav>
   )
 
-  // 2026-10-15 (user ruling): an empty participation list renders nothing — no empty-state card
-  if (rows.length === 0) return null
+  // An empty participation list renders nothing — no empty-state card
+  if (rowsToRender.length === 0) return null
 
   return (
     <section className="pf-participations" id="pf-participations">

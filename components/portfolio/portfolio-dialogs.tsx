@@ -16,11 +16,11 @@ import type { Locale } from '@/lib/data/fixture-repository'
 import { getCopy } from '../global/copy'
 import { useAccountCenter } from '../global/use-account-center'
 import { usePsmSwap } from '../global/use-psm-swap'
-import { useTxCenter, type WriteSpec } from '../global/use-tx-center'
+import { useTxCenter, useClearOnConfirmed, type WriteSpec } from '../global/use-tx-center'
 import { TxStatus } from '../global/tx-status'
 import {
+  readAllowances,
   readErc20Meta,
-  readErc20State,
   type ContractReader,
 } from '../global/execution-reads'
 import { getClientChainConfig } from '@/lib/web3/chains'
@@ -79,6 +79,7 @@ export function BridgeDialog({
   const tx = useTxCenter()
   const [resolving, setResolving] = useState(false)
   const [resolveFailed, setResolveFailed] = useState(false)
+  useClearOnConfirmed(tx.display, () => setAmount(''))
   // OFT send executes on the wallet chain; the from-chain selector must match it (AC-2-adjacent).
   const executionReady =
     center.source === 'real' &&
@@ -136,19 +137,6 @@ export function BridgeDialog({
       })) as unknown as [bigint, bigint]
       const action = oftSendCall(uAsset, sendParam, nativeFee, eoa, nativeFee)
       const { calls, calldata: batch } = buildSessionWrite({ hook, action })
-      let estimatedGas = '—'
-      let nativeBalance = '—'
-      try {
-        const [gas, balance] = await Promise.all([
-          client.estimateGas({ account: eoa, to: eoa, data: batch, value: nativeFee }),
-          client.getBalance({ address: eoa }),
-        ])
-        estimatedGas = gas.toString()
-        nativeBalance = formatUnits(balance, 18)
-      } catch {
-        const balance = await client.getBalance({ address: eoa })
-        nativeBalance = formatUnits(balance, 18)
-      }
       const spec: WriteSpec = {
         review: {
           chainId,
@@ -160,8 +148,8 @@ export function BridgeDialog({
           fee: `${formatUnits(nativeFee, 18)} ${resolved.config.viemChain.nativeCurrency.symbol}`,
           gasPayer: eoa,
           authorizationChange: '—',
-          estimatedGas,
-          nativeBalance,
+          estimatedGas: '—',
+          nativeBalance: '—',
         },
         kernel,
         expectedChainId: chainId,
@@ -305,6 +293,7 @@ export function ConvertDialog({
     setMode(next)
     setAmount('')
   }
+  useClearOnConfirmed(tx.display, () => setAmount(''))
   const parsed = Number(amount)
   const valid = Number.isFinite(parsed) && parsed > 0
   const fee = mode === 'mint' ? feeIn : feeOut
@@ -433,6 +422,7 @@ export function CdpRedeemDialog({
   const [amount, setAmount] = useState('')
   const [resolving, setResolving] = useState(false)
   const [resolveFailed, setResolveFailed] = useState(false)
+  useClearOnConfirmed(tx.display, () => setAmount(''))
   const parsed = Number(amount)
   const valid = Number.isFinite(parsed) && parsed > 0 && parsed <= debt
   // Position identity is still unplumbed (no onchain enumeration; needs graph user-positions
@@ -503,7 +493,7 @@ export function CdpRedeemDialog({
         args: [BigInt(positionId), syRedeemed, sy],
       })) as unknown as [bigint, bigint]
       const pullAmount = principalPortion + interestPortion
-      const { allowance } = await readErc20State(reader, uAsset, eoa, spAddress)
+      const [allowance] = await readAllowances(reader, eoa, [{ token: uAsset, spender: spAddress }])
       const approval =
         allowance < pullAmount
           ? approvalCall(uAsset, spAddress, pullAmount)
@@ -516,19 +506,6 @@ export function CdpRedeemDialog({
         minTokenOut: syRedeemed,
       })
       const { calls, calldata: batch } = buildSessionWrite({ hook, action, approval })
-      let estimatedGas = '—'
-      let nativeBalance = '—'
-      try {
-        const [gas, balance] = await Promise.all([
-          client.estimateGas({ account: eoa, to: eoa, data: batch }),
-          client.getBalance({ address: eoa }),
-        ])
-        estimatedGas = gas.toString()
-        nativeBalance = formatUnits(balance, 18)
-      } catch {
-        const balance = await client.getBalance({ address: eoa })
-        nativeBalance = formatUnits(balance, 18)
-      }
       const spec: WriteSpec = {
         review: {
           chainId,
@@ -542,8 +519,8 @@ export function CdpRedeemDialog({
           authorizationChange: approval
               ? `${formatUnits(pullAmount, decimals)} ${uAssetSymbol}`
               : '—',
-          estimatedGas,
-          nativeBalance,
+          estimatedGas: '—',
+          nativeBalance: '—',
         },
         kernel,
         expectedChainId: chainId,
@@ -647,6 +624,7 @@ export function UsrSavingsDialog({
   const [amount, setAmount] = useState('')
   const [resolving, setResolving] = useState(false)
   const [resolveFailed, setResolveFailed] = useState(false)
+  useClearOnConfirmed(tx.display, () => setAmount(''))
   const parsed = Number(amount)
   const valid = Number.isFinite(parsed) && parsed > 0
   const index = vault.myShares > 0 ? vault.myAssets / vault.myShares : 1
@@ -693,8 +671,11 @@ export function UsrSavingsDialog({
       ])
       const amountBase =
         mode === 'deposit' ? parseUnits(amount, uAssetDecimals) : parseUnits(amount, shareDecimals)
-      const { allowance } =
-        mode === 'deposit' ? await readErc20State(reader, uAssetAddr, eoa, vaultAddr) : { allowance: 0n }
+      const allowance =
+        mode === 'deposit'
+          ? ((await readAllowances(reader, eoa, [{ token: uAssetAddr, spender: vaultAddr }]))[0] ??
+            0n)
+          : 0n
       const approval =
         mode === 'deposit' && allowance < amountBase
           ? approvalCall(uAssetAddr, vaultAddr, amountBase)
@@ -704,19 +685,6 @@ export function UsrSavingsDialog({
           ? usrDepositCall(vaultAddr, amountBase, eoa)
           : usrRedeemCall(vaultAddr, amountBase, eoa, eoa)
       const { calls, calldata: batch } = buildSessionWrite({ hook, action, approval })
-      let estimatedGas = '—'
-      let nativeBalance = '—'
-      try {
-        const [gas, balance] = await Promise.all([
-          client.estimateGas({ account: eoa, to: eoa, data: batch }),
-          client.getBalance({ address: eoa }),
-        ])
-        estimatedGas = gas.toString()
-        nativeBalance = formatUnits(balance, 18)
-      } catch {
-        const balance = await client.getBalance({ address: eoa })
-        nativeBalance = formatUnits(balance, 18)
-      }
       const tokenSymbol = mode === 'deposit' ? vault.uAssetSymbol : vault.shareSymbol
       const spec: WriteSpec = {
         review: {
@@ -734,8 +702,8 @@ export function UsrSavingsDialog({
                   ? `${formatUnits(amountBase, uAssetDecimals)} ${vault.uAssetSymbol}`
                   : '—'
               : '—',
-          estimatedGas,
-          nativeBalance,
+          estimatedGas: '—',
+          nativeBalance: '—',
         },
         kernel,
         expectedChainId: chainId,

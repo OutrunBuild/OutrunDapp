@@ -2,7 +2,7 @@ import { Fragment } from 'react'
 import Link from 'next/link'
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import type { Locale, FixtureChain, FixtureVerse } from '@/lib/data/fixture-repository'
+import type { Locale, ChainInfo, Verse } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { ChainLogoMark } from '../global/chain-icons'
@@ -18,8 +18,8 @@ import {
 
 type EconomyCardProps = {
   locale: Locale
-  verse: FixtureVerse
-  chains: FixtureChain[]
+  verse: Verse
+  chains: ChainInfo[]
   /** Clicking anywhere on the card opens the detail; router.push stays single-sourced in
    *  DiscoveryBrowser */
   onOpen: () => void
@@ -29,26 +29,20 @@ function boundedProgress(value: number) {
   return Math.min(Math.max(value, 0), 100)
 }
 
-/** Onchain build: the verse's registered omnichainIds are the truth (ids resolved against the
- *  full chain table; unresolvable ids drop out — null-render discipline). Fixture build
- *  (omnichainIds=null): governance chain first, remaining mainnet chains follow in fixture
- *  whitelist order (sample face, e2e baseline). */
-function omnichainChains(verse: FixtureVerse, chains: FixtureChain[]) {
-  if (verse.omnichainIds != null) {
-    return verse.omnichainIds
-      .map((id) => chains.find((chain) => chain.chainId === id))
-      .filter((chain): chain is FixtureChain => chain != null)
-  }
-  return [
-    ...chains.filter((chain) => chain.env === 'mainnet' && chain.chainId === verse.governanceChain),
-    ...chains.filter((chain) => chain.env === 'mainnet' && chain.chainId !== verse.governanceChain),
-  ]
+/** Chain icons show the landed set: only chains whose subgraph actually holds this verse.
+ *  The registration request set (omnichainIds) is not evidence — a chain can accept the
+ *  request and never receive the LayerZero delivery. */
+function deployedChains(verse: Verse, chains: ChainInfo[]) {
+  if (verse.deployedChainIds == null) return []
+  return verse.deployedChainIds
+    .map((id) => chains.find((chain) => chain.chainId === id))
+    .filter((chain): chain is ChainInfo => chain != null)
 }
 
 export function EconomyCard({ locale, verse, chains, onOpen }: EconomyCardProps) {
   const copy = getCopy(locale)
 
-  function primarySignal(verse: FixtureVerse) {
+  function primarySignal(verse: Verse) {
     if (verse.stage === 'genesis') {
       const thresholdSignals = [
         { label: copy.discovery.normal, value: verse.normalProgress },
@@ -81,7 +75,10 @@ export function EconomyCard({ locale, verse, chains, onOpen }: EconomyCardProps)
                       aria-valuenow={Math.round(boundedProgress(signal.value))}
                       aria-valuetext={`${formatPercent(signal.value, locale)}%`}
                     >
-                      <span style={{ inlineSize: `${boundedProgress(signal.value)}%` }} />
+                      <span
+                        data-reached={signal.value >= 100 ? 'true' : undefined}
+                        style={{ inlineSize: `${boundedProgress(signal.value)}%` }}
+                      />
                     </span>
                   </div>
                 </Fragment>
@@ -217,7 +214,7 @@ export function EconomyCard({ locale, verse, chains, onOpen }: EconomyCardProps)
         <p className="economy-card__chains">
           <span>{copy.discovery.omnichain}</span>
           <span className="economy-card__chain-icons">
-            {omnichainChains(verse, chains).map((chain) => (
+            {deployedChains(verse, chains).map((chain) => (
               <Tooltip key={chain.chainId}>
                 <TooltipTrigger className="economy-card__chain" aria-label={chain.name}>
                   <ChainLogoMark chainId={chain.chainId} size={16} />

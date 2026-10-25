@@ -56,7 +56,7 @@ export function clearFiltersHref(pathname: string, current: DiscoveryQueryState)
   return discoveryHref(pathname, current, { mode: 'all', query: '', page: 1 })
 }
 
-/** Next server page (infinite-scroll sentinel): keeps every filter axis, advances page only */
+/** Next server page (infinite-scroll anchor): keeps every filter axis, advances page only */
 export function nextPageHref(pathname: string, current: DiscoveryQueryState) {
   return discoveryHref(pathname, current, { page: current.page + 1 })
 }

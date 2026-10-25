@@ -5,7 +5,7 @@ import { Check, ChevronDown } from 'lucide-react'
 
 import { ChainLogoMark } from './chain-icons'
 
-import type { Locale, FixtureChain } from '@/lib/data/fixture-repository'
+import type { Locale, ChainInfo } from '@/lib/data/fixture-repository'
 
 import { getCopy } from './copy'
 import { useAccountCenter } from './use-account-center'
@@ -23,7 +23,7 @@ import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/
  * ui/dialog primitive; backdrop blur uses the global [data-slot='dialog-backdrop']
  * skin.
  */
-export function ChainSelectorDialog({ locale, chains }: { locale: Locale; chains: FixtureChain[] }) {
+export function ChainSelectorDialog({ locale, chains }: { locale: Locale; chains: ChainInfo[] }) {
   const copy = getCopy(locale)
   const [open, setOpen] = useState(false)
   const {

@@ -13,8 +13,7 @@ const MAINNET_TO_TESTNET: Record<number, number> = { 1: 421614, 8453: 84532, 56:
 
 /** Verse execution chain + wrong-chain verdict for the trading-desk panels: a wallet on
  * another chain must never fire the desk's on-chain reads (same-address deployments on the
- * other chains revert InvalidVerseId); the panel CTA becomes the network switch instead
- * (user ruling 2026-10-22). */
+ * other chains revert InvalidVerseId); the panel CTA becomes the network switch instead. */
 export function useVerseExecChain(governanceChain: number) {
   const center = useAccountCenter()
   const execChain = MAINNET_TO_TESTNET[governanceChain] ?? governanceChain
@@ -22,7 +21,7 @@ export function useVerseExecChain(governanceChain: number) {
   return { execChain, wrongChain, switchChain: center.switchChainAction }
 }
 
-/** Switch-network CTA: the target chain's icon rides before its name (user ruling 2026-10-23).
+/** Switch-network CTA: the target chain's icon rides before its name.
  *  The switch itself goes provider-direct first (wallet_switchEthereumChain — the connector
  *  path can be stale); the wagmi fallback only fires when the direct call cannot run. */
 export function SwitchChainCta({
@@ -45,8 +44,8 @@ export function SwitchChainCta({
   size?: 'default' | 'sm' | 'lg' | 'icon'
 }) {
   const copy = getCopy(locale)
-  // The chain icon rides immediately before the chain NAME inside the label
-  // (user ruling 2026-10-23), not at the button start.
+  // The chain icon rides immediately before the chain NAME inside the label, not at the
+  // button start.
   const [labelHead, labelTail = ''] = copy.verseDesk.switchChainCta.split('{chain}')
   return (
     <Button

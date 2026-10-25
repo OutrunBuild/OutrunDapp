@@ -3,7 +3,7 @@
 // createtime) and illegal values fall back to createtime
 import { describe, expect, it } from 'vitest';
 
-import { getFixtureSnapshot } from '../../lib/data/fixture-repository';
+import { getSnapshot } from '../../lib/data/fixture-repository';
 import {
   SORT_OPTIONS_BY_STAGE,
   legalSortForStage,
@@ -43,7 +43,7 @@ describe('legalSortForStage', () => {
 // go through the freeze chain re-signing, which requires updating here in sync
 describe('sortVerses', () => {
   function pick(...ids: string[]) {
-    const verses = getFixtureSnapshot().verses;
+    const verses = getSnapshot().verses;
     return ids.map((id) => {
       const verse = verses.find((candidate) => candidate.id === id);
       if (!verse) throw new Error(`fixture verse missing: ${id}`);

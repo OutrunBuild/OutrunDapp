@@ -5,7 +5,7 @@ import { Compass, Droplets, Home, Users } from 'lucide-react'
 
 import { ChainSelectorDialog } from './chain-selector-dialog'
 
-import { getFixtureChains, type Locale, type FixtureChain } from '@/lib/data/fixture-repository'
+import { getChains, type Locale, type ChainInfo } from '@/lib/data/fixture-repository'
 
 import { getCopy } from './copy'
 import { LocaleMenu } from './locale-menu'
@@ -66,7 +66,7 @@ function Brand({ compact = false }: { compact?: boolean }) {
   )
 }
 
-function StatusCluster({ locale, chains }: { locale: Locale; chains: FixtureChain[] }) {
+function StatusCluster({ locale, chains }: { locale: Locale; chains: ChainInfo[] }) {
   return <ChainSelectorDialog locale={locale} chains={chains} />
 }
 
@@ -77,7 +77,7 @@ function MarketingHeader({
 }: {
   locale: Locale
   address: string
-  chains: FixtureChain[]
+  chains: ChainInfo[]
 }) {
   const copy = getCopy(locale)
   return (
@@ -187,7 +187,7 @@ export async function OutrunShell({
 }: ShellProps) {
   const copy = getCopy(locale)
   // View-chain selector exposes only the 3 testnets (no mainnet options)
-  const chains = (await getFixtureChains()).filter((c) => c.env === 'testnet')
+  const chains = (await getChains()).filter((c) => c.env === 'testnet')
 
   if (current === 'home') {
     return (

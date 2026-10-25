@@ -1,7 +1,7 @@
 import {
-  getFixtureChainVersePage,
-  getFixtureChains,
-  getFixtureSnapshot,
+  getChainVersePage,
+  getChains,
+  getDisplayAccount,
   type Locale,
   type VerseStage,
 } from '@/lib/data/fixture-repository'
@@ -28,10 +28,10 @@ function first(value: QueryValue) {
 
 export async function DiscoveryPage({ locale, searchParams }: DiscoveryPageProps) {
   const scenario = parseScenarioParam(first(searchParams.scenario))
-  const rawSnapshot = await getFixtureSnapshot()
+  const displayAccount = await getDisplayAccount()
   // Full chain table: onchain cards resolve their registered (testnet) omnichain ids against
   // it; the fixture-mode card face and the browser skeleton filter to the mainnet trio locally
-  const chains = await getFixtureChains()
+  const chains = await getChains()
   const copy = getCopy(locale)
   const stageValue = first(searchParams.stage)
   const stage = ['genesis', 'locked', 'unlocked'].includes(stageValue ?? '')
@@ -56,7 +56,7 @@ export async function DiscoveryPage({ locale, searchParams }: DiscoveryPageProps
   }
   // Chain resolution against the static option set first (zero reads): the page read
   // then serves the selected chain's window plus the same option set for the filter.
-  const chainIdsProbe = await getFixtureChainVersePage(0, pageFilter, 1, 0)
+  const chainIdsProbe = await getChainVersePage(0, pageFilter, 1, 0)
   const chainIds = chainIdsProbe?.chainIds ?? []
   const chainValue = first(searchParams.chain)
   const chainId =
@@ -66,20 +66,19 @@ export async function DiscoveryPage({ locale, searchParams }: DiscoveryPageProps
   const page =
     chainId === 0
       ? { rows: [], total: 0, hasMore: false, chainIds }
-      : await getFixtureChainVersePage(
+      : await getChainVersePage(
           chainId,
           pageFilter,
           DISCOVERY_PAGE_SIZE,
           (pageValue - 1) * DISCOVERY_PAGE_SIZE,
         )
   const verses = applyScenarioToVerses(page.rows, scenario)
-  const snapshot = { ...rawSnapshot, verses }
 
   return (
     <OutrunShell
       locale={locale}
       current="discover"
-      accountAddress={snapshot.sampleAccount.address}
+      accountAddress={displayAccount.address}
     >
       <header className="discovery-intro">
         <div>
@@ -104,7 +103,7 @@ export async function DiscoveryPage({ locale, searchParams }: DiscoveryPageProps
         key={`${stage}-${sort}-${order}-${chainId}-${mode}-${query}-${pageValue}-${scenario ?? ''}`}
         scenario={scenario}
         locale={locale}
-        verses={snapshot.verses}
+        verses={verses}
         chains={chains}
         chainIds={chainIds}
         hasMore={page.hasMore}

@@ -1,4 +1,4 @@
-import type { FixtureVerse, VerseStage } from '@/lib/data/fixture-repository'
+import type { Verse, VerseStage } from '@/lib/data/fixture-repository'
 
 /** Sort options differ per stage: locked includes Unlock Time, unlocked does not */
 export const SORT_OPTIONS_BY_STAGE: Record<VerseStage, string[]> = {
@@ -17,7 +17,7 @@ export function legalSortForStage(stage: VerseStage, sort: string) {
 }
 
 /** progress sort key takes the larger of the two thresholds (reaching either one counts) */
-function progressValue(verse: FixtureVerse) {
+function progressValue(verse: Verse) {
   return Math.max(verse.normalProgress, verse.leverageProgress)
 }
 
@@ -29,7 +29,7 @@ function nullableNumberOrder(direction: 1 | -1, a: number | null, b: number | nu
 }
 
 /** List sort: 10 keys × asc/desc (`size` and unknown keys share the participationSize fallback) */
-export function sortVerses(verses: FixtureVerse[], sort: string, order: 'asc' | 'desc') {
+export function sortVerses(verses: Verse[], sort: string, order: 'asc' | 'desc') {
   const direction = order === 'asc' ? 1 : -1
   return verses.toSorted((a, b) => {
     if (sort === 'endtime') return direction * (Date.parse(a.endsAt) - Date.parse(b.endsAt))

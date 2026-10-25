@@ -3,21 +3,19 @@
 import { useId, useState } from 'react'
 
 import type {
-  FixturePolPosition,
-  FixtureVerse,
+  PolPosition,
+  Verse,
   Locale,
 } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { useAccountCenter } from '../global/use-account-center'
-import { useTxCenter, type WriteSpec } from '../global/use-tx-center'
+import { useTxCenter, useClearOnConfirmed, type WriteSpec } from '../global/use-tx-center'
 import { TxStatus } from '../global/tx-status'
 import {
-  estimateSession,
-  readErc20Meta,
-  readErc20State,
-  resolveVerseSession,
+  readAllowances,
 } from '../global/execution-reads'
+import { getTokenDecimals, getVerseSession } from '../global/write-session'
 import { parseVerseIdParam } from '../global/routes'
 import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
 import {
@@ -39,12 +37,12 @@ import { FieldError } from '@/components/ui/field'
 /** Protection-window card Exit context (portfolio-page prefetches per protection row; missing
  *  row = the card falls back to jumping to the verse page) */
 export type ProtectionExitContext = {
-  verse: FixtureVerse
-  pol: FixturePolPosition
+  verse: Verse
+  pol: PolPosition
   /** Main pool price (uAsset per memecoin, last candles close semantics); null = the memecoin
    *  leg renders as 0.00 */
   price: number | null
-  /** uAsset USD sample (assets usdSample); null = the USD echo row is not rendered */
+  /** uAsset USD price (assets usdPrice); null = the USD echo row is not rendered */
   uAssetUsd: number | null
 }
 
@@ -97,6 +95,7 @@ export function ProtectionExitDialog({
   const [slippageText, setSlippageText] = useState('0.5')
   const [deadlineText, setDeadlineText] = useState('10')
   const receiveLabelId = useId()
+  useClearOnConfirmed(tx.display, () => setAmount(''))
 
   const polSymbol = `POL-${verse.symbol}`
   // Main pool LP pair semantics (same as PolRedeemLpDialog: {MEME}/{uAsset} LP)
@@ -121,16 +120,21 @@ export function ProtectionExitDialog({
     setResolving(true)
     setResolveFailed(false)
     try {
-      const session = await resolveVerseSession({
-        request: provider.request,
-        chainId,
+      // 静态半命中页面预热缓存（0 往返），点击链路只剩一轮并行 allowance 读
+      // One executable chain: a provider answering another chain is refused (VerseChainError),
+      // never silently read — these dialogs' figures are loaded for this chain only.
+      const session = await getVerseSession({
+        provider,
+        chains: [chainId],
         eoa,
         verseId: BigInt(verseId),
       })
       const launcher = session.contracts.MemeverseLauncher as Hex
-      const { decimals } = await readErc20Meta(session.reader, session.verse.pol)
+      const decimals = await getTokenDecimals(session.reader, chainId, session.verse.pol)
       const amountBase = parseUnits(amount, decimals)
-      const { allowance } = await readErc20State(session.reader, session.verse.pol, eoa, launcher)
+      const [allowance] = await readAllowances(session.reader, eoa, [
+        { token: session.verse.pol, spender: launcher },
+      ])
       const approval =
         allowance < amountBase
           ? approvalCall(session.verse.pol, launcher, amountBase)
@@ -148,11 +152,11 @@ export function ProtectionExitDialog({
           session.verse.memecoin.toLowerCase() < session.verse.uAsset.toLowerCase()
         const uMin =
           minU != null
-            ? parseUnits(String(minU), (await readErc20Meta(session.reader, session.verse.uAsset)).decimals)
+            ? parseUnits(String(minU), await getTokenDecimals(session.reader, chainId, session.verse.uAsset))
             : 0n
         const mMin =
           minM != null
-            ? parseUnits(String(minM), (await readErc20Meta(session.reader, session.verse.memecoin)).decimals)
+            ? parseUnits(String(minM), await getTokenDecimals(session.reader, chainId, session.verse.memecoin))
             : 0n
         const deadlineSecs = BigInt(Math.floor(Date.now() / 1000) + (Number(deadlineText) || 10) * 60)
         action = redeemMemecoinLiquidityUnwrapCall(launcher, {
@@ -171,10 +175,6 @@ export function ProtectionExitDialog({
           .join(' + ')
       }
       const { calls, calldata: batch } = buildSessionWrite({ hook: session.hook, action, approval })
-      const { estimatedGas, nativeBalance } = await estimateSession(
-        { client: session.client, reader: session.reader, eoa },
-        batch,
-      )
       const spec: WriteSpec = {
         review: {
           chainId,
@@ -188,8 +188,8 @@ export function ProtectionExitDialog({
           authorizationChange: approval
               ? `${formatUnits(amountBase, decimals)} POL-${verse.symbol}`
               : '—',
-          estimatedGas,
-          nativeBalance,
+          estimatedGas: '—',
+          nativeBalance: '—',
         },
         kernel: session.kernel,
         expectedChainId: chainId,

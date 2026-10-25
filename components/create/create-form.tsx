@@ -35,9 +35,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type {
   Locale,
-  FixtureAsset,
-  FixtureChain,
-  FixtureCreateConfig,
+  Asset,
+  ChainInfo,
+  CreateConfig,
 } from '@/lib/data/fixture-repository'
 
 import { ChainLogoMark } from '../global/chain-icons'
@@ -51,7 +51,7 @@ import { TxStatus } from '../global/tx-status'
 import { getClientChainConfig } from '@/lib/web3/chains'
 import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
 import { buildSessionWrite, registerAtCenterCall, registerAtSpokeCall } from '@/lib/web3/session-actions'
-import { createPublicClient, custom, formatUnits, parseEther, type Hex } from 'viem'
+import { parseEther, type Hex } from 'viem'
 
 // Registration param scope = durationDays/name/symbol/uri/desc/uAsset/
 // omnichainIds; initial pricing / minimum success amount are not registration params;
@@ -74,7 +74,7 @@ const LOGO_ACCEPTED_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp'])
 // receipt — jump to the fixture sample verse (production = verseId returned by the registration event)
 const SAMPLE_VERSE_ID = 'verse-021'
 
-/** Mainnet chainId → wallet testnet stand-in mapping (mock glue layer, not domain values; same
+/** Mainnet chainId → wallet testnet stand-in mapping (testnet stand-in shim, not domain values; same
  *  pattern as the vault card's GOVERNANCE_TESTNET): the quote decides "is the origin chain the
  *  governance chain" by comparing the wallet chainId against the governance chain's testnet
  *  counterpart */
@@ -181,12 +181,12 @@ function CreateSuccessDialog({
 
 type CreateFormProps = {
   locale: Locale
-  assets: FixtureAsset[]
-  chains: FixtureChain[]
+  assets: Asset[]
+  chains: ChainInfo[]
   /** Full six-chain list (incl. testnet stand-ins): look up the origin chain's native symbol by the
    *  wallet's connected chain */
-  walletChains: FixtureChain[]
-  config: FixtureCreateConfig | null
+  walletChains: ChainInfo[]
+  config: CreateConfig | null
   occupiedSymbols: string[]
 }
 
@@ -384,23 +384,6 @@ export function CreateForm({
           : registerAtSpokeCall(spokeAddr as Hex, param, value)
       const targetContract = (centerAddr ?? spokeAddr) as Hex
       const { calls, calldata: batch } = buildSessionWrite({ hook, action })
-      const client = createPublicClient({
-        chain: resolved.config.viemChain,
-        transport: custom({ request: provider.request }),
-      })
-      let estimatedGas = '—'
-      let nativeBalance = '—'
-      try {
-        const [gas, balance] = await Promise.all([
-          client.estimateGas({ account: eoa, to: eoa, data: batch, value }),
-          client.getBalance({ address: eoa }),
-        ])
-        estimatedGas = gas.toString()
-        nativeBalance = formatUnits(balance, 18)
-      } catch {
-        const balance = await client.getBalance({ address: eoa })
-        nativeBalance = formatUnits(balance, 18)
-      }
       const spec: WriteSpec = {
         review: {
           chainId: execChainId,
@@ -412,8 +395,8 @@ export function CreateForm({
           fee: crossChainFee > 0 ? `${crossChainFee} ${nativeSymbol}` : '—',
           gasPayer: eoa,
           authorizationChange: '—',
-          estimatedGas,
-          nativeBalance,
+          estimatedGas: '—',
+          nativeBalance: '—',
         },
         kernel,
         expectedChainId: execChainId,
@@ -673,7 +656,7 @@ export function CreateForm({
                   disabled={resolving || tx.running || (center.source === 'real' && !executionReady)}
                   onClick={() => void buildAndStart()}
                 >
-                  {copy.verse.confirmPrototype}
+                  {copy.verse.confirm}
                 </Button>
               </div>
             ) : tx.display === 'confirmed' ? (

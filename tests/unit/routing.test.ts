@@ -10,7 +10,7 @@ import {
   verseHref,
   versePathSegment,
 } from '../../components/global/routes';
-import { getFixtureVerse } from '../../lib/data/fixture-repository';
+import { getVerse } from '../../lib/data/fixture-repository';
 
 describe('localePath', () => {
   it('en has no prefix, home is /', () => {
@@ -115,15 +115,15 @@ describe('narrowVerseQuery', () => {
   });
 });
 
-describe('getFixtureVerse numeric parsing', () => {
+describe('getVerse numeric parsing', () => {
   it('numeric segments (with leading zeros) and legacy verse-xxx forms resolve to the same fixture row', () => {
-    expect(getFixtureVerse('21')?.id).toBe('verse-021');
-    expect(getFixtureVerse('021')?.id).toBe('verse-021');
-    expect(getFixtureVerse('verse-021')?.id).toBe('verse-021');
+    expect(getVerse('21')?.id).toBe('verse-021');
+    expect(getVerse('021')?.id).toBe('verse-021');
+    expect(getVerse('verse-021')?.id).toBe('verse-021');
   });
 
   it('unknown numbers and invalid segments return null', () => {
-    expect(getFixtureVerse('999')).toBeNull();
-    expect(getFixtureVerse('abc')).toBeNull();
+    expect(getVerse('999')).toBeNull();
+    expect(getVerse('abc')).toBeNull();
   });
 });

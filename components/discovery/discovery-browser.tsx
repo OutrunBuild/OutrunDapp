@@ -19,8 +19,8 @@ import {
 } from '@/components/ui/select'
 import type {
   Locale,
-  FixtureChain,
-  FixtureVerse,
+  ChainInfo,
+  Verse,
   VerseStage,
 } from '@/lib/data/fixture-repository'
 
@@ -36,8 +36,8 @@ type GenesisMode = 'all' | 'normal' | 'fast'
 type DiscoveryBrowserProps = {
   locale: Locale
   scenario?: string | null,
-  verses: FixtureVerse[]
-  chains: FixtureChain[]
+  verses: Verse[]
+  chains: ChainInfo[]
   /** all indexed chain ids (filter options; from the page result, never a second pull) */
   chainIds: number[]
   hasMore: boolean
@@ -77,7 +77,7 @@ export function DiscoveryBrowser({
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [visibleCount, setVisibleCount] = useState(GRID_BATCH_SIZE)
   const [showBackToTop, setShowBackToTop] = useState(false)
-  const sentinelRef = useRef<HTMLDivElement | null>(null)
+  const scrollAnchorRef = useRef<HTMLDivElement | null>(null)
 
   const currentParams = {
     stage: initialStage,
@@ -123,7 +123,7 @@ export function DiscoveryBrowser({
   const nextHref = hasMore && pageExhausted ? nextPageHref(pathname, currentParams) : null
 
   useEffect(() => {
-    const node = sentinelRef.current
+    const node = scrollAnchorRef.current
     if (!node) return
     if (nextHref) {
       router.prefetch(nextHref)
@@ -481,7 +481,7 @@ export function DiscoveryBrowser({
           </div>
         )}
         {shownVerses.length > 0 ? (
-          <div ref={sentinelRef} className="economy-grid-sentinel" aria-hidden="true" />
+          <div ref={scrollAnchorRef} className="economy-grid-scroll-anchor" aria-hidden="true" />
         ) : null}
         {showBackToTop ? (
           <Button

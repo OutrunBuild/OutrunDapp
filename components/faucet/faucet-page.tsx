@@ -1,4 +1,4 @@
-import { getFixtureFaucet, getFixtureSnapshot, type Locale } from '@/lib/data/fixture-repository'
+import { getDisplayAccount, getFaucet, type Locale } from '@/lib/data/fixture-repository'
 
 import { OutrunShell } from '../global/app-shell'
 import { getCopy } from '../global/copy'
@@ -16,12 +16,12 @@ import { FaucetClaims } from './faucet-claims'
  */
 export async function FaucetPage({ locale }: { locale: Locale }) {
   const copy = getCopy(locale).faucet
-  const faucet = await getFixtureFaucet()
+  const faucet = await getFaucet()
   if (!faucet) return null
-  const snapshot = await getFixtureSnapshot()
+  const displayAccount = await getDisplayAccount()
 
   return (
-    <OutrunShell locale={locale} current="faucet" accountAddress={snapshot.sampleAccount.address}>
+    <OutrunShell locale={locale} current="faucet" accountAddress={displayAccount.address}>
       <header className="page-intro">
         <div>
           <h1 className="ax-fault-title">

@@ -6,18 +6,21 @@
  * Back = UUSD→USDC redeem), mechanism facts (face value 1:1, tin/tout fees, mint bounded
  * by stockCap headroom, no slippage/deadline params → no settings gear). Primitives reuse
  * global/action-dialogs; CTA semantics = when connected, the action button is
- * gated only by input (no faked settlement) — same as ConvertDialog. Balance display:
+ * gated only by input (no faked settlement) — same as ConvertDialog; in-flight progress = the
+ * shared three-step strip. Balance display:
  * the SSR payload carries accountless values only — the connected wallet reads its own
- * PSM-pair balances through its provider when the dialog opens (2026-10-21 ruling). Signed-out
- * gate (2026-10-20 ruling): on onchain builds the yellow trigger keeps its look
+ * PSM-pair balances through its provider when the dialog opens. Signed-out
+ * gate: on onchain builds the yellow trigger keeps its look
  * but opens the login selector instead of the dialog; the harness (e2e/fixture)
  * path opens the dialog as before so baselines stay meaningful.
  */
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { createPublicClient, custom, formatUnits, type Hex } from 'viem'
+import { formatBaseUnits, formatWadPercent, toBaseUnits } from '@/lib/web3/base-units'
+import { psmMintQuote, psmRedeemQuote } from '@/lib/web3/contract-formulas'
 
-import type { FixtureFaucet, Locale } from '@/lib/data/fixture-repository'
+import type { Faucet, Locale } from '@/lib/data/fixture-repository'
 import { erc20ReadAbi, psmAbi } from '@/lib/web3/abis'
 import { getClientChainConfig } from '@/lib/web3/chains'
 import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
@@ -27,12 +30,14 @@ import { getCopy } from '../global/copy'
 import { readErc20Meta, type ContractReader } from '../global/execution-reads'
 import { useAccountCenter } from '../global/use-account-center'
 import { usePsmSwap } from '../global/use-psm-swap'
+import { useClearOnConfirmed } from '../global/use-tx-center'
+import { TxStatus } from '../global/tx-status'
 import { formatAmount, formatPercent } from '../global/signal-ui'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 import { FieldError } from '@/components/ui/field'
 
-export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: FixtureFaucet['swap'] }) {
+export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Faucet['swap'] }) {
   const copy = getCopy(locale).faucet
   const psm = usePsmSwap(locale, swap.uAssetSymbol)
   const {
@@ -60,6 +65,7 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fixtu
   useEffect(() => {
     if (!open) tx.reset()
   }, [open, tx.reset])
+  useClearOnConfirmed(tx.display, () => setAmount(''))
   const parsed = Number(amount)
   const valid = Number.isFinite(parsed) && parsed > 0
   const fee = mode === 'get' ? swap.feeIn : swap.feeOut
@@ -71,10 +77,38 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fixtu
   const liveBalances = center.source === 'real' && connected
 
   // Connected balances are read client-side through the wallet provider when the dialog opens
-  // (2026-10-21 ruling: personal values never ride the SSR path — the server carries accountless
+  // (personal values never ride the SSR path — the server carries accountless
   // values only). In flight / failed → null → AmountField '--' (null-不渲染); disconnected → the
   // server-passed value (fixture sample in fixture mode, 0 in onchain mode).
   const [balances, setBalances] = useState<{ uAsset: number; reserve: number } | null>(null)
+  // Token decimals resolved with the balances read: the exact receive quote needs them.
+  const [tokenDecimals, setTokenDecimals] = useState<{ uAsset: number; reserve: number } | null>(
+    null,
+  )
+  // Exact quote when the chain wads + decimals landed (Get = mint, Back = redeem); the
+  // fixture sample keeps the ratio math so recorded baselines stay byte-identical.
+  const feeWad = mode === 'get' ? swap.feeInWad : swap.feeOutWad
+  const payDecimals = tokenDecimals == null ? null : mode === 'get' ? tokenDecimals.reserve : tokenDecimals.uAsset
+  const outDecimals = tokenDecimals == null ? null : mode === 'get' ? tokenDecimals.uAsset : tokenDecimals.reserve
+  const exactReceive: string | null = (() => {
+    if (!valid || feeWad == null || payDecimals == null) return null
+    const inputBase = toBaseUnits(amount, payDecimals)
+    const wad = BigInt(feeWad)
+    if (mode === 'get') {
+      // The PSM mints 18-dec uAsset: payout in the uAsset's own base units.
+      return formatBaseUnits(psmMintQuote(inputBase, payDecimals, wad).amountOut, 18, locale)
+    }
+    if (outDecimals == null) return null
+    const payout = psmRedeemQuote(inputBase, outDecimals, wad).amountOut
+    return formatBaseUnits(payout, outDecimals, locale)
+  })()
+  const feePercentText =
+    feeWad != null
+      ? formatWadPercent(BigInt(feeWad), locale)
+      : fee != null
+        ? formatPercent(fee * 100, locale)
+        : null
+
   // Confirmed swap re-read key: bumped only on a confirmed write, so only the post-trade
   // refresh re-runs the balances effect — never a full reset, never on every render.
   const [settledTick, setSettledTick] = useState(0)
@@ -106,7 +140,7 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fixtu
         reader.read({ address: token, abi: erc20ReadAbi, functionName: 'balanceOf', args: [eoa] }),
         readErc20Meta(reader, token),
       ])
-      return Number(formatUnits(BigInt(String(raw)), decimals))
+      return { value: Number(formatUnits(BigInt(String(raw)), decimals)), decimals }
     }
     void (async () => {
       try {
@@ -115,7 +149,10 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fixtu
           reader.read({ address: psmAddr, abi: psmAbi, functionName: 'reserveToken' }),
         ])) as [Hex, Hex]
         const [myUAsset, myReserve] = await Promise.all([readBalance(uAsset), readBalance(reserve)])
-        if (!cancelled) setBalances({ uAsset: myUAsset, reserve: myReserve })
+        if (!cancelled) {
+          setBalances({ uAsset: myUAsset.value, reserve: myReserve.value })
+          setTokenDecimals({ uAsset: myUAsset.decimals, reserve: myReserve.decimals })
+        }
       } catch {
         // silent degrade: AmountField keeps '--'
       }
@@ -177,11 +214,11 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fixtu
             ],
             [
               copy.fee,
-              fee == null ? (
+              feePercentText == null ? (
                 '--'
               ) : (
                 <span key="fee" data-numeric>
-                  {formatPercent(fee * 100, locale)}%
+                  {feePercentText}%
                 </span>
               ),
             ],
@@ -189,7 +226,7 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fixtu
               copy.youReceive,
               valid && fee != null ? (
                 <span key="receive" data-numeric>
-                  {formatAmount(parsed * (1 - fee), locale)} {outSymbol}
+                  {exactReceive ?? formatAmount(parsed * (1 - fee), locale)} {outSymbol}
                 </span>
               ) : (
                 '--'
@@ -248,6 +285,10 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fixtu
           <FieldError>{getCopy(locale).wallet.errors.txFailed}</FieldError>
         ) : null}
         {resolveFailed ? <FieldError>{getCopy(locale).common.degrade.errorBody}</FieldError> : null}
+        {/* Progress = the shared three-step strip, same slot as every other action dialog.
+            Embedded-wallet signing is silent, so the wallet popup cannot be the only
+            feedback. */}
+        {tx.active && !tx.reviewing ? <TxStatus locale={locale} state={tx.display} /> : null}
       </ActionDialogShell>
     </Dialog>
   )

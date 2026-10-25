@@ -5,7 +5,7 @@
  * Sent in-transit items need no action and take no layout here; stranded items are not shown
  * anywhere (they never enter the to-do zone either).
  */
-import type { FixturePsmPair, FixtureWalletAsset, Locale } from '@/lib/data/fixture-repository'
+import type { PsmPair, WalletAsset, Locale } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { ChainLogoMark } from '../global/chain-icons'
@@ -14,9 +14,9 @@ import { formatAmount, formatMarketCap, SectionHeading } from '../global/signal-
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { AssetActionsSheet, BridgeDialog, ConvertDialog } from './portfolio-dialogs'
 
-export type AssetRowView = FixtureWalletAsset & {
+export type AssetRowView = WalletAsset & {
   /** PSM pair (Convert entry); null = no pair, the action is not rendered */
-  psm: FixturePsmPair | null
+  psm: PsmPair | null
 }
 
 /**
@@ -92,9 +92,9 @@ function AssetRow({
         <span className="pf-asset-row__total" data-numeric>
           {formatAmount(asset.total, locale, true)}
         </span>
-        {asset.usdSample != null ? (
+        {asset.usdPrice != null ? (
           <span className="pf-asset-row__sub" data-numeric>
-            ≈ ${formatMarketCap(asset.total * asset.usdSample)}
+            ≈ ${formatMarketCap(asset.total * asset.usdPrice)}
           </span>
         ) : null}
       </div>
@@ -132,7 +132,7 @@ export function AssetsZone({
 }) {
   const copy = getCopy(locale).portfolio.assets
   const bridgeable = assets.filter((asset) => asset.bridgeable)
-  // 2026-10-15 (user ruling): zero bridgeable rows unmount the whole zone — no empty shell card
+  // Zero bridgeable rows unmount the whole zone — no empty shell card
   if (bridgeable.length === 0) return null
   // Credit family and uAsset family split into sections: uAsset first,
   // the Credit group carries a divider nameplate

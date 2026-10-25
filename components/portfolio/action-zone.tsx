@@ -13,7 +13,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
-import type { FixturePortfolioAction, Locale } from '@/lib/data/fixture-repository'
+import type { PortfolioAction, Locale } from '@/lib/data/fixture-repository'
 import { PROTECTION_WINDOW_MS } from '@/lib/data/types'
 
 import { getCopy } from '../global/copy'
@@ -62,7 +62,7 @@ export function ActionZone({
   protectionExits,
 }: {
   locale: Locale
-  actions: FixturePortfolioAction[]
+  actions: PortfolioAction[]
   /** Protection-window card Exit context (keyed by verseId; missing row = Exit falls back to
    *  jumping to the verse page) */
   protectionExits?: Record<string, ProtectionExitContext>

@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * /faucet faucet panel: three mock-token ledger rows (icon/badge + daily limit + cooldown
+ * /faucet faucet panel: three testnet-token ledger rows (icon/badge + daily limit + cooldown
  * status + Claim) + a hairline-separated batch claim row (all tokens + one-transaction
  * semantics) + footer UUSD swap entry (brand mark + Swap from USDC + the Get UUSD yellow dialog
  * trigger — the only yellow on the page). Cooldown = the fixture remainingMs snapshot decremented
@@ -9,18 +9,17 @@
  * not an on-chain write), flips to Ready at 0; mechanism = once per 24h per token.
  * In-row Claim and the connected Batch Claim are real writes on onchain
  * builds: a connected tap goes straight to the wallet popup (`executeDirect`
- * direct EOA call — Faucet.claim / batchClaim; no review panel — 2026-10-22
- * rulings), and per-row claimability comes from lastClaimed storage-slot reads
+ * direct EOA call — Faucet.claim / batchClaim; no review panel), and per-row claimability comes from lastClaimed storage-slot reads
  * (pure eth_getStorageAt, no wallet simulation); a claim re-reads only the rows it
  * touched, so untouched countdowns never flash or re-fetch.
- * Signed-out gate (2026-10-20 ruling): the page keeps its normal anatomy — no
+ * Signed-out gate: the page keeps its normal anatomy — no
  * Connect/Login entry — and every action button instead opens the login
  * selector on click (onchain builds only; the harness keeps the old
  * inert-disabled look so recorded baselines stay meaningful).
  */
 import { useEffect, useRef, useState } from 'react'
 
-import type { FixtureFaucet, Locale } from '@/lib/data/fixture-repository'
+import type { Faucet, Locale } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { useAccountCenter } from '../global/use-account-center'
@@ -36,6 +35,9 @@ import { TokenIconMark, hasTokenIcon } from '../global/token-icons'
 import { Button } from '@/components/ui/button'
 
 import { FaucetSwapDialog } from './faucet-swap-dialog'
+import { ActionDialogShell } from '../global/action-dialogs'
+import { TxStatus } from '../global/tx-status'
+import { Dialog } from '@/components/ui/dialog'
 
 /** Cooldown remaining (domain ≤24h): en compact hour/minute form, zh CJK unit words with
  *  spaces (staticDuration's day granularity does not fit the cooldown range) */
@@ -67,7 +69,7 @@ function faucetLastClaimedSlot(tokenAddr: Hex, user: Hex): Hex {
   return mappingSlot(user, tokenBase + 1n)
 }
 
-export function FaucetClaims({ locale, faucet }: { locale: Locale; faucet: FixtureFaucet }) {
+export function FaucetClaims({ locale, faucet }: { locale: Locale; faucet: Faucet }) {
   const copy = getCopy(locale).faucet
   const common = getCopy(locale).common
   const center = useAccountCenter()
@@ -438,6 +440,27 @@ export function FaucetClaims({ locale, faucet }: { locale: Locale; faucet: Fixtu
         </div>
       ) : null}
       {resolveFailed ? <FieldError>{common.degrade.errorBody}</FieldError> : null}
+      {/* Claim progress: embedded signing is silent, so the three-step strip is the only
+          feedback; it also carries the cancelled/reverted outcome. */}
+      <Dialog
+        open={tx.active}
+        onOpenChange={(open) => {
+          if (!open) tx.reset()
+        }}
+      >
+        <ActionDialogShell title={copy.claim} closeLabel={common.close}>
+          <div className="fc-claim-status">
+            <TxStatus locale={locale} state={tx.display} />
+            {tx.display === 'confirmed' ||
+            tx.display === 'cancelled' ||
+            tx.display === 'reverted' ? (
+              <Button className="ax-ghost-cta" size="lg" onClick={() => tx.reset()}>
+                {common.close}
+              </Button>
+            ) : null}
+          </div>
+        </ActionDialogShell>
+      </Dialog>
       <footer className="fc-claims__foot">
         {/* UUSD swap entry (footer primary action): identity + the Get UUSD yellow dialog trigger,
             details live in the dialog. swapFrom's {a} placeholder = an inline "USDC icon + symbol"

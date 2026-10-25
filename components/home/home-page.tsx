@@ -5,7 +5,7 @@ import { ArrowRight, ExternalLink } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { DiscordIcon, GitHubIcon, TelegramIcon, XIcon } from '../global/brand-icons'
-import { getFixtureSnapshot, type Locale } from '@/lib/data/fixture-repository'
+import { getDisplayAccount, getHomeMetrics, type Locale } from '@/lib/data/fixture-repository'
 
 import { OutrunShell } from '../global/app-shell'
 import { getCopy } from '../global/copy'
@@ -80,7 +80,7 @@ function SiteFooter({ locale }: { locale: Locale }) {
 }
 
 export async function HomePage({ locale }: { locale: Locale }) {
-  const snapshot = await getFixtureSnapshot()
+  const [homeMetrics, displayAccount] = await Promise.all([getHomeMetrics(), getDisplayAccount()])
   const copy = getCopy(locale)
   const kpi = copy.home.kpiBand
 
@@ -88,7 +88,7 @@ export async function HomePage({ locale }: { locale: Locale }) {
     <OutrunShell
       locale={locale}
       current="home"
-      accountAddress={snapshot.sampleAccount.address}
+      accountAddress={displayAccount.address}
     >
       <section className="home-hero" aria-labelledby="home-title">
         <div className="home-hero__copy">
@@ -125,15 +125,15 @@ export async function HomePage({ locale }: { locale: Locale }) {
         <section className="home-proof-band" aria-label={kpi.label}>
           <div className="home-proof-band__item">
             <span>{kpi.tvl}</span>
-            <strong data-numeric="true">{`$${formatMarketCap(snapshot.homeMetrics.totalLocked)}`}</strong>
+            <strong data-numeric="true">{`$${formatMarketCap(homeMetrics.totalLocked)}`}</strong>
           </div>
           <div className="home-proof-band__item">
             <span>{kpi.memecoins}</span>
-            <strong data-numeric="true">{snapshot.homeMetrics.deployedVerseCount}</strong>
+            <strong data-numeric="true">{homeMetrics.deployedVerseCount}</strong>
           </div>
           <div className="home-proof-band__item">
             <span>{kpi.users}</span>
-            <strong data-numeric="true">{formatMarketCap(snapshot.homeMetrics.participantCount)}</strong>
+            <strong data-numeric="true">{formatMarketCap(homeMetrics.participantCount)}</strong>
           </div>
         </section>
       </section>

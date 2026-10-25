@@ -14,9 +14,9 @@ import Link from 'next/link'
 import { useState } from 'react'
 
 import type {
-  FixtureCdpPosition,
-  FixtureUsrSavings,
-  FixtureVaultRow,
+  CdpPosition,
+  UsrSavings,
+  VaultRow,
   Locale,
 } from '@/lib/data/fixture-repository'
 
@@ -42,7 +42,7 @@ export function StakedPositionsZone({
   uAssetBalances,
 }: {
   locale: Locale
-  cdpPositions: FixtureCdpPosition[]
+  cdpPositions: CdpPosition[]
   uAssetBalances: Record<string, number>
 }) {
   const copy = getCopy(locale).portfolio.positions
@@ -239,7 +239,7 @@ export function SavingsZone({
   uAssetBalances,
 }: {
   locale: Locale
-  usrSavings: FixtureUsrSavings[]
+  usrSavings: UsrSavings[]
   uAssetBalances: Record<string, number>
 }) {
   const copy = getCopy(locale).portfolio.savings
@@ -262,9 +262,9 @@ export function SavingsZone({
               <span className="pf-card__hero" data-numeric>
                 {formatAmount(vault.myAssets, locale)} {vault.uAssetSymbol}
               </span>
-              {vault.usdSample != null ? (
+              {vault.usdPrice != null ? (
                 <span className="pf-card__sub" data-numeric>
-                  ≈ ${formatMarketCap(vault.myAssets * vault.usdSample)}
+                  ≈ ${formatMarketCap(vault.myAssets * vault.usdPrice)}
                 </span>
               ) : null}
             </div>
@@ -307,7 +307,7 @@ export function SavingsZone({
   )
 }
 
-export function VaultZone({ locale, vaultRows }: { locale: Locale; vaultRows: FixtureVaultRow[] }) {
+export function VaultZone({ locale, vaultRows }: { locale: Locale; vaultRows: VaultRow[] }) {
   const copy = getCopy(locale).portfolio.vault
   if (vaultRows.length === 0) return null
 

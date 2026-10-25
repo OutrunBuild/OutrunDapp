@@ -1,7 +1,7 @@
 import {
-  getFixtureReferral,
-  getFixtureSnapshot,
-  type FixtureReferral,
+  getReferral,
+  getDisplayAccount,
+  type Referral,
   type Locale,
 } from '@/lib/data/fixture-repository'
 
@@ -37,13 +37,13 @@ import { RelativeTime } from './relative-time'
  */
 export async function ReferralPage({ locale, host }: { locale: Locale; host: string | null }) {
   const copy = getCopy(locale).referral
-  const referral = await getFixtureReferral()
+  const referral = await getReferral()
   if (!referral) return null
   // History tabs render only when at least one side has data; a lone dataset still shows both
   // tabs (the empty side keeps its title-only empty state)
   const hasHistory = referral.transactions.length > 0 || referral.friends.length > 0
   const now = Date.now()
-  const snapshot = await getFixtureSnapshot()
+  const displayAccount = await getDisplayAccount()
 
   // Link URL: fixed at SSR from the host header (no hydration flicker); /ref/<shortcode> is
   // locale-independent, shared by both languages
@@ -61,7 +61,7 @@ export async function ReferralPage({ locale, host }: { locale: Locale; host: str
   const splitAria = `${copy.split.lp} ${lpShare}% · ${copy.split.protocol} ${protocolShare}% · ${copy.split.you} ${youShare}%`
 
   return (
-    <OutrunShell locale={locale} current="referral" accountAddress={snapshot.sampleAccount.address}>
+    <OutrunShell locale={locale} current="referral" accountAddress={displayAccount.address}>
       <header className="page-intro">
         <div>
           <h1 className="ax-fault-title">
@@ -222,7 +222,7 @@ function TransactionsPanel({
   now,
 }: {
   locale: Locale
-  referral: FixtureReferral
+  referral: Referral
   now: number
 }) {
   const copy = getCopy(locale).referral
@@ -330,7 +330,7 @@ function TransactionsPanel({
   )
 }
 
-function FriendsPanel({ locale, referral }: { locale: Locale; referral: FixtureReferral }) {
+function FriendsPanel({ locale, referral }: { locale: Locale; referral: Referral }) {
   const copy = getCopy(locale).referral
   if (referral.friends.length === 0) {
     return (

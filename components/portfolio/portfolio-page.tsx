@@ -1,18 +1,21 @@
 import {
-  getFixtureCdpPositions,
-  getFixtureChains,
-  getFixturePsmPair,
-  getFixturePolPosition,
-  getFixturePortfolioActions,
-  getFixtureReserveBalances,
-  getFixturePortfolioSignals,
-  getFixtureSnapshot,
-  getFixtureUsrSavings,
-  getFixtureVaultRows,
-  getFixtureParticipationRows,
-  getFixtureWalletAssets,
+  getCdpPositions,
+  getChainVerses,
+  getChains,
+  getPsmPair,
+  getPolPosition,
+  getPortfolioActions,
+  getReserveBalances,
+  getPortfolioSignals,
+  getDisplayAccount,
+  getUsrSavings,
+  getVaultRows,
+  getParticipationRows,
+  getVerse,
+  getWalletAssets,
   type Locale,
 } from '@/lib/data/fixture-repository'
+import { executionChainId } from '@/lib/web3/chains'
 
 import { OutrunShell } from '../global/app-shell'
 import { getCopy } from '../global/copy'
@@ -42,27 +45,27 @@ import { ParticipationsZone } from './participations-zone'
  * the page head (ConnectWalletCta).
  */
 export async function PortfolioPage({ locale }: { locale: Locale }) {
-  const snapshot = await getFixtureSnapshot()
+  const displayAccount = await getDisplayAccount()
   const copy = getCopy(locale).portfolio
-  const signals = await getFixturePortfolioSignals()
-  const actions = await getFixturePortfolioActions()
-  const chains = (await getFixtureChains())
+  const signals = await getPortfolioSignals()
+  const actions = await getPortfolioActions()
+  const chains = (await getChains())
     .filter((chain) => chain.env === 'mainnet')
     .map((chain) => ({ chainId: chain.chainId, name: chain.name }))
-  const usrSavings = await getFixtureUsrSavings()
-  const walletAssets = await getFixtureWalletAssets()
+  const usrSavings = await getUsrSavings()
+  const walletAssets = await getWalletAssets()
   const assets: AssetRowView[] = []
   for (const asset of walletAssets) {
     assets.push({
       ...asset,
-      psm: asset.kind === 'uasset' ? await getFixturePsmPair(asset.symbol) : null,
+      psm: asset.kind === 'uasset' ? await getPsmPair(asset.symbol) : null,
     })
   }
   const uAssetBalances: Record<string, number> = {}
   for (const asset of assets) {
     if (asset.kind === 'uasset') uAssetBalances[asset.symbol] = asset.total
   }
-  const reserveBalances = await getFixtureReserveBalances()
+  const reserveBalances = await getReserveBalances()
 
   // Protection-window Exit context: protection rows with a POL position sample =
   // in-page dialog; rows missing from the map → the card's Exit falls back to jumping to the
@@ -70,8 +73,9 @@ export async function PortfolioPage({ locale }: { locale: Locale }) {
   const protectionExits: Record<string, ProtectionExitContext> = {}
   for (const action of actions) {
     if (action.kind !== 'protection' || !action.verse) continue
-    const verse = snapshot.verses.find((candidate) => candidate.id === action.verse?.id)
-    const pol = verse ? await getFixturePolPosition(verse.id) : null
+    // Point read by id (the actions list is small; no full verse pull)
+    const verse = await getVerse(action.verse.id)
+    const pol = verse ? await getPolPosition(verse.id) : null
     if (!verse || !pol) continue
     protectionExits[verse.id] = {
       verse,
@@ -79,7 +83,7 @@ export async function PortfolioPage({ locale }: { locale: Locale }) {
       price: verse.currentPrice,
       uAssetUsd:
         assets.find((asset) => asset.kind === 'uasset' && asset.symbol === verse.raiseAsset)
-          ?.usdSample ?? null,
+          ?.usdPrice ?? null,
     }
   }
 
@@ -87,24 +91,44 @@ export async function PortfolioPage({ locale }: { locale: Locale }) {
     { href: '#pf-actions', tone: 'warning', label: copy.signals.todo, value: signals.actionCount },
     { href: '#pf-participations', tone: 'success', label: copy.signals.claimable, value: signals.claimableVerses },
   ]
-  // 2026-10-15 (user ruling): zero-data sections render nothing — the signal strip and net-worth
+  // Zero-data sections render nothing — the signal strip and net-worth
   // hero collapse when all their values are zero (no zero-value placeholders)
   const hasSignals = signals.actionCount > 0 || signals.claimableVerses > 0
 
   // Net-worth hero: wallet + savings + vault ready, converted at fixture sample prices
   // (snapshot semantics)
   const walletUsd = assets.reduce(
-    (sum, asset) => sum + (asset.usdSample != null ? asset.total * asset.usdSample : 0),
+    (sum, asset) => sum + (asset.usdPrice != null ? asset.total * asset.usdPrice : 0),
     0,
   )
   const savingsUsd = usrSavings.reduce(
-    (sum, vault) => sum + (vault.usdSample != null ? vault.myAssets * vault.usdSample : 0),
+    (sum, vault) => sum + (vault.usdPrice != null ? vault.myAssets * vault.usdPrice : 0),
     0,
   )
-  const vaultRows = await getFixtureVaultRows()
+  const vaultRows = await getVaultRows()
   const vaultReadyUsd = vaultRows.reduce((sum, row) => sum + (row.readyUsd ?? 0), 0)
-  const cdpPositions = await getFixtureCdpPositions()
-  const participationRows = await getFixtureParticipationRows()
+  const cdpPositions = await getCdpPositions()
+  const participationRows = await getParticipationRows()
+  // Genesis-stage verse heads for the participation zone's client-side scan (onchain builds:
+  // the connected wallet's legs read through the wallet provider; getChainVerses is one row
+  // per verse per chain — dedupe by id, the scan fields are chain-invariant)
+  const participationCandidates = Array.from(
+    new Map(
+      (await getChainVerses())
+        .filter((verse) => verse.stage === 'genesis')
+        .map((verse) => [verse.id, verse] as const),
+    ).values(),
+  ).map((verse) => ({
+    id: verse.id,
+    symbol: verse.symbol,
+    name: verse.name,
+    stage: verse.stage,
+    raiseAsset: verse.raiseAsset,
+    endsAt: verse.endsAt,
+    unlockAt: verse.unlockTimeAt,
+    unlockedAt: verse.unlockedAt,
+    execChain: executionChainId(verse.governanceChain),
+  }))
   const hasZoneData =
     actions.length > 0 ||
     assets.length > 0 ||
@@ -138,7 +162,7 @@ export async function PortfolioPage({ locale }: { locale: Locale }) {
   ]
 
   return (
-    <OutrunShell locale={locale} accountAddress={snapshot.sampleAccount.address}>
+    <OutrunShell locale={locale} accountAddress={displayAccount.address}>
       <header className="page-intro">
         <div>
           <h1 className="ax-fault-title">
@@ -208,15 +232,18 @@ export async function PortfolioPage({ locale }: { locale: Locale }) {
 
       {/* The only action below the page head when there is no user participation (disappears
           along with the data cards once connected); connected with every zone empty, the
-          explore CTA takes that slot instead (2026-10-15 user ruling) */}
+          explore CTA takes that slot instead */}
       <ConnectWalletCta locale={locale} />
       {!hasZoneData ? <ExploreCta locale={locale} /> : null}
 
       {/* Mobile zone tab deck: ≤54rem sticky four-segment tabs, one zone shown at a
           time, zero change on desktop; hides along with the four sections when there is no user
-          participation — including when every zone's data is empty (2026-10-15 user ruling) */}
+          participation — including when every zone's data is empty */}
       <UserDataGate>
-        {hasZoneData ? (
+        {/* hasZoneData keeps the fixture semantics (ExploreCta's !hasZoneData face unchanged);
+            onchain builds carry no server account data, so the deck also renders for the
+            client-side participation scan — every zone self-hides when empty */}
+        {hasZoneData || participationCandidates.length > 0 ? (
         <PortfolioZoneTabs
         locale={locale}
         initialZone={actions.length > 0 ? 'action' : 'money'}
@@ -243,7 +270,9 @@ export async function PortfolioPage({ locale }: { locale: Locale }) {
               <VaultZone locale={locale} vaultRows={vaultRows} />
             </>
           ),
-          participations: <ParticipationsZone locale={locale} rows={participationRows} />,
+          participations: (
+            <ParticipationsZone locale={locale} rows={participationRows} candidates={participationCandidates} />
+          ),
         }}
         </PortfolioZoneTabs>
         ) : null}

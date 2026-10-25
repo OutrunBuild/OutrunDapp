@@ -3,27 +3,28 @@ import { getCopy } from '../global/copy'
 import { CreateForm } from './create-form'
 import { SourceRef } from '../global/signal-ui'
 import {
-  getFixtureChains,
-  getFixtureCreateConfig,
-  getFixtureOccupiedSymbols,
-  getFixtureSnapshot,
+  getChains,
+  getCreateConfig,
+  getOccupiedSymbols,
+  getAssets,
+  getDisplayAccount,
   type Locale,
 } from '@/lib/data/fixture-repository'
 
 export async function CreatePage({ locale }: { locale: Locale }) {
-  const snapshot = await getFixtureSnapshot()
+  const [displayAccount, assets] = await Promise.all([getDisplayAccount(), getAssets()])
   // The create page originates only on mainnet chains (3 mainnets of the six-chain whitelist —
   // same scope as the discovery page's chain filter)
-  const chains = (await getFixtureChains()).filter((chain) => chain.env === 'mainnet')
-  const config = await getFixtureCreateConfig()
-  const occupiedSymbols = await getFixtureOccupiedSymbols()
+  const chains = (await getChains()).filter((chain) => chain.env === 'mainnet')
+  const config = await getCreateConfig()
+  const occupiedSymbols = await getOccupiedSymbols()
   const copy = getCopy(locale)
 
   return (
     <OutrunShell
       locale={locale}
       current="create"
-      accountAddress={snapshot.sampleAccount.address}
+      accountAddress={displayAccount.address}
     >
       <header className="page-intro create-intro">
         <div>
@@ -45,11 +46,11 @@ export async function CreatePage({ locale }: { locale: Locale }) {
       </header>
       <CreateForm
         locale={locale}
-        assets={snapshot.assets}
+        assets={assets}
         chains={chains}
         /* Full six-chain list (incl. testnet stand-ins): the quote looks up the origin chain's
            native symbol by the wallet's connected chain */
-        walletChains={await getFixtureChains()}
+        walletChains={await getChains()}
         config={config}
         occupiedSymbols={occupiedSymbols}
       />

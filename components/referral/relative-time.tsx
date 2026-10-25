@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 
-import type { FixtureReferral, Locale } from '@/lib/data/fixture-repository'
+import type { Referral, Locale } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 
@@ -28,7 +28,7 @@ export function RelativeTime({
   locale,
   now,
 }: {
-  at: FixtureReferral['transactions'][number]['at']
+  at: Referral['transactions'][number]['at']
   locale: Locale
   now: number
 }) {

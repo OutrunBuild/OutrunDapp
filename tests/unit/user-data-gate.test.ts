@@ -87,7 +87,9 @@ import { ParticipationsZone } from '../../components/portfolio/participations-zo
 
 describe('zero-data portfolio zones unmount (2026-10-15 user ruling)', () => {
   it('participations zone renders nothing with zero rows', () => {
-    const html = renderToString(createElement(ParticipationsZone, { locale: 'en', rows: [] }));
+    const html = renderToString(
+      createElement(ParticipationsZone, { locale: 'en', rows: [], candidates: [] }),
+    );
     expect(html).not.toContain('pf-participations');
     expect(html).not.toContain('empty-state');
   });
