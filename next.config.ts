@@ -13,7 +13,7 @@ if (process.env.OUTRUN_DATA_SOURCE === 'onchain' && !process.env.NEXT_PUBLIC_OUT
 }
 const ONCHAIN_MODE = process.env.OUTRUN_DATA_SOURCE === 'onchain';
 const FIXTURE_MODULE = '@/lib/data/fixture-repository';
-const ONCHAIN_ADAPTER = './components/data/onchain-adapter';
+const ONCHAIN_ADAPTER = './lib/data/onchain-source';
 
 const nextConfig: NextConfig = {
   // e2e-only build directory: pnpm test:e2e builds+starts with NEXT_DIST_DIR=.next-e2e,

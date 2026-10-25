@@ -1,4 +1,4 @@
-// Direct assertions on re-derived getters: of the 24 getFixture* getters, this
+// Direct assertions on re-derived getters: of the 24 get* getters, this
 // covers the four heaviest aggregations, whose join/filter/sum derivations
 // would otherwise only be locked indirectly via e2e visual baselines.
 // Ledger values come from fixtures/data/{participations,referral,assets,chains}.json;
@@ -6,15 +6,15 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  getFixturePortfolioActions,
-  getFixtureReferral,
-  getFixtureSnapshot,
-  getFixtureVaultRows,
-  getFixtureParticipationRows,
+  getPortfolioActions,
+  getReferral,
+  getSnapshot,
+  getVaultRows,
+  getParticipationRows,
 } from '../../lib/data/fixture-repository';
 
-describe('getFixtureVaultRows: yield inventory (staking x verse join)', () => {
-  const rows = getFixtureVaultRows();
+describe('getVaultRows: yield inventory (staking x verse join)', () => {
+  const rows = getVaultRows();
 
   it('lists only held positions (myShares>0) in ascending verseId order', () => {
     expect(rows.length).toBeGreaterThan(0);
@@ -24,7 +24,7 @@ describe('getFixtureVaultRows: yield inventory (staking x verse join)', () => {
   });
 
   it('shareSymbol = s+symbol; readyUsd = readyTotal x currentPrice (null when no sample price)', () => {
-    const verses = new Map(getFixtureSnapshot().verses.map((verse) => [verse.id, verse]));
+    const verses = new Map(getSnapshot().verses.map((verse) => [verse.id, verse]));
     for (const row of rows) {
       expect(row.shareSymbol).toBe(`s${row.verse.symbol}`);
       const price = verses.get(row.verse.id)?.currentPrice ?? null;
@@ -37,8 +37,8 @@ describe('getFixtureVaultRows: yield inventory (staking x verse join)', () => {
   });
 });
 
-describe('getFixturePortfolioActions: todo aggregation', () => {
-  const actions = getFixturePortfolioActions();
+describe('getPortfolioActions: todo aggregation', () => {
+  const actions = getPortfolioActions();
 
   it('sorting: deadline-bounded actions first ascending by remaining time, open-ended last', () => {
     expect(actions.length).toBeGreaterThan(0);
@@ -71,7 +71,7 @@ describe('getFixturePortfolioActions: todo aggregation', () => {
   });
 
   it('vault-ready aggregate card: count = verses with matured redemptions, amountUsd = readyUsd sum', () => {
-    const ready = getFixtureVaultRows().filter((row) => row.readyTotal > 0);
+    const ready = getVaultRows().filter((row) => row.readyTotal > 0);
     expect(ready.length).toBeGreaterThan(0);
     const card = actions.find((action) => action.kind === 'vault-ready');
     expect(card?.count).toBe(ready.length);
@@ -86,8 +86,8 @@ describe('getFixturePortfolioActions: todo aggregation', () => {
   });
 });
 
-describe('getFixtureParticipationRows: participation rows (grouped by lifecycle)', () => {
-  const rows = getFixtureParticipationRows();
+describe('getParticipationRows: participation rows (grouped by lifecycle)', () => {
+  const rows = getParticipationRows();
 
   it('group order genesis -> locked -> unlocked; refunds handled by the todo aggregation, never in rows', () => {
     expect(rows.length).toBeGreaterThan(0);
@@ -116,8 +116,8 @@ describe('getFixtureParticipationRows: participation rows (grouped by lifecycle)
   });
 });
 
-describe('getFixtureReferral: rebate view (referral.json x assets/chains metadata join)', () => {
-  const view = getFixtureReferral();
+describe('getReferral: rebate view (referral.json x assets/chains metadata join)', () => {
+  const view = getReferral();
 
   it('header fields: code / rate conversion / friendsCount', () => {
     expect(view?.referralCode).toBe('R7K4M9');
@@ -125,7 +125,7 @@ describe('getFixtureReferral: rebate view (referral.json x assets/chains metadat
     expect(view?.friendsCount).toBe(28);
   });
 
-  it('earned first row join: UUSD on Ethereum(1), usd = amount x usdSample(1)', () => {
+  it('earned first row join: UUSD on Ethereum(1), usd = amount x usdPrice(1)', () => {
     expect(view?.earned[0]).toMatchObject({
       assetId: 'asset-002',
       symbol: 'UUSD',
@@ -136,7 +136,7 @@ describe('getFixtureReferral: rebate view (referral.json x assets/chains metadat
     });
   });
 
-  it('totalEarnedUsd / pendingUsd = sum of amount x usdSample (across chains and tokens)', () => {
+  it('totalEarnedUsd / pendingUsd = sum of amount x usdPrice (across chains and tokens)', () => {
     // earned: 1062.30×1 + 0.0562×3050.42 + 0.0189×612.8; pending: 34.56×1 + 0.0142×3050.42 + 0.24×612.8
     expect(view?.totalEarnedUsd).toBeCloseTo(1245.315524, 6);
     expect(view?.pendingUsd).toBeCloseTo(224.947964, 6);

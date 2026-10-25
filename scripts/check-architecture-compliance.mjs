@@ -4,7 +4,10 @@
 // Directory layout and the RSC/Client boundary are advisory extension points (not scanned here);
 // fixture isolation is enforced by scripts/check-fixture-boundary.mjs. Deferred advisories are
 // printed so missing app code is not misreported as a pass.
-import { readFileSync, existsSync } from 'node:fs';
+// 4) click-path budget (AGENTS.md 性能纪律): every write dialog must resolve its verse session
+// through the shared prefetch cache; importing the raw resolver in a component is where the
+// per-click verse-tuple read came from, so it is rejected here instead of found by hand later.
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { exit } from 'node:process';
 
 const problems = [];
@@ -137,6 +140,30 @@ if (!existsSync('app')) {
 deferred.push(
   'fixture data source runtime proof: enforced by the check-fixture-boundary --source/--graph/--bundle layers',
 );
+
+// 4) click-path budget: components resolve write sessions only through write-session.ts
+if (existsSync('components')) {
+  // the definition layer (execution-reads) and the cache that wraps it (write-session)
+  const ALLOWED = new Set([
+    'components/global/execution-reads.ts',
+    'components/global/write-session.ts',
+  ]);
+  const walk = (dir) =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+      const path = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) return walk(path);
+      return /\.tsx?$/.test(entry.name) ? [path] : [];
+    });
+  for (const file of walk('components')) {
+    if (ALLOWED.has(file)) continue;
+    const source = readFileSync(file, 'utf8');
+    if (source.includes('resolveVerseSession')) {
+      problems.push(
+        `${file}: resolves a verse session directly — use getVerseSession/prefetchVerseSession from components/global/write-session.ts (click-path budget)`,
+      );
+    }
+  }
+}
 
 console.log('architecture compliance ' + (problems.length ? 'FAIL' : 'OK'));
 for (const p of problems) console.error(' -', p);

@@ -312,6 +312,17 @@ describe('R-04 verse entitlements and runtime', () => {
     expect(claimable.account).toBe(USER);
   });
 
+  it('getAccountGenesisFunds sums the normal leg and the on-chain leveraged conversion', async () => {
+    const { repo, port } = setup();
+    const p = port(97);
+    p.enqueue('userGenesisData', [100n, false, false]);
+    p.enqueue('getUserLeveragedDebt', 40n);
+    const r = await repo.getAccountGenesisFunds(97, 21n, USER);
+    expect(r).toEqual({ status: 'ok', data: 140n });
+    const genesis = p.received.find((s) => s.functionName === 'userGenesisData')!;
+    expect(genesis.args).toEqual([21n, USER]);
+  });
+
   it('maps the launcher stage enum and capacity state', async () => {
     const { repo, port } = setup();
     const p = port(97);

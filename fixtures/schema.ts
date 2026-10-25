@@ -95,9 +95,10 @@ export const assetSchema = recordSchema.extend({
   decimals: z.number().int().min(0).max(18),
   anchorNote: z.string().optional(), // uAsset anchor qualifier (glossary A)
   pairedUAssetId: z.string().optional(), // credit-only: paired uAsset id (one-to-one, must not be cross-used; credit maps 1:1 to its uAsset via creditOf(uAsset))
-  usdSample: z.number().positive().optional(), // uAsset USD sample price (fixture dummy data; production defers to oracle/on-chain reads)
+  usdPrice: z.number().positive().optional(), // uAsset USD reference price (test data; production defers to oracle/on-chain reads)
   anchorValue: z.number().positive().optional(), // sy/reserve to anchor-asset conversion sample rate at real-time value (1 sy ≈ N anchor assets -> N uAsset; samples: sy wstETH≈1.05, sy stETH=1, reserve ETH=1; sample missing=components fall back to face value 1, no slot shown)
   address: fixtureAddressSchema.optional(),
+  sp: z.string().regex(/^0x[0-9a-fA-F]{40}$/).optional(), // stake-manager address driving the stake-funded genesis leg (FundInput.sp); only the on-chain registry carries it, fixture snapshots have no SP
 });
 
 /** verses.json (stage enum = user-visible face of the on-chain verse state machine) */

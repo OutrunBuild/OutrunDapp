@@ -77,6 +77,7 @@ const STATIC_SOURCES = [
       'Verse',
       'VerseStageChange',
       'VerseParticipant',
+      'ProtocolStats',
       'GenesisParticipation',
       'PreorderParticipation',
       'ParticipationRefund',
@@ -99,6 +100,7 @@ const STATIC_SOURCES = [
     [
       'Verse',
       'VerseParticipant',
+      'ProtocolStats',
       'LeveragedGenesisParticipation',
       'ParticipationRefund',
       'ParticipationClaim',

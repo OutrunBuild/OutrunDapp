@@ -19,6 +19,7 @@ import {
   ParticipationClaim,
   ParticipationRefund,
   PreorderParticipation,
+  ProtocolStats,
   Verse,
   VerseParticipant,
   VerseStageChange,
@@ -33,6 +34,27 @@ import { chainId, chainIdInt, scopedId, stageName } from './utils';
 
 function zero(): BigInt {
   return BigInt.fromI32(0);
+}
+
+/** Chain-wide totals row (see ProtocolStats in schema.graphql): one row per chain, updated by
+ * every handler that changes a counted quantity. Home metrics read this row alone. */
+function stats(): ProtocolStats {
+  const id = chainId() + '-protocol';
+  let row = ProtocolStats.load(id);
+  if (row === null) {
+    row = new ProtocolStats(id);
+    row.chainId = chainIdInt();
+    row.verseCount = 0;
+    row.deployedVerseCount = 0;
+    row.participantCount = 0;
+    row.participationTotal = zero();
+    row.save();
+  }
+  return row;
+}
+
+function countDeployed(stage: string): boolean {
+  return stage == 'locked' || stage == 'unlocked';
 }
 
 /** Add participation amounts to the verse's running totals and register the distinct
@@ -57,7 +79,15 @@ export function accumulateFunds(
     marker.account = account;
     marker.save();
     verse.participantCount = verse.participantCount + 1;
+    const aggregate = stats();
+    aggregate.participantCount = aggregate.participantCount + 1;
+    aggregate.save();
   }
+  const aggregate = stats();
+  aggregate.participationTotal = aggregate.participationTotal.plus(
+    genesisAmount.plus(leveragedAmount).plus(preorderAmount),
+  );
+  aggregate.save();
   verse.save();
 }
 
@@ -90,6 +120,11 @@ export function handleRegisterMemeverse(event: RegisterMemeverse): void {
   verse.participantCount = 0;
   verse.save();
 
+  const aggregate = stats();
+  aggregate.verseCount = aggregate.verseCount + 1;
+  if (countDeployed(verse.stage)) aggregate.deployedVerseCount = aggregate.deployedVerseCount + 1;
+  aggregate.save();
+
   MemecoinTemplate.create(event.params.verse.memecoin);
   MemecoinYieldVaultTemplate.create(event.params.verse.yieldVault);
   MemecoinDaoGovernorTemplate.create(event.params.verse.governor);
@@ -98,9 +133,16 @@ export function handleRegisterMemeverse(event: RegisterMemeverse): void {
 
 export function handleChangeStage(event: ChangeStage): void {
   const verse = Verse.load(chainId() + '-' + event.params.verseId.toString());
+  const nextStage = stageName(event.params.currentStage);
   if (verse !== null) {
-    verse.stage = stageName(event.params.currentStage);
+    const wasDeployed = countDeployed(verse.stage);
+    verse.stage = nextStage;
     verse.save();
+    if (!wasDeployed && countDeployed(nextStage)) {
+      const aggregate = stats();
+      aggregate.deployedVerseCount = aggregate.deployedVerseCount + 1;
+      aggregate.save();
+    }
   }
   const change = new VerseStageChange(
     scopedId(event.params.verseId.toString() + '-stage-' + event.block.number.toString(), event),

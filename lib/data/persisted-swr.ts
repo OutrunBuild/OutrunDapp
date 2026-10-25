@@ -50,3 +50,19 @@ export function writeSeed(namespace: string, key: string, at: number, value: unk
     // persistence is best-effort: a failed seed write never affects serving
   }
 }
+
+/** Drop one seed so a cold process cannot resurrect a value the in-memory layer just
+ *  invalidated (post-write refresh). Same best-effort contract as writeSeed. */
+export function deleteSeed(namespace: string, key: string): void {
+  try {
+    const file = join(DIR, `${namespace}.json`);
+    const parsed = JSON.parse(readFileSync(file, 'utf8'), reviver) as Record<string, unknown>;
+    if (!(key in parsed)) return;
+    delete parsed[key];
+    const tmp = `${file}.${process.pid}.tmp`;
+    writeFileSync(tmp, JSON.stringify(parsed, replacer));
+    renameSync(tmp, file);
+  } catch {
+    // a missing/corrupt file is already "no seed"
+  }
+}

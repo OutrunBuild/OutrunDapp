@@ -17,6 +17,7 @@ const graphMock = vi.hoisted(() => ({
   getVerseSummaries: vi.fn(),
   getVersePage: vi.fn(),
   getRaisedSums: vi.fn(),
+  getVerseDetail: vi.fn(),
 }));
 vi.mock('@/lib/data/graph/graph-repository', () => ({
   getGraphRepository: () => graphMock,
@@ -24,7 +25,7 @@ vi.mock('@/lib/data/graph/graph-repository', () => ({
 
 describe('onchain adapter seam', () => {
   it('imports fixture-repository types only — never runtime values', () => {
-    const src = readFileSync(join(repo, 'components/data/onchain-adapter.ts'), 'utf8');
+    const src = readFileSync(join(repo, 'lib/data/onchain-source.ts'), 'utf8');
     const imports = [
       ...src.matchAll(/import\s+(type\s+)?\{[^{}]+\}\s+from\s+['"][^'"]*fixture-repository['"]/g),
     ];
@@ -35,33 +36,33 @@ describe('onchain adapter seam', () => {
   });
 
   it('re-exports the full runtime surface consumed by components', async () => {
-    const adapter = await import('../../../components/data/onchain-adapter');
+    const adapter = await import('../../../lib/data/onchain-source');
     const surface = [
       'PROTECTION_WINDOW_MS',
-      'getFixtureSnapshot',
-      'getFixtureVerse',
-      'getFixtureChains',
-      'getFixtureCreateConfig',
-      'getFixtureOccupiedSymbols',
-      'getFixtureParticipationOptions',
-      'getFixtureFaucet',
-      'getFixtureReferral',
-      'getFixtureVerseTrade',
-      'getFixtureStaking',
-      'getFixturePolPosition',
-      'getFixtureGovernanceState',
-      'getFixtureAssetUsdSample',
-      'getFixtureWalletAssets',
-      'getFixtureReserveBalances',
-      'getFixtureWalletBalances',
-      'getFixturePsmPair',
-      'getFixtureCdpPositions',
-      'getFixtureUsrSavings',
-      'getFixtureVaultRows',
-      'getFixturePortfolioActions',
-      'getFixtureParticipationRows',
-      'getFixturePortfolioSignals',
-      'getFixtureParticipations',
+      'getSnapshot',
+      'getVerse',
+      'getChains',
+      'getCreateConfig',
+      'getOccupiedSymbols',
+      'getParticipationOptions',
+      'getFaucet',
+      'getReferral',
+      'getVerseTrade',
+      'getStaking',
+      'getPolPosition',
+      'getGovernanceState',
+      'getAssetUsdSample',
+      'getWalletAssets',
+      'getReserveBalances',
+      'getWalletBalances',
+      'getPsmPair',
+      'getCdpPositions',
+      'getUsrSavings',
+      'getVaultRows',
+      'getPortfolioActions',
+      'getParticipationRows',
+      'getPortfolioSignals',
+      'getParticipations',
     ];
     for (const name of surface) {
       expect(adapter, `adapter export ${name}`).toHaveProperty(name);
@@ -71,23 +72,23 @@ describe('onchain adapter seam', () => {
 
   it('PROTECTION_WINDOW_MS equals the fixture repository constant', async () => {
     const fixtures = await import('../../../lib/data/fixture-repository');
-    const adapter = await import('../../../components/data/onchain-adapter');
+    const adapter = await import('../../../lib/data/onchain-source');
     expect(adapter.PROTECTION_WINDOW_MS).toBe(fixtures.PROTECTION_WINDOW_MS);
   });
 
   it('exposes the chain-scoped row getters alongside the snapshot surface', async () => {
-    const adapter = await import('../../../components/data/onchain-adapter');
-    expect(adapter).toHaveProperty('getFixtureChainVerses');
-    expect(adapter).toHaveProperty('getFixtureVerseChainIds');
-    expect(adapter).toHaveProperty('getFixtureChainVersePage');
+    const adapter = await import('../../../lib/data/onchain-source');
+    expect(adapter).toHaveProperty('getChainVerses');
+    expect(adapter).toHaveProperty('getVerseChainIds');
+    expect(adapter).toHaveProperty('getChainVersePage');
   });
 });
 
-// Chain-scoped rows (getFixtureChainVerses): one row per (verse, registered chain), each row
+// Chain-scoped rows (getChainVerses): one row per (verse, registered chain), each row
 // carrying that chain's OWN local genesis state — raised/progress/participants are never summed
 // across chains (each chain settles its own genesis independently). Omni totals ride the
 // sidecar fields for the fact row only.
-describe('getFixtureChainVerses chain-scoped rows', () => {
+describe('getChainVerses chain-scoped rows', () => {
   const E = 10n ** 18n;
   const okList = (data: unknown[]) => ({ status: 'ok' as const, data });
   const unavailable = { status: 'unavailable' as const, reason: 'rpc-error', detail: 'test' };
@@ -131,13 +132,13 @@ describe('getFixtureChainVerses chain-scoped rows', () => {
   beforeEach(() => graphMock.getVerseSummaries.mockReset());
 
   it('emits one row per chain with local raised, omni sidecars summed', async () => {
-    const adapter = await import('../../../components/data/onchain-adapter');
+    const adapter = await import('../../../lib/data/onchain-source');
     perChain({
       421614: [view(421614, 123456789n, { genesis: 2n * E, leveraged: 1n * E, preorder: 0n }, 3)],
       84532: [view(84532, 123456789n, { genesis: 4n * E, leveraged: 0n, preorder: 5n * E }, 5)],
       97: [view(97, 123456789n, { genesis: 1n * E, leveraged: 0n, preorder: 2n * E }, 2)],
     });
-    const rows = await adapter.getFixtureChainVerses();
+    const rows = await adapter.getChainVerses();
     expect(graphMock.getVerseSummaries).toHaveBeenCalledTimes(3);
     expect(rows).toHaveLength(3);
     const byChain = new Map(rows.map((row) => [row.chainId, row]));
@@ -158,7 +159,7 @@ describe('getFixtureChainVerses chain-scoped rows', () => {
   });
 
   it('snapshot keeps one canonical row per verse (governance chain); chain ids list the indexed chains', async () => {
-    const adapter = await import('../../../components/data/onchain-adapter');
+    const adapter = await import('../../../lib/data/onchain-source');
     perChain({
       421614: [view(421614, 1n, { genesis: 1n * E, leveraged: 0n, preorder: 0n }, 1)],
       84532: null,
@@ -167,18 +168,18 @@ describe('getFixtureChainVerses chain-scoped rows', () => {
         view(97, 2n, { genesis: 0n, leveraged: 0n, preorder: 2n * E }, 4),
       ],
     });
-    const snapshot = await adapter.getFixtureSnapshot();
+    const snapshot = await adapter.getSnapshot();
     expect(snapshot.verses.map((verse) => verse.id)).toEqual(['1', '2']);
     // verse 1: governance-chain (97) canonical row — local 97 state, not the 1+3 sum
     expect(snapshot.verses[0]!.chainId).toBe(97);
     expect(snapshot.verses[0]!.normalRaised).toBe(3);
     expect(snapshot.verses[0]!.participantCount).toBe(1);
     expect(snapshot.verses[1]!.preorderRaised).toBe(2);
-    expect(await adapter.getFixtureVerseChainIds()).toEqual([97, 421614]);
+    expect(await adapter.getVerseChainIds()).toEqual([97, 421614]);
   });
 });
 
-describe('getFixtureChainVersePage server page', () => {
+describe('getChainVersePage server page', () => {
   const E = 10n ** 18n;
   const ok = (data: unknown) => ({ status: 'ok' as const, data });
 
@@ -213,31 +214,111 @@ describe('getFixtureChainVersePage server page', () => {
   });
 
   it('serves one chain window with local raised and page-scoped omni sidecar', async () => {
-    const adapter = await import('../../../components/data/onchain-adapter');
+    const adapter = await import('../../../lib/data/onchain-source');
     graphMock.getVersePage.mockResolvedValue(
       ok({ chainId: 97, verses: [summary(97, 7n, 3n * E, 2)], hasMore: true }),
     );
     graphMock.getRaisedSums.mockImplementation((chainId: number) =>
       Promise.resolve(
         chainId === 421614
-          ? ok(new Map([['7', { genesis: 1n * E, leveraged: 0n, preorder: 0n }]]))
-          : ok(new Map()),
+          ? ok({
+              sums: new Map([['7', { genesis: 1n * E, leveraged: 0n, preorder: 0n }]]),
+              present: new Set(['7']),
+            })
+          : ok({ sums: new Map(), present: new Set() }),
       ),
     );
-    const page = await adapter.getFixtureChainVersePage(97, { stage: 'genesis' }, 24, 0);
+    const page = await adapter.getChainVersePage(97, { stage: 'genesis' }, 24, 0);
     expect(graphMock.getVersePage).toHaveBeenCalledWith(97, { stage: 'genesis' }, 24, 0);
     expect(page.rows).toHaveLength(1);
     expect(page.rows[0]!.chainId).toBe(97);
     expect(page.rows[0]!.normalRaised).toBe(3);
     expect(page.rows[0]!.omniRaised).toBe(4);
+    // Landed set = the selected chain plus the sibling whose subgraph returned the verse row
+    expect(page.rows[0]!.deployedChainIds).toEqual([421614, 97]);
     expect(page.hasMore).toBe(true);
     expect(page.chainIds).toEqual([421614, 84532, 97]);
   });
 
   it('chain-0 probe returns the static option set with zero reads', async () => {
-    const adapter = await import('../../../components/data/onchain-adapter');
-    const probe = await adapter.getFixtureChainVersePage(0, {}, 1, 0);
+    const adapter = await import('../../../lib/data/onchain-source');
+    const probe = await adapter.getChainVersePage(0, {}, 1, 0);
     expect(probe).toEqual({ rows: [], total: 0, hasMore: false, chainIds: [421614, 84532, 97] });
     expect(graphMock.getVersePage).not.toHaveBeenCalled();
+  });
+});
+
+describe('getVerse wallet-chain rows + omni participant count', () => {
+  const E = 10n ** 18n;
+
+  function detailView(
+    chainId: number,
+    raised: { genesis: bigint; leveraged: bigint; preorder: bigint },
+    participantCount: number,
+  ) {
+    return {
+      chainId,
+      verseId: 77n,
+      name: 'Omnichain Verse',
+      symbol: 'OCV',
+      stage: 'genesis' as const,
+      flashGenesis: false,
+      uAsset: '0x0000000000000000000000000000000000000uasset',
+      memecoin: null,
+      pol: null,
+      yieldVault: null,
+      governor: null,
+      incentivizer: null,
+      endTime: 1800000000n,
+      unlockTime: 1800000000n + 86_400n,
+      omnichainIds: [97n, 84532n, 421614n],
+      communities: [],
+      registeredAt: 1790000000n,
+      raised,
+      participantCount,
+    };
+  }
+
+  beforeEach(() => {
+    graphMock.getVerseDetail.mockReset();
+    // Point reads: 97 and 84532 landed the verse, 421614 did not. The RPC overlay fails
+    // (unstubbed env) → the verse returns before the financial overlay, exercising the map.
+    graphMock.getVerseDetail.mockImplementation((chainId: number, id: bigint) =>
+      Promise.resolve({
+        status: 'ok' as const,
+        data:
+          String(id) === '77' && chainId !== 421614
+            ? chainId === 97
+              ? detailView(97, { genesis: 1n * E, leveraged: 0n, preorder: 0n }, 2)
+              : detailView(84532, { genesis: 4n * E, leveraged: 2n * E, preorder: 0n }, 5)
+            : null,
+      }),
+    );
+  });
+
+  it('carries a per-chain row for every landed chain (wallet-chain displays switch on it)', async () => {
+    const adapter = await import('../../../lib/data/onchain-source');
+    const verse = await adapter.getVerse('77');
+    expect(verse).not.toBeNull();
+    expect(verse!.chainAggregates!['97']).toEqual({
+      normalRaised: 1,
+      leverageInterest: 0,
+      preorderRaised: 0,
+      participantCount: 2,
+    });
+    expect(verse!.chainAggregates!['84532']).toEqual({
+      normalRaised: 4,
+      leverageInterest: 2,
+      preorderRaised: 0,
+      participantCount: 5,
+    });
+    expect(verse!.chainAggregates!['421614']).toBeUndefined();
+    expect(verse!.deployedChainIds).toEqual([97, 84532]);
+  });
+
+  it('sums the per-chain distinct participant counts across the landed set', async () => {
+    const adapter = await import('../../../lib/data/onchain-source');
+    const verse = await adapter.getVerse('77');
+    expect(verse!.omniParticipantCount).toBe(7);
   });
 });

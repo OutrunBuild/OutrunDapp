@@ -19,6 +19,7 @@ dataSources:
       - Verse
       - VerseStageChange
       - VerseParticipant
+      - ProtocolStats
       - GenesisParticipation
       - PreorderParticipation
       - ParticipationRefund
@@ -62,6 +63,7 @@ dataSources:
       entities:
       - Verse
       - VerseParticipant
+      - ProtocolStats
       - LeveragedGenesisParticipation
       - ParticipationRefund
       - ParticipationClaim

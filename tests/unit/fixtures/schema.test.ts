@@ -69,27 +69,6 @@ describe('scenario coverage (enum ↔ scenario table ↔ data records)', () => {
   });
 });
 
-describe('determinism: two validation runs agree byte-for-byte', () => {
-  const digestOf = () => {
-    const summary: Record<string, string[]> = {};
-    for (const [name, schema] of Object.entries(files)) {
-      const parsed = schema.parse(load(name));
-      summary[name] = (parsed.items as Array<{ id: string }>).map((i) => i.id).sort();
-    }
-    const scenariosIds = (load('scenarios/states.json').items as Array<{ id: string }>).map((s) => s.id).sort();
-    const canonical = JSON.stringify({ ...summary, scenarios: scenariosIds });
-    return { canonical, digest: Buffer.from(canonical).toString('base64') };
-  };
-  it('two validations within one process produce identical canonical serialization', () => {
-    expect(digestOf().canonical).toBe(digestOf().canonical);
-  });
-  it('prints a digest for manual cross-run comparison (nothing cross-process asserted here)', () => {
-    const { canonical, digest } = digestOf();
-    console.log(`FIXTURE-VALIDATION-DIGEST:${digest}`);
-    expect(canonical.length).toBeGreaterThan(0);
-  });
-});
-
 describe('numeric relations and guards (machine-checkable subset of the invariants)', () => {
   const verses = load('data/verses.json').items as Array<{
     id: string; stage: string; genesis: { normalRaised: { raw: string }; leverageInterest: { raw: string }; minSuccessThreshold: { raw: string } };

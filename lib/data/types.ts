@@ -1,9 +1,9 @@
-// Shared base type source for all three layers: Locale/VerseStage/FixtureChain are site-wide
+// Shared base type source for all three layers: Locale/VerseStage/ChainInfo are site-wide
 // shared vocabulary, not fixture sample data. This module must keep zero data-layer dependencies:
 // importing fixtures/** or the fixture repository is forbidden (governed by the
 // direct-fixture-import / illegal-bridge-consumer rules of check-fixture-boundary); any other
 // layer may import it.
-export type FixtureChain = {
+export type ChainInfo = {
   chainId: number;
   name: string;
   env: 'mainnet' | 'testnet';
@@ -18,3 +18,6 @@ export type VerseStage = 'genesis' | 'locked' | 'unlocked' | 'refund';
 // client components import it here; fixture-repository and the onchain adapter re-export from
 // this single source.
 export const PROTECTION_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+// Backward-compatible alias (fixture-era name)
+export type FixtureChain = ChainInfo;

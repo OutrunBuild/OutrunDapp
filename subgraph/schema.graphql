@@ -59,6 +59,19 @@ type VerseParticipant @entity(immutable: true) {
   account: Bytes!
 }
 
+# Chain-wide running totals (one row per chain): home metrics read this single row instead of
+# aggregating every verse/participation at request time. participantCount counts distinct
+# participant addresses on this chain (cross-chain de-duplication needs an identity the
+# contracts do not carry, so the adapter sums the per-chain figures).
+type ProtocolStats @entity(immutable: false) {
+  id: ID! # {chainId}-protocol
+  chainId: Int!
+  verseCount: Int!
+  deployedVerseCount: Int!
+  participantCount: Int!
+  participationTotal: BigInt!
+}
+
 type SymbolRegistration @entity(immutable: true) {
   id: ID! # {chainId}-{uniqueId} (registration hub chain only)
   chainId: Int!

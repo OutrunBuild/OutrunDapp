@@ -24,10 +24,12 @@ import {
   hookAbi,
   hookLensAbi,
   launcherAbi,
+  outrunRouterAbi,
   polendAbi,
   psmAbi,
   registrationCenterAbi,
   stakingPositionAbi,
+  syReadAbi,
   usrVaultAbi,
 } from '../web3/abis';
 
@@ -192,6 +194,29 @@ export type CdpPositionView = {
   lastRate: bigint;
 };
 
+/** Staking-path pay asset (R-04): one SP depositable token with its live anchor preview */
+export type StakeTokenView = {
+  address: string;
+  symbol: string;
+  decimals: number;
+  /** uAsset minted per 1 display token (router.previewStakeFromToken at one unit); null = preview
+   * unavailable, callers fall back to face value */
+  anchorValue: number | null;
+  /** Same preview in exact base units (uAsset base per ONE whole token) — the panel's bigint
+   * conversion uses this; null when the preview read failed */
+  previewBase: bigint | null;
+};
+
+/** One OutrunStakingPosition instance minting the requested family uAsset */
+export type StakeSourceView = {
+  sp: string;
+  sy: string;
+  /** deployments instance key (OutrunStakingPosition.<name>) — the yield-source brand has no chain source */
+  name: string;
+  uAsset: string;
+  tokens: StakeTokenView[];
+};
+
 export type SwapQuotePool = {
   currency0: string;
   currency1: string;
@@ -239,6 +264,14 @@ export interface OnchainRepository {
     verseId: bigint,
     account: string,
   ): Promise<DataResult<GenesisEntitlementsView>>;
+  /** R-04 verse: account's equivalent genesis funds on one chain (normal + leveraged debt
+   *  principal) in uAsset base units — the per-chain leg of the all-chain 「您的参与」 sum.
+   *  Mirrors the client-side readGenesisParticipation (launcher + POLend multicall). */
+  getAccountGenesisFunds(
+    chainId: number,
+    verseId: bigint,
+    account: string,
+  ): Promise<DataResult<bigint>>;
   /** R-04 verse: stage/pause/capacity runtime state */
   getVerseRuntime(chainId: number, verseId: bigint): Promise<DataResult<VerseRuntimeView>>;
   /** R-04 verse: genesis financial params (preorder ratio / min success / leverage rate+cap) */
@@ -260,6 +293,8 @@ export interface OnchainRepository {
     stakingPosition: string,
     positionId: bigint,
   ): Promise<DataResult<CdpPositionView>>;
+  /** R-04 stake route: SP instances bound to the family uAsset + their SY depositable tokens */
+  getStakeSources(chainId: number, uAsset: string): Promise<DataResult<StakeSourceView[]>>;
   /** R-04 trade desk quote via MemeverseUniswapHookLens (pool key comes from verse metadata) */
   getSwapQuote(
     chainId: number,
@@ -594,6 +629,33 @@ class RpcOnchainRepository implements OnchainRepository {
     });
   }
 
+  async getAccountGenesisFunds(
+    chainId: number,
+    verseId: bigint,
+    account: string,
+  ): Promise<DataResult<bigint>> {
+    const c = this.chain(chainId);
+    if (c.status !== 'ok') return c;
+    const launcher = this.requireContract(c.data.config, 'MemeverseLauncher');
+    if (launcher.status !== 'ok') return launcher;
+    const polend = this.requireContract(c.data.config, 'POLend');
+    if (polend.status !== 'ok') return polend;
+    const { port } = c.data;
+    const raw = await this.guard(() =>
+      port.multicall([
+        spec(launcher.data, launcherAbi, 'userGenesisData', [verseId, account]),
+        spec(polend.data, polendAbi, 'getUserLeveragedDebt', [verseId, account]),
+      ]),
+    );
+    if (raw.status !== 'ok') return raw;
+    const [genesis, leveragedDebt] = raw.data as [unknown, unknown];
+    // userGenesisData is a named tuple: viem may decode positionally or by field names
+    const genesisFund = Array.isArray(genesis)
+      ? BigInt(String(genesis[0]))
+      : BigInt(String((genesis as { genesisFund?: unknown }).genesisFund ?? 0n));
+    return ok(genesisFund + BigInt(String(leveragedDebt)));
+  }
+
   async getVerseRuntime(chainId: number, verseId: bigint): Promise<DataResult<VerseRuntimeView>> {
     const c = this.chain(chainId);
     if (c.status !== 'ok') return c;
@@ -751,6 +813,71 @@ class RpcOnchainRepository implements OnchainRepository {
       bigint,
     ];
     return ok({ positionId, owner, syStaked, principalDebt, accruedInterest, lastRate });
+  }
+
+  async getStakeSources(chainId: number, uAsset: string): Promise<DataResult<StakeSourceView[]>> {
+    const c = this.chain(chainId);
+    if (c.status !== 'ok') return c;
+    const router = this.requireContract(c.data.config, 'OutrunRouter');
+    if (router.status !== 'ok') return router;
+    const contracts =
+      c.data.config.contracts.status === 'deployed' ? c.data.config.contracts.addresses : {};
+    const entries = Object.entries(contracts).filter(([key]) =>
+      key.startsWith('OutrunStakingPosition.'),
+    ) as [string, string][];
+    if (entries.length === 0) return ok([]);
+    const ZERO = '0x' + '0'.repeat(40);
+    return this.guard(async () => {
+      const port = c.data.port;
+      // Family binding per SP: uAsset() must equal the requested family uAsset (asset-flows S2:
+      // registry is chain-read, never hardcoded — a UETH verse never sees USD sources)
+      const bound = await Promise.all(
+        entries.map(async ([name, sp]) => {
+          const meta = await port.multicall([
+            spec(sp, stakingPositionAbi, 'uAsset'),
+            spec(sp, stakingPositionAbi, 'SY'),
+          ]);
+          return { name, sp, uAsset: meta[0] as string, sy: meta[1] as string };
+        }),
+      );
+      const sources: StakeSourceView[] = [];
+      for (const source of bound.filter(
+        (row) => row.uAsset.toLowerCase() === uAsset.toLowerCase(),
+      )) {
+        const tokensIn = (
+          (await port.call(spec(source.sy, syReadAbi, 'getTokensIn'))) as string[]
+        ).filter((token) => token !== ZERO);
+        const tokens = await Promise.all(
+          tokensIn.map(async (address) => {
+            const meta = await port.multicall([
+              spec(address, erc20ReadAbi, 'symbol'),
+              spec(address, erc20ReadAbi, 'decimals'),
+            ]);
+            return { address, symbol: meta[0] as string, decimals: meta[1] as number };
+          }),
+        );
+        // Anchor preview: uAsset minted for exactly one display token — the same math the UI
+        // multiplies the input by; a failed preview degrades to null (face value 1), never blocks
+        const anchored = await Promise.all(
+          tokens.map(async (token) => {
+            try {
+              const preview = (await port.call(
+                spec(router.data, outrunRouterAbi, 'previewStakeFromToken', [
+                  source.sp,
+                  token.address,
+                  10n ** BigInt(token.decimals),
+                ]),
+              )) as bigint;
+              return { ...token, anchorValue: Number(preview) / 1e18, previewBase: preview };
+            } catch {
+              return { ...token, anchorValue: null, previewBase: null };
+            }
+          }),
+        );
+        sources.push({ ...source, tokens: anchored });
+      }
+      return sources;
+    });
   }
 
   async getSwapQuote(

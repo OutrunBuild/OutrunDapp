@@ -94,11 +94,25 @@ class StubGraphPort implements GraphPort {
   calls = 0;
   metaBlock = 1_000;
   failNext = false;
-  async query<T>(_endpoint: string, document: string): Promise<GraphResponse<T>> {
+  async query<T>(
+    _endpoint: string,
+    document: string,
+    variables?: Record<string, unknown>,
+  ): Promise<GraphResponse<T>> {
     this.calls += 1;
     if (this.failNext) {
       this.failNext = false;
       throw new Error('graph endpoint HTTP 502');
+    }
+    // Point read: honour the verseId argument so a miss is a miss
+    if (document.includes('query VerseDetail(')) {
+      const id = String(variables?.id ?? '');
+      return {
+        data: {
+          verses: AGGREGATE_DATA.verses.filter((verse) => verse.verseId === id),
+        } as unknown as T,
+        meta: { block: { number: this.metaBlock, hasIndexingErrors: false } },
+      };
     }
     const data = document.includes('ParticipationHistory')
       ? HISTORY_DATA
@@ -291,9 +305,12 @@ describe('short cache + in-flight dedup (§9)', () => {
 
 describe('④ paged verse listing (no full pulls at any volume)', () => {
   const E = 10n ** 18n;
-  // Pre-redeploy shape: verse rows carry no totals (the fields land with the pending
-  // subgraph redeploy) — every page sums its own scoped participation rows.
-  const row = (verseId: string) => ({
+  // `totals` = the mapping-accumulated fields the redeployed subgraphs now serve; omitting it
+  // models a pre-totals endpoint (null fields), which must fall back to the scoped legs.
+  const row = (
+    verseId: string,
+    totals?: { genesis: bigint; leveraged: bigint; preorder: bigint; participants: number },
+  ) => ({
     verseId,
     name: `Verse ${verseId}`,
     symbol: `V${verseId}`,
@@ -310,6 +327,19 @@ describe('④ paged verse listing (no full pulls at any volume)', () => {
     omnichainIds: ['97'],
     communities: [],
     registeredAtTimestamp: '1790000000',
+    ...(totals
+      ? {
+          totalGenesisFunds: String(totals.genesis),
+          totalLeveragedInterest: String(totals.leveraged),
+          totalPreorderFunds: String(totals.preorder),
+          participantCount: totals.participants,
+        }
+      : {
+          totalGenesisFunds: null,
+          totalLeveragedInterest: null,
+          totalPreorderFunds: null,
+          participantCount: null,
+        }),
   });
 
   class PagePort implements GraphPort {
@@ -354,7 +384,25 @@ describe('④ paged verse listing (no full pulls at any volume)', () => {
     return { repo, port };
   };
 
-  it('reads one window, reports hasMore, and sums the scoped legs', async () => {
+  it('serves a fully-indexed page in ONE round trip using stored totals', async () => {
+    const { repo, port } = paged([
+      row('1', { genesis: 5n * E, leveraged: 1n * E, preorder: 2n * E, participants: 7 }),
+      row('2', { genesis: 10n * E, leveraged: 0n, preorder: 0n, participants: 3 }),
+    ]);
+    const page = await repo.getVersePage(97, { stage: 'genesis' }, 2, 0);
+    expect(page.status).toBe('ok');
+    if (page.status !== 'ok') return;
+    expect(page.data.verses[0]!.raised).toEqual({
+      genesis: 5n * E,
+      leveraged: 1n * E,
+      preorder: 2n * E,
+    });
+    expect(page.data.verses[0]!.participantCount).toBe(7);
+    expect(port.calls).toHaveLength(1);
+    expect(port.calls[0]!.document).toContain('totalGenesisFunds');
+  });
+
+  it('falls back to scoped legs only for pre-totals rows', async () => {
     const { repo, port } = paged([row('1'), row('2'), row('3')]);
     const page = await repo.getVersePage(97, { stage: 'genesis' }, 2, 0);
     expect(page.status).toBe('ok');
@@ -382,12 +430,51 @@ describe('④ paged verse listing (no full pulls at any volume)', () => {
     expect(port.calls).toHaveLength(1);
   });
 
-  it('getRaisedSums answers the omni sidecar for an explicit verse set', async () => {
+  it('getRaisedSums answers the omni sidecar and landed presence for an explicit verse set', async () => {
     const { repo } = paged([row('1'), row('2')]);
-    const sums = await repo.getRaisedSums(97, [1n, 2n]);
-    expect(sums.status).toBe('ok');
-    if (sums.status !== 'ok') return;
-    expect(sums.data.get('1')).toEqual({ genesis: 2n * E, leveraged: 0n, preorder: 0n });
-    expect(sums.data.get('2')).toEqual({ genesis: 1n * E, leveraged: 0n, preorder: 0n });
+    const sidecar = await repo.getRaisedSums(97, [1n, 2n]);
+    expect(sidecar.status).toBe('ok');
+    if (sidecar.status !== 'ok') return;
+    expect(sidecar.data.sums.get('1')).toEqual({ genesis: 2n * E, leveraged: 0n, preorder: 0n });
+    expect(sidecar.data.sums.get('2')).toEqual({ genesis: 1n * E, leveraged: 0n, preorder: 0n });
+    expect([...sidecar.data.present].sort()).toEqual(['1', '2']);
+  });
+});
+
+describe('post-write refresh support (invalidateVerse / getIndexedBlock)', () => {
+  it('getIndexedBlock reads the live index head off the port (uncached)', async () => {
+    const { repo, port } = setup();
+    expect(await repo.getIndexedBlock(97)).toBe(1_000);
+    expect(port.calls).toBe(1);
+    await repo.getIndexedBlock(97);
+    expect(port.calls).toBe(2); // never served from the query cache
+  });
+
+  it('a failing meta read degrades to null (gate treats it as unknown)', async () => {
+    const { repo, port } = setup();
+    port.failNext = true;
+    expect(await repo.getIndexedBlock(97)).toBeNull();
+  });
+
+  it('invalidateVerse drops that verse’s detail entries — the next read is a cold fetch', async () => {
+    const { repo, port } = setup();
+    await repo.getVerseDetail(97, 1n);
+    await repo.getVerseDetail(97, 1n);
+    const warmCalls = port.calls;
+    expect(warmCalls).toBeGreaterThan(0);
+    repo.invalidateVerse(1n);
+    await repo.getVerseDetail(97, 1n);
+    expect(port.calls).toBeGreaterThan(warmCalls); // cache miss → fresh port round trip
+  });
+
+  it('other verses and list aggregates survive the invalidation', async () => {
+    const { repo, port } = setup();
+    await repo.getVerseDetail(97, 2n); // miss (no such verse) still caches ok(null)
+    await repo.getVerseSummaries(97);
+    const before = port.calls;
+    repo.invalidateVerse(1n); // different verse
+    await repo.getVerseDetail(97, 2n);
+    await repo.getVerseSummaries(97);
+    expect(port.calls).toBe(before); // both still served from cache
   });
 });

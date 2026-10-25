@@ -16,7 +16,7 @@
         "value": "0xaaaaaaa000000000000000000000000000000001",
         "fixtureOnly": true
       },
-      "usdSample": 3050.42
+      "usdPrice": 3050.42
     },
     {
       "id": "asset-002",
@@ -32,7 +32,7 @@
         "value": "0xaaaaaaa000000000000000000000000000000002",
         "fixtureOnly": true
       },
-      "usdSample": 1
+      "usdPrice": 1
     },
     {
       "id": "asset-003",
@@ -48,7 +48,7 @@
         "value": "0xaaaaaaa000000000000000000000000000000003",
         "fixtureOnly": true
       },
-      "usdSample": 612.8
+      "usdPrice": 612.8
     },
     {
       "id": "asset-011",

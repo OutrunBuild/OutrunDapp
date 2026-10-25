@@ -9,7 +9,7 @@
 // Degrade discipline: fields without an on-chain source render nothing (null/empty), never
 // fixture samples and never zero-addresses; sections with zero rows collapse by their existing
 // contracts (e.g. pending-referral area unmounts on zero rows). The faucet cooldown slot is null
-// by the 2026-10-14 user ruling (no on-chain source; claimable set comes from claim() probes).
+// for want of an on-chain source (claimable set comes from claim() probes).
 import type {
   Asset,
   CreateConfig,
@@ -26,14 +26,16 @@ import type {
   UsrSavings,
   VaultRow,
   Verse,
+  VerseChainAggregates,
   VerseTrade,
   WalletAsset,
+  YieldSource,
 } from '@/lib/data/fixture-repository';
 import type { DataResult } from '@/lib/data/repository';
 import { getOnchainRepository } from '@/lib/data/repository';
 import { getGraphRepository } from '@/lib/data/graph/graph-repository';
 import type { VerseSummaryView } from '@/lib/data/graph/graph-repository';
-import { readSeed, writeSeed } from '@/lib/data/persisted-swr';
+import { readSeed, writeSeed, deleteSeed } from '@/lib/data/persisted-swr';
 import { CHAIN_IDS, MAINNET_CHAIN_IDS, resolveOutrunChain } from '@/lib/web3/chains';
 import type { ChainInfo } from '@/lib/data/types';
 
@@ -77,6 +79,20 @@ async function connectedAccount(): Promise<string | null> {
 const CONFIG_TTL_MS = 30_000;
 type ConfigEntry = { at: number; value: unknown; inflight: Promise<unknown> | null };
 const configCache = new Map<string, ConfigEntry>();
+
+/** Post-write invalidation: drop the verse-financials overlay entries (`verse-fin-<chain>-<id>`,
+ *  the 30s config cache holding the runtime overlay incl. `previewPreorderCapacity`) for one
+ *  verse across every chain, in memory and on the seed disk. Paired with the graph-tier
+ *  `invalidateVerse` — together they force the next detail render onto fresh blocking reads. */
+export function invalidateVerseConfig(verseId: string): void {
+  const prefixRe = /^verse-fin-\d+-/;
+  const suffix = `-${verseId}`;
+  for (const key of configCache.keys()) {
+    if (!prefixRe.test(key) || !key.endsWith(suffix)) continue;
+    configCache.delete(key);
+    deleteSeed('adapter-config', key);
+  }
+}
 
 function cachedConfig<T>(key: string, run: () => Promise<T | null>): Promise<T | null> {
   let created = configCache.get(key);
@@ -204,6 +220,9 @@ function toVerse(view: VerseSummaryView): Verse {
     preorderCapacityRatio: null,
     leverageInterestRate: null,
     leverageDebtCap: null,
+    leverageInterestRateWad: null,
+    preorderCapRatioBps: null,
+    preorderRemainingBase: null,
     fastGenesis: view.flashGenesis,
     unlockTimeAt: iso(view.unlockTime),
     volume24h: null,
@@ -214,6 +233,53 @@ function toVerse(view: VerseSummaryView): Verse {
     change24h: null,
     memecoinAddress: view.memecoin,
     markets: [],
+  };
+}
+
+/** List-path threshold overlay: the subgraph carries raised sums but no min-success threshold
+ * (fundMetaDatas is per-uAsset RPC). Group views by chain+uAsset, fetch one threshold per
+ * distinct asset (cached per chain+asset, degraded to null on any failure), then fill each
+ * row's threshold + progress with the fixture semantics (raised / threshold * 100, unclamped).
+ * Detail pages keep their full per-verse financial overlay; this is the list-card equivalent so
+ * cards with real raised funds never sit at 0%. */
+async function thresholdByAsset(views: VerseSummaryView[]): Promise<Map<string, number>> {
+  const representative = new Map<string, { chainId: number; uAsset: string; verseId: bigint }>();
+  for (const view of views) {
+    const key = `${view.chainId}:${view.uAsset.toLowerCase()}`;
+    if (!representative.has(key)) {
+      representative.set(key, {
+        chainId: view.chainId,
+        uAsset: view.uAsset,
+        verseId: view.verseId,
+      });
+    }
+  }
+  const entries = await Promise.all(
+    [...representative.entries()].map(async ([key, rep]) =>
+      cachedConfig<number>(`threshold-${rep.chainId}-${rep.uAsset.toLowerCase()}`, async () => {
+        const r = unwrap(await rpc().getVerseFinancials(rep.chainId, rep.verseId, rep.uAsset));
+        if (!r) return null;
+        const threshold = Number(r.minTotalFund) / E18;
+        return Number.isFinite(threshold) && threshold > 0 ? threshold : null;
+      }).then((threshold) => ({ key, threshold })),
+    ),
+  );
+  const out = new Map<string, number>();
+  for (const { key, threshold } of entries) {
+    if (threshold != null) out.set(key, threshold);
+  }
+  return out;
+}
+
+function withListProgress(row: Verse, threshold: number | undefined): Verse {
+  if (threshold == null) return row;
+  const pct = (raised: number) => (raised / threshold) * 100;
+  return {
+    ...row,
+    minSuccessThreshold: threshold,
+    normalProgress: pct(row.normalRaised),
+    leverageProgress: pct(row.leverageInterest),
+    preorderProgress: pct(row.preorderRaised),
   };
 }
 
@@ -265,6 +331,11 @@ async function buildChainRows(): Promise<{
   const rows: Verse[] = [];
   const canonical: Verse[] = [];
   const views = new Map<string, VerseSummaryView>();
+  // List rows need the same raised/threshold progress as detail rows (fundMetaDatas is
+  // per-uAsset RPC, not a subgraph field): resolve one threshold per distinct chain+uAsset
+  // across every view so cards with raised funds never render 0%.
+  const flatViews = [...byVerseId.values()].flat();
+  const thresholds = await thresholdByAsset(flatViews);
   for (const [id, group] of byVerseId) {
     const canonicalView = canonicalViewOf(group);
     views.set(id, canonicalView);
@@ -279,7 +350,10 @@ async function buildChainRows(): Promise<{
     const deployedChainIds = group.map((view) => view.chainId);
     let canonicalRow: Verse | null = null;
     for (const view of group) {
-      const row = { ...toVerse(view), omniRaised, omniParticipantCount, deployedChainIds };
+      const row = withListProgress(
+        { ...toVerse(view), omniRaised, omniParticipantCount, deployedChainIds },
+        thresholds.get(`${view.chainId}:${view.uAsset.toLowerCase()}`),
+      );
       rows.push(row);
       if (view === canonicalView) canonicalRow = row;
     }
@@ -361,6 +435,7 @@ export async function getChainVersePage(
       sidecar: unwrap(await graph().getRaisedSums(sibling, verseIds)),
     })),
   );
+  const thresholds = await thresholdByAsset(list.verses);
   const rows = list.verses.map((view) => {
     const own = Number(view.raised.genesis + view.raised.leveraged + view.raised.preorder) / E18;
     const omniRaised =
@@ -380,12 +455,15 @@ export async function getChainVersePage(
             sibling.chainId === id && sibling.sidecar?.present.has(String(view.verseId)) === true,
         ),
     );
-    return {
-      ...toVerse(view),
-      omniRaised,
-      omniParticipantCount: view.participantCount,
-      deployedChainIds,
-    };
+    return withListProgress(
+      {
+        ...toVerse(view),
+        omniRaised,
+        omniParticipantCount: view.participantCount,
+        deployedChainIds,
+      },
+      thresholds.get(`${view.chainId}:${view.uAsset.toLowerCase()}`),
+    );
   });
   // TESTNETS membership is static config: the option set is the deployed testnets, not a second
   // subgraph pull. A verse-less chain still offers its filter (empty page, not a missing option).
@@ -402,30 +480,90 @@ export async function getVerse(verseId: string): Promise<Verse | null> {
   if (!match) return null;
   // uint256 ids exceed Number precision — compare normalized decimal strings
   const digits = match[1].replace(/^0+(?=\d)/, '');
-  const snapshot = await getSnapshot();
-  const verse =
-    snapshot.verses.find((verse) => verse.id.replace(/^0+(?=\d)/, '') === digits) ?? null;
-  const view = verse ? (snapshotViews.get(verse.id) ?? null) : null;
-  if (!verse || !view) return verse;
+  const id = BigInt(digits);
+  // Point reads: the same id on every indexed chain, one query each (never the full list).
+  // The governance-chain (omnichainIds[0]) copy supplies the canonical metadata; when that
+  // chain's subgraph has no record, the first landed copy stands in.
+  const found = (
+    await Promise.all(
+      TESTNETS.map(async (chainId) => ({
+        chainId,
+        view: unwrap(await graph().getVerseDetail(chainId, id)),
+      })),
+    )
+  ).filter((entry): entry is { chainId: number; view: VerseSummaryView } => entry.view != null);
+  if (found.length === 0) return null;
+  const governanceChain = Number(found[0]!.view.omnichainIds[0] ?? REGISTRATION_HUB);
+  const canonical = found.find((entry) => entry.chainId === governanceChain) ?? found[0]!;
+  const view = canonical.view;
+  // Omni sidecar for the detail facts row (the same id on the sibling chains)
+  const siblings = await Promise.all(
+    found
+      .filter((entry) => entry.chainId !== canonical.chainId)
+      .map(async (entry) => entry.view.raised),
+  );
+  const own = Number(view.raised.genesis + view.raised.leveraged + view.raised.preorder) / E18;
+  const omniRaised =
+    own +
+    siblings.reduce(
+      (sum, raised) => sum + Number(raised.genesis + raised.leveraged + raised.preorder) / E18,
+      0,
+    );
+  // Per-chain rows power the wallet-chain-following displays (meters, panel aggregates) —
+  // found already holds every landed chain's copy, so this adds no round trip. The omni
+  // participant count sums per-chain distinct counts (cross-chain dedup needs an identity the
+  // contracts do not carry — same stance as the home metrics).
+  const chainAggregates: Record<string, VerseChainAggregates> = {};
+  for (const entry of found) {
+    chainAggregates[String(entry.chainId)] = {
+      normalRaised: Number(entry.view.raised.genesis) / E18,
+      leverageInterest: Number(entry.view.raised.leveraged) / E18,
+      preorderRaised: Number(entry.view.raised.preorder) / E18,
+      participantCount: entry.view.participantCount,
+    };
+  }
+  const verse: Verse = {
+    ...toVerse(view),
+    omniRaised,
+    omniParticipantCount: found.reduce((sum, entry) => sum + entry.view.participantCount, 0),
+    deployedChainIds: found.map((entry) => entry.chainId).sort((a, b) => a - b),
+    chainAggregates,
+  };
+  snapshotViews.set(verse.id, view);
   // Genesis financial params (preorder ratio / leverage rate+cap / min success) have on-chain
   // getters but no subgraph field — detail-only RPC overlay so the fixture-mode constraint UI
   // (preorder capacity meter, real-time preorder cap, leverage preview, success threshold)
   // survives the onchain build; config-like reads ride the SWR cache (§9); a failed read
   // leaves the null slots exactly as before (never fixture samples)
   const fin = await cachedConfig(`verse-fin-${view.chainId}-${view.verseId}`, async () => {
-    const r = unwrap(await rpc().getVerseFinancials(view.chainId, view.verseId, view.uAsset));
-    if (!r) return null;
-    const next = {
-      minSuccessThreshold: Number(r.minTotalFund) / E18,
+    // Same cached round: the launcher's own remaining-preorder-capacity preview is the
+    // authoritative gate input (the panel must not re-derive capacity from float aggregates).
+    const [r, runtime] = await Promise.all([
+      rpc().getVerseFinancials(view.chainId, view.verseId, view.uAsset),
+      rpc().getVerseRuntime(view.chainId, view.verseId),
+    ]);
+    const fin = unwrap(r);
+    if (!fin) return null;
+    const remaining = unwrap(runtime);
+    const numeric = {
+      minSuccessThreshold: Number(fin.minTotalFund) / E18,
       // interest rate is 1e18-scaled ratio, cap ratio is bps — fixture units are plain ratios
-      leverageInterestRate: Number(r.interestRate) / E18,
-      leverageDebtCap: Number(r.debtCap) / E18,
-      preorderCapacityRatio: Number(r.preorderCapRatioBps) / 1e4,
+      leverageInterestRate: Number(fin.interestRate) / E18,
+      leverageDebtCap: Number(fin.debtCap) / E18,
+      preorderCapacityRatio: Number(fin.preorderCapRatioBps) / 1e4,
     };
     // Parse, don't assert: a decode-shape drift upstream yields undefined -> NaN here; gate
-    // at the conversion point so a malformed read degrades to the null slots (and a null
-    // result is never written to the disk seed) instead of leaking NaN into the UI
-    return Object.values(next).every(Number.isFinite) ? next : null;
+    // the NUMERIC slots only (the exact wad strings below are not numbers) so a malformed
+    // read degrades to the null slots (never written to the disk seed) instead of leaking NaN
+    if (!Object.values(numeric).every(Number.isFinite)) return null;
+    return {
+      ...numeric,
+      // Exact raw params for the panel's bigint math (strings stay RSC-serializable)
+      leverageInterestRateWad: fin.interestRate.toString(),
+      preorderCapRatioBps: Number(fin.preorderCapRatioBps),
+      preorderRemainingBase:
+        remaining != null ? remaining.remainingPreorderCapacity.toString() : null,
+    };
   });
   if (!fin) return verse;
   // Progress bars share the fixture semantics (fixture-repository progress()): each raised
@@ -442,6 +580,43 @@ export async function getVerse(verseId: string): Promise<Verse | null> {
 }
 
 // --- chains / registration --------------------------------------------------------------
+
+/** Home KPI band: chain-wide totals from each chain's ProtocolStats row (O(1) per chain).
+ * participantCount sums the per-chain distinct counts — cross-chain de-duplication needs an
+ * identity the contracts do not carry. */
+export async function getHomeMetrics() {
+  const perChain = await Promise.all(TESTNETS.map((chainId) => graph().getHomeMetrics(chainId)));
+  let totalLocked = 0;
+  let verseCount = 0;
+  let deployedVerseCount = 0;
+  let participantCount = 0;
+  for (const result of perChain) {
+    const metrics = unwrap(result);
+    if (!metrics) continue;
+    totalLocked += Number(metrics.participationTotal) / E18;
+    verseCount += metrics.verseCount;
+    deployedVerseCount += metrics.deployedVerseCount;
+    participantCount += metrics.participantCount;
+  }
+  return {
+    totalLocked,
+    verseCount,
+    deployedVerseCount,
+    participantCount,
+    sourceRefs: ['subgraph:testnets'],
+  };
+}
+
+/** Shell account slot: onchain builds never carry a demo account (the connected wallet owns
+ * identity client-side) */
+export async function getDisplayAccount() {
+  return { address: '', sourceRef: 'onchain:wallet' };
+}
+
+/** Raise-asset whitelist for the create form (deployment tables, no subgraph read) */
+export async function getAssets(): Promise<Asset[]> {
+  return deployedAssets();
+}
 
 export async function getChains(): Promise<ChainInfo[]> {
   return CHAIN_IDS.map((chainId) => {
@@ -481,22 +656,58 @@ export async function getOccupiedSymbols(): Promise<string[]> {
 
 export async function getParticipationOptions(
   raiseAssetSymbol: string,
+  execChainId?: number,
 ): Promise<ParticipationOptions> {
-  // Deployment-table wired: the raise uAsset's paired GenesisCredit (leverage-credit direct
-  // pay) and its PSM pair reserve (face-value direct swap). Stake sources stay empty until the
-  // OutStake adapter registry is wired (cross-repo) — the route stays hidden, never faked.
-  const creditAsset = contractAsset(`GenesisCredit.${raiseAssetSymbol}`);
-  const reserve = await psmReserveAsset(raiseAssetSymbol);
-  return {
-    raiseAsset: {
-      id: `uasset:${raiseAssetSymbol}`,
-      sourceRef: 'lib/web3/chains.ts',
-      symbol: raiseAssetSymbol,
+  // Config-tier read (low churn, accountless) — cachedConfig serves the last good value across
+  // the 30s TTL and across render-worker restarts (§9).
+  const options = await cachedConfig(
+    `participation:${raiseAssetSymbol}:${execChainId ?? 0}`,
+    async (): Promise<ParticipationOptions> => {
+      // Deployment-table wired: the raise uAsset's paired GenesisCredit (leverage-credit direct
+      // pay) and its PSM pair reserve (face-value direct swap). Stake sources resolve per
+      // execution chain (SP instances differ per chain — slisBNB lives only on BSC Testnet) and
+      // stay hidden on a chain without them; the registry is chain-read, never faked.
+      const creditAsset = contractAsset(`GenesisCredit.${raiseAssetSymbol}`);
+      const reserve = await psmReserveAsset(raiseAssetSymbol);
+      const stakeChain = TESTNETS.includes(execChainId ?? -1) ? (execChainId as number) : null;
+      const uAssetAddress =
+        stakeChain != null
+          ? deployedContracts(stakeChain)[`UAsset.${raiseAssetSymbol}`]
+          : undefined;
+      const stakeSources =
+        stakeChain != null && uAssetAddress
+          ? (unwrap(await rpc().getStakeSources(stakeChain, uAssetAddress)) ?? [])
+          : [];
+      const yieldSourceRegistry: YieldSource[] = stakeSources.map((source) => ({
+        id: source.sp,
+        sourceRef: `rpc:${stakeChain}:${source.name}`,
+        // deployments instance key minus the contract prefix doubles as the yield-source label —
+        // the brand name has no chain source
+        name: source.name.replace(/^OutrunStakingPosition\./, ''),
+        assets: source.tokens.map((token) => ({
+          id: token.address,
+          symbol: token.symbol,
+          decimals: token.decimals,
+          sourceRef: `rpc:${stakeChain}:${source.name}#${token.symbol}`,
+          sp: source.sp,
+          anchorValue: token.anchorValue ?? undefined,
+          // Exact preview base (uAsset units per ONE whole token) for the bigint conversion.
+          anchorPreviewBase: token.previewBase?.toString(),
+        })),
+      }));
+      return {
+        raiseAsset: {
+          id: `uasset:${raiseAssetSymbol}`,
+          sourceRef: 'lib/web3/chains.ts',
+          symbol: raiseAssetSymbol,
+        },
+        reserves: reserve ? [reserve] : [],
+        yieldSourceRegistry,
+        creditAsset,
+      };
     },
-    reserves: reserve ? [reserve] : [],
-    yieldSourceRegistry: [],
-    creditAsset,
-  };
+  );
+  return options!;
 }
 
 function contractAsset(key: string): Asset | null {
@@ -531,10 +742,13 @@ async function psmReserveAsset(uAssetSymbol: string): Promise<Asset | null> {
       return {
         id: state.reserve,
         symbol: meta.symbol,
+        decimals: meta.decimals,
         sourceRef: `rpc:${chainId}:OutrunPSM.${uAssetSymbol}`,
         // PSM mint-side fee (tin): 18-dec point value (1e18 = 100%) — the same read the faucet
         // Fee row uses; the face-value direct path deducts it before uAsset is minted.
         psmFeeIn: Number(state.tinWad) / E18,
+        // Exact wad for the panel's bigint mint math (amountOut = face * (1e18-tin)/1e18).
+        psmFeeInWad: state.tinWad.toString(),
       };
     }
   }
@@ -543,7 +757,7 @@ async function psmReserveAsset(uAssetSymbol: string): Promise<Asset | null> {
 
 // --- faucet (R-07, real RPC data) ---------------------------------------------------------
 
-// 2026-10-21 ruling: personal values never ride the SSR path — account-scoped reads
+// Personal values never ride the SSR path — account-scoped reads
 // (balances, claim probes) moved client-side (FaucetSwapDialog reads PSM balances through the
 // wallet provider; FaucetClaims already probes claim()). The server keeps only the accountless
 // config read (limits/fees/headroom), fully SWR-cached (§9).
@@ -559,7 +773,7 @@ export async function getFaucet(): Promise<Faucet | null> {
         symbol: token.symbol,
         name: token.name,
         dailyLimit: Number(token.dailyLimit) / E18,
-        // per-user cooldown has no on-chain getter/event — 2026-10-14 ruling: slot not rendered
+        // per-user cooldown has no on-chain getter/event — slot not rendered
         cooldownRemainingMs: null,
       })),
       swap: {
@@ -568,9 +782,11 @@ export async function getFaucet(): Promise<Faucet | null> {
         // PSM tin/tout are 18-dec point values (1e18 = 100%), not bps
         feeIn: Number(status.swap.tinWad) / E18,
         feeOut: Number(status.swap.toutWad) / E18,
+        feeInWad: status.swap.tinWad.toString(),
+        feeOutWad: status.swap.toutWad.toString(),
         headroom: Number(status.swap.headroom) / E18,
         // accountless read: always null→0 here; the connected wallet reads real balances
-        // client-side (2026-10-21 ruling — see the section comment above)
+        // client-side (see the section comment above)
         myUAsset: status.swap.myUAsset != null ? Number(status.swap.myUAsset) / E18 : 0,
         myReserve: status.swap.myReserve != null ? Number(status.swap.myReserve) / E18 : 0,
       },
@@ -580,7 +796,7 @@ export async function getFaucet(): Promise<Faucet | null> {
 
 // --- referral (R-06: real rate + pending via RPC; histories via graph once there is volume) -
 
-// 2026-10-21 ruling: the SSR path is accountless — referrerRebateBps is a global hook config
+// The SSR path is accountless — referrerRebateBps is a global hook config
 // (identical for the zero address), so the cached config read serves the rate; per-referrer
 // pending/history stay client/graph-driven (empty until wired, same as before).
 export async function getReferral(): Promise<Referral | null> {
@@ -677,10 +893,10 @@ export async function getReserveBalances(): Promise<Record<string, number>> {
   return totals;
 }
 
-// 2026-10-22: the account-scoped SSR read is retired — the 2026-10-21 ruling (personal values
-// never ride the server path) applied to its last consumer, the verse participation panel,
-// which now reads pay-asset balances client-side through the wallet provider. Accountless on
-// onchain; fixture-mode samples live in the fixture repository (untouched, baselines keep them).
+// The account-scoped SSR read is retired — personal values never ride the server path; its last
+// consumer, the verse participation panel, now reads pay-asset balances client-side through the
+// wallet provider. Accountless on onchain; fixture-mode samples live in the fixture repository
+// (untouched, baselines keep them).
 export async function getWalletBalances(): Promise<Record<string, number>> {
   return {};
 }

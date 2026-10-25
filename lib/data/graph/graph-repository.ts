@@ -14,7 +14,7 @@ import { getChainConfig, type ResolvedChain } from '../../web3/chains';
 import { resolveDataSource } from '../source-resolver';
 import type { DataResult } from '../repository';
 import { createHttpGraphPort, type GraphPort } from './graph-port';
-import { readSeed, writeSeed } from '../persisted-swr';
+import { readSeed, writeSeed, deleteSeed } from '../persisted-swr';
 
 const unavailable = <T>(
   reason: 'rpc-error' | 'not-configured' | 'undeployed',
@@ -48,6 +48,14 @@ export type VerseSummaryView = {
   raised: { genesis: bigint; leveraged: bigint; preorder: bigint };
   /** Distinct participating addresses on this verse (indexed-event approximation) */
   participantCount: number;
+};
+
+/** Per-chain participation sums for an explicit verse set, plus the verse ids that actually have
+ * a Verse row on that chain. Registered-but-not-landed chains have no row, so `present` is the
+ * only truthful source for "which chains hold this verse". */
+export type VerseRaisedSums = {
+  sums: Map<string, VerseSummaryView['raised']>;
+  present: Set<string>;
 };
 
 export type HomeMetricsView = {
@@ -115,7 +123,12 @@ const VERSE_AGGREGATE_QUERY = `query VerseAggregates {
   ${META_FRAGMENT}
 }`;
 
-type VersePageRow = VerseRow;
+type VersePageRow = VerseRow & {
+  totalGenesisFunds?: string | null;
+  totalLeveragedInterest?: string | null;
+  totalPreorderFunds?: string | null;
+  participantCount?: number | null;
+};
 
 type VersePageData = {
   verses: VersePageRow[];
@@ -124,15 +137,12 @@ type VersePageData = {
   leveragedGenesisParticipations: LeveragedRow[];
 };
 
-/** Paged verse listing: only the requested window of verse rows is read (VersePageRows),
- * then the participation sums are scoped to exactly those verseIds (VersePageLegs,
- * verseId_in) — no full pulls at any volume. Sort key = verseId ascending (registration
- * order); stage/mode/query ride the subgraph where clause (query fans out to name/symbol
- * substring matches).
- *
- * NOTE (pre-redeploy): the mapping-accumulated totals (totalGenesisFunds/…) land with the
- * pending subgraph redeploy — until then every page sums its own participation rows. The
- * totals fields stay in schema.graphql + mappings; this reader adds them back after deploy. */
+/** Paged verse listing: only the requested window of verse rows is read (VersePageRows);
+ * raised/participant totals come from the mapping-accumulated fields, so at any verse volume a
+ * page costs ONE round trip. When the endpoint still serves a pre-totals version (null fields),
+ * the page falls back to the verseId_in-scoped participation legs — never a full pull either
+ * way. Sort key = verseId ascending (registration order); stage/mode/query ride the subgraph
+ * where clause (query fans out to name/symbol substring matches). */
 
 const VERSE_PAGE_SIZE_MAX = 100;
 
@@ -170,9 +180,24 @@ function toSummaryView(
     omnichainIds: verse.omnichainIds.map((v) => BigInt(v)),
     communities: verse.communities,
     registeredAt: BigInt(verse.registeredAtTimestamp),
-    raised: sums?.raised ?? { genesis: 0n, leveraged: 0n, preorder: 0n },
-    participantCount: sums?.participantCount ?? 0,
+    raised: sums?.raised ?? {
+      genesis: verse.totalGenesisFunds != null ? BigInt(verse.totalGenesisFunds) : 0n,
+      leveraged: verse.totalLeveragedInterest != null ? BigInt(verse.totalLeveragedInterest) : 0n,
+      preorder: verse.totalPreorderFunds != null ? BigInt(verse.totalPreorderFunds) : 0n,
+    },
+    participantCount: sums?.participantCount ?? verse.participantCount ?? 0,
   };
+}
+
+/** Stored-totals guard: a null means the endpoint serves a pre-totals version — the caller
+ * must run the row-sum fallback (null is "unknown", never "zero raised"). */
+function hasStoredTotals(verse: VersePageRow): boolean {
+  return (
+    verse.totalGenesisFunds != null &&
+    verse.totalLeveragedInterest != null &&
+    verse.totalPreorderFunds != null &&
+    verse.participantCount != null
+  );
 }
 
 function sumPageRows(
@@ -273,17 +298,22 @@ export interface GraphOnchainRepository {
     first: number,
     skip: number,
   ): Promise<DataResult<VersePageView>>;
-  /** Raised sums for an explicit verse set (powers the omni sidecar without full pulls) */
-  getRaisedSums(
-    chainId: number,
-    verseIds: readonly bigint[],
-  ): Promise<DataResult<Map<string, VerseSummaryView['raised']>>>;
+  /** Raised sums + landed presence for an explicit verse set (powers the omni sidecar
+   * without full pulls) */
+  getRaisedSums(chainId: number, verseIds: readonly bigint[]): Promise<DataResult<VerseRaisedSums>>;
   getHomeMetrics(chainId: number): Promise<DataResult<HomeMetricsView>>;
   getParticipationHistory(
     chainId: number,
     address: string,
   ): Promise<DataResult<ParticipationHistoryView>>;
   getReferralHistory(chainId: number, referrer: string): Promise<DataResult<ReferralHistoryView>>;
+  /** Live index head of one chain's subgraph (uncached `_meta` read) — the freshness gate
+   * for post-write refreshes: the caller waits until this reaches the write's block. */
+  getIndexedBlock(chainId: number): Promise<number | null>;
+  /** Drop every verse-scoped cache entry (detail + detail-legs + raised-sums across all
+   * chains) so the next read blocks on a fresh fetch. List/aggregate queries stay on their
+   * TTL — a single verse's write must not flush whole-chain lists. */
+  invalidateVerse(verseId: bigint): void;
 }
 
 type ConfigResolver = (chainId: number) => ResolvedChain;
@@ -463,9 +493,37 @@ class GraphRepository implements GraphOnchainRepository {
     chainId: number,
     verseId: bigint,
   ): Promise<DataResult<VerseSummaryView | null>> {
-    const list = await this.getVerseSummaries(chainId);
-    if (list.status !== 'ok') return list;
-    return ok(list.data.find((verse) => verse.verseId === verseId) ?? null);
+    // Point read: one verse row by id (stored totals included) — never the full list. A
+    // pre-totals endpoint falls back to the verseId_in-scoped legs for this one id.
+    const r = await this.querySilently<{ verses: VersePageRow[] }>(
+      chainId,
+      `query VerseDetail($id: BigInt!) {
+        verses(first: 1, where: { verseId: $id }) {
+          verseId name symbol stage flashGenesis uAsset memecoin pol yieldVault governor incentivizer
+          endTime unlockTime omnichainIds communities registeredAtTimestamp
+          totalGenesisFunds totalLeveragedInterest totalPreorderFunds participantCount
+        }
+        ${META_FRAGMENT}
+      }`,
+      { id: String(verseId) },
+    );
+    if (r.status !== 'ok') return r;
+    const verse = r.data.verses[0];
+    if (!verse) return ok(null);
+    if (hasStoredTotals(verse)) return ok(toSummaryView(chainId, verse));
+    const legs = await this.querySilently<Omit<VersePageData, 'verses'>>(
+      chainId,
+      `query VerseDetailLegs($ids: [BigInt!]) {
+        genesisParticipations(first: 1000, where: { verseId_in: $ids }) { verseId payer depositer amount }
+        preorderParticipations(first: 1000, where: { verseId_in: $ids }) { verseId caller user amountInUAsset }
+        leveragedGenesisParticipations(first: 1000, where: { verseId_in: $ids }) { verseId payer user amount }
+        ${META_FRAGMENT}
+      }`,
+      { ids: [verse.verseId] },
+    );
+    if (legs.status !== 'ok') return legs;
+    const sums = sumPageRows([verse], { verses: [verse], ...legs.data });
+    return ok(toSummaryView(chainId, verse, sums.get(verse.verseId)));
   }
 
   async getVersePage(
@@ -480,14 +538,16 @@ class GraphRepository implements GraphOnchainRepository {
     );
     const offset = Math.max(0, Math.floor(skip) || 0);
     const where = versePageWhere(filter);
-    // verse window first (ids unknown until rows land); the participation legs then scope to
-    // exactly those ids — two round trips, neither ever a full pull
+    // verse window first; stored totals ride the same document, so a fully-indexed endpoint
+    // answers a page in ONE round trip. Only rows without totals (pre-totals version) need the
+    // verseId_in-scoped legs — never a full pull either way.
     const rows = await this.querySilently<{ verses: VersePageRow[] }>(
       chainId,
       `query VersePageRows($where: Verse_filter, $first: Int!, $skip: Int!) {
         verses(first: $first, skip: $skip, orderBy: verseId, orderDirection: asc, where: $where) {
           verseId name symbol stage flashGenesis uAsset memecoin pol yieldVault governor incentivizer
           endTime unlockTime omnichainIds communities registeredAtTimestamp
+          totalGenesisFunds totalLeveragedInterest totalPreorderFunds participantCount
         }
         ${META_FRAGMENT}
       }`,
@@ -498,21 +558,23 @@ class GraphRepository implements GraphOnchainRepository {
     const hasMore = window.length > size;
     const page = hasMore ? window.slice(0, size) : window;
     if (page.length === 0) return ok({ chainId, verses: [], hasMore: false });
-    const ids = page.map((verse) => verse.verseId);
-    const legs = await this.querySilently<Omit<VersePageData, 'verses'>>(
-      chainId,
-      `query VersePageLegs($ids: [BigInt!]) {
-        genesisParticipations(first: 1000, where: { verseId_in: $ids }) { verseId payer depositer amount }
-        preorderParticipations(first: 1000, where: { verseId_in: $ids }) { verseId caller user amountInUAsset }
-        leveragedGenesisParticipations(first: 1000, where: { verseId_in: $ids }) { verseId payer user amount }
-        ${META_FRAGMENT}
-      }`,
-      { ids },
-    );
-    if (legs.status !== 'ok') return legs;
-    // Pre-redeploy path: every page sums its own participation rows (see the note above
-    // — stored totals plug back in here after the subgraph redeploy)
-    const sums = sumPageRows(page, { verses: page, ...legs.data });
+    const missing = page.filter((verse) => !hasStoredTotals(verse));
+    let sums = new Map<string, { raised: VerseSummaryView['raised']; participantCount: number }>();
+    if (missing.length > 0) {
+      const ids = missing.map((verse) => verse.verseId);
+      const legs = await this.querySilently<Omit<VersePageData, 'verses'>>(
+        chainId,
+        `query VersePageLegs($ids: [BigInt!]) {
+          genesisParticipations(first: 1000, where: { verseId_in: $ids }) { verseId payer depositer amount }
+          preorderParticipations(first: 1000, where: { verseId_in: $ids }) { verseId caller user amountInUAsset }
+          leveragedGenesisParticipations(first: 1000, where: { verseId_in: $ids }) { verseId payer user amount }
+          ${META_FRAGMENT}
+        }`,
+        { ids },
+      );
+      if (legs.status !== 'ok') return legs;
+      sums = sumPageRows(missing, { verses: missing, ...legs.data });
+    }
     const verses = page.map((verse) => toSummaryView(chainId, verse, sums.get(verse.verseId)));
     return ok({ chainId, verses, hasMore });
   }
@@ -520,17 +582,27 @@ class GraphRepository implements GraphOnchainRepository {
   async getRaisedSums(
     chainId: number,
     verseIds: readonly bigint[],
-  ): Promise<DataResult<Map<string, VerseSummaryView['raised']>>> {
-    if (verseIds.length === 0) return ok(new Map());
+  ): Promise<DataResult<VerseRaisedSums>> {
+    if (verseIds.length === 0) return ok({ sums: new Map(), present: new Set() });
     const ids = [...new Set(verseIds.map(String))];
-    // Pre-redeploy: legs only (the verses row carries no totals yet — see the note above)
+    // Stored totals ride the verses selection (presence + sums in one round trip); rows from a
+    // pre-totals version fall back to the verseId_in-scoped legs below.
     const r = await this.querySilently<{
+      verses: Array<
+        Pick<
+          VersePageRow,
+          'verseId' | 'totalGenesisFunds' | 'totalLeveragedInterest' | 'totalPreorderFunds'
+        >
+      >;
       genesisParticipations: GenesisRow[];
       preorderParticipations: PreorderRow[];
       leveragedGenesisParticipations: LeveragedRow[];
     }>(
       chainId,
       `query VerseRaisedSums($ids: [BigInt!]) {
+        verses(first: 1000, where: { verseId_in: $ids }) {
+          verseId totalGenesisFunds totalLeveragedInterest totalPreorderFunds
+        }
         genesisParticipations(first: 1000, where: { verseId_in: $ids }) { verseId payer depositer amount }
         preorderParticipations(first: 1000, where: { verseId_in: $ids }) { verseId caller user amountInUAsset }
         leveragedGenesisParticipations(first: 1000, where: { verseId_in: $ids }) { verseId payer user amount }
@@ -539,19 +611,73 @@ class GraphRepository implements GraphOnchainRepository {
       { ids },
     );
     if (r.status !== 'ok') return r;
-    const sums = sumPageRows(
-      ids.map((verseId) => ({ verseId }) as VersePageRow),
-      {
-        verses: [],
-        genesisParticipations: r.data.genesisParticipations,
-        preorderParticipations: r.data.preorderParticipations,
-        leveragedGenesisParticipations: r.data.leveragedGenesisParticipations,
-      },
+    const sums = new Map(
+      r.data.verses
+        .filter(
+          (verse) =>
+            verse.totalGenesisFunds != null &&
+            verse.totalLeveragedInterest != null &&
+            verse.totalPreorderFunds != null,
+        )
+        .map((verse) => [
+          verse.verseId,
+          {
+            genesis: BigInt(verse.totalGenesisFunds as string),
+            leveraged: BigInt(verse.totalLeveragedInterest as string),
+            preorder: BigInt(verse.totalPreorderFunds as string),
+          } satisfies VerseSummaryView['raised'],
+        ]),
     );
-    return ok(new Map([...sums].map(([id, sums]) => [id, sums.raised] as const)));
+    const missing = r.data.verses.filter((verse) => !sums.has(verse.verseId));
+    if (missing.length > 0) {
+      const sumsByLegs = sumPageRows(
+        missing.map((verse) => ({ verseId: verse.verseId }) as VersePageRow),
+        {
+          verses: [],
+          genesisParticipations: r.data.genesisParticipations,
+          preorderParticipations: r.data.preorderParticipations,
+          leveragedGenesisParticipations: r.data.leveragedGenesisParticipations,
+        },
+      );
+      for (const [id, entry] of sumsByLegs) sums.set(id, entry.raised);
+    }
+    return ok({
+      sums,
+      present: new Set(r.data.verses.map((verse) => verse.verseId)),
+    });
   }
 
   async getHomeMetrics(chainId: number): Promise<DataResult<HomeMetricsView>> {
+    // Chain-wide totals come from the single ProtocolStats row the mappings maintain — O(1),
+    // independent of verse/participation volume. An endpoint without the row (pre-stats
+    // version) degrades to the bounded aggregate read below.
+    const statsResult = await this.querySilently<{
+      protocolStats: {
+        verseCount: number;
+        deployedVerseCount: number;
+        participantCount: number;
+        participationTotal: string;
+      } | null;
+    }>(
+      chainId,
+      `query HomeMetrics($id: ID!) {
+        protocolStats(id: $id) {
+          verseCount deployedVerseCount participantCount participationTotal
+        }
+        ${META_FRAGMENT}
+      }`,
+      { id: `${chainId}-protocol` },
+    );
+    const stats =
+      statsResult.status === 'ok' ? (statsResult.data.protocolStats ?? undefined) : undefined;
+    if (stats) {
+      return ok({
+        verseCount: stats.verseCount,
+        deployedVerseCount: stats.deployedVerseCount,
+        participantCount: stats.participantCount,
+        participationTotal: BigInt(stats.participationTotal),
+      });
+    }
     const r = await this.querySilently<VerseAggregateData>(chainId, VERSE_AGGREGATE_QUERY, {});
     if (r.status !== 'ok') return r;
     const d = r.data;
@@ -666,6 +792,52 @@ class GraphRepository implements GraphOnchainRepository {
       accrued: map('accrued'),
       claimed: map('claimed'),
     });
+  }
+
+  async getIndexedBlock(chainId: number): Promise<number | null> {
+    const resolved = this.configFor(chainId);
+    if (resolved.status !== 'ok' || !resolved.config.subgraphEndpoint) return null;
+    try {
+      // The port hoists the query's `_meta` block into the top-level response meta.
+      const response = await this.port.query<unknown>(
+        resolved.config.subgraphEndpoint,
+        '_meta { block { number } }',
+      );
+      const block = Number(response.meta?.block?.number);
+      return Number.isFinite(block) ? block : null;
+    } catch {
+      return null;
+    }
+  }
+
+  invalidateVerse(verseId: bigint): void {
+    const id = String(verseId);
+    for (const key of this.cache.keys()) {
+      // Key layout is endpoint|document|variables; only verse-scoped documents carry the id
+      // in their variables — list/aggregate queries keep their TTL.
+      const sep = key.indexOf('|');
+      const sep2 = key.indexOf('|', sep + 1);
+      if (sep < 0 || sep2 < 0) continue;
+      const document = key.slice(sep + 1, sep2);
+      const variablesText = key.slice(sep2 + 1);
+      const isVerseDoc =
+        document.startsWith('query VerseDetail(') || document.startsWith('query VerseDetailLegs(');
+      const isSumsDoc = document.startsWith('query VerseRaisedSums(');
+      if (!isVerseDoc && !isSumsDoc) continue;
+      let matches = false;
+      try {
+        const variables = JSON.parse(variablesText) as { id?: string; ids?: string[] };
+        if (isVerseDoc) matches = variables.id === id;
+        else matches = Array.isArray(variables.ids) && variables.ids.includes(id);
+      } catch {
+        matches = false;
+      }
+      if (!matches) continue;
+      // Deleting the Map key detaches any in-flight refresh: its settle writes the detached
+      // entry and cannot resurrect the key, so the next read is a cold blocking fetch.
+      this.cache.delete(key);
+      if (this.persistNs) deleteSeed(this.persistNs, key);
+    }
   }
 }
 

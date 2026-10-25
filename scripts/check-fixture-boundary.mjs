@@ -195,12 +195,14 @@ function sourceScan() {
       }
     }
     // fixture-repository may only be referenced by components/** (ui/design-system common layers
-    // exempt), fixtures/**, tests/**
+    // exempt), fixtures/**, tests/** — plus lib/data/onchain-source.ts, the onchain build's
+    // alias target, which imports fixture-repository types only (never runtime values)
     if (rel === 'lib/data/fixture-repository.ts') continue;
     for (const im of imports) {
       if (
         im.target === 'lib/data/fixture-repository.ts' &&
-        !/^(components\/(?!ui\/|design-system\/)|fixtures\/|tests\/)/.test(rel)
+        !/^(components\/(?!ui\/|design-system\/)|fixtures\/|tests\/)/.test(rel) &&
+        rel !== 'lib/data/onchain-source.ts'
       ) {
         note(
           rel,

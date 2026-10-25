@@ -13,10 +13,26 @@ import {
   LeveragedGenesisParticipation,
   ParticipationClaim,
   ParticipationRefund,
+  ProtocolStats,
   Verse,
   VerseParticipant,
 } from '../generated/schema';
 import { chainId, chainIdInt, scopedId } from './utils';
+
+function stats(): ProtocolStats {
+  const id = chainId() + '-protocol';
+  let row = ProtocolStats.load(id);
+  if (row === null) {
+    row = new ProtocolStats(id);
+    row.chainId = chainIdInt();
+    row.verseCount = 0;
+    row.deployedVerseCount = 0;
+    row.participantCount = 0;
+    row.participationTotal = BigInt.fromI32(0);
+    row.save();
+  }
+  return row;
+}
 
 /** Mirror of verse-participation accumulateFunds (one copy per mapping file: mappings are
  * per-datasource and cannot share code that touches the other's entities). */
@@ -32,7 +48,13 @@ function accumulateLeveraged(verseId: BigInt, amount: BigInt, account: Bytes): v
     marker.account = account;
     marker.save();
     verse.participantCount = verse.participantCount + 1;
+    const aggregate = stats();
+    aggregate.participantCount = aggregate.participantCount + 1;
+    aggregate.save();
   }
+  const aggregate = stats();
+  aggregate.participationTotal = aggregate.participationTotal.plus(amount);
+  aggregate.save();
   verse.save();
 }
 

@@ -4,13 +4,10 @@
 // (-- + Max disabled)
 import { describe, expect, it } from 'vitest';
 
-import {
-  getFixtureParticipationOptions,
-  getFixtureWalletBalances,
-} from '../../lib/data/fixture-repository';
+import { getParticipationOptions, getWalletBalances } from '../../lib/data/fixture-repository';
 
-describe('getFixtureWalletBalances: per-symbol cross-chain totals', () => {
-  const balances = getFixtureWalletBalances();
+describe('getWalletBalances: per-symbol cross-chain totals', () => {
+  const balances = getWalletBalances();
 
   it('multi-chain uAsset rows sum (UETH = 6 + 2.5 + 1)', () => {
     expect(balances.UETH).toBe(9.5);
@@ -29,8 +26,8 @@ describe('getFixtureWalletBalances: per-symbol cross-chain totals', () => {
   });
 });
 
-describe('getFixtureParticipationOptions: reserve PSM mint fee rides the option', () => {
-  const options = getFixtureParticipationOptions('UUSD');
+describe('getParticipationOptions: reserve PSM mint fee rides the option', () => {
+  const options = getParticipationOptions('UUSD');
 
   it('UUSD reserves carry psmFeeIn = psm.json tin / 1e4 (regression: Genesis amount must deduct tin)', () => {
     expect(options.reserves.length).toBeGreaterThan(0);

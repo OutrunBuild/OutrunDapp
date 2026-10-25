@@ -8,10 +8,11 @@ import { OUTRUN_FIXTURE_ONLY_v1, fixtureData } from '../../fixtures/index';
 import type { VerseStage } from './types';
 import { PROTECTION_WINDOW_MS } from './types';
 
-export const FIXTURE_ONLY_SENTINEL = OUTRUN_FIXTURE_ONLY_v1;
+export const DATA_SOURCE_MARKER = OUTRUN_FIXTURE_ONLY_v1;
+export const FIXTURE_ONLY_SENTINEL = DATA_SOURCE_MARKER;
 
 export const fixtureRepository = {
-  sentinel: FIXTURE_ONLY_SENTINEL,
+  marker: DATA_SOURCE_MARKER,
   chains: () => fixtureData.chains.items,
   assets: () => fixtureData.assets.items,
   verses: () => fixtureData.verses.items,
@@ -35,32 +36,44 @@ export const fixtureRepository = {
 // forbidden; price/change is derived from candles).
 // ---------------------------------------------------------------------------
 
-// FixtureChain/Locale/VerseStage live in lib/data/types.ts; this re-export keeps existing
+// Chain/Locale/VerseStage live in lib/data/types.ts; this re-export keeps existing
 // consumers (components domain components etc.) untouched.
-export type { FixtureChain, Locale, VerseStage } from './types';
+export type { ChainInfo, Locale, VerseStage } from './types';
+import type { ChainInfo as ChainInfoType } from './types';
 
 // Shared ViewModel types live in the neutral leaf ./view-models (re-exported here so existing
 // component consumers stay untouched; the onchain RPC/Graph repository imports the same shapes)
 import type {
   SourceRecord,
-  FixtureCreateConfig,
-  FixtureReferral,
-  FixtureReferralAssetAmount,
-  FixtureFaucet,
+  CreateConfig,
+  Referral,
+  ReferralAssetAmount,
+  ReferralTransaction,
+  ReferralFriend,
+  Faucet,
+  FaucetToken,
 } from './view-models';
 
 export type {
   SourceRecord,
-  FixtureCreateConfig,
-  FixtureReferralAssetAmount,
-  FixtureReferralTransaction,
-  FixtureReferralFriend,
-  FixtureReferral,
-  FixtureFaucetToken,
-  FixtureFaucet,
+  CreateConfig,
+  ReferralAssetAmount,
+  ReferralTransaction,
+  ReferralFriend,
+  Referral,
+  FaucetToken,
+  Faucet,
 } from './view-models';
+export type FixtureCreateConfig = CreateConfig;
+export type FixtureReferralAssetAmount = ReferralAssetAmount;
+export type FixtureReferralTransaction = ReferralTransaction;
+export type FixtureReferralFriend = ReferralFriend;
+export type FixtureReferral = Referral;
+export type FixtureFaucetToken = FaucetToken;
+export type FixtureFaucet = Faucet;
+export type FixtureChain = ChainInfoType;
 
-export type FixtureMarket = SourceRecord & {
+export type Market = SourceRecord & {
   verseId: string;
   pool: 'main' | 'pol-uasset' | 'pt-uasset' | 'pt-pol';
   tvl: number;
@@ -75,15 +88,24 @@ export type FixtureMarket = SourceRecord & {
   lpPerQuote: number | null;
 };
 
-export type FixtureSocial = {
+export type Social = {
   kind: 'website' | 'x' | 'telegram' | 'discord';
   url: string;
 };
 
 /** Fixed display order for social links (rows are sorted to this) */
-const SOCIAL_ORDER: FixtureSocial['kind'][] = ['website', 'x', 'discord', 'telegram'];
+const SOCIAL_ORDER: Social['kind'][] = ['website', 'x', 'discord', 'telegram'];
 
-export type FixtureVerse = SourceRecord & {
+/** One landed chain's local genesis state (verse detail, onchain build) — same uAsset
+ *  denomination on every chain; each chain settles its own genesis independently. */
+export type VerseChainAggregates = {
+  normalRaised: number;
+  leverageInterest: number;
+  preorderRaised: number;
+  participantCount: number;
+};
+
+export type Verse = SourceRecord & {
   name: string;
   symbol: string;
   stage: VerseStage;
@@ -103,15 +125,22 @@ export type FixtureVerse = SourceRecord & {
   omniRaised: number;
   omniParticipantCount: number;
   /** Registered omnichain chain ids, first = governance chain (on-chain registration truth).
-   * Fixture snapshot lacks the field -> null: the identity row falls back to the
-   * chains-fixture sample face (fixture build only). */
+   * This is the registration request set — not every chain necessarily landed the verse. */
   omnichainIds: number[] | null;
+  /** Chains whose subgraph actually holds this verse (landed set). null = the source carries no
+   *  per-chain presence data, so no chain icons are rendered. */
+  deployedChainIds: number[] | null;
+  /** Per-chain local genesis state for every landed chain (onchain detail build only): the
+   *  wallet-chain-following displays (threshold meters, participation panel aggregates) switch
+   *  rows by the connected wallet's chain. null/absent = single-row sources (fixture build)
+   *  keep the canonical props. Keyed by chain id as string (RSC-serializable). */
+  chainAggregates?: Record<string, VerseChainAggregates> | null;
   createdAt: string;
   participantCount: number;
   /** One-line description (registration-phase metadata); fixture missing=null -> UI does not render */
   description: string | null;
   /** Social links (registration-phase metadata); fixture missing=empty array -> UI does not render */
-  socials: FixtureSocial[];
+  socials: Social[];
   /** Projected market cap snapshot (in uAsset, registration parameter); fixture missing=null -> UI does not render */
   projectedMarketCap: number | null;
   minSuccessThreshold: number;
@@ -130,6 +159,12 @@ export type FixtureVerse = SourceRecord & {
   leverageInterestRate: number | null;
   /** Leverage debt cap snapshot (in uAsset); fixture missing=null -> UI does not render */
   leverageDebtCap: number | null;
+  /** Exact on-chain rate as an 18-dec wad string (the panel's debt math uses this, not the float) */
+  leverageInterestRateWad: string | null;
+  /** Exact preorder capacity ratio in bps (integer; the panel's cap math uses this) */
+  preorderCapRatioBps: number | null;
+  /** Chain `previewPreorderCapacity` remaining, uAsset 18-dec base units; null = unread */
+  preorderRemainingBase: string | null;
   /** Fast Mode: genesis ends early once any threshold is met (false when the fixture does not mark it) */
   fastGenesis: boolean;
   /** Unlock time = genesis deadline + FIXED_LOCKUP_DURATION(365d); shown on locked/unlocked cards */
@@ -145,11 +180,14 @@ export type FixtureVerse = SourceRecord & {
   change24h: number | null;
   /** Memecoin CA (markets main-pool tokenStats sample); null=undeployed/no sample -> address search does not match (deployed only after genesis succeeds) */
   memecoinAddress: string | null;
-  markets: FixtureMarket[];
+  markets: Market[];
 };
 
-export type FixtureAsset = SourceRecord & {
+export type Asset = SourceRecord & {
   symbol: string;
+  /** ERC20 decimals (chain meta on the onchain build, assets.json sample in fixture mode);
+   * amount math parses typed strings straight into these units — never via float */
+  decimals?: number;
   /** Token proper name (assets.json name; missing=components fall back to symbol) */
   name?: string;
   anchorNote?: string;
@@ -158,12 +196,21 @@ export type FixtureAsset = SourceRecord & {
   /** PSM mint-side fee (tin) for a reserve payable on the face-value direct path; null/absent=rate unread
    *  (par preview, fee row not rendered) */
   psmFeeIn?: number | null;
+  /** Same tin as an exact 18-dec wad string — the amount math deducts THIS (float is display only) */
+  psmFeeInWad?: string;
+  /** Stake-leg preview: uAsset base units minted per ONE whole input token (router
+   * `previewStakeFromToken` at 10^decimals), exactly as read on-chain — the panel multiplies
+   * the typed amount by this ratio in bigint */
+  anchorPreviewBase?: string;
+  /** Stake-manager address driving the stake-funded genesis leg (FundInput.sp); carried only by
+   *  the on-chain pay-asset registry — fixture samples have no SP */
+  sp?: string;
 };
 
-export type FixtureSnapshot = {
+export type Snapshot = {
   timeAnchor: string;
-  verses: FixtureVerse[];
-  assets: FixtureAsset[];
+  verses: Verse[];
+  assets: Asset[];
   homeMetrics: {
     totalLocked: number;
     verseCount: number;
@@ -172,7 +219,7 @@ export type FixtureSnapshot = {
     participantCount: number;
     sourceRefs: string[];
   };
-  sampleAccount: {
+  displayAccount: {
     address: string;
     sourceRef: string;
   };
@@ -192,16 +239,16 @@ function progress(value: number, threshold: number) {
   return (value / threshold) * 100;
 }
 
-function getSnapshot(): FixtureSnapshot {
+function buildSnapshot(): Snapshot {
   const chainMeta = new Map(fixtureData.chains.items.map((chain) => [chain.chainId, chain]));
-  const marketsByVerse = new Map<string, FixtureMarket[]>();
+  const marketsByVerse = new Map<string, Market[]>();
 
   for (const market of fixtureData.markets.items) {
-    const normalizedMarket: FixtureMarket = {
+    const normalizedMarket: Market = {
       id: market.id,
       sourceRef: market.sourceRef,
       verseId: market.verseId,
-      pool: market.pool as FixtureMarket['pool'],
+      pool: market.pool as Market['pool'],
       tvl: amount(market.tvl.raw),
       feeState: market.feeState,
       feeRate: market.feeRate ? Number(market.feeRate.raw) / 1e4 : null,
@@ -214,7 +261,21 @@ function getSnapshot(): FixtureSnapshot {
     marketsByVerse.set(market.verseId, current);
   }
 
-  const verses = fixtureData.verses.items.map<FixtureVerse>((verse) => {
+  // Fixture rate snapshots are exact decimal strings ("0.2"); convert them without float so
+  // the panel's money math (bigint) stays exact even in the fixture build.
+  const decimalToWad = (raw: string): bigint => {
+    const [whole = '0', frac = ''] = raw.split('.');
+    return (
+      BigInt(whole || '0') * 10n ** 18n + BigInt((frac.slice(0, 18) || '').padEnd(18, '0') || '0')
+    );
+  };
+  const ratioToBps = (raw: string): bigint => {
+    const [whole = '0', frac = ''] = raw.split('.');
+    const frac4 = (frac.slice(0, 4) || '').padEnd(4, '0');
+    return BigInt(whole || '0') * 10_000n + BigInt(frac4 || '0');
+  };
+
+  const verses = fixtureData.verses.items.map<Verse>((verse) => {
     const threshold = amount(verse.genesis.minSuccessThreshold.raw);
     const normalRaised = amount(verse.genesis.normalRaised.raw);
     const leverageInterest = amount(verse.genesis.leverageInterest.raw);
@@ -249,13 +310,14 @@ function getSnapshot(): FixtureSnapshot {
       chainId: verse.governanceChain,
       chainName: chainMeta.get(verse.governanceChain)?.name ?? String(verse.governanceChain),
       omnichainIds: null,
+      deployedChainIds: null,
       createdAt: verse.createdAt,
       participantCount: verse.participants,
       description: verse.description ?? null,
       socials: (verse.socials ?? [])
         .map((social) => ({
           // The kind union type is validated as a backstop by the fixture schema (verseSocialSchema)
-          kind: social.kind as FixtureSocial['kind'],
+          kind: social.kind as Social['kind'],
           url: social.url,
         }))
         .sort((a, b) => SOCIAL_ORDER.indexOf(a.kind) - SOCIAL_ORDER.indexOf(b.kind)),
@@ -283,6 +345,15 @@ function getSnapshot(): FixtureSnapshot {
       leverageDebtCap: verse.genesis.leverageDebtCap
         ? amount(verse.genesis.leverageDebtCap.raw)
         : null,
+      leverageInterestRateWad: verse.genesis.leverageInterestRate
+        ? decimalToWad(verse.genesis.leverageInterestRate.raw).toString()
+        : null,
+      preorderCapRatioBps: verse.genesis.preorderCapacityRatio
+        ? Number(ratioToBps(verse.genesis.preorderCapacityRatio.raw))
+        : null,
+      // Fixture snapshots carry no chain remaining-capacity read: the panel keeps its
+      // derived estimate (null = no chain-exact gate)
+      preorderRemainingBase: null,
       fastGenesis: verse.genesis.fastGenesis ?? false,
       unlockTimeAt: new Date(Date.parse(verse.genesis.endsAt) + FIXED_LOCKUP_MS).toISOString(),
       volume24h: verse.livePhase ? amount(verse.livePhase.volume24h.raw) : null,
@@ -308,7 +379,7 @@ function getSnapshot(): FixtureSnapshot {
   // on-chain values. Do not count accounts.items -- those are the portfolio page's persona wallets,
   // not a network-wide sample.
   const participantTotal = verses.reduce((sum, verse) => sum + verse.participantCount, 0);
-  const sampleAccount = fixtureData.accounts.items[0];
+  const displayAccountRow = fixtureData.accounts.items[0];
 
   return {
     timeAnchor: FIXTURE_TIME_ANCHOR,
@@ -336,42 +407,58 @@ function getSnapshot(): FixtureSnapshot {
         ]),
       ],
     },
-    sampleAccount: {
-      address: sampleAccount.address.value,
-      sourceRef: sampleAccount.sourceRef,
+    displayAccount: {
+      address: displayAccountRow.address.value,
+      sourceRef: displayAccountRow.sourceRef,
     },
   };
 }
 
-export function getFixtureSnapshot() {
-  return getSnapshot();
+export function getSnapshot() {
+  return buildSnapshot();
+}
+
+/** Home KPI band. Onchain twin: lib/data/onchain-source.ts getHomeMetrics — ProtocolStats
+ * rows, no verse pull. */
+export function getHomeMetrics(): Snapshot['homeMetrics'] {
+  return getSnapshot().homeMetrics;
+}
+
+/** Shell account slot (fixture: the demo account). Onchain twin returns an empty address. */
+export function getDisplayAccount(): Snapshot['displayAccount'] {
+  return getSnapshot().displayAccount;
+}
+
+/** Raise-asset whitelist (fixture: assets.json uAsset rows) */
+export function getAssets(): Asset[] {
+  return getSnapshot().assets;
 }
 
 /** Chain-scoped verse rows for the discovery browser: one row per verse, viewing its
  * governance chain (the fixture source has no per-chain participation split). Onchain twin:
- * components/data/onchain-adapter.ts getFixtureChainVerses — one row per (verse, chain). */
-export function getFixtureChainVerses(): FixtureVerse[] {
+ * lib/data/onchain-source.ts getChainVerses — one row per (verse, chain). */
+export function getChainVerses(): Verse[] {
   return getSnapshot().verses;
 }
 
 /** Chain ids backing the discovery chain filter (fixture: distinct governance chains) */
-export function getFixtureVerseChainIds(): number[] {
+export function getVerseChainIds(): number[] {
   return [...new Set(getSnapshot().verses.map((verse) => verse.governanceChain))].sort(
     (a, b) => a - b,
   );
 }
 
 export type ChainVersePage = {
-  rows: FixtureVerse[];
+  rows: Verse[];
   total: number;
   hasMore: boolean;
   chainIds: number[];
 };
 
 /** One discovery page on one chain (fixture: in-memory slice of the governance-chain rows).
- * Onchain twin: components/data/onchain-adapter.ts getFixtureChainVersePage — paged subgraph
+ * Onchain twin: lib/data/onchain-source.ts getChainVersePage — paged subgraph
  * read, bounded server memory and RSC payload at any verse volume. */
-export function getFixtureChainVersePage(
+export function getChainVersePage(
   chainId: number,
   filter: { stage?: VerseStage; fastGenesis?: boolean; query?: string },
   first: number,
@@ -379,7 +466,7 @@ export function getFixtureChainVersePage(
 ): ChainVersePage {
   const size = Math.max(1, Math.min(Math.floor(first) || 24, 100));
   const offset = Math.max(0, Math.floor(skip) || 0);
-  const chainIds = getFixtureVerseChainIds();
+  const chainIds = getVerseChainIds();
   // Chain-0 probe (option-set discovery before chain resolution): static option set, zero reads
   if (chainId === 0) return { rows: [], total: 0, hasMore: false, chainIds };
   const query = filter.query?.trim().toLowerCase();
@@ -403,7 +490,7 @@ export function getFixtureChainVersePage(
 }
 
 /** Detail page URL segment parsing: accepts numeric form (/memeverse/21, = on-chain uint256 verseId convention) and the legacy verse-021 form */
-export function getFixtureVerse(verseId: string) {
+export function getVerse(verseId: string) {
   const match = /^(?:verse-)?(\d+)$/i.exec(verseId);
   if (!match) return null;
   // uint256 ids exceed Number precision — compare normalized decimal strings
@@ -415,7 +502,7 @@ export function getFixtureVerse(verseId: string) {
   );
 }
 
-export type FixtureParticipation = {
+export type Participation = {
   verseId: string;
   owner: string;
   kind: 'normal' | 'leverage' | 'preorder';
@@ -425,31 +512,34 @@ export type FixtureParticipation = {
   sourceRef: string;
 };
 
-export type FixtureYieldSource = {
+export type YieldSource = {
   /** Source id (fixtures yield-sources.json, ysrc prefix) */
   id: string;
   sourceRef: string;
   /** Source name (Lido/Aave...) */
   name: string;
   /** Asset group participable under this source (determined only after choosing the source) */
-  assets: FixtureAsset[];
+  assets: Asset[];
 };
 
-export type FixtureParticipationOptions = {
+export type ParticipationOptions = {
   /** uAsset raised by this verse (specified at creation, the sole denomination asset for direct pay/preorder; null=missing from fixture whitelist) */
-  raiseAsset: FixtureAsset | null;
+  raiseAsset: Asset | null;
   /** Reserve assets payable on the face-value direct-swap path (PSM pairs read from fixture, no project affiliation assumed) */
-  reserves: FixtureAsset[];
+  reserves: Asset[];
   /** Staking-path source registry (source -> asset group, read from fixture, no project affiliation assumed) */
-  yieldSourceRegistry: FixtureYieldSource[];
+  yieldSourceRegistry: YieldSource[];
   /** Leverage-interest Credit direct-pay asset (kind=credit and pairedUAssetId=this verse's raised uAsset; null=no paired Credit) */
-  creditAsset: FixtureAsset | null;
+  creditAsset: Asset | null;
 };
 
-/** Participation route -> payment-asset option resolution (the route determines the payment asset; direct pay is limited to this verse's raised uAsset) */
-export function getFixtureParticipationOptions(
+/** Participation route -> payment-asset option resolution (the route determines the payment asset; direct pay is limited to this verse's raised uAsset).
+ *  @param execChainId wallet-execution chain — fixture samples are chain-agnostic so it is unused
+ *  here; the on-chain twin scopes its stake-source reads by it (signature parity across builds). */
+export function getParticipationOptions(
   raiseAssetSymbol: string,
-): FixtureParticipationOptions {
+  _execChainId?: number,
+): ParticipationOptions {
   const raiseAsset = fixtureData.assets.items.find(
     (asset) => asset.kind === 'uasset' && asset.symbol === raiseAssetSymbol,
   );
@@ -460,10 +550,17 @@ export function getFixtureParticipationOptions(
           .map((pair) => pair.reserveId)
       : [],
   );
-  // PSM mint-side fee (tin) per reserve: the face-value path pays it before uAsset is minted
+  // PSM mint-side fee (tin) per reserve: the face-value path pays it before uAsset is minted.
+  // The sample encodes tin in bps ("10" @ scale 4 → 0.1%); the wad form below is the exact
+  // integer the panel's mint math uses (bps * 10^14).
   const psmFeeByReserve = new Map(
     (raiseAsset ? fixtureData.psm.items.filter((pair) => pair.uAssetId === raiseAsset.id) : []).map(
       (pair) => [pair.reserveId, Number(pair.tin.raw) / 1e4] as const,
+    ),
+  );
+  const psmFeeWadByReserve = new Map(
+    (raiseAsset ? fixtureData.psm.items.filter((pair) => pair.uAssetId === raiseAsset.id) : []).map(
+      (pair) => [pair.reserveId, (BigInt(pair.tin.raw) * 10n ** 14n).toString()] as const,
     ),
   );
   const assetById = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
@@ -472,6 +569,7 @@ export function getFixtureParticipationOptions(
     sourceRef: asset.sourceRef,
     symbol: asset.symbol,
     name: asset.name,
+    decimals: asset.decimals,
     anchorValue: asset.anchorValue,
   });
   // uAsset symbol convention = 'U' + underlying family symbol (UETH/UUSD/UBNB); sources
@@ -484,12 +582,17 @@ export function getFixtureParticipationOptions(
           id: raiseAsset.id,
           sourceRef: raiseAsset.sourceRef,
           symbol: raiseAsset.symbol,
+          decimals: raiseAsset.decimals,
           anchorNote: raiseAsset.anchorNote,
         }
       : null,
     reserves: fixtureData.assets.items
       .filter((asset) => reserveIds.has(asset.id))
-      .map((asset) => ({ ...toAsset(asset), psmFeeIn: psmFeeByReserve.get(asset.id) ?? null })),
+      .map((asset) => ({
+        ...toAsset(asset),
+        psmFeeIn: psmFeeByReserve.get(asset.id) ?? null,
+        psmFeeInWad: psmFeeWadByReserve.get(asset.id),
+      })),
     yieldSourceRegistry: fixtureData.yieldSources.items
       .filter((source) => source.anchor === family)
       .map((source) => ({
@@ -507,17 +610,24 @@ export function getFixtureParticipationOptions(
       const credit = fixtureData.assets.items.find(
         (asset) => asset.kind === 'credit' && raiseAsset && asset.pairedUAssetId === raiseAsset.id,
       );
-      return credit ? { id: credit.id, sourceRef: credit.sourceRef, symbol: credit.symbol } : null;
+      return credit
+        ? {
+            id: credit.id,
+            sourceRef: credit.sourceRef,
+            symbol: credit.symbol,
+            decimals: credit.decimals,
+          }
+        : null;
     })(),
   };
 }
 
 /** Sample account's genesis participation records (data source for the Portfolio refund/voucher section; amount conversion same as the ViewModel convention) */
-export function getFixtureParticipations(): FixtureParticipation[] {
+export function getParticipations(): Participation[] {
   return fixtureRepository.participations().map((p) => ({
     verseId: p.verseId,
     owner: p.owner.value,
-    kind: p.kind as FixtureParticipation['kind'],
+    kind: p.kind as Participation['kind'],
     route: (p as { route?: 'direct' | 'stake' }).route ?? null,
     amount: amount(p.amount.raw),
     sourceRef: p.sourceRef,
@@ -525,7 +635,7 @@ export function getFixtureParticipations(): FixtureParticipation[] {
 }
 
 /** Create-form on-chain parameter snapshot; returns null when the create-config fixture has no records -> UI null-not-rendered */
-export function getFixtureCreateConfig(): FixtureCreateConfig | null {
+export function getCreateConfig(): CreateConfig | null {
   const config = fixtureData.createConfig.items[0];
   if (!config) return null;
   return {
@@ -543,15 +653,15 @@ export function getFixtureCreateConfig(): FixtureCreateConfig | null {
  *  end nonce+1 -> new uniqueId makes the symbol reusable).
  *  Sample convention: a verse with snapshot stage='genesis' = inside the genesis window = locked. The contract maps by raw byte string --
  *  matching must be case-sensitive and not trimmed. Onchain mode=previewRegistration+symbolRegistry on-chain reads */
-export function getFixtureOccupiedSymbols(): string[] {
+export function getOccupiedSymbols(): string[] {
   return fixtureRepository
     .verses()
     .filter((verse) => verse.stage === 'genesis')
     .map((verse) => verse.symbol);
 }
 
-/** Shell chain-selector data: six-chain view; functional exports keep the sentinel object out of the shipped bundle */
-export function getFixtureChains() {
+/** Shell chain-selector data: six-chain view; functional exports keep the marker object out of the shipped bundle */
+export function getChains() {
   return fixtureRepository.chains().map((c) => ({
     chainId: c.chainId,
     name: c.name,
@@ -568,19 +678,19 @@ export function getFixtureChains() {
 // missing fields -> null -> UI does not render.
 // ---------------------------------------------------------------------------
 
-export type FixtureCandle = { t: string; o: number; h: number; l: number; c: number; v: number };
+export type Candle = { t: string; o: number; h: number; l: number; c: number; v: number };
 
-export type FixtureFineCandles = {
-  '1m': FixtureCandle[];
-  '5m': FixtureCandle[];
-  '15m': FixtureCandle[];
+export type FineCandles = {
+  '1m': Candle[];
+  '5m': Candle[];
+  '15m': Candle[];
 };
 
-export type FixtureVerseTrade = {
+export type VerseTrade = {
   /** Main-pool candles (1h raw granularity); empty=no sample (degradation notice) */
-  candles: FixtureCandle[];
+  candles: Candle[];
   /** Fine-granularity candle samples (all granularities selectable); null=fixture missing */
-  fineCandles: FixtureFineCandles | null;
+  fineCandles: FineCandles | null;
   tokenStats: {
     price: number | null;
     change24h: number | null;
@@ -596,7 +706,7 @@ export type FixtureVerseTrade = {
     tokenAddress: string | null;
   };
   pools: Array<
-    FixtureMarket & {
+    Market & {
       /** Both-side asset symbols of the pool (display order: MEME first); uAsset side = the verse's raise asset */
       baseSymbol: string;
       quoteSymbol: string;
@@ -611,7 +721,7 @@ const HISTORY_TOTAL_HOURLY = 8760;
  *  === fixture first candle's open), a deterministic random walk toward the past extends it to ~1 year -- drift accumulates
  *  only in the seam-less far end, with zero jump at the seam (anchor at the newest end so the seam stays continuous);
  *  results are constant for a given verseId; onchain mode defers to data-source pagination */
-function extendHourlyHistory(candles: FixtureCandle[], seedKey: string): FixtureCandle[] {
+function extendHourlyHistory(candles: Candle[], seedKey: string): Candle[] {
   if (candles.length === 0 || candles.length >= HISTORY_TOTAL_HOURLY) return candles;
   let seed = 2166136261;
   for (const ch of seedKey) seed = Math.imul(seed ^ ch.charCodeAt(0), 16777619);
@@ -624,7 +734,7 @@ function extendHourlyHistory(candles: FixtureCandle[], seedKey: string): Fixture
   };
   const first = candles[0];
   const firstT = Date.parse(first.t);
-  const older: FixtureCandle[] = [];
+  const older: Candle[] = [];
   let price = first.o; // Seam anchor: k=1's close === fixture first candle's open; walk toward the past from here
   for (let k = 1; k <= HISTORY_TOTAL_HOURLY - candles.length; k++) {
     const open = price * (1 + (rnd() - 0.5) * 0.011);
@@ -644,12 +754,12 @@ function extendHourlyHistory(candles: FixtureCandle[], seedKey: string): Fixture
   return [...older, ...candles];
 }
 
-export function getFixtureVerseTrade(verseId: string): FixtureVerseTrade | null {
+export function getVerseTrade(verseId: string): VerseTrade | null {
   const verse = getSnapshot().verses.find((item) => item.id === verseId);
   if (!verse) return null;
   const rawMarkets = fixtureData.markets.items.filter((market) => market.verseId === verseId);
   const mainRaw = rawMarkets.find((market) => market.pool === 'main');
-  const candles: FixtureCandle[] =
+  const candles: Candle[] =
     mainRaw && 'candles' in mainRaw && mainRaw.candles
       ? mainRaw.candles.map((candle) => ({
           t: candle.t,
@@ -687,7 +797,7 @@ export function getFixtureVerseTrade(verseId: string): FixtureVerseTrade | null 
     // POL/PT are categories, not standalone symbols: POL-<MEME>, PT-<MEME>
     const polSymbol = `POL-${verse.symbol}`;
     const ptSymbol = `PT-${verse.symbol}`;
-    const pair: Record<FixtureMarket['pool'], [string, string]> = {
+    const pair: Record<Market['pool'], [string, string]> = {
       main: [verse.symbol, verse.raiseAsset],
       'pol-uasset': [polSymbol, verse.raiseAsset],
       'pt-uasset': [ptSymbol, verse.raiseAsset],
@@ -717,7 +827,7 @@ export function getFixtureVerseTrade(verseId: string): FixtureVerseTrade | null 
   };
 }
 
-export type FixtureStaking = {
+export type Staking = {
   vaultAddress: string;
   totalStaked: number;
   /** 1 share ≈ N Memecoin (including the virtualAssets buffer) */
@@ -742,13 +852,13 @@ export type FixtureStaking = {
 };
 
 /** uAsset USD sample price (fixture dummy data; missing returns null -> UI hides the USD conversion row) */
-export function getFixtureAssetUsdSample(symbol: string): number | null {
+export function getAssetUsdPrice(symbol: string): number | null {
   const asset = fixtureData.assets.items.find((item) => item.symbol === symbol);
-  return asset?.usdSample ?? null;
+  return asset?.usdPrice ?? null;
 }
 
 /** Memecoin staking yield vault sample (locked/unlocked verse; null=no sample for this verse -> the whole panel is not rendered) */
-export function getFixtureStaking(verseId: string): FixtureStaking | null {
+export function getStaking(verseId: string): Staking | null {
   const record = fixtureData.staking.items.find((item) => item.verseId === verseId);
   if (!record) return null;
   const anchor = Date.parse(FIXTURE_TIME_ANCHOR);
@@ -776,7 +886,7 @@ export function getFixtureStaking(verseId: string): FixtureStaking | null {
   };
 }
 
-export type FixturePolPosition = {
+export type PolPosition = {
   polAddress: string;
   polSupply: number;
   /** uAsset-side amount of the main pool per 1 POL */
@@ -809,7 +919,7 @@ export type FixturePolPosition = {
 };
 
 /** POL/PT/YT positions and valuation sample (locked/unlocked verse; null=this panel is not rendered) */
-export function getFixturePolPosition(verseId: string): FixturePolPosition | null {
+export function getPolPosition(verseId: string): PolPosition | null {
   const record = fixtureData.polPositions.items.find((item) => item.verseId === verseId);
   if (!record) return null;
   const uAssetPerPol = Number(record.uAssetPerPol.raw);
@@ -844,14 +954,14 @@ export function getFixturePolPosition(verseId: string): FixturePolPosition | nul
 }
 
 /** Treasury breakdown composition rows (governance.json treasuryAssets/unclaimedAssets samples) */
-export type FixtureGovernanceAsset = {
+export type GovernanceAsset = {
   symbol: string;
   name: string;
   amount: number;
   usdValue: number;
 };
 
-export type FixtureGovernanceState = {
+export type GovernanceState = {
   cycleNumber: string;
   cycleDurationDays: number;
   cycleEndsAt: string;
@@ -867,7 +977,7 @@ export type FixtureGovernanceState = {
   rewardRatioBps: number | null;
   cumulativeIncentivePool: number | null;
   /** Current-cycle treasury composition sample (null=no sample -> breakdown entry not rendered) */
-  treasuryAssets: FixtureGovernanceAsset[] | null;
+  treasuryAssets: GovernanceAsset[] | null;
   currentCycleVotes: { total: number; mine: number } | null;
   /** If already voted this cycle, the estimated claimable for this cycle by vote share (derived) */
   estimatedClaimable: number | null;
@@ -875,21 +985,21 @@ export type FixtureGovernanceState = {
     number: string;
     treasuryUAsset: number;
     /** Previous cycle's end-of-cycle treasury composition sample (null=no sample -> breakdown entry not rendered) */
-    treasuryAssets: FixtureGovernanceAsset[] | null;
+    treasuryAssets: GovernanceAsset[] | null;
     remainingRewards: number;
     totalVotes: number;
     myVotes: number;
     myClaimable: number;
     /** Claimable-reward composition sample (multiple tokens by voting-power share; null=no sample -> breakdown entry not rendered) */
-    claimableAssets: FixtureGovernanceAsset[] | null;
+    claimableAssets: GovernanceAsset[] | null;
     /** Unclaimed-reward composition sample (null=no sample -> breakdown entry not rendered) */
-    unclaimedAssets: FixtureGovernanceAsset[] | null;
+    unclaimedAssets: GovernanceAsset[] | null;
   } | null;
   proposalCount: { total: number; active: number };
 };
 
 /** DAO governance cycle state sample (locked/unlocked verse; null=no governance sample for this verse -> DAO tab shows only the heading) */
-export function getFixtureGovernanceState(verseId: string): FixtureGovernanceState | null {
+export function getGovernanceState(verseId: string): GovernanceState | null {
   const record = fixtureData.governance.items.find((item) => item.verseId === verseId);
   if (!record) return null;
   const currentCycleVotes =
@@ -906,7 +1016,7 @@ export function getFixtureGovernanceState(verseId: string): FixtureGovernanceSta
     list:
       | { symbol: string; name: string; amount: { raw: string }; usdValue: { raw: string } }[]
       | undefined,
-  ): FixtureGovernanceAsset[] | null =>
+  ): GovernanceAsset[] | null =>
     list
       ? list.map((asset) => ({
           symbol: asset.symbol,
@@ -974,19 +1084,19 @@ export { PROTECTION_WINDOW_MS };
  *  reserve/native balances are unrelated to this product and stay out of the table; only
  *  kind==='reserve' is skipped, the rest cast to uasset|credit -- current data contains only
  *  uasset/reserve/credit kinds) */
-export type FixtureWalletAsset = {
+export type WalletAsset = {
   assetId: string;
   symbol: string;
   kind: 'uasset' | 'credit';
   /** uAsset USD sample price (fixture sample); null=hide conversion */
-  usdSample: number | null;
+  usdPrice: number | null;
   total: number;
   chains: Array<{ chainId: number; chainName: string; amount: number }>;
   /** Bridgeable via the protocol OFT (uAsset family + GenesisCredit; reserve/native are read-only) */
   bridgeable: boolean;
 };
 
-export function getFixtureWalletAssets(): FixtureWalletAsset[] {
+export function getWalletAssets(): WalletAsset[] {
   const chainMeta = new Map(fixtureData.chains.items.map((chain) => [chain.chainId, chain]));
   const assetMeta = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
   const byAsset = new Map<string, Array<{ chainId: number; amount: number }>>();
@@ -995,20 +1105,20 @@ export function getFixtureWalletAssets(): FixtureWalletAsset[] {
     current.push({ chainId: row.chainId, amount: amount(row.amount.raw) });
     byAsset.set(row.assetId, current);
   }
-  const rows: FixtureWalletAsset[] = [];
+  const rows: WalletAsset[] = [];
   for (const [assetId, chains] of byAsset) {
     const asset = assetMeta.get(assetId);
     if (!asset || asset.kind === 'reserve') continue;
     rows.push({
       assetId,
       symbol: asset.symbol,
-      kind: asset.kind as FixtureWalletAsset['kind'],
+      kind: asset.kind as WalletAsset['kind'],
       // Credit has no independent quote: redeemable 1:1 at the same share as its paired uAsset,
       // so the USD sample price = the paired uAsset's sample price; no pairing = hide conversion
-      usdSample:
-        asset.usdSample ??
+      usdPrice:
+        asset.usdPrice ??
         (asset.kind === 'credit' && asset.pairedUAssetId
-          ? (assetMeta.get(asset.pairedUAssetId)?.usdSample ?? null)
+          ? (assetMeta.get(asset.pairedUAssetId)?.usdPrice ?? null)
           : null),
       total: chains.reduce((sum, row) => sum + row.amount, 0),
       chains: chains.map((row) => ({
@@ -1020,7 +1130,7 @@ export function getFixtureWalletAssets(): FixtureWalletAsset[] {
     });
   }
   // uAsset family first (participation currencies), then genesis credits; sorted by symbol within family
-  const kindOrder: Record<FixtureWalletAsset['kind'], number> = {
+  const kindOrder: Record<WalletAsset['kind'], number> = {
     uasset: 0,
     credit: 1,
   };
@@ -1030,7 +1140,7 @@ export function getFixtureWalletAssets(): FixtureWalletAsset[] {
 }
 
 /** Reserve asset balance table (Max source for the Redeem side of the PSM Convert dialog; reserves are not listed as assets) */
-export function getFixtureReserveBalances(): Record<string, number> {
+export function getReserveBalances(): Record<string, number> {
   const assetMeta = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
   const balances: Record<string, number> = {};
   for (const row of fixtureData.balances.items) {
@@ -1044,7 +1154,7 @@ export function getFixtureReserveBalances(): Record<string, number> {
 
 /** All-symbol wallet balance table (aggregated across chains by symbol; Balance/Max source for the genesis participation form).
  *  Symbols with no snapshot row are absent from the table (-> slot state -- + Max disabled, same as swap-panel) */
-export function getFixtureWalletBalances(): Record<string, number> {
+export function getWalletBalances(): Record<string, number> {
   const assetMeta = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
   const balances: Record<string, number> = {};
   for (const row of fixtureData.balances.items) {
@@ -1057,7 +1167,7 @@ export function getFixtureWalletBalances(): Record<string, number> {
 }
 
 /** PSM 1:1 convert pair (section (2) convert dialog): looked up by uAsset symbol */
-export type FixturePsmPair = {
+export type PsmPair = {
   chainId: number;
   reserveSymbol: string;
   /** mint fee / redeem fee (bps -> ratio) */
@@ -1069,7 +1179,7 @@ export type FixturePsmPair = {
   reserveAvailable: number;
 };
 
-export function getFixturePsmPair(uAssetSymbol: string): FixturePsmPair | null {
+export function getPsmPair(uAssetSymbol: string): PsmPair | null {
   const assetMeta = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
   const uAsset = fixtureData.assets.items.find(
     (asset) => asset.kind === 'uasset' && asset.symbol === uAssetSymbol,
@@ -1088,7 +1198,7 @@ export function getFixturePsmPair(uAssetSymbol: string): FixturePsmPair | null {
 }
 
 /** Cross-chain message view (section (2) in-transit/stranded; no cross-chain history is shown) */
-export type FixtureBridgeMessageView = {
+export type BridgeMessageView = {
   id: string;
   fromChainId: number;
   fromChainName: string;
@@ -1102,7 +1212,7 @@ export type FixtureBridgeMessageView = {
   remainder: number | null;
 };
 
-export function getFixtureBridgeMessages(): FixtureBridgeMessageView[] {
+export function getBridgeMessages(): BridgeMessageView[] {
   const chainMeta = new Map(fixtureData.chains.items.map((chain) => [chain.chainId, chain]));
   const assetMeta = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
   return fixtureData.bridgeMessages.items.map((row) => ({
@@ -1114,13 +1224,13 @@ export function getFixtureBridgeMessages(): FixtureBridgeMessageView[] {
     assetSymbol: assetMeta.get(row.assetId)?.symbol ?? '',
     amount: amount(row.amount.raw),
     sentAt: row.sentAt,
-    stage: row.stage as FixtureBridgeMessageView['stage'],
+    stage: row.stage as BridgeMessageView['stage'],
     remainder: row.remainderOnSource ? amount(row.remainderOnSource.raw) : null,
   }));
 }
 
 /** CDP position view (section (3)): debt unit derived via the yield-sources registry anchor family (Lido->ETH->UETH) */
-export type FixtureCdpPosition = {
+export type CdpPosition = {
   id: string;
   chainId: number;
   chainName: string;
@@ -1132,7 +1242,7 @@ export type FixtureCdpPosition = {
   yieldSource: string;
 };
 
-export function getFixtureCdpPositions(): FixtureCdpPosition[] {
+export function getCdpPositions(): CdpPosition[] {
   const chainMeta = new Map(fixtureData.chains.items.map((chain) => [chain.chainId, chain]));
   const assetMeta = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
   const anchorBySource = new Map(
@@ -1155,7 +1265,7 @@ export function getFixtureCdpPositions(): FixtureCdpPosition[] {
 }
 
 /** USR savings view (section (3)): suETH->UETH family mapping; deposit value = shares × accrualIndex/1e18 */
-export type FixtureUsrSavings = {
+export type UsrSavings = {
   id: string;
   /** Share symbol (suETH/suUSD/suBNB) */
   shareSymbol: string;
@@ -1172,11 +1282,11 @@ export type FixtureUsrSavings = {
   /** Deposit value (derived) */
   myAssets: number;
   /** uAsset USD sample price (fixture dummy data; missing=null -> UI hides USD conversion) */
-  usdSample: number | null;
+  usdPrice: number | null;
   lastSettledAt: string;
 };
 
-export function getFixtureUsrSavings(): FixtureUsrSavings[] {
+export function getUsrSavings(): UsrSavings[] {
   const chainMeta = new Map(fixtureData.chains.items.map((chain) => [chain.chainId, chain]));
   const assetMeta = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
   // USD sample price hangs on the underlying uAsset (su* share tokens have no price), reverse-looked-up by symbol
@@ -1199,15 +1309,15 @@ export function getFixtureUsrSavings(): FixtureUsrSavings[] {
         capped: row.capped,
         myShares,
         myAssets: (myShares * Number(row.accrualIndexRaw)) / 1e18,
-        usdSample: assetBySymbol.get(uAssetSymbol)?.usdSample ?? null,
+        usdPrice: assetBySymbol.get(uAssetSymbol)?.usdPrice ?? null,
         lastSettledAt: row.lastSettledAt,
-      } satisfies FixtureUsrSavings;
+      } satisfies UsrSavings;
     })
-    .filter((row): row is FixtureUsrSavings => row !== null);
+    .filter((row): row is UsrSavings => row !== null);
 }
 
 /** Yield vault statement row (section (3) compact table): staking + governance joined per verse */
-export type FixtureVaultRow = {
+export type VaultRow = {
   verse: { id: string; symbol: string; name: string };
   shareSymbol: string;
   myShares: number;
@@ -1220,13 +1330,13 @@ export type FixtureVaultRow = {
   readyUsd: number | null;
 };
 
-export function getFixtureVaultRows(): FixtureVaultRow[] {
+export function getVaultRows(): VaultRow[] {
   const verseMeta = new Map(getSnapshot().verses.map((verse) => [verse.id, verse]));
-  const rows: FixtureVaultRow[] = [];
+  const rows: VaultRow[] = [];
   for (const record of fixtureData.staking.items) {
     const verse = verseMeta.get(record.verseId);
     if (!verse) continue;
-    const staking = getFixtureStaking(record.verseId);
+    const staking = getStaking(record.verseId);
     rows.push({
       verse: {
         id: verse.id,
@@ -1258,7 +1368,7 @@ export function getFixtureVaultRows(): FixtureVaultRow[] {
  *  no cross-chain stranded items -- stranded messages never enter to-dos or page-level signals) */
 export type PortfolioActionKind = 'protection' | 'incentive' | 'vault-ready' | 'refund';
 
-export type FixturePortfolioAction = {
+export type PortfolioAction = {
   kind: PortfolioActionKind;
   /** Single-verse target (aggregate card=null) */
   verse: { id: string; symbol: string; name: string; raiseAsset: string } | null;
@@ -1287,9 +1397,9 @@ const KIND_ORDER: Record<PortfolioActionKind, number> = {
   refund: 3,
 };
 
-export function getFixturePortfolioActions(): FixturePortfolioAction[] {
+export function getPortfolioActions(): PortfolioAction[] {
   const snapshot = getSnapshot();
-  const actions: FixturePortfolioAction[] = [];
+  const actions: PortfolioAction[] = [];
 
   // 24h protection window (unlocked less than 24h ago -- anchored to unlockedAtTx); amount=genesis principal
   // (PT 1:1 at par + POL converted to the uAsset side at uAssetPerPol -- full-exit rights composition)
@@ -1297,7 +1407,7 @@ export function getFixturePortfolioActions(): FixturePortfolioAction[] {
     if (verse.stage !== 'unlocked' || !verse.unlockedAt) continue;
     const remainingMs = Date.parse(verse.unlockedAt) + PROTECTION_WINDOW_MS - ANCHOR_MS;
     if (remainingMs <= 0) continue;
-    const pol = getFixturePolPosition(verse.id);
+    const pol = getPolPosition(verse.id);
     const principal = pol ? pol.myPt + pol.myPol * pol.uAssetPerPol : null;
     actions.push({
       kind: 'protection',
@@ -1345,7 +1455,7 @@ export function getFixturePortfolioActions(): FixturePortfolioAction[] {
 
   // Yield vault pending redemption (matured second step of the redeem flow; own card -- CTA anchors in-page #pf-vault,
   // no cross-verse summing since tokens differ, USD sample-price conversion for the total)
-  const readyVerses = getFixtureVaultRows().filter((row) => row.readyTotal > 0);
+  const readyVerses = getVaultRows().filter((row) => row.readyTotal > 0);
   if (readyVerses.length > 0) {
     actions.push({
       kind: 'vault-ready',
@@ -1363,10 +1473,10 @@ export function getFixturePortfolioActions(): FixturePortfolioAction[] {
   }
 
   // Genesis refund (once per address; no deadline -- refund-stage is claimable anytime)
-  const refundRows = [...new Set(getFixtureParticipations().map((p) => p.verseId))]
+  const refundRows = [...new Set(getParticipations().map((p) => p.verseId))]
     .map((verseId) => {
       const verse = snapshot.verses.find((candidate) => candidate.id === verseId);
-      const rows = getFixtureParticipations().filter((p) => p.verseId === verseId);
+      const rows = getParticipations().filter((p) => p.verseId === verseId);
       return verse && verse.stage === 'refund'
         ? {
             verse: {
@@ -1411,7 +1521,7 @@ export function getFixturePortfolioActions(): FixturePortfolioAction[] {
 }
 
 /** Section (4) participation voucher rows: genesis-stage=participation records (future vouchers); locked/unlocked=POL/PT/YT/LP holdings */
-export type FixtureParticipationRow = {
+export type ParticipationRow = {
   verse: {
     id: string;
     symbol: string;
@@ -1442,14 +1552,14 @@ export type FixtureParticipationRow = {
   } | null;
 };
 
-export function getFixtureParticipationRows(): FixtureParticipationRow[] {
+export function getParticipationRows(): ParticipationRow[] {
   const snapshot = getSnapshot();
-  const participations = getFixtureParticipations();
-  const rows: FixtureParticipationRow[] = [];
+  const participations = getParticipations();
+  const rows: ParticipationRow[] = [];
 
   for (const verse of snapshot.verses) {
     const mine = participations.filter((p) => p.verseId === verse.id);
-    const pol = getFixturePolPosition(verse.id);
+    const pol = getPolPosition(verse.id);
     const head = {
       id: verse.id,
       symbol: verse.symbol,
@@ -1501,9 +1611,9 @@ export function getFixtureParticipationRows(): FixtureParticipationRow[] {
 }
 
 /** Shared by section (1) to-dos / status rows: page-level signal counts (to-dos / claimable) */
-export function getFixturePortfolioSignals() {
-  const actions = getFixturePortfolioActions();
-  const claimableVerses = getFixtureParticipationRows().filter(
+export function getPortfolioSignals() {
+  const actions = getPortfolioActions();
+  const claimableVerses = getParticipationRows().filter(
     (row) => (row.holdings?.claimableYt ?? 0) > 0,
   ).length;
   return {
@@ -1518,13 +1628,13 @@ export function getFixturePortfolioSignals() {
  *  pending/claim (no batching), single-level with unbound self-referral legal, independent per chain
  *  (pending rows=chain × token).
  *  Friends detail and the referralCode short code are samples (on-chain events exclude the
- *  referee, no code registry); ≈$ conversion reuses the assets usdSample sample prices. */
-export function getFixtureReferral(): FixtureReferral | null {
+ *  referee, no code registry); ≈$ conversion reuses the assets usdPrice reference prices. */
+export function getReferral(): Referral | null {
   const record = fixtureData.referral.items[0];
   if (!record) return null;
   const chainMeta = new Map(fixtureData.chains.items.map((chain) => [chain.chainId, chain]));
   const assetMeta = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
-  const viewAmount = (row: (typeof record.earned)[number]): FixtureReferralAssetAmount => {
+  const viewAmount = (row: (typeof record.earned)[number]): ReferralAssetAmount => {
     const asset = assetMeta.get(row.assetId);
     const value = amount(row.amount.raw);
     return {
@@ -1533,15 +1643,15 @@ export function getFixtureReferral(): FixtureReferral | null {
       chainId: row.chainId,
       chainName: chainMeta.get(row.chainId)?.name ?? String(row.chainId),
       amount: value,
-      usd: asset?.usdSample != null ? value * asset.usdSample : null,
+      usd: asset?.usdPrice != null ? value * asset.usdPrice! : null,
     };
   };
   const earned = record.earned.map(viewAmount);
   const pending = record.pending.map(viewAmount);
-  const sumUsd = (rows: FixtureReferralAssetAmount[]) =>
+  const sumUsd = (rows: ReferralAssetAmount[]) =>
     rows.reduce((sum, row) => sum + (row.usd ?? 0), 0);
   return {
-    owner: getSnapshot().sampleAccount.address,
+    owner: getSnapshot().displayAccount.address,
     referralCode: record.referralCode,
     ratePercent: Number(record.rate.raw) / 100,
     totalEarnedUsd: sumUsd(earned),
@@ -1560,7 +1670,7 @@ export function getFixtureReferral(): FixtureReferral | null {
         usd: (() => {
           const asset = assetMeta.get(tx.rebate.assetId);
           const value = amount(tx.rebate.amount.raw);
-          return asset?.usdSample != null ? value * asset.usdSample : null;
+          return asset?.usdPrice != null ? value * asset.usdPrice! : null;
         })(),
       },
       at: tx.at,
@@ -1579,7 +1689,7 @@ export function getFixtureReferral(): FixtureReferral | null {
 // yield-bearing assets stakeForGenesis directly without passing through UUSD)
 // ---------------------------------------------------------------------------
 
-export function getFixtureFaucet(): FixtureFaucet | null {
+export function getFaucet(): Faucet | null {
   const record = fixtureData.faucet.items[0];
   if (!record) return null;
   const chain = fixtureData.chains.items.find((item) => item.chainId === record.chainId);
@@ -1597,9 +1707,71 @@ export function getFixtureFaucet(): FixtureFaucet | null {
       reserveSymbol: record.swap.reserveSymbol,
       feeIn: Number(record.swap.feeIn.raw) / 1e4,
       feeOut: Number(record.swap.feeOut.raw) / 1e4,
+      // Fixture sample carries no chain wad: the dialog keeps the sample ratio math in fixture
+      // mode (visual baselines unchanged); the onchain build carries exact wads.
+      feeInWad: null,
+      feeOutWad: null,
       headroom: record.swap.headroom ? amount(record.swap.headroom.raw) : null,
       myUAsset: amount(record.swap.myUAsset.raw),
       myReserve: amount(record.swap.myReserve.raw),
     },
   };
 }
+
+// Backward-compatible aliases (fixture-era names; new code uses the prefix-free names).
+// TODO: remove after all component imports migrate to the new names.
+export type FixtureMarket = Market;
+export type FixtureSocial = Social;
+export type FixtureVerse = Verse;
+export type FixtureAsset = Asset;
+export type FixtureSnapshot = Snapshot;
+export type FixtureParticipation = Participation;
+export type FixtureYieldSource = YieldSource;
+export type FixtureParticipationOptions = ParticipationOptions;
+export type FixtureCandle = Candle;
+export type FixtureFineCandles = FineCandles;
+export type FixtureVerseTrade = VerseTrade;
+export type FixtureStaking = Staking;
+export type FixturePolPosition = PolPosition;
+export type FixtureGovernanceAsset = GovernanceAsset;
+export type FixtureGovernanceState = GovernanceState;
+export type FixtureWalletAsset = WalletAsset;
+export type FixturePsmPair = PsmPair;
+export type FixtureBridgeMessageView = BridgeMessageView;
+export type FixtureCdpPosition = CdpPosition;
+export type FixtureUsrSavings = UsrSavings;
+export type FixtureVaultRow = VaultRow;
+export type FixturePortfolioAction = PortfolioAction;
+export type FixtureParticipationRow = ParticipationRow;
+
+export {
+  getSnapshot as getFixtureSnapshot,
+  getChainVerses as getFixtureChainVerses,
+  getVerseChainIds as getFixtureVerseChainIds,
+  getChainVersePage as getFixtureChainVersePage,
+  getVerse as getFixtureVerse,
+  getParticipationOptions as getFixtureParticipationOptions,
+  getParticipations as getFixtureParticipations,
+  getCreateConfig as getFixtureCreateConfig,
+  getOccupiedSymbols as getFixtureOccupiedSymbols,
+  getChains as getFixtureChains,
+  getVerseTrade as getFixtureVerseTrade,
+  getAssetUsdPrice as getFixtureAssetUsdSample,
+  getStaking as getFixtureStaking,
+  getPolPosition as getFixturePolPosition,
+  getGovernanceState as getFixtureGovernanceState,
+  getWalletAssets as getFixtureWalletAssets,
+  getReserveBalances as getFixtureReserveBalances,
+  getWalletBalances as getFixtureWalletBalances,
+  getPsmPair as getFixturePsmPair,
+  getBridgeMessages as getFixtureBridgeMessages,
+  getCdpPositions as getFixtureCdpPositions,
+  getUsrSavings as getFixtureUsrSavings,
+  getVaultRows as getFixtureVaultRows,
+  getPortfolioActions as getFixturePortfolioActions,
+  getParticipationRows as getFixtureParticipationRows,
+  getPortfolioSignals as getFixturePortfolioSignals,
+  getReferral as getFixtureReferral,
+  getFaucet as getFixtureFaucet,
+};
+export const getAssetUsdSample = getAssetUsdPrice;
