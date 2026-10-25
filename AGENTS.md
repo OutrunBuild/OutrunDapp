@@ -88,6 +88,7 @@ Skill 列表进上下文时只带名称与路径，正文按需延迟加载：�
 ## 架构边界
 
 - **fixture 数据边界（三层强制）**：`fixtures/**` → `lib/data/fixture-repository.ts`（唯一合法消费方）→ `components/**`（`ui/`、`design-system/` 通用层除外）。页面/组件禁止直接 import `fixtures/`，生产代码禁止反向到达；派生纪律：组件不自造领域数值——数值口径从产品真源取、样本数据落 `fixtures/`（见「产品真源」），fixture 快照缺失的字段按「null 不渲染」处理。由 `scripts/check-fixture-boundary.mjs` 的 `--source` / `--graph production` / `--bundle .next` 三层验证。
+- **生产命名禁 `Fixture/mock/sample/prototype`**：生产类型/函数/字段一律去前缀（`Verse`、`Asset`、`getSnapshot`、`displayAccount`、`usdPrice`、`confirm`），旧名只许留别名过渡（移除条件写在别名块注释里）；`fixtures/schema.ts` 的字段也是生产命名的一部分，改名必须同步 `fixtures/data/*.json` 与单测；onchain 数据源放 `lib/data/onchain-source.ts`，禁止放 `components/`（构建别名与边界脚本同步改）。
 - **双编译器桥**：`typescript` 包 = `vendor/typescript-bridge`（bin/tsc 走 TS 7.0.2 CLI，require 转发 TS 6.0.2 API）。不要直接改桥、不要用 `typescript` 的程序 API 写 TS7 语法；tsconfig 禁 TS7 废弃选项（`baseUrl`、`target: es5` 等）。
 
 ## 命令
@@ -114,16 +115,54 @@ pnpm dlx shadcn@latest add <component>   # pnpm workspace-root 检查会拦 dlx�
 ## 性能纪律
 
 - **刷新粒度 = 变更作用域**：一次写操作完成后只重读该操作影响的项，禁止「清空整表 + 全量重读」——未涉及的行会集体闪烁，一次操作被放大成 N 次 RPC。展示型倒计时存绝对截止时间、不存「剩余 + 探测时刻」，否则局部刷新会让其他行的基准漂移；全量重置只允许发生在账号 / 链 / provider 变化时。参考实现：`components/faucet/faucet-claims.tsx` 的 `probeRef`（按 symbol 合并、只重读本次领取的币种）。
-- **点击链路 RPC 预算**：交易弹窗的点击链路禁止串行静态读与展示读。部署后不变的量（PSM 两边地址、decimals 等）随弹窗打开预读并缓存；弹窗 SSR 已有的数据（费率、余额、headroom）点击时不重读；`quote/estimateGas` 只进渲染的面板才读，免审阅面板不读；点击链路上只留 `allowance` 这类必须现查的读。
+- **写后刷新 = 双层管线，禁止裸 `router.refresh()`**：写确认后受影响数字的立即刷新不得依赖单独的 `router.refresh()`。服务端数据走 30s/60s stale-while-revalidate 缓存（`onchain-source.ts` 的 `cachedConfig`、`graph-repository.ts` 的 `cached()`）：TTL 内当次渲染直接重放交易前数值，TTL 外也是先发旧值、后台 revalidation 落地后没有任何再渲染；subgraph 聚合另叠加索引滞后。**显示链口径**：创世逐链结算，聚合类显示（阈值进度表/参与面板聚合/可预购余量）跟随钱包实链（限 verse 落地集内，越集或断连回退 canonical 副本链的 SSR 值）——基线=`getVerse` 下发的逐链行 `chainAggregates`，钱包链在非 canonical 时其余量等即时值只能来自客户端探针；个人全链合计（「您的参与」）= 本链钱包 provider 读 + 兄弟链 on-demand server action（`lib/data/verse-reads.ts`，钱包 provider 只服务当前链）；参与地址=omni 合计（逐链去重计数求和，跨链去重无身份可用）。两层管线：① **即时层（客户端探针）**——确认（`tx.display === 'confirmed'`）或账号/链切换时经钱包 provider（与 receipt 同链同源）定向重读本次写影响的项、直接更新显示位，参考实现 `components/verse/genesis-live.tsx`（`VerseLiveProvider` 探针 + `writeNonce` 信号）与 faucet `probeRef`；探针读数只在钱包实链 ∈ 落地集时落值，读失败保持基线值（null 不覆盖），账号/链变化清空（全量重置白名单点）。② **中央层（服务端收敛，新写面零接线）**——`WriteSpec.writeScope` 声明本次写的数据作用域（`{ kind: 'verse', chainId, verseId }`），`use-tx-center` 在 `outcome === 'confirmed'` 时统一调 server action `refreshVerseAfterWrite`（`lib/data/write-refresh.ts`，自动携带本笔 tx hash）：先等 subgraph 索引追平写入区块（receipt 区块定位，读不到回退安全头；有界轮询——失效早了冷读会把交易前数值重新入缓存并重置 TTL），再失效该 verse 的两层缓存（`GraphRepository.invalidateVerse` + `onchain-source invalidateVerseConfig`，含磁盘 seed），预热 `getVerse` 后 `router.refresh()`——页面全部服务端数字（进度条/参与地址/门槛/未来新增字段）一次收敛。新增写面的义务：spec 带 `writeScope`（凡有服务端渲染依赖）+ 数值面板接探针；漏声明 scope 的面中央层兜不住。
+- **点击链路 RPC 预算**：交易弹窗的点击链路禁止串行静态读与展示读。静态半（verse 元组、部署表、token decimals）在首次交互时由 `prefetchVerseSession` 预热，点击时 `getVerseSession` / `getTokenDecimals` 命中缓存（`components/global/write-session.ts`；同落地链+verse+account 只有一个在途解析，并发合并；调用必带 `chains` 允许集，会话按 provider 探到的实链缓存）；弹窗 SSR 已有的数据（费率、余额、headroom）点击时不重读；`quote/estimateGas` 只进渲染的面板才读，免审阅面板不读；点击链路上只留 `allowance` 这类必须现查的读（`readAllowances`，腿之间并行）。新增/改造交易弹窗照此接入，不要另建一套会话解析——组件直连 `resolveVerseSession` 由 `check-architecture-compliance` 拦截。
+- **数据齐了再开窗，一次渲染**：点确认先探 `eth_chainId`（错链闸门，也是执行链选址：钱包在 verse 落地集的哪条链就在哪条链执行），再组 spec（allowance）并取完弹窗要画的报价（网络费行），全部到手才 `setReviewing(true)`。弹窗打开后不得再出现后到的行/数值——「先开窗再补数据」会让已渲染的卡片被顶一下（Network Fee 后到最典型）。链路等待放在表单态解决：`resolving` 持续置位挡住重复提交，失败走降级错误行；禁止把等待搬进弹窗。
 
 ## 已知坑
 
 - **Tailwind v4 内容扫描遵循 .gitignore**：忽略 `components/` 这类源码目录会导致工具类整体不生成。`.gitignore` 只定向忽略证据二进制（如 `docs/design/v0-input/*.tar.gz`），禁止忽略含 CSS/TSX 的目录。
 - **部署纪律**：`pnpm build` 与运行中的 server 不可并发（重建 `.next` 会产生新旧 chunk 混用）；重建后必须按 PID kill 旧 `next start` 再重启（禁 `pkill -f`，会自杀会话）。
 
+## 测试网跨链：send 确认 ≠ 到账，必须手动 relay
+
+测试网（BSC Testnet / Base Sepolia / Arbitrum Sepolia）LayerZero 默认 DVN 不给用户流量签名（2026-10 链上验证：数万块内用户 DVN 零签名，仅系统合约在动），也没有活跃的第三方 DVN。后果：
+
+- 前端发起的跨链 send（GenesisCredit OFT）在源链确认后**只 burn 代币，包永远停在未验证状态**，目标链不会到账，除非手动 relay。
+- **每次跨链 send 确认后，必须跑一次 relay**（源链固定 BSC Testnet，等源交易确认后）：
+
+  ```bash
+  bash /home/azkrale/Web3Project/Memeverse/script/relay-lz-packet.sh <源交易hash> <base|arb>
+  ```
+
+  脚本从源回执提取包，在目标链依次执行 `verify`（owner EOA 自任 DVN，无 DVN 合约）→ `commitVerification` → `lzReceive`，代币到账。
+
+- 前置条件（cUETH/cUUSD/cUBNB 在 Base+Arb 已配好）：目标链接收 ULN 配置的 `requiredDVNs` 含 owner。改配置用 `Memeverse/script/LzSetConfig.s.sol`（`CFG_DVN=<owner>`，以 OApp delegate 身份广播）。发送侧配置保持 LayerZero 默认——死 DVN 的 `assignJob` 是无害空操作。
+- 同一路径按 nonce 顺序投递（端点 lazy-nonce 规则）；脚本一次处理一笔。
+- 测试 UI「跨链中/待到账」状态时，别等链上自动到账——先跑 relay 再断言余额变化。
+
+安全性：owner EOA 自签 = relay 脚本就是信任锚，仅测试网。主网必须配真 DVN（`requiredDVNs` = 各链 DVN 合约，同一个 `LzSetConfig.s.sol` 可接线）。
+
+**BSC Testnet gas 陷阱**：验证者强制最低 0.1 gwei tip，forge/cast 默认 1559 交易（tip=1 wei）会被内存池静默黑洞（永不打包、无报错）。BSC 广播必须 `--legacy` + 显式 gasPrice（如 `--gas-price 15gwei`）。Base/Arb Sepolia 不受影响。
+
 ## 登记义务
 
 新 token → `tokens.css` + `token-contract.md`；新组件/页面级 class → `docs/design-system/components.md`；新领域组件行为 → `components/design-system/component-contract.md`。不登记视为未完成。
+
+## 注释纪律
+
+代码注释只写就地原因与约束（why / 不这样做会怎样），不引用 `decision-log` 的决议编号、日期或「ruling / 决议」字样——注释必须脱离外部文档独立读懂，出处归 `decision-log.md`，决策变了改注释而不改引用。链上观测、SDK 版本、基准值这类经验事实可以带日期；会话轮次（round N）、「用户裁定」之类叙事一律不进注释。
+
+## Agent 安全闸（不要绕过）
+
+`.harness/policy.json` 是全局 destructive-git 守护的激活标记；`.claude/settings.json` 另有一层 deny 清单。
+两层都禁止：`git checkout` / `git restore` / `git stash*` / `git clean` / `git push` / 破坏性 `git reset`，
+以及读取 `.env*`。
+
+- 回退单个文件不要用 `git checkout -- <file>`：它会连同**会话前的未提交改动**一起丢弃。
+  改用精准 Edit 反向修改，或先问用户。
+- 确实需要回滚时，由用户执行；Agent 不得自行绕过钩子（换写法、写脚本、改配置都算绕过）。
+- 钩子不可用时（构建失败等）会 fail-open 放行，但规则不变。
 
 <!-- BEGIN:nextjs-agent-rules -->
 

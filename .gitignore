@@ -37,6 +37,9 @@ node_modules/
 
 .worktrees/
 
+# Agent 会话运行时 git worktree（不入库；settings.json 是安全闸需入库）
+.claude/worktrees/
+
 # Pi agent runtime artifacts
 .pi-glla/
 

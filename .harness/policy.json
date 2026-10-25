@@ -1,0 +1,15 @@
+{
+  "repo": "OutrunDapp",
+  "note": "Presence of this file activates the global destructive-git guard (PreToolUse Bash hook in ~/.zcode/cli/config.json + each harness's own settings). The guard crate does not read its contents; gate.sh/review matrices are not configured for this repo.",
+  "hard_blocks": [],
+  "surfaces": {
+    "harness_control": [
+      "^AGENTS\\.md$",
+      "^CLAUDE\\.md$",
+      "^\\.claude/settings\\.json$",
+      "^\\.claude/rules/.*$",
+      "^\\.zcode/config\\.json$",
+      "^\\.harness/.*$"
+    ]
+  }
+}
