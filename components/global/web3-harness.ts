@@ -4,7 +4,7 @@ import { useSyncExternalStore } from 'react';
 
 /**
  * Non-production account harness (runbook step 5): the e2e/visual successor of the retired
- * mock-wallet. Active ONLY when OUTRUN_DATA_SOURCE !== 'onchain' — onchain builds drive the
+ * test harness wallet. Active ONLY when OUTRUN_DATA_SOURCE !== 'onchain' — onchain builds drive the
  * real hooks in use-account-center and never touch this store (assertHarness throws there).
  * Zero fixture imports, so no boundary registration is needed.
  *

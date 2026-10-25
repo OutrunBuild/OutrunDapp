@@ -1,7 +1,7 @@
 // EIP-5792 wallet_sendCalls batch runner (PSM + faucet use; architecture.md §6.x).
-// PSM mint/redeem are direct contract calls — no begin/endAccountSession legs (those
-// guard the Router path only, see OutrunPSMUpgradeable.sol mint/redeem and
-// MemeverseUniswapHookUpgradeable.beginAccountSession). The calls land in the wallet
+// PSM mint/redeem are direct contract calls — no begin/endAccountSession legs (those guard
+// hook-pool swap callbacks only, see MemeverseUniswapHookUpgradeable SwapFacet.beforeSwap;
+// PSM mint/redeem never route through a hook pool). The calls land in the wallet
 // through wallet_sendCalls; 7702-capable wallets (MetaMask smart account etc.) upgrade
 // internally instead of asking the dapp to sign an authorization.
 import type { Chain, Hex } from 'viem';

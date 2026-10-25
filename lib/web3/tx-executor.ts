@@ -32,6 +32,10 @@ export type WriteSpec = {
   review: TxReview;
   /** Kernel implementation for session batches; omit for direct writes (no zero address). */
   kernel?: Hex;
+  /** In-app gas control (embedded wallets): caller-resolved limit and fees. */
+  gasLimit?: bigint;
+  maxFeePerGas?: bigint;
+  maxPriorityFeePerGas?: bigint;
   expectedChainId: number;
   batchCallData: Hex;
   value?: bigint;
@@ -53,6 +57,14 @@ export type WriteSpec = {
    * Kernel session type-4 batch.
    */
   calls?: BatchExecution[];
+  /**
+   * Server data scope this write changes. On a confirmed outcome the tx center runs the
+   * post-write server refresh for this scope (subgraph-freshness-gated cache invalidation +
+   * prime, then router.refresh) — every server-rendered number of that verse updates without
+   * per-page wiring. Omit for flows whose values are already client-read (e.g. faucet
+   * personal balances); omitting means no server refresh fires.
+   */
+  writeScope?: { kind: 'verse'; chainId: number; verseId: string };
 };
 
 /** Terminal outcome of one wallet-executed write. */
@@ -228,6 +240,11 @@ export async function runSession(spec: WriteSpec, deps: ExecDeps): Promise<Write
       manifestVersion: spec.manifestVersion,
       nativeBalance: balance,
       estimatedCost,
+      ...(spec.gasLimit != null ? { gasLimit: spec.gasLimit } : {}),
+      ...(spec.maxFeePerGas != null ? { maxFeePerGas: spec.maxFeePerGas } : {}),
+      ...(spec.maxPriorityFeePerGas != null
+        ? { maxPriorityFeePerGas: spec.maxPriorityFeePerGas }
+        : {}),
     } satisfies PrepareInput);
     if (!('prepared' in result)) {
       if (process.env.NODE_ENV !== 'production') {
@@ -291,6 +308,11 @@ export async function runSession(spec: WriteSpec, deps: ExecDeps): Promise<Write
   try {
     hash = await sendPrepared(ports, prepared);
   } catch (error) {
+    // Dev-only diagnostics, mirroring the prepare catch: sign/broadcast failures are
+    // otherwise indistinguishable (one generic reverted line).
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('[tx] session send failed', error);
+    }
     deps.dispatchAccount({ type: 'reject-authorization' });
     if (isUserRejection(error)) {
       dispatch({ type: 'user-rejected' });
@@ -368,6 +390,12 @@ export async function runCalls(spec: WriteSpec, deps: ExecDeps): Promise<WriteOu
   // Deadline hit: the bundle may still land — keep Confirming… and report 'pending'
   // instead of fabricating a cancellation.
   if (status.status === 'timeout') return 'pending';
+  if (status.status === 'failure') {
+    // The batch landed and reverted on-chain (wallet 400/500 + reverted receipt): this
+    // is the batch's own revert class, not a wallet-side infrastructure failure.
+    dispatch({ type: 'tx-reverted', kind: 'batch-reverted' });
+    return 'failed';
+  }
   if (status.status === 'success') {
     // Mixed/partial batches must not read as a clean success (atomic is requested, but
     // the wallet is the authority; a reverted leg is a failure).

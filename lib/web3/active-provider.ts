@@ -171,6 +171,9 @@ export function buildPrivyConfig(): PrivyConfig {
     // BSC Testnet first: Faucet hub + the only verse-bearing chain (new sessions land here).
     defaultChain: bscTestnet,
     embeddedWallets: {
+      // Privy's own wallet popup is off site-wide: embedded signing is
+      // silent and every write reports through the product's own surfaces instead.
+      showWalletUIs: false,
       ethereum: {
         createOnLogin: 'users-without-wallets',
       },

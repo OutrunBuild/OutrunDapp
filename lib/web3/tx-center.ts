@@ -2,7 +2,7 @@
 // Event-driven 11-state machine: no timers, no auto-advance — every transition is caused by
 // a wallet/chain event or an explicit user action (this replaces the prototype flow-machine
 // driver in step 5; the state names below are the §7 verbatim set).
-// Copy rule: error lines are single short sentences with no interpolated values (2026-10-04);
+// Copy rule: error lines are single short sentences with no interpolated values;
 // the confirm button never changes its label after click, it only disables (wiring rule,
 // asserted at the component layer).
 import type { RevertKind } from './kernel';

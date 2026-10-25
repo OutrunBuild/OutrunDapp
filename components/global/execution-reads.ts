@@ -1,9 +1,10 @@
 // Onchain execution reads: verse registry, pool keys, quotes and token state, all through
 // the active wallet provider (no server keys on the client path). The reader interface keeps
 // resolution logic unit-testable without a chain (§11.1).
-import { createPublicClient, custom, formatUnits, type Abi, type Chain, type Hex } from 'viem';
+import { createPublicClient, custom, type Abi, type Chain, type Hex } from 'viem';
 
-import { erc20ReadAbi, launcherAbi, splitterAbi, swapRouterAbi } from '@/lib/web3/abis';
+import { erc20ReadAbi, launcherAbi, polendAbi, splitterAbi, swapRouterAbi } from '@/lib/web3/abis';
+import { preorderCapacityCeilingBase } from '@/lib/web3/contract-formulas';
 import { getClientChainConfig } from '@/lib/web3/chains';
 import type { Eip1193Request } from '@/lib/web3/active-provider';
 import type { PoolKey } from '@/lib/web3/session-actions';
@@ -54,6 +55,112 @@ export async function readVerseAddresses(
     yieldVault: asHex(tuple[9]),
     governor: asHex(tuple[10]),
   };
+}
+
+/** Connected account's per-kind genesis ledger in uAsset base units: standard funds and
+ *  preorder funds (launcher ledgers, with their one-shot refund flags) plus leveraged interest
+ *  (POLend's totalInterestPaid already sums the real-uAsset and credit slices —
+ *  POLendUpgradeable.sol:663). Plain mapping reads, so an unknown verse or non-participant
+ *  decodes as zero instead of reverting. The interest leg's refund-claimed state lives in
+ *  POLend's private claimFlags (no view exposes it) — the amount is all the chain offers. */
+export type GenesisLedger = {
+  normal: bigint;
+  normalRefunded: boolean;
+  preorder: bigint;
+  preorderRefunded: boolean;
+  interest: bigint;
+};
+
+export async function readGenesisLedger(
+  reader: ContractReader,
+  launcher: Hex,
+  polend: Hex,
+  verseId: bigint,
+  account: Hex,
+): Promise<GenesisLedger> {
+  const [genesis, preorder, interest] = await Promise.all([
+    reader.read({ address: launcher, abi: launcherAbi, functionName: 'userGenesisData', args: [verseId, account] }),
+    reader.read({ address: launcher, abi: launcherAbi, functionName: 'userPreorderData', args: [verseId, account] }),
+    reader.read({ address: polend, abi: polendAbi, functionName: 'totalInterestPaid', args: [verseId, account] }),
+  ]);
+  const genesisTuple = asTupleArray(genesis);
+  const preorderTuple = asTupleArray(preorder);
+  return {
+    normal: BigInt(String(genesisTuple[0])),
+    normalRefunded: Boolean(genesisTuple[1]),
+    preorder: BigInt(String(preorderTuple[0])),
+    preorderRefunded: Boolean(preorderTuple[2]),
+    interest: BigInt(String(interest)),
+  };
+}
+
+/** 「您的参与」 single-value form: equivalent genesis funds. Normal genesis funds plus the
+ *  leveraged interest converted at the on-chain rate — POLend's getUserLeveragedDebt does the
+ *  conversion on-chain ((real+credit interest) × 1e18 ÷ interestRate, POLendUpgradeable.sol:
+ *  700-712), so no client-side rate math. Preorder funds are not part of this stat. The market
+ *  is registered at launch (MemeverseLaunchImpl.sol:84), so the debt view never hits its
+ *  InvalidState guard on a live verse. */
+export async function readGenesisParticipation(
+  reader: ContractReader,
+  launcher: Hex,
+  polend: Hex,
+  verseId: bigint,
+  account: Hex,
+): Promise<bigint> {
+  const [genesis, leveragedDebt] = await Promise.all([
+    reader.read({ address: launcher, abi: launcherAbi, functionName: 'userGenesisData', args: [verseId, account] }),
+    reader.read({ address: polend, abi: polendAbi, functionName: 'getUserLeveragedDebt', args: [verseId, account] }),
+  ]);
+  return BigInt(String(asTupleArray(genesis)[0])) + BigInt(String(leveragedDebt));
+}
+
+/** Verse-level genesis aggregates, all uAsset 18-dec base units. The post-write probe reads
+ *  these through the wallet provider (same RPC that confirmed the receipt) so the panel's
+ *  numbers refresh immediately instead of waiting out the server-side SWR caches. Sourced from
+ *  launcher `totalNormalFunds` + `previewPreorderCapacity` and POLend `getLeveragedDebtInfo`
+ *  (interest total / debt principal), mirroring what the subgraph aggregates for SSR. */
+export type VerseAggregatesLedger = {
+  normalBase: bigint;
+  interestBase: bigint;
+  debtBase: bigint;
+  remainingPreorderBase: bigint;
+};
+
+export async function readVerseAggregates(
+  reader: ContractReader,
+  launcher: Hex,
+  polend: Hex,
+  verseId: bigint,
+): Promise<VerseAggregatesLedger> {
+  const [normal, remaining, debtInfo] = await Promise.all([
+    reader.read({ address: launcher, abi: launcherAbi, functionName: 'totalNormalFunds', args: [verseId] }),
+    reader.read({ address: launcher, abi: launcherAbi, functionName: 'previewPreorderCapacity', args: [verseId] }),
+    reader.read({ address: polend, abi: polendAbi, functionName: 'getLeveragedDebtInfo', args: [verseId] }),
+  ]);
+  // getLeveragedDebtInfo is one named struct: [totalLeveragedInterest, totalLeveragedDebt, …]
+  const info = asTupleArray(debtInfo);
+  return {
+    normalBase: BigInt(String(normal)),
+    interestBase: BigInt(String(info[0])),
+    debtBase: BigInt(String(info[1])),
+    remainingPreorderBase: BigInt(String(remaining)),
+  };
+}
+
+/** Used preorder funds reconstructed from the probe reads: the launcher only exposes the
+ *  capacity REMAINING (`previewPreorderCapacity`), so used = chain-exact ceiling − remaining
+ *  (floor-clamped). `preorderCapacityCeilingBase` is the single-step chain formula — the
+ *  two-step per-user variant would leak its rounding gap into the reconstruction. Null ratio
+ *  (unread config) leaves the reconstruction to the caller's fallback. */
+export function deriveVersePreorderUsed(
+  ledger: Pick<VerseAggregatesLedger, 'normalBase' | 'debtBase' | 'remainingPreorderBase'>,
+  ratioBps: bigint | null,
+): bigint | null {
+  if (ratioBps == null) return null;
+  const ceiling = preorderCapacityCeilingBase(ledger.normalBase + ledger.debtBase, ratioBps);
+  return ceiling > ledger.remainingPreorderBase
+    ? ceiling - ledger.remainingPreorderBase
+    : 0n;
 }
 
 export async function readPoolKey(
@@ -124,17 +231,29 @@ export async function readErc20Meta(
   return { decimals: Number(decimals) };
 }
 
-export async function readErc20State(
+/**
+ * 点击链路上唯一必须现查的读：每个 pull 腿一条 allowance，腿之间并行（一轮往返）。
+ * 余额是展示读，不进点击链路 —— 弹窗打开前读它只会让窗口晚到。
+ */
+export async function readAllowances(
   reader: ContractReader,
-  token: Hex,
   owner: Hex,
-  spender: Hex,
-): Promise<{ balance: bigint; allowance: bigint }> {
-  const [balance, allowance] = await Promise.all([
-    reader.read({ address: token, abi: erc20ReadAbi, functionName: 'balanceOf', args: [owner] }),
-    reader.read({ address: token, abi: erc20ReadAbi, functionName: 'allowance', args: [owner, spender] }),
-  ]);
-  return { balance: BigInt(String(balance)), allowance: BigInt(String(allowance)) };
+  legs: readonly { token: Hex; spender: Hex }[],
+): Promise<bigint[]> {
+  return Promise.all(
+    legs.map(async (leg) =>
+      BigInt(
+        String(
+          await reader.read({
+            address: leg.token,
+            abi: erc20ReadAbi,
+            functionName: 'allowance',
+            args: [owner, leg.spender],
+          }),
+        ),
+      ),
+    ),
+  );
 }
 
 export type PoolSideKind = 'meme' | 'uasset' | 'pol' | 'pt';
@@ -227,19 +346,3 @@ export async function resolveVerseSession(input: {
   };
 }
 
-/** Gas estimate + native balance for the review panel (estimate may fall back to '—'). */
-export async function estimateSession(
-  session: Pick<VerseSession, 'client' | 'reader'> & { eoa: Hex },
-  batch: Hex,
-): Promise<{ estimatedGas: string; nativeBalance: string }> {
-  try {
-    const [gas, balance] = await Promise.all([
-      session.client.estimateGas({ account: session.eoa, to: session.eoa, data: batch }),
-      session.client.getBalance({ address: session.eoa }),
-    ]);
-    return { estimatedGas: gas.toString(), nativeBalance: formatUnits(balance, 18) };
-  } catch {
-    const balance = await session.client.getBalance({ address: session.eoa });
-    return { estimatedGas: '—', nativeBalance: formatUnits(balance, 18) };
-  }
-}

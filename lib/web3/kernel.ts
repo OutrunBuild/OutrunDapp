@@ -63,20 +63,22 @@ export type SessionBatchParts = {
   approval?: BatchExecution;
   /** Multiple approvals (e.g. two-sided liquidity): ordered before begin, after `approval`. */
   approvals?: BatchExecution[];
-  beginAccountSession: BatchExecution;
+  /** Swap-session guards — present only for hook-pool swap actions (see buildSessionWrite). */
+  beginAccountSession?: BatchExecution;
   /** Exactly one Router action per batch. */
   routerAction: BatchExecution;
-  endAccountSession: BatchExecution;
+  /** Swap-session guards — present only for hook-pool swap actions (see buildSessionWrite). */
+  endAccountSession?: BatchExecution;
 };
 
-/** Assemble the fixed call order: approvals? → begin → Router → end. */
+/** Assemble the fixed call order: approvals? → (begin → Router → end)? */
 export function buildSessionBatch(parts: SessionBatchParts): BatchExecution[] {
   return [
     ...(parts.approval ? [parts.approval] : []),
     ...(parts.approvals ?? []),
-    parts.beginAccountSession,
+    ...(parts.beginAccountSession ? [parts.beginAccountSession] : []),
     parts.routerAction,
-    parts.endAccountSession,
+    ...(parts.endAccountSession ? [parts.endAccountSession] : []),
   ];
 }
 
@@ -95,7 +97,7 @@ export type DecodedRevert = {
 
 /**
  * Decode nested revert data to the transaction error model. Anything unrecognized degrades
- * to 'unknown' — the UI renders one short line with no interpolated values (2026-10-04).
+ * to 'unknown' — the UI renders one short line with no interpolated values.
  * Faucet direct writes surface ClaimTooSoon so the faucet panel can name the 24h cooldown
  * instead of falling back to the generic unknown line.
  */

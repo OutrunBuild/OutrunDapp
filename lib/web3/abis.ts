@@ -24,6 +24,7 @@ import registrarOmnichainJson from '../../contracts/abi/v1-rc/MemeverseRegistrar
 import splitterJson from '../../contracts/abi/v1-rc/POLSplitterUpgradeable.json';
 import universalAssetsJson from '../../contracts/abi/v1-rc/OutrunUniversalAssetsUpgradeable.json';
 import yieldVaultJson from '../../contracts/abi/v1-rc/MemecoinYieldVault.json';
+import mockOutrunSusdsSyJson from '../../contracts/abi/v1-rc/MockOutrunSUSDSSYUpgradeable.json';
 
 const asAbi = (json: unknown) => json as Abi;
 
@@ -50,3 +51,7 @@ export const splitterAbi = asAbi(splitterJson);
 // UAsset OFT surface (send/quoteSend) lives on the UniversalAssets ABI.
 export const uAssetOftAbi = asAbi(universalAssetsJson);
 export const yieldVaultAbi = asAbi(yieldVaultJson);
+// Generic SY-adapter read ABI: getTokensIn/previewDeposit share one signature across every frozen
+// SY variant (mock + live), so one representative ABI decodes them all — same pattern as
+// erc20ReadAbi borrowing the MockUSDC ABI.
+export const syReadAbi = asAbi(mockOutrunSusdsSyJson);

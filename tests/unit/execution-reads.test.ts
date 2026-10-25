@@ -3,12 +3,16 @@ import { describe, expect, it } from 'vitest';
 import type { Hex } from 'viem';
 
 import {
+  deriveVersePreorderUsed,
   poolSideKinds,
+  readAllowances,
   readErc20Meta,
-  readErc20State,
+  readGenesisLedger,
+  readGenesisParticipation,
   readPoolKey,
   readSwapQuote,
   readVerseAddresses,
+  readVerseAggregates,
   resolvePoolTokens,
   type ContractReader,
 } from '../../components/global/execution-reads';
@@ -88,6 +92,65 @@ describe('readVerseAddresses', () => {
   });
 });
 
+describe('readGenesisLedger', () => {
+  it('maps the per-kind amounts and the launcher one-shot refund flags', async () => {
+    const reader = stubReader({
+      // userGenesisData tuple: (genesisFund, isRefunded, isRedeemed)
+      userGenesisData: [100n, true, false],
+      // userPreorderData tuple: (funds, claimedMemecoin, isRefunded)
+      userPreorderData: [20n, 0n, false],
+      totalInterestPaid: 5n,
+    });
+    await expect(readGenesisLedger(reader, ROUTER, TOKEN_A, 21n, TOKEN_B)).resolves.toEqual({
+      normal: 100n,
+      normalRefunded: true,
+      preorder: 20n,
+      preorderRefunded: false,
+      interest: 5n,
+    });
+  });
+
+  it('accepts the named-object decode shape for the launcher tuples', async () => {
+    const reader = stubReader({
+      userGenesisData: { fund: 7n, isRefunded: false, isRedeemed: false },
+      userPreorderData: { funds: 2n, claimedMemecoin: 0n, isRefunded: true },
+      totalInterestPaid: 1n,
+    });
+    await expect(readGenesisLedger(reader, ROUTER, TOKEN_A, 21n, TOKEN_B)).resolves.toEqual({
+      normal: 7n,
+      normalRefunded: false,
+      preorder: 2n,
+      preorderRefunded: true,
+      interest: 1n,
+    });
+  });
+});
+
+describe('readGenesisParticipation', () => {
+  it('sums normal funds and the rate-converted leveraged debt (equivalent genesis funds)', async () => {
+    const reader = stubReader({
+      // userGenesisData tuple: (genesisFund, isRefunded, isRedeemed)
+      userGenesisData: [100n, false, false],
+      // POLend getUserLeveragedDebt: (real+credit interest) × 1e18 ÷ interestRate — rate
+      // conversion happens on-chain, the client just adds the two legs.
+      getUserLeveragedDebt: 25n,
+    });
+    await expect(readGenesisParticipation(reader, ROUTER, TOKEN_A, 21n, TOKEN_B)).resolves.toEqual(
+      125n,
+    );
+  });
+
+  it('decodes zero ledgers for a non-participant', async () => {
+    const reader = stubReader({
+      userGenesisData: [0n, false, false],
+      getUserLeveragedDebt: 0n,
+    });
+    await expect(readGenesisParticipation(reader, ROUTER, TOKEN_A, 21n, TOKEN_B)).resolves.toEqual(
+      0n,
+    );
+  });
+});
+
 describe('readPoolKey', () => {
   it('maps the key tuple to named fields', async () => {
     const reader = stubReader({ getHookPoolKey: [TOKEN_A, TOKEN_B, 3000, 60, ROUTER] });
@@ -128,13 +191,9 @@ describe('readSwapQuote', () => {
 });
 
 describe('erc20 reads', () => {
-  it('reads meta and state', async () => {
-    const reader = stubReader({ decimals: 6, balanceOf: 500n, allowance: 100n });
+  it('reads meta', async () => {
+    const reader = stubReader({ decimals: 6 });
     await expect(readErc20Meta(reader, TOKEN_A)).resolves.toEqual({ decimals: 6 });
-    await expect(readErc20State(reader, TOKEN_A, TOKEN_B, ROUTER)).resolves.toEqual({
-      balance: 500n,
-      allowance: 100n,
-    });
   });
 });
 
@@ -173,5 +232,86 @@ describe('resolvePoolTokens', () => {
       base: TOKEN_B,
       quote: ROUTER,
     });
+  });
+});
+
+describe('readAllowances (click-path read)', () => {
+  it('reads one allowance per pull leg and never issues the display balance read', async () => {
+    const calls: string[] = [];
+    const reader: ContractReader = {
+      read: async ({ address, functionName }) => {
+        calls.push(`${functionName}:${address}`);
+        // balanceOf is a display read — putting it on the click path delays the dialog
+        if (functionName !== 'allowance') throw new Error(`unexpected ${functionName}`);
+        return address === TOKEN_A ? 5n : 0n;
+      },
+    };
+    const allowances = await readAllowances(reader, ROUTER, [
+      { token: TOKEN_A, spender: ROUTER },
+      { token: TOKEN_B, spender: ROUTER },
+    ]);
+    expect(allowances).toEqual([5n, 0n]);
+    expect(calls).toEqual([`allowance:${TOKEN_A}`, `allowance:${TOKEN_B}`]);
+  });
+});
+
+describe('readVerseAggregates (post-write probe)', () => {
+  it('decodes the named-struct debt info and the two launcher reads by position', async () => {
+    const reader = stubReader({
+      totalNormalFunds: 3n * 10n ** 18n,
+      previewPreorderCapacity: 10n ** 17n,
+      // viem decodes the single named struct as an object keyed by field name
+      getLeveragedDebtInfo: {
+        totalLeveragedInterest: 10n ** 17n,
+        totalLeveragedDebt: 2n * 10n ** 18n,
+        interestRate: 5n * 10n ** 16n,
+        debtCap: 90n * 10n ** 18n,
+        remainingAdditionalInterest: 89n * 10n ** 18n,
+      },
+    });
+    await expect(readVerseAggregates(reader, ROUTER, TOKEN_A, 21n)).resolves.toEqual({
+      normalBase: 3n * 10n ** 18n,
+      interestBase: 10n ** 17n,
+      debtBase: 2n * 10n ** 18n,
+      remainingPreorderBase: 10n ** 17n,
+    });
+  });
+
+  it('also accepts the positional-array decode shape', async () => {
+    const reader = stubReader({
+      totalNormalFunds: 0n,
+      previewPreorderCapacity: 0n,
+      getLeveragedDebtInfo: [0n, 0n, 0n, 0n, 0n],
+    });
+    await expect(readVerseAggregates(reader, ROUTER, TOKEN_A, 21n)).resolves.toEqual({
+      normalBase: 0n,
+      interestBase: 0n,
+      debtBase: 0n,
+      remainingPreorderBase: 0n,
+    });
+  });
+});
+
+describe('deriveVersePreorderUsed (chain-exact reconstruction)', () => {
+  // cap = (normal + debt) × 7 × ratio ÷ 1e5; used = cap − remaining
+  it('reconstructs used funds from the probe reads (5 UUSD base, 25% ratio, 0.875 cap, 0.1 used)', () => {
+    const ledger = {
+      normalBase: 5n * 10n ** 18n,
+      debtBase: 0n,
+      remainingPreorderBase: 775n * 10n ** 15n,
+    };
+    expect(deriveVersePreorderUsed(ledger, 2_500n)).toBe(100n * 10n ** 15n);
+  });
+
+  it('clamps to zero when the remaining read exceeds the reconstructed ceiling', () => {
+    expect(
+      deriveVersePreorderUsed({ normalBase: 0n, debtBase: 0n, remainingPreorderBase: 5n }, 10_000n),
+    ).toBe(0n);
+  });
+
+  it('a null ratio (unread config) leaves the reconstruction to the caller', () => {
+    expect(
+      deriveVersePreorderUsed({ normalBase: 5n, debtBase: 0n, remainingPreorderBase: 0n }, null),
+    ).toBeNull();
   });
 });

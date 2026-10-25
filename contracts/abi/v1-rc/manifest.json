@@ -228,10 +228,11 @@
         },
         "OutrunRouter": {
           "abi": "OutrunRouter",
-          "address": "0x80fBF63a3b292881C70Dc5Df4a9E9E71C1C3135B",
+          "address": "0xC4F8D020720473E5EaD903532Cf9039F6583aa88",
           "status": "deployed",
-          "deploymentBlock": 138478823,
-          "runtimeCodehash": "0xb60d1c033fcf9d82e839ecf18035f5a272e7a192b7ec096fa4dd6554b9969c3f"
+          "deploymentBlock": 138509527,
+          "runtimeCodehash": "0xe5a277f8dd733b69059e396b217c7b1ea25fc7be4fc33f9577d967f2282d1976",
+          "deploymentTx": "0xb3bbf7d52d0b637f85bf6867eefcdb9c90b6d3da99796dae03e365498d6efa1f"
         },
         "OutrunStakingPosition": {
           "abi": "OutrunStakingPositionUpgradeable",
@@ -649,10 +650,11 @@
         },
         "OutrunRouter": {
           "abi": "OutrunRouter",
-          "address": "0x80fBF63a3b292881C70Dc5Df4a9E9E71C1C3135B",
+          "address": "0xC4F8D020720473E5EaD903532Cf9039F6583aa88",
           "status": "deployed",
-          "deploymentBlock": 49222686,
-          "runtimeCodehash": "0xb60d1c033fcf9d82e839ecf18035f5a272e7a192b7ec096fa4dd6554b9969c3f"
+          "deploymentBlock": 49290775,
+          "runtimeCodehash": "0xe5a277f8dd733b69059e396b217c7b1ea25fc7be4fc33f9577d967f2282d1976",
+          "deploymentTx": "0x0c483b90ef35f0ded9c548d51454f629986e32e83d42188e1dbc9edd7a3fd60b"
         },
         "OutrunStakingPosition": {
           "abi": "OutrunStakingPositionUpgradeable",
@@ -1063,10 +1065,11 @@
         },
         "OutrunRouter": {
           "abi": "OutrunRouter",
-          "address": "0x80fBF63a3b292881C70Dc5Df4a9E9E71C1C3135B",
+          "address": "0xC4F8D020720473E5EaD903532Cf9039F6583aa88",
           "status": "deployed",
-          "deploymentBlock": 322082095,
-          "runtimeCodehash": "0xb60d1c033fcf9d82e839ecf18035f5a272e7a192b7ec096fa4dd6554b9969c3f"
+          "deploymentBlock": 322133628,
+          "runtimeCodehash": "0xe5a277f8dd733b69059e396b217c7b1ea25fc7be4fc33f9577d967f2282d1976",
+          "deploymentTx": "0x31adbdc68f86ec02f4d8cce0c0bc792b5e6af4b71c80f5a59440e2275d13fa9e"
         },
         "OutrunStakingPosition": {
           "abi": "OutrunStakingPositionUpgradeable",

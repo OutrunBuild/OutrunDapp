@@ -17,8 +17,8 @@ import {
 
 import { getCopy } from './copy';
 import {
+  readAllowances,
   readErc20Meta,
-  readErc20State,
   type ContractReader,
 } from './execution-reads';
 import { useAccountCenter } from './use-account-center';
@@ -28,8 +28,8 @@ import { useTxCenter } from './use-tx-center';
  * Shared PSM face-value swap flow (Faucet Get-UUSD dialog + Portfolio Convert dialog).
  * Static reads (PSM pair addresses, token decimals) are pre-read once per account/chain
  * and cached; the click path only probes the mutable allowance and fires the wallet.
- * Quote/estimateGas feed the review panel only — the §29 review-less path never reads
- * them (the host dialog already carries the deal facts from SSR).
+ * The review object is a state-machine anchor only: no estimateGas/balance read happens on
+ * the click path (a rendered fee row comes from useGasQuote inside the review dialogs).
  * The two dialogs keep their own copy and layout; only the pipeline is shared.
  */
 export function usePsmSwap(locale: Locale, uAssetSymbol: string) {
@@ -108,11 +108,11 @@ export function usePsmSwap(locale: Locale, uAssetSymbol: string) {
         // it when it already covers and re-probes silently in the background — the popup
         // never waits for this read.
         const [reserveAllowance, uAssetAllowance] = await Promise.all([
-          readErc20State(reader, reserveToken, eoa as Hex, psm)
-            .then((s) => s.allowance)
+          readAllowances(reader, eoa as Hex, [{ token: reserveToken, spender: psm }])
+            .then(([value]) => value)
             .catch(() => null),
-          readErc20State(reader, uAsset, eoa as Hex, psm)
-            .then((s) => s.allowance)
+          readAllowances(reader, eoa as Hex, [{ token: uAsset, spender: psm }])
+            .then(([value]) => value)
             .catch(() => null),
         ]);
         if (!cancelled) {
@@ -219,15 +219,15 @@ export function usePsmSwap(locale: Locale, uAssetSymbol: string) {
         const refreshReader: ContractReader = {
           read: (readParams) => client.readContract(readParams) as Promise<unknown>,
         };
-        void readErc20State(refreshReader, payToken, eoa, psm)
-          .then((s) =>
+        void readAllowances(refreshReader, eoa, [{ token: payToken, spender: psm }])
+          .then(([fresh]) =>
             setPairCache((prev) =>
-              prev == null ? prev : { ...prev, allowance: { ...prev.allowance, [payToken]: s.allowance } },
+              prev == null ? prev : { ...prev, allowance: { ...prev.allowance, [payToken]: fresh! } },
             ),
           )
           .catch(() => undefined);
       } else {
-        allowance = (await readErc20State(reader, payToken, eoa, psm)).allowance;
+        [allowance] = await readAllowances(reader, eoa, [{ token: payToken, spender: psm }]);
         const fresh = allowance;
         setPairCache((prev) =>
           prev == null ? prev : { ...prev, allowance: { ...prev.allowance, [payToken]: fresh } },
@@ -241,14 +241,15 @@ export function usePsmSwap(locale: Locale, uAssetSymbol: string) {
         mode === 'mint' ? psmMintCall(psm, eoa, amountIn) : psmRedeemCall(psm, eoa, amountIn);
       const calls = approval ? [approval, action] : [action];
       // PSM mint/redeem are direct contract calls: the Kernel batch carries the approval
-      // and the action only. The Hook session guards are Router-only — wrapping PSM in
+      // and the action only. The Hook session guards are swap-only (hook beforeSwap reads
+      // activePrincipal; PSM never routes through a hook pool) — wrapping PSM in
       // begin/end adds a revert surface (beginAccountSession rejects callers without code)
       // for no protection. External wallets already send these same legs via 5792.
       const batch = encodeKernelExecute(calls);
       if (options?.skipReview) {
         // §29 review-less path: the host dialog already lists the deal facts, so the wallet
         // popup is the only confirmation. The review object is a state-machine anchor only —
-        // no quote/estimateGas reads here; they feed the rendered panel, not this path.
+        // no estimateGas/balance read happens on any click path (see use-gas-quote).
         const outcome = await tx.executeSession({
           review: {
             chainId,
@@ -292,19 +293,6 @@ export function usePsmSwap(locale: Locale, uAssetSymbol: string) {
         functionName: mode === 'mint' ? 'quoteMint' : 'quoteRedeem',
         args: [amountIn],
       })) as bigint;
-      let estimatedGas = '—';
-      let nativeBalance = '—';
-      try {
-        const [gas, balance] = await Promise.all([
-          client.estimateGas({ account: eoa, to: eoa, data: batch }),
-          client.getBalance({ address: eoa }),
-        ]);
-        estimatedGas = gas.toString();
-        nativeBalance = formatUnits(balance, 18);
-      } catch {
-        const balance = await client.getBalance({ address: eoa });
-        nativeBalance = formatUnits(balance, 18);
-      }
       void tx.executeSession({
         review: {
           chainId,
@@ -320,8 +308,8 @@ export function usePsmSwap(locale: Locale, uAssetSymbol: string) {
             : approval
               ? `${formatUnits(amountIn, payDecimals)} ${labels.paySymbol}`
               : '—',
-          estimatedGas,
-          nativeBalance,
+          estimatedGas: '—',
+          nativeBalance: '—',
         },
         kernel,
         expectedChainId: chainId,

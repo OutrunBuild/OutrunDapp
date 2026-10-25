@@ -1,7 +1,7 @@
 // Session action builder tests (stage 6 step 3/4): every Router/Hook write leg encodes
 // against the frozen v1-rc ABIs (byte snapshots); approval defaults to the exact amount
-// with unlimited as an explicit opt-in; session assembly keeps approval? → begin →
-// action → end.
+// with unlimited as an explicit opt-in; session assembly keeps approvals? → action, the
+// begin/end guards present only for swapSession (hook-pool swap) paths.
 import { describe, expect, it } from 'vitest';
 import { decodeFunctionData, getFunctionSelector, maxUint256, padHex, type Hex } from 'viem';
 
@@ -16,16 +16,20 @@ import {
   faucetClaimCall,
   flashPolToYtCall,
   fundCreditInput,
+  fundPsmInput,
+  fundStakeInput,
   fundUAssetInput,
   genesisAndPreorderCall,
   genesisCall,
   leveragedGenesisAndPreorderCall,
+  leveragedGenesisByPsmCall,
   limitForDirection,
   MAX_SQRT_PRICE_X96,
   mergeCall,
   MIN_SQRT_PRICE_X96,
   mintPolCall,
   oftSendCall,
+  preorderByPsmCall,
   psmMintCall,
   redeemMemecoinLiquidityUnwrapCall,
   redeemPtCall,
@@ -180,10 +184,11 @@ describe('session legs', () => {
 });
 
 describe('encodeSessionCalldata', () => {
-  it('assembles approval → begin → action → end inside Kernel execute', () => {
+  it('assembles approval → begin → action → end inside Kernel execute (swapSession)', () => {
     const data = encodeSessionCalldata({
       hook: HOOK,
       approval: approvalCall(TOKEN, ROUTER, 1000n),
+      swapSession: true,
       action: swapExactInputCall(ROUTER, {
         key: KEY,
         zeroForOne: true,
@@ -214,15 +219,32 @@ describe('encodeSessionCalldata', () => {
 });
 
 describe('buildSessionWrite', () => {
-  it('returns the same legs for 5792 and the Kernel calldata in session order', () => {
+  it('omits session guards by default (non-swap paths never read activePrincipal)', () => {
     const input = {
       hook: HOOK,
       approval: approvalCall(TOKEN, ROUTER, 1000n),
       action: genesisCall(ROUTER, { verseId: 1n, amountInUAsset: 1n, user: EOA }),
     };
     const { calls, calldata } = buildSessionWrite(input);
-    expect(calls.map((leg) => leg.target)).toEqual([TOKEN, HOOK, ROUTER, HOOK]);
+    expect(calls.map((leg) => leg.target)).toEqual([TOKEN, ROUTER]);
     expect(calldata).toBe(encodeSessionCalldata(input));
+  });
+
+  it('wraps the action in begin/end guards when swapSession is set', () => {
+    const { calls } = buildSessionWrite({
+      hook: HOOK,
+      approval: approvalCall(TOKEN, ROUTER, 1000n),
+      action: swapExactInputCall(ROUTER, {
+        key: { currency0: TOKEN, currency1: EOA, fee: 0, tickSpacing: 0, hooks: HOOK },
+        zeroForOne: true,
+        amountIn: 1n,
+        amountOutMinimum: 0n,
+        recipient: EOA,
+        deadline: 1n,
+      }),
+      swapSession: true,
+    });
+    expect(calls.map((leg) => leg.target)).toEqual([TOKEN, HOOK, ROUTER, HOOK]);
   });
 });
 
@@ -381,5 +403,76 @@ describe('combined entrypoint golden calldata vectors', () => {
       user: EOA,
     });
     expect(leg.callData).toBe(golden.leveragedGenesisAndPreorderUAsset);
+  });
+});
+
+describe('psm/stake wiring vectors', () => {
+  // Same cast-calldata provenance as the vectors above: Psm=1 pins the reserve-token field at
+  // token, Stake=2 pins sp alongside tokenIn — the two mappings decode-based assertions cannot
+  // see (uint8 enum erasure).
+  const golden = {
+    genesisAndPreorderPsm:
+      '0x4c1def1d000000000000000000000000000000000000000000000000000000000000001500000000000000000000000000000000000000000000000000000000000000010000000000000000000000001111111111111111111111111111111111111111000000000000000000000000000000000000000000000000000000000000003200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001111111111111111111111111111111111111111',
+    genesisAndPreorderStake:
+      '0x4c1def1d000000000000000000000000000000000000000000000000000000000000001500000000000000000000000000000000000000000000000000000000000000020000000000000000000000002222222222222222222222222222222222222222000000000000000000000000000000000000000000000000000000000000003200000000000000000000000033333333333333333333333333333333333333330000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001111111111111111111111111111111111111111',
+    leveragedGenesisByPSM:
+      '0xb17f4d1600000000000000000000000011111111111111111111111111111111111111110000000000000000000000002222222222222222222222222222222222222222000000000000000000000000000000000000000000000000000000000000003200000000000000000000000000000000000000000000000000000000000000150000000000000000000000001111111111111111111111111111111111111111',
+    preorderByPSM:
+      '0x942a599800000000000000000000000011111111111111111111111111111111111111110000000000000000000000002222222222222222222222222222222222222222000000000000000000000000000000000000000000000000000000000000003200000000000000000000000000000000000000000000000000000000000000150000000000000000000000001111111111111111111111111111111111111111',
+  } as const;
+  const RESERVE = '0x1111111111111111111111111111111111111111' as Hex;
+  const TOKEN_IN = '0x2222222222222222222222222222222222222222' as Hex;
+  const SP = '0x3333333333333333333333333333333333333333' as Hex;
+
+  it('genesisAndPreorder byte-exact: psm genesis leg encodes source=1 + reserve token', () => {
+    const leg = genesisAndPreorderCall(ROUTER, {
+      verseId: 21n,
+      genesis: fundPsmInput(RESERVE, 50n),
+      preorder: fundUAssetInput(10n),
+      user: EOA,
+    });
+    expect(leg.callData).toBe(golden.genesisAndPreorderPsm);
+  });
+
+  it('genesisAndPreorder byte-exact: stake genesis leg encodes source=2 + sp', () => {
+    const leg = genesisAndPreorderCall(ROUTER, {
+      verseId: 21n,
+      genesis: fundStakeInput(SP, TOKEN_IN, 50n),
+      preorder: fundUAssetInput(10n),
+      user: EOA,
+    });
+    expect(leg.callData).toBe(golden.genesisAndPreorderStake);
+  });
+
+  it('leveragedGenesisByPSM targets the router with the reserve as first arg', () => {
+    const leg = leveragedGenesisByPsmCall(ROUTER, {
+      uAsset: EOA,
+      reserveToken: TOKEN_IN, // golden vector's reserve-slot digits
+      amountIn: 50n,
+      verseId: 21n,
+      genesisUser: EOA,
+    });
+    expect(leg.target).toBe(ROUTER);
+    expect(leg.value).toBe(0n);
+    expect(leg.callData).toBe(golden.leveragedGenesisByPSM);
+    const decoded = decodeFunctionData({ abi: outrunRouterAbi, data: leg.callData });
+    expect(decoded.functionName).toBe('leveragedGenesisByPSM');
+    expect(decoded.args).toEqual([EOA, TOKEN_IN, 50n, 21n, EOA]);
+  });
+
+  it('preorderByPSM targets the router with the preorder user as last arg', () => {
+    const leg = preorderByPsmCall(ROUTER, {
+      uAsset: EOA,
+      reserveToken: TOKEN_IN,
+      amountIn: 50n,
+      verseId: 21n,
+      preorderUser: EOA,
+    });
+    expect(leg.target).toBe(ROUTER);
+    expect(leg.value).toBe(0n);
+    expect(leg.callData).toBe(golden.preorderByPSM);
+    const decoded = decodeFunctionData({ abi: outrunRouterAbi, data: leg.callData });
+    expect(decoded.functionName).toBe('preorderByPSM');
+    expect(decoded.args).toEqual([EOA, TOKEN_IN, 50n, 21n, EOA]);
   });
 });

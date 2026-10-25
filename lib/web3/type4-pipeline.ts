@@ -96,11 +96,26 @@ export type UnsignedType4 = {
   data: Hex;
   /** Present (non-empty) = Type-4 carrying delegations; absent = plain type-2 self-execution. */
   authorizationList?: SignedAuthorization[];
+  /** Caller-resolved gas limit (in-app gas control); absent = estimate at send time. */
+  gasLimit?: bigint;
+  /** Caller-chosen EIP-1559 fees (in-app gas control). */
+  maxFeePerGas?: bigint;
+  maxPriorityFeePerGas?: bigint;
 };
 
 /** Every unsigned field must match between simulation and broadcast — no drift allowed. */
 export function assertByteIdentical(prepared: UnsignedType4, toSend: UnsignedType4): void {
-  const fields: (keyof UnsignedType4)[] = ['to', 'eoa', 'chainId', 'nonce', 'value', 'data'];
+  const fields: (keyof UnsignedType4)[] = [
+    'to',
+    'eoa',
+    'chainId',
+    'nonce',
+    'value',
+    'data',
+    'gasLimit',
+    'maxFeePerGas',
+    'maxPriorityFeePerGas',
+  ];
   for (const field of fields) {
     const a = prepared[field];
     const b = toSend[field];
@@ -150,6 +165,10 @@ export type PrepareInput = {
   /** Native balance vs estimated total cost: the §6.4 gate, checked before any signing. */
   nativeBalance: bigint;
   estimatedCost: bigint;
+  /** User-adjusted gas (in-app gas control): carried onto the prepared tx unchanged. */
+  gasLimit?: bigint;
+  maxFeePerGas?: bigint;
+  maxPriorityFeePerGas?: bigint;
 };
 
 export type PrepareResult =
@@ -189,6 +208,11 @@ export async function prepareType4(ports: Type4Ports, input: PrepareInput): Prom
     value: input.value ?? 0n,
     data: input.batchCallData,
     ...(authorization ? { authorizationList: [authorization] } : {}),
+    ...(input.gasLimit != null ? { gasLimit: input.gasLimit } : {}),
+    ...(input.maxFeePerGas != null ? { maxFeePerGas: input.maxFeePerGas } : {}),
+    ...(input.maxPriorityFeePerGas != null
+      ? { maxPriorityFeePerGas: input.maxPriorityFeePerGas }
+      : {}),
   };
   const simulation = await ports.simulateType4(tx);
   if (!simulation.ok) {

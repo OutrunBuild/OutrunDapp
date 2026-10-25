@@ -15,6 +15,8 @@ import {
   TESTNET_CHAIN_IDS,
   parseDeployment,
   resolveOutrunChain,
+  verseExecutionChains,
+  verseSwitchChainId,
   type EnvLookup,
   type OutrunChainConfig,
 } from '../../../lib/web3/chains';
@@ -67,11 +69,11 @@ describe('six-chain registry snapshot', () => {
     expect(arb.contracts).toMatchObject({
       status: 'deployed',
       abiVersion: 'v1-rc',
-      deploymentBlock: 318640840,
+      deploymentBlock: 318640845,
     });
     expect(
       Object.keys(arb.contracts.status === 'deployed' ? arb.contracts.addresses : {}),
-    ).toHaveLength(33);
+    ).toHaveLength(37);
     expect(arb.eip7702TxType).toBe('0x04');
     expect(arb.authorizationPolicy).toBe('chain-specific');
     expect(arb.gasPaymentPolicy).toBe('user-pays-native');
@@ -95,7 +97,7 @@ describe('six-chain registry snapshot', () => {
     const baseChain = okConfig(84532);
     expect(
       Object.keys(baseChain.contracts.status === 'deployed' ? baseChain.contracts.addresses : {}),
-    ).toHaveLength(35);
+    ).toHaveLength(39);
     expect(baseChain.finalityPolicy).toEqual({ safeBlockLag: 12 });
   });
 
@@ -207,5 +209,45 @@ describe('ENV placeholder resolution', () => {
       expect(c.rpc).not.toBeNull();
       expect(c.subgraphEndpoint).toMatch(/^https:\/\/api\.thegraph\.com\//);
     }
+  });
+});
+
+// Participation gate semantics: the executable set is the landed set (chains whose subgraph
+// holds the verse), never the registration request. The switch target prefers the governance
+// chain but must fall back to a chain that actually landed.
+describe('verse execution chains', () => {
+  it('uses the landed set and prefers the landed governance chain', () => {
+    expect(verseExecutionChains(97, [421614, 84532, 97])).toEqual([97, 84532, 421614]);
+    expect(verseSwitchChainId(97, [421614, 84532, 97])).toBe(97);
+  });
+
+  it('sorts the landed set so the fallback target cannot depend on caller order', () => {
+    expect(verseExecutionChains(97, [84532, 421614])).toEqual([84532, 421614]);
+    expect(verseSwitchChainId(97, [84532, 421614])).toBe(84532);
+  });
+
+  it('falls back to the first landed chain when the governance chain never landed', () => {
+    expect(verseSwitchChainId(97, [421614, 84532])).toBe(84532);
+  });
+
+  it('maps mainnet ids inside the landed set, not only the governance id', () => {
+    expect(verseExecutionChains(97, [8453, 1])).toEqual([84532, 421614]);
+    expect(verseSwitchChainId(97, [8453, 1])).toBe(84532);
+  });
+
+  it('maps a mainnet governance id to its testnet twin and dedupes', () => {
+    expect(verseExecutionChains(56, [97, 97, 84532])).toEqual([97, 84532]);
+    expect(verseSwitchChainId(56, [97, 97, 84532])).toBe(97);
+    expect(verseSwitchChainId(56, [421614, 84532])).toBe(84532);
+  });
+
+  it('keeps the governance chain when the source carries no presence data (fixture)', () => {
+    expect(verseExecutionChains(1, null)).toEqual([421614]);
+    expect(verseSwitchChainId(1, null)).toBe(421614);
+  });
+
+  it('treats an empty landed set like no data instead of allowing nothing', () => {
+    expect(verseExecutionChains(8453, [])).toEqual([84532]);
+    expect(verseSwitchChainId(8453, [])).toBe(84532);
   });
 });

@@ -1,11 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSign7702Authorization, useWallets } from '@privy-io/react-auth';
 import type { Hex } from 'viem';
 
 import { getClientChainConfig } from '@/lib/web3/chains';
 import { getActiveEip1193Provider, isWeb3Configured } from '@/lib/web3/active-provider';
+import { refreshVerseAfterWrite } from '@/lib/data/write-refresh';
 import {
   INITIAL_TX_CONTEXT,
   isTxTerminal,
@@ -79,6 +81,7 @@ function useHarnessTxCenter(): WriteFlow {
  */
 function useRealTxCenter(): WriteFlow {
   const center = useAccountCenter();
+  const router = useRouter();
   const { signAuthorization } = useSign7702Authorization();
   const { wallets } = useWallets();
   const walletKind = useMemo<WalletKind>(() => {
@@ -100,8 +103,18 @@ function useRealTxCenter(): WriteFlow {
   // Run generation: begin/reset/cancel bump it so a stale async continuation can never
   // write into a reset or a newer flow.
   const runSeqRef = useRef(0);
+  // Last hash the flow dispatched (tx-signed / receipt-success) — the post-write server
+  // refresh gates subgraph freshness on the write's OWN block, which needs the receipt.
+  const lastHashRef = useRef<string | null>(null);
 
   const dispatch = useCallback((event: TxEvent) => {
+    if (
+      (event.type === 'tx-signed' || event.type === 'receipt-success') &&
+      'hash' in event &&
+      event.hash
+    ) {
+      lastHashRef.current = event.hash;
+    }
     setContext((current) => reduceTx(current, event));
   }, []);
 
@@ -136,8 +149,12 @@ function useRealTxCenter(): WriteFlow {
         return 'failed';
       }
       if (runningRef.current) return 'pending';
-      const resolved = center.chainId !== null ? getClientChainConfig(center.chainId) : null;
-      if (!resolved || resolved.status !== 'ok') {
+      // Route on the chain the spec was assembled for, not the cached wallet chainId: that
+      // cache is what lags behind an in-wallet switch, and routing on it would hand a batch
+      // built for one chain to a wallet sitting on another. Preparation verified the provider
+      // answered this chain, so the spec is the stronger truth.
+      const resolved = getClientChainConfig(spec.expectedChainId);
+      if (resolved.status !== 'ok') {
         dispatch({ type: 'tx-reverted', kind: 'unknown' });
         return 'failed';
       }
@@ -173,31 +190,53 @@ function useRealTxCenter(): WriteFlow {
         },
         isStale: () => seq !== runSeqRef.current,
       };
+      let outcome: WriteOutcome;
       try {
         switch (routeWrite(spec, kind)) {
           case 'direct':
-            return await runDirect(
+            outcome = await runDirect(
               spec as WriteSpec & { direct: NonNullable<WriteSpec['direct']> },
               deps,
             );
+            break;
           case 'calls':
-            return await runCalls(spec, deps);
+            outcome = await runCalls(spec, deps);
+            break;
           case 'session':
-            return await runSession(spec, deps);
+            outcome = await runSession(spec, deps);
+            break;
           case 'unsupported':
             dispatch({ type: 'wallet-unsupported' });
-            return 'unsupported';
+            outcome = 'unsupported';
         }
       } finally {
         runningRef.current = false;
         setRunning(false);
       }
+      // Central post-write refresh: any flow whose spec declares `writeScope` gets the server
+      // caches for that scope converged (subgraph-freshness-gated invalidation + prime) and
+      // the page re-rendered. Wiring it HERE — not per dialog — is what stops the
+      // stale-numbers class of bug from reappearing on future write surfaces. The write's own
+      // hash rides along so the freshness gate targets the receipt block (no overshoot past
+      // the write into a perpetually head-trailing index).
+      if (outcome === 'confirmed' && spec.writeScope?.kind === 'verse') {
+        const scope = spec.writeScope;
+        const txHash = lastHashRef.current;
+        void refreshVerseAfterWrite({
+          chainId: scope.chainId,
+          verseId: scope.verseId,
+          ...(txHash ? { txHash } : {}),
+        })
+          .catch(() => undefined)
+          .finally(() => router.refresh());
+      }
+      return outcome;
     },
-    [center, dispatch, signAuthorization],
+    [center, dispatch, router, signAuthorization],
   );
 
   // The review station (startReview → TxReviewPanel → confirm) was deleted wholesale
-  // (user ruling 2026-10-23: the dialog IS the review — executeSession/executeDirect go
+  // (the dialog IS the review — executeSession/executeDirect go
   // straight to the wallet).
 
   const reset = useCallback(() => {
@@ -249,4 +288,17 @@ const useTxCenterImpl = ONCHAIN_BUILD ? useRealTxCenter : useHarnessTxCenter;
 /** Unified write flow: real pipeline onchain, silent no-op otherwise (never fakes sends). */
 export function useTxCenter(): WriteFlow {
   return useTxCenterImpl();
+}
+
+/**
+ * A confirmed write clears the caller's amount inputs (failed/cancelled keeps them for
+ * retry/revise). `display` stays 'confirmed' until reset, so the clear runs once per
+ * landing; `clear` is kept in a ref, so callers can pass an inline closure.
+ */
+export function useClearOnConfirmed(display: TxDisplay, clear: () => void): void {
+  const clearRef = useRef(clear);
+  clearRef.current = clear;
+  useEffect(() => {
+    if (display === 'confirmed') clearRef.current();
+  }, [display]);
 }

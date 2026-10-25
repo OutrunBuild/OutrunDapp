@@ -1,6 +1,6 @@
-// Locale mapping for transaction-center error kinds (copy §wallet.errors, 决议 033).
+// Locale mapping for transaction-center error kinds (copy §wallet.errors).
 // lib/web3 only carries kind codes; every user-facing line resolves here per locale:
-// single short sentences with no interpolated values (2026-10-04).
+// single short sentences with no interpolated values.
 import type { Locale } from '@/lib/data/fixture-repository';
 import type { RevertKind } from '@/lib/web3/kernel';
 import type { TxErrorKind } from '@/lib/web3/tx-center';

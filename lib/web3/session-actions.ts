@@ -1,7 +1,8 @@
 // Session write-action builders (architecture.md §6.3 + frozen contract specs per
 // source-map.md M1–M4/S1/S4/S8/S11). Pure encodeFunctionData over the frozen v1-rc ABIs:
 // each builder returns one Router (or Hook/Faucet/PSM/USR/Governor) call; the caller wraps
-// it as the Router leg of buildSessionBatch (approval? → begin → action → end).
+// it as the Router leg of buildSessionBatch (approvals? → action, with the hook's
+// begin/end session guards only on swapSession paths).
 // Amounts are bigint base units; the dialogs convert display strings before calling in.
 import { encodeFunctionData, maxUint256, type Hex } from 'viem';
 
@@ -247,6 +248,33 @@ export function fundCreditInput(amount: bigint): FundInput {
   };
 }
 
+/** Psm leg (IOutrunRouter FundInput): token = the PSM reserve token the router mints uAsset
+ * through; sp and both floors stay zero (FundFieldMustBeZero). */
+export function fundPsmInput(reserveToken: Hex, amount: bigint): FundInput {
+  return {
+    source: FUND_SOURCE.Psm,
+    token: reserveToken,
+    amount,
+    sp: ZERO_ADDRESS,
+    minSyOut: 0n,
+    minUAssetMinted: 0n,
+  };
+}
+
+/** Stake leg: token converts through the SP's SY (genesisByToken parity). minSyOut 0 disables the
+ * deposit floor and minUAssetMinted 0 the mint floor — v1 has no slippage slot and the mint is
+ * value-parity, so both stay disabled. */
+export function fundStakeInput(sp: Hex, tokenIn: Hex, amount: bigint, minSyOut = 0n): FundInput {
+  return {
+    source: FUND_SOURCE.Stake,
+    token: tokenIn,
+    amount,
+    sp,
+    minSyOut,
+    minUAssetMinted: 0n,
+  };
+}
+
 /** Combined genesis+preorder entry (IOutrunRouter genesisAndPreorder): both legs pull the
  * raise uAsset from the session account, so the approval spender is the router. */
 export function genesisAndPreorderCall(
@@ -301,6 +329,20 @@ export function refundCall(launcher: Hex, verseId: bigint): BatchExecution {
     target: launcher,
     value: 0n,
     callData: encodeFunctionData({ abi: launcherAbi, functionName: 'refund', args: [verseId] }),
+  };
+}
+
+/** Permissionless stage advance (anyone calls; the facade routes Genesis→Locked/Refund and
+ *  Locked→Unlocked adaptively) — the End Genesis CTA's single leg. */
+export function changeStageCall(launcher: Hex, verseId: bigint): BatchExecution {
+  return {
+    target: launcher,
+    value: 0n,
+    callData: encodeFunctionData({
+      abi: launcherAbi,
+      functionName: 'changeStage',
+      args: [verseId],
+    }),
   };
 }
 
@@ -603,6 +645,44 @@ export function genesisByPsmCall(
   };
 }
 
+/** Single-leg leveraged PSM interest entry (IOutrunRouter.leveragedGenesisByPSM): the router
+ * mints uAsset through the registered PSM pair and books the borrowed debt — the pull token is
+ * the reserve, not the uAsset. */
+export function leveragedGenesisByPsmCall(
+  router: Hex,
+  input: { uAsset: Hex; reserveToken: Hex; amountIn: bigint; verseId: bigint; genesisUser: Hex },
+  value?: bigint,
+): BatchExecution {
+  return {
+    target: router,
+    value: value ?? 0n,
+    callData: encodeFunctionData({
+      abi: outrunRouterAbi,
+      functionName: 'leveragedGenesisByPSM',
+      args: [input.uAsset, input.reserveToken, input.amountIn, input.verseId, input.genesisUser],
+    }),
+  };
+}
+
+/** Single-leg preorder PSM entry (IOutrunRouter.preorderByPSM): the router mints uAsset through
+ * the registered PSM pair and forwards the full mint into launcher preorder — one transaction for
+ * a reserve-paid preorder. The pull token is the reserve, not the uAsset. */
+export function preorderByPsmCall(
+  router: Hex,
+  input: { uAsset: Hex; reserveToken: Hex; amountIn: bigint; verseId: bigint; preorderUser: Hex },
+  value?: bigint,
+): BatchExecution {
+  return {
+    target: router,
+    value: value ?? 0n,
+    callData: encodeFunctionData({
+      abi: outrunRouterAbi,
+      functionName: 'preorderByPSM',
+      args: [input.uAsset, input.reserveToken, input.amountIn, input.verseId, input.preorderUser],
+    }),
+  };
+}
+
 export function psmMintCall(psm: Hex, to: Hex, amountIn: bigint, value?: bigint): BatchExecution {
   return {
     target: psm,
@@ -659,7 +739,7 @@ export function faucetClaimCall(faucet: Hex, token: Hex): BatchExecution {
 /**
  * Multi-token claim leg (Faucet.batchClaim, atomic on the contract). Direct-call
  * builders (target + callData) double as direct EOA fields: Faucet claims never
- * ride a Kernel session — session guards are Router-only.
+ * ride a Kernel session — session guards are hook-swap-only.
  */
 export function faucetBatchClaimCall(faucet: Hex, tokens: Hex[]): BatchExecution {
   return {
@@ -928,14 +1008,23 @@ export type SessionWriteInput = {
   action: BatchExecution;
   approval?: BatchExecution;
   approvals?: BatchExecution[];
+  /**
+   * Hook-pool swap actions only (MemeverseSwapRouter.swap/swapWithPermit2 and the YT flash
+   * swaps): the hook's beforeSwap/afterSwap revert AccountSessionNotActive without an active
+   * session (SwapFacet.sol beforeSwapLogic; MemeverseYTFlashSwapRouter._validateAndResolve
+   * also requires active == msg.sender). Every other action — OutrunRouter genesis/preorder/
+   * redeem, POLend, launcher, PSM, SwapRouter liquidity, POLSplitter — runs paths that never
+   * read activePrincipal, so the guards would be inert extra legs.
+   */
+  swapSession?: boolean;
 };
 
 /**
- * The same session batch in both shapes the transaction center needs: `calls` for
- * external wallets (EIP-5792 wallet_sendCalls) and `calldata` for embedded wallets
- * (Kernel execute type-4). Router actions keep the begin/end session guards; they are
- * valid in a 5792 batch because a smart-account sender has code (begin checks only
- * `msg.sender.code.length`).
+ * The same batch in both shapes the transaction center needs: `calls` for external wallets
+ * (EIP-5792 wallet_sendCalls) and `calldata` for embedded wallets (Kernel execute type-4).
+ * Default shape is approvals → action; `swapSession: true` wraps the action in the hook's
+ * begin/endAccountSession guards (valid in a 5792 batch because a smart-account sender has
+ * code — begin checks only `msg.sender.code.length`).
  */
 export function buildSessionWrite(input: SessionWriteInput): {
   calls: BatchExecution[];
@@ -944,9 +1033,9 @@ export function buildSessionWrite(input: SessionWriteInput): {
   const calls = buildSessionBatch({
     ...(input.approval ? { approval: input.approval } : {}),
     ...(input.approvals ? { approvals: input.approvals } : {}),
-    beginAccountSession: beginSessionCall(input.hook),
+    ...(input.swapSession ? { beginAccountSession: beginSessionCall(input.hook) } : {}),
     routerAction: input.action,
-    endAccountSession: endSessionCall(input.hook),
+    ...(input.swapSession ? { endAccountSession: endSessionCall(input.hook) } : {}),
   });
   return { calls, calldata: encodeKernelExecute(calls) };
 }

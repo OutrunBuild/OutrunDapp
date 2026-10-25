@@ -99,6 +99,15 @@ describe('buildSessionBatch', () => {
       }),
     ).toEqual([first, second, begin, router, end]);
   });
+
+  it('omits the guards entirely when begin/end are absent (non-swap paths)', () => {
+    expect(
+      buildSessionBatch({
+        approval: { target: TARGET, value: 0n, callData: '0x00' } as BatchExecution,
+        routerAction: router,
+      }),
+    ).toEqual([{ target: TARGET, value: 0n, callData: '0x00' }, router]);
+  });
 });
 
 describe('decodeNestedRevert', () => {

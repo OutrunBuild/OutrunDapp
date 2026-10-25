@@ -18,6 +18,38 @@ export const CHAIN_IDS = [1, 8453, 56, 421614, 84532, 97] as const;
 export const MAINNET_CHAIN_IDS = [1, 8453, 56] as const;
 export const TESTNET_CHAIN_IDS = [421614, 84532, 97] as const;
 
+/** Wallet-execution chain for a verse governed on `governanceChainId`: mainnet governance chains
+ * execute on their testnet twin while mainnets are undeployed; testnet ids are their own. */
+export function executionChainId(governanceChainId: number): number {
+  const twin: Record<number, number> = { 1: 421614, 8453: 84532, 56: 97 };
+  return twin[governanceChainId] ?? governanceChainId;
+}
+
+/** Chains where a verse can execute locally: the landed set (chains whose subgraph actually
+ * holds the verse) when the source carries per-chain presence, otherwise the governance
+ * chain's execution twin. The registration request (`omnichainIds`) is not evidence — a target
+ * can be requested and never receive the LayerZero delivery. Ascending id order is part of the
+ * contract: the switch target below is "the first landed chain", so callers cannot reorder it. */
+export function verseExecutionChains(
+  governanceChainId: number,
+  deployedChainIds: readonly number[] | null,
+): number[] {
+  const ids =
+    deployedChainIds && deployedChainIds.length > 0 ? deployedChainIds : [governanceChainId];
+  return [...new Set(ids.map(executionChainId))].sort((a, b) => a - b);
+}
+
+/** Network-switch target for a wallet outside the verse's execution set: the governance chain
+ * when it actually landed, otherwise the first landed chain (never a registration-only id). */
+export function verseSwitchChainId(
+  governanceChainId: number,
+  deployedChainIds: readonly number[] | null,
+): number {
+  const chains = verseExecutionChains(governanceChainId, deployedChainIds);
+  const governanceChain = executionChainId(governanceChainId);
+  return chains.includes(governanceChain) ? governanceChain : chains[0]!;
+}
+
 // Kernel V3.3 delegation implementation is the same address on all six chains (§5); per-chain
 // runtime codehashes are the 2026-08-30 onchain observations registered in §5
 const KERNEL_7702_IMPLEMENTATION = '0xd6CEDDe84be40893d153Be9d467CD6aD37875b28';
@@ -51,6 +83,8 @@ export const deploymentSchema = z.object({
   implementationCodehashes: z.record(hexAddress, codehash),
   kernel7702Implementation: hexAddress,
   kernel7702Codehash: codehash,
+  /** Chainlink native/USD aggregator (optional): absent -> gas USD line is not shown. */
+  nativeUsdFeed: hexAddress.optional(),
   eip7702TxType: z.literal('0x04'),
   authorizationPolicy: z.literal('chain-specific'),
   gasPaymentPolicy: z.literal('user-pays-native'),
@@ -68,6 +102,8 @@ const undeployedEntrySchema = z.object({
   layerZeroEid: z.number().int().nonnegative(),
   kernel7702Implementation: hexAddress,
   kernel7702Codehash: codehash,
+  /** Chainlink native/USD aggregator (optional): absent -> gas USD line is not shown. */
+  nativeUsdFeed: hexAddress.optional(),
   eip7702TxType: z.literal('0x04'),
   authorizationPolicy: z.literal('chain-specific'),
   gasPaymentPolicy: z.literal('user-pays-native'),
@@ -129,6 +165,8 @@ export type OutrunChainConfig = {
   contracts: DeployedContracts | UndeployedContracts;
   kernel7702Implementation: string;
   kernel7702Codehash: string;
+  /** Chainlink native/USD aggregator; null when the chain has no feed wired. */
+  nativeUsdFeed: string | null;
   eip7702TxType: '0x04';
   authorizationPolicy: 'chain-specific';
   gasPaymentPolicy: 'user-pays-native';
@@ -193,6 +231,7 @@ export function resolveOutrunChain(chainId: number, env: EnvLookup = process.env
         contracts: { status: 'undeployed' },
         kernel7702Implementation: parsed.data.kernel7702Implementation,
         kernel7702Codehash: parsed.data.kernel7702Codehash,
+        nativeUsdFeed: null,
         eip7702TxType: '0x04',
         authorizationPolicy: 'chain-specific',
         gasPaymentPolicy: 'user-pays-native',
@@ -249,6 +288,7 @@ export function resolveOutrunChain(chainId: number, env: EnvLookup = process.env
       },
       kernel7702Implementation: getAddress(d.kernel7702Implementation),
       kernel7702Codehash: d.kernel7702Codehash,
+      nativeUsdFeed: d.nativeUsdFeed ? getAddress(d.nativeUsdFeed) : null,
       eip7702TxType: '0x04',
       authorizationPolicy: 'chain-specific',
       gasPaymentPolicy: 'user-pays-native',
@@ -298,6 +338,7 @@ function buildClientOkConfig(
       },
       kernel7702Implementation: getAddress(d.kernel7702Implementation),
       kernel7702Codehash: d.kernel7702Codehash,
+      nativeUsdFeed: d.nativeUsdFeed ? getAddress(d.nativeUsdFeed) : null,
       eip7702TxType: '0x04',
       authorizationPolicy: 'chain-specific',
       gasPaymentPolicy: 'user-pays-native',
@@ -336,6 +377,7 @@ export function resolveClientChain(chainId: number): ResolvedChain {
         contracts: { status: 'undeployed' },
         kernel7702Implementation: parsed.data.kernel7702Implementation,
         kernel7702Codehash: parsed.data.kernel7702Codehash,
+        nativeUsdFeed: null,
         eip7702TxType: '0x04',
         authorizationPolicy: 'chain-specific',
         gasPaymentPolicy: 'user-pays-native',
