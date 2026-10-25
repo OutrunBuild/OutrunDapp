@@ -3,18 +3,14 @@
 import { useId, useState } from 'react'
 import { X } from 'lucide-react'
 
-import type { Locale, FixturePolPosition, FixtureVerse } from '@/lib/data/fixture-repository'
+import type { Locale, PolPosition, Verse } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { useAccountCenter } from '../global/use-account-center'
-import { useTxCenter, type WriteSpec } from '../global/use-tx-center'
+import { useTxCenter, useClearOnConfirmed, type WriteSpec } from '../global/use-tx-center'
 import { TxStatus } from '../global/tx-status'
-import {
-  estimateSession,
-  readErc20Meta,
-  readErc20State,
-  resolveVerseSession,
-} from '../global/execution-reads'
+import { readAllowances } from '../global/execution-reads'
+import { getTokenDecimals, getVerseSession } from '../global/write-session'
 import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
 import {
   approvalCall,
@@ -61,8 +57,8 @@ export function PolRedeemLpDialog({
   pol,
 }: {
   locale: Locale
-  verse: FixtureVerse
-  pol: FixturePolPosition
+  verse: Verse
+  pol: PolPosition
 }) {
   const copy = getCopy(locale).verseDesk
   const common = getCopy(locale).common
@@ -78,6 +74,7 @@ export function PolRedeemLpDialog({
   const [resolving, setResolving] = useState(false)
   const [resolveFailed, setResolveFailed] = useState(false)
   const balanceErrorId = useId()
+  useClearOnConfirmed(tx.display, () => setAmount(''))
 
   const polSymbol = `POL-${verse.symbol}`
   // Main-pool LP pair scope (repository main pool pair [verse.symbol, verse.raiseAsset])
@@ -109,26 +106,27 @@ export function PolRedeemLpDialog({
     setResolving(true)
     setResolveFailed(false)
     try {
-      const session = await resolveVerseSession({
-        request: provider.request,
-        chainId,
+      // 静态半命中页面预热缓存（0 往返），点击链路只剩一轮并行 allowance 读
+      // One executable chain: a provider answering another chain is refused (VerseChainError),
+      // never silently read — these dialogs' figures are loaded for this chain only.
+      const session = await getVerseSession({
+        provider,
+        chains: [chainId],
         eoa,
         verseId: BigInt(verseId),
       })
       const launcher = session.contracts.MemeverseLauncher as Hex
-      const { decimals } = await readErc20Meta(session.reader, session.verse.pol)
+      const decimals = await getTokenDecimals(session.reader, chainId, session.verse.pol)
       const amountBase = parseUnits(amount, decimals)
-      const { allowance } = await readErc20State(session.reader, session.verse.pol, eoa, launcher)
+      const [allowance] = await readAllowances(session.reader, eoa, [
+        { token: session.verse.pol, spender: launcher },
+      ])
       const approval =
         allowance < amountBase
           ? approvalCall(session.verse.pol, launcher, amountBase)
           : undefined
       const action = redeemMemecoinLiquidityCall(launcher, { verseId: BigInt(verseId), amountInPOL: amountBase })
       const { calls, calldata: batch } = buildSessionWrite({ hook: session.hook, action, approval })
-      const { estimatedGas, nativeBalance } = await estimateSession(
-        { client: session.client, reader: session.reader, eoa },
-        batch,
-      )
       const spec: WriteSpec = {
         review: {
           chainId,
@@ -142,8 +140,8 @@ export function PolRedeemLpDialog({
           authorizationChange: approval
               ? `${formatUnits(amountBase, decimals)} ${polSymbol}`
               : '—',
-          estimatedGas,
-          nativeBalance,
+          estimatedGas: '—',
+          nativeBalance: '—',
         },
         kernel: session.kernel,
         expectedChainId: chainId,

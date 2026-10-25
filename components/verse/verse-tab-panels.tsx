@@ -1,13 +1,13 @@
 import type {
   Locale,
-  FixtureGovernanceState,
-  FixturePolPosition,
-  FixtureVerse,
-  FixtureVerseTrade,
+  GovernanceState,
+  PolPosition,
+  Verse,
+  VerseTrade,
 } from '@/lib/data/fixture-repository'
 
 import { useId } from 'react'
-import { getFixtureAssetUsdSample } from '@/lib/data/fixture-repository'
+import { getAssetUsdPrice } from '@/lib/data/fixture-repository'
 
 import { Info } from 'lucide-react'
 
@@ -38,9 +38,9 @@ export async function LiquidityPanel({
   pol,
 }: {
   locale: Locale
-  verse: FixtureVerse
-  trade: FixtureVerseTrade
-  pol: FixturePolPosition | null
+  verse: Verse
+  trade: VerseTrade
+  pol: PolPosition | null
 }) {
   const copy = getCopy(locale).verseDesk
   // Overview=four-pool totals; the stats bar's Liq/Vol is main-pool scope, the two have different sources
@@ -50,7 +50,7 @@ export async function LiquidityPanel({
   )
   const hasVolume = trade.pools.some((pool) => pool.volume24h != null)
   // ≈$ conversion is paired with the main pool (same uAssetUsd/price sources as PolPanel)
-  const uAssetUsd = await getFixtureAssetUsdSample(verse.raiseAsset)
+  const uAssetUsd = await getAssetUsdPrice(verse.raiseAsset)
 
   return (
     <div className="liquidity-panel">
@@ -151,8 +151,8 @@ export async function PolPanel({
   price,
 }: {
   locale: Locale
-  verse: FixtureVerse
-  pol: FixturePolPosition | null
+  verse: Verse
+  pol: PolPosition | null
   /** Main-pool price (trade.tokenStats.price): source of the Mint dialog's ratio and the Rate row; null=no sample */
   price: number | null
 }) {
@@ -181,9 +181,9 @@ export async function PolPanel({
 
   // Denomination=USD (pricing unified to the $ scope, consistent with
   // the trade desk stats bar/Liquidity panel;
-  // rate=fixture usdSample — same uAssetUsd source as SwapPanel; no sample → slot state.
+  // rate=asset usdPrice — same uAssetUsd source as SwapPanel; no sample → slot state.
   // Market cap/total supply not shown — no real value to users)
-  const uAssetUsd = await getFixtureAssetUsdSample(verse.raiseAsset)
+  const uAssetUsd = await getAssetUsdPrice(verse.raiseAsset)
   const marketUsd = uAssetUsd != null && pol ? `$${formatAmount(market * uAssetUsd, locale)}` : null
   const nominalUsd = uAssetUsd != null && pol ? `$${formatAmount(nominal * uAssetUsd, locale)}` : null
   const estUsd =
@@ -510,8 +510,8 @@ export function DaoPanel({
   governance,
 }: {
   locale: Locale
-  verse: FixtureVerse
-  governance: FixtureGovernanceState | null
+  verse: Verse
+  governance: GovernanceState | null
 }) {
   const copy = getCopy(locale).verseDesk
   const finalizeNoteId = useId()

@@ -1,9 +1,9 @@
 import type {
   Locale,
-  FixtureVerse,
-  FixtureVerseTrade,
+  Verse,
+  VerseTrade,
 } from '@/lib/data/fixture-repository'
-import { getFixtureAssetUsdSample, getFixtureParticipationOptions, getFixturePolPosition } from '@/lib/data/fixture-repository'
+import { getAssetUsdPrice, getParticipationOptions, getPolPosition } from '@/lib/data/fixture-repository'
 import { fmtPrice } from '../global/amount-format'
 
 import { CandleChart } from './candle-chart'
@@ -78,13 +78,13 @@ export async function VerseTradeDesk({
   trade,
 }: {
   locale: Locale
-  verse: FixtureVerse
-  trade: FixtureVerseTrade
+  verse: Verse
+  trade: VerseTrade
 }) {
   const copy = getCopy(locale).verseDesk
   const stats = trade.tokenStats
   // Swap/Mint POL supply-side balances share the same source (pol-positions fixture; null=slot)
-  const pol = await getFixturePolPosition(verse.id)
+  const pol = await getPolPosition(verse.id)
 
   return (
     <section className="verse-desk" aria-label={verse.symbol}>
@@ -176,10 +176,10 @@ export async function VerseTradeDesk({
           memecoinName={verse.name}
           uAssetSymbol={verse.raiseAsset}
           price={stats.price ?? 0}
-          uAssetUsd={await getFixtureAssetUsdSample(verse.raiseAsset)}
+          uAssetUsd={await getAssetUsdPrice(verse.raiseAsset)}
           memecoinBalance={pol?.myMemecoin ?? null}
           uAssetBalance={pol?.myUAsset ?? null}
-          reserves={(await getFixtureParticipationOptions(verse.raiseAsset)).reserves}
+          reserves={(await getParticipationOptions(verse.raiseAsset)).reserves}
           reserveBalance={pol?.myReserve ?? null}
           pol={pol}
           governanceChain={verse.governanceChain}

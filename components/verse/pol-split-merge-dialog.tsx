@@ -3,19 +3,17 @@
 import { useId, useState } from 'react'
 import { X } from 'lucide-react'
 
-import type { Locale, FixturePolPosition, FixtureVerse } from '@/lib/data/fixture-repository'
+import type { Locale, PolPosition, Verse } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { useAccountCenter } from '../global/use-account-center'
-import { useTxCenter, type WriteSpec } from '../global/use-tx-center'
+import { useTxCenter, useClearOnConfirmed, type WriteSpec } from '../global/use-tx-center'
 import { TxStatus } from '../global/tx-status'
 import {
-  estimateSession,
-  readErc20Meta,
-  readErc20State,
-  resolveVerseSession,
+  readAllowances,
   type ContractReader,
 } from '../global/execution-reads'
+import { getTokenDecimals, getVerseSession } from '../global/write-session'
 import { splitterAbi } from '@/lib/web3/abis'
 import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
 import {
@@ -68,8 +66,8 @@ export function PolSplitMergeDialog({
   mode,
 }: {
   locale: Locale
-  verse: FixtureVerse
-  pol: FixturePolPosition
+  verse: Verse
+  pol: PolPosition
   mode: 'split' | 'merge'
 }) {
   const copy = getCopy(locale).verseDesk
@@ -86,6 +84,7 @@ export function PolSplitMergeDialog({
   const [resolving, setResolving] = useState(false)
   const [resolveFailed, setResolveFailed] = useState(false)
   const balanceErrorId = useId()
+  useClearOnConfirmed(tx.display, () => setAmount(''))
 
   const polSymbol = `POL-${verse.symbol}`
   const ptSymbol = `PT-${verse.symbol}`
@@ -115,9 +114,12 @@ export function PolSplitMergeDialog({
     setResolving(true)
     setResolveFailed(false)
     try {
-      const session = await resolveVerseSession({
-        request: provider.request,
-        chainId,
+      // 静态半命中页面预热缓存（0 往返），点击链路只剩一轮并行 allowance 读
+      // One executable chain: a provider answering another chain is refused (VerseChainError),
+      // never silently read — these dialogs' figures are loaded for this chain only.
+      const session = await getVerseSession({
+        provider,
+        chains: [chainId],
         eoa,
         verseId: BigInt(verseId),
       })
@@ -133,12 +135,14 @@ export function PolSplitMergeDialog({
           : [null, null]
       const pullTokens = mode === 'split' ? [session.verse.pol] : [pt as Hex, yt as Hex]
       const decimalsList = await Promise.all(
-        pullTokens.map((token) => readErc20Meta(reader, token).then((meta) => meta.decimals)),
+        pullTokens.map((token) => getTokenDecimals(reader, chainId, token)),
       )
       // 1:1 identity: one display amount, each pull token parsed in its own decimals.
       const amounts = pullTokens.map((_, index) => parseUnits(amount, decimalsList[index] ?? 18))
-      const allowances = await Promise.all(
-        pullTokens.map((token) => readErc20State(reader, token, eoa, splitter).then((state) => state.allowance)),
+      const allowances = await readAllowances(
+        reader,
+        eoa,
+        pullTokens.map((token) => ({ token, spender: splitter })),
       )
       const approvals = pullTokens.flatMap((token, index) => {
         const want = amounts[index] as bigint
@@ -152,10 +156,6 @@ export function PolSplitMergeDialog({
           // Sibling PT/YT share decimals in practice; the single merge amount rides the PT leg.
           : mergeCall(splitter, BigInt(verseId), amounts[0] as bigint)
       const { calls, calldata: batch } = buildSessionWrite({ hook: session.hook, approvals, action })
-      const { estimatedGas, nativeBalance } = await estimateSession(
-        { client: session.client, reader: session.reader, eoa },
-        batch,
-      )
       const inputSymbol = mode === 'split' ? polSymbol : `${ptSymbol} + ${ytSymbol}`
       const spec: WriteSpec = {
         review: {
@@ -171,8 +171,8 @@ export function PolSplitMergeDialog({
             approvals.length > 0
               ? `${amount} ${inputSymbol}`
               : '—',
-          estimatedGas,
-          nativeBalance,
+          estimatedGas: '—',
+          nativeBalance: '—',
         },
         kernel: session.kernel,
         expectedChainId: chainId,

@@ -3,18 +3,16 @@
 import { useEffect, useState } from 'react'
 import { Info, Zap } from 'lucide-react'
 
-import type { Locale, FixtureStaking } from '@/lib/data/fixture-repository'
+import type { Locale, Staking } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { useAccountCenter } from '../global/use-account-center'
-import { useTxCenter, type WriteSpec } from '../global/use-tx-center'
+import { useTxCenter, useClearOnConfirmed, type WriteSpec } from '../global/use-tx-center'
 import { TxStatus } from '../global/tx-status'
 import {
-  estimateSession,
-  readErc20Meta,
-  readErc20State,
-  resolveVerseSession,
+  readAllowances,
 } from '../global/execution-reads'
+import { getTokenDecimals, getVerseSession } from '../global/write-session'
 import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
 import {
   approvalCall,
@@ -38,7 +36,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 
 type RedeemMode = 'redeem' | 'withdraw'
 
-/** Mock chain-environment mapping (mock glue layer, not domain values): the fixture
+/** Chain-environment mapping (testnet stand-in shim, not domain values): the fixture
  * governance chain=mainnet ids (1/8453/56),
  * the header chain selector only exposes testnets — the "connected on the governance chain"
  * check uses the governance chain's corresponding testnet
@@ -130,7 +128,7 @@ export function VaultActions({
   /** Sample account's this-verse memecoin balance (pol-positions myMemecoin; source of Stake's Balance/Max, null=slot state) */
   myMemecoin: number | null
   /** Two-step async redemption entries (including the ready split and the remainingMs countdown start; the display layer filters by tab) */
-  pendingRedeems: FixtureStaking['pendingRedeems']
+  pendingRedeems: Staking['pendingRedeems']
   delegatee: string
   /** Governance chain chainId (the chain hosting the vault) */
   governanceChain: number
@@ -153,6 +151,10 @@ export function VaultActions({
   const [redeemAmount, setRedeemAmount] = useState('')
   const [delegateSelf, setDelegateSelf] = useState(true)
   const [delegateAddress, setDelegateAddress] = useState('')
+  useClearOnConfirmed(tx.display, () => {
+    setStakeAmount('')
+    setRedeemAmount('')
+  })
 
   const governanceWalletChain = GOVERNANCE_TESTNET[governanceChain] ?? governanceChain
   const wrongChain = connected && chainId !== governanceWalletChain
@@ -183,17 +185,20 @@ export function VaultActions({
     setResolving(true)
     setResolveFailed(false)
     try {
-      const session = await resolveVerseSession({
-        request: provider.request,
-        chainId,
+      // 静态半命中页面预热缓存（0 往返），点击链路只剩一轮并行 allowance 读
+      // One executable chain: a provider answering another chain is refused (VerseChainError),
+      // never silently read — these dialogs' figures are loaded for this chain only.
+      const session = await getVerseSession({
+        provider,
+        chains: [chainId],
         eoa,
         verseId: BigInt(verseId),
       })
       const vault = session.verse.yieldVault
       const reader = session.reader
       const [memeDecimals, shareDecimals] = await Promise.all([
-        readErc20Meta(reader, session.verse.memecoin).then((meta) => meta.decimals),
-        readErc20Meta(reader, vault).then((meta) => meta.decimals),
+        getTokenDecimals(reader, chainId, session.verse.memecoin),
+        getTokenDecimals(reader, chainId, vault),
       ])
       let action
       let functionName: string
@@ -201,7 +206,9 @@ export function VaultActions({
       let approval
       if (kind === 'stake') {
         const assets = parseUnits(String(stakeParsed), memeDecimals)
-        const { allowance } = await readErc20State(reader, session.verse.memecoin, eoa, vault)
+        const [allowance] = await readAllowances(reader, eoa, [
+          { token: session.verse.memecoin, spender: vault },
+        ])
         approval =
           allowance < assets
             ? approvalCall(session.verse.memecoin, vault, assets)
@@ -223,10 +230,6 @@ export function VaultActions({
         approval = undefined
       }
       const { calls, calldata: batch } = buildSessionWrite({ hook: session.hook, action, approval })
-      const { estimatedGas, nativeBalance } = await estimateSession(
-        { client: session.client, reader: session.reader, eoa },
-        batch,
-      )
       const spec: WriteSpec = {
         review: {
           chainId,
@@ -241,8 +244,8 @@ export function VaultActions({
             approval != null
               ? `${inputs}`
               : '—',
-          estimatedGas,
-          nativeBalance,
+          estimatedGas: '—',
+          nativeBalance: '—',
         },
         kernel: session.kernel,
         expectedChainId: chainId,

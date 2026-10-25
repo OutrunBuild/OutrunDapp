@@ -3,20 +3,18 @@
 import { useId, useState } from 'react'
 import { ArrowDown, ArrowLeftRight } from 'lucide-react'
 
-import type { Locale, FixturePolPosition, FixtureVerseTrade } from '@/lib/data/fixture-repository'
+import type { Locale, PolPosition, VerseTrade } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { useAccountCenter } from '../global/use-account-center'
 import { ActionDialogShell, DialogCta } from '../global/action-dialogs'
-import { useTxCenter, type WriteSpec } from '../global/use-tx-center'
+import { useTxCenter, useClearOnConfirmed, type WriteSpec } from '../global/use-tx-center'
 import { TxStatus } from '../global/tx-status'
 import {
-  estimateSession,
-  readErc20Meta,
-  readErc20State,
+  readAllowances,
   resolvePoolTokens,
-  resolveVerseSession,
 } from '../global/execution-reads'
+import { getTokenDecimals, getVerseSession } from '../global/write-session'
 import { swapRouterAbi } from '@/lib/web3/abis'
 import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
 import {
@@ -62,9 +60,9 @@ export function PoolRemoveLiquidityDialog({
 }: {
   locale: Locale
   /** Pool card row data (pool identifier + both sides' symbols) */
-  pool: FixtureVerseTrade['pools'][number]
+  pool: VerseTrade['pools'][number]
   /** POL/PT position sample (source of LP balance/ratios); null=slot state (balance '--') */
-  pol: FixturePolPosition | null
+  pol: PolPosition | null
   /** Main-pool price: 1 memecoin = price uAsset (used only for main-pool linkage); null=no sample */
   price: number | null
   /** uAsset USD sample price; null=hide the USD conversion row */
@@ -93,6 +91,7 @@ export function PoolRemoveLiquidityDialog({
   const [slippageText, setSlippageText] = useState('0.5')
   const [deadlineText, setDeadlineText] = useState('10')
   const [rateInverted, setRateInverted] = useState(false)
+  useClearOnConfirmed(tx.display, () => setLpAmount(''))
 
   const lpBalance = pol == null ? null : pol.myLp[pool.pool]
   // Max fill value (null/≤0 → empty); computed upfront to avoid losing narrowing inside the closure
@@ -133,9 +132,12 @@ export function PoolRemoveLiquidityDialog({
     setResolving(true)
     setResolveFailed(false)
     try {
-      const session = await resolveVerseSession({
-        request: provider.request,
-        chainId,
+      // 静态半命中页面预热缓存（0 往返），点击链路只剩一轮并行 allowance 读
+      // One executable chain: a provider answering another chain is refused (VerseChainError),
+      // never silently read — these dialogs' figures are loaded for this chain only.
+      const session = await getVerseSession({
+        provider,
+        chains: [chainId],
         eoa,
         verseId: BigInt(verseId),
       })
@@ -149,9 +151,9 @@ export function PoolRemoveLiquidityDialog({
         args: [base, quote],
       })) as Hex
       const [lpDecimals, baseDecimals, quoteDecimals] = await Promise.all([
-        readErc20Meta(reader, lpToken).then((meta) => meta.decimals),
-        readErc20Meta(reader, base).then((meta) => meta.decimals),
-        readErc20Meta(reader, quote).then((meta) => meta.decimals),
+        getTokenDecimals(reader, chainId, lpToken),
+        getTokenDecimals(reader, chainId, base),
+        getTokenDecimals(reader, chainId, quote),
       ])
       const liquidity = parseUnits(lpAmount, lpDecimals)
       const slippageBps = Math.round(slippage * 100)
@@ -162,7 +164,7 @@ export function PoolRemoveLiquidityDialog({
       const sorted = base.toLowerCase() < quote.toLowerCase()
       const currency0 = (sorted ? base : quote) as Hex
       const currency1 = (sorted ? quote : base) as Hex
-      const { allowance } = await readErc20State(reader, lpToken, eoa, router)
+      const [allowance] = await readAllowances(reader, eoa, [{ token: lpToken, spender: router }])
       const approval =
         allowance < liquidity
           ? approvalCall(lpToken, router, liquidity)
@@ -177,10 +179,6 @@ export function PoolRemoveLiquidityDialog({
         deadline: BigInt(Math.floor(Date.now() / 1000) + (Number(deadlineText) || 10) * 60),
       })
       const { calls, calldata: batch } = buildSessionWrite({ hook: session.hook, approval, action })
-      const { estimatedGas, nativeBalance } = await estimateSession(
-        { client: session.client, reader: session.reader, eoa },
-        batch,
-      )
       const spec: WriteSpec = {
         review: {
           chainId,
@@ -194,8 +192,8 @@ export function PoolRemoveLiquidityDialog({
           authorizationChange: approval
               ? `${formatUnits(liquidity, lpDecimals)} ${lpSymbol}`
               : '—',
-          estimatedGas,
-          nativeBalance,
+          estimatedGas: '—',
+          nativeBalance: '—',
         },
         kernel: session.kernel,
         expectedChainId: chainId,

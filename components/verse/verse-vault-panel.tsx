@@ -1,4 +1,4 @@
-import type { Locale, FixtureStaking, FixtureVerse } from '@/lib/data/fixture-repository'
+import type { Locale, Staking, Verse } from '@/lib/data/fixture-repository'
 
 import { CopyAddress } from '../global/copy-address'
 import { getCopy } from '../global/copy'
@@ -24,8 +24,8 @@ export function VaultPanel({
   initialView,
 }: {
   locale: Locale
-  verse: FixtureVerse
-  staking: FixtureStaking | null
+  verse: Verse
+  staking: Staking | null
   /** Sample account's this-verse memecoin balance (pol-positions sample; Stake card Balance/Max, null=slot state) */
   myMemecoin: number | null
   /** ?action=withdraw deep link: the action card lands directly on the Withdraw sub-tab (redeem is the default state, no prop preset needed) */

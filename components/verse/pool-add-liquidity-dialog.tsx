@@ -3,20 +3,18 @@
 import { useId, useState } from 'react'
 import { ArrowDown, ArrowLeftRight } from 'lucide-react'
 
-import type { Locale, FixturePolPosition, FixtureVerseTrade } from '@/lib/data/fixture-repository'
+import type { Locale, PolPosition, VerseTrade } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { useAccountCenter } from '../global/use-account-center'
 import { ActionDialogShell, DialogCta } from '../global/action-dialogs'
-import { useTxCenter, type WriteSpec } from '../global/use-tx-center'
+import { useTxCenter, useClearOnConfirmed, type WriteSpec } from '../global/use-tx-center'
 import { TxStatus } from '../global/tx-status'
 import {
-  estimateSession,
-  readErc20Meta,
-  readErc20State,
+  readAllowances,
   resolvePoolTokens,
-  resolveVerseSession,
 } from '../global/execution-reads'
+import { getTokenDecimals, getVerseSession } from '../global/write-session'
 import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
 import {
   addLiquidityCall,
@@ -69,9 +67,9 @@ export function PoolAddLiquidityDialog({
 }: {
   locale: Locale
   /** Pool card row data (pool identifier + both sides' symbols) */
-  pool: FixtureVerseTrade['pools'][number]
+  pool: VerseTrade['pools'][number]
   /** POL/PT position sample (source of balances/ratios); null=slot state (balance '--') */
-  pol: FixturePolPosition | null
+  pol: PolPosition | null
   /** Main-pool price: 1 memecoin = price uAsset (used only for main-pool linkage); null=no sample */
   price: number | null
   /** uAsset USD sample price; null=hide the USD conversion row */
@@ -102,6 +100,10 @@ export function PoolAddLiquidityDialog({
   const [slippageText, setSlippageText] = useState('0.5')
   const [deadlineText, setDeadlineText] = useState('10')
   const [rateInverted, setRateInverted] = useState(false)
+  useClearOnConfirmed(tx.display, () => {
+    setBaseAmount('')
+    setQuoteAmount('')
+  })
 
   // Supply-side balances: main pool=memecoin/uAsset, POL/uAsset=POL/uAsset, PT pools=PT/+ (uAsset or POL)
   const baseBalance =
@@ -157,9 +159,12 @@ export function PoolAddLiquidityDialog({
     setResolving(true)
     setResolveFailed(false)
     try {
-      const session = await resolveVerseSession({
-        request: provider.request,
-        chainId,
+      // 静态半命中页面预热缓存（0 往返），点击链路只剩一轮并行 allowance 读
+      // One executable chain: a provider answering another chain is refused (VerseChainError),
+      // never silently read — these dialogs' figures are loaded for this chain only.
+      const session = await getVerseSession({
+        provider,
+        chains: [chainId],
         eoa,
         verseId: BigInt(verseId),
       })
@@ -172,8 +177,8 @@ export function PoolAddLiquidityDialog({
         BigInt(verseId),
       )
       const [baseDecimals, quoteDecimals] = await Promise.all([
-        readErc20Meta(reader, baseToken).then((meta) => meta.decimals),
-        readErc20Meta(reader, quoteToken).then((meta) => meta.decimals),
+        getTokenDecimals(reader, chainId, baseToken),
+        getTokenDecimals(reader, chainId, quoteToken),
       ])
       const baseDesired = parseUnits(baseAmount, baseDecimals)
       const quoteDesired = parseUnits(quoteAmount, quoteDecimals)
@@ -189,9 +194,9 @@ export function PoolAddLiquidityDialog({
       const amount1Desired = sorted ? quoteDesired : baseDesired
       const amount0Min = sorted ? baseMin : quoteMin
       const amount1Min = sorted ? quoteMin : baseMin
-      const [allow0, allow1] = await Promise.all([
-        readErc20State(reader, currency0, eoa, router).then((state) => state.allowance),
-        readErc20State(reader, currency1, eoa, router).then((state) => state.allowance),
+      const [allow0, allow1] = await readAllowances(reader, eoa, [
+        { token: currency0, spender: router },
+        { token: currency1, spender: router },
       ])
       const approvals = [
         ...(allow0 < amount0Desired
@@ -212,10 +217,6 @@ export function PoolAddLiquidityDialog({
         deadline: deadlineSecs,
       })
       const { calls, calldata: batch } = buildSessionWrite({ hook: session.hook, approvals, action })
-      const { estimatedGas, nativeBalance } = await estimateSession(
-        { client: session.client, reader: session.reader, eoa },
-        batch,
-      )
       const spec: WriteSpec = {
         review: {
           chainId,
@@ -230,8 +231,8 @@ export function PoolAddLiquidityDialog({
             approvals.length > 0
               ? `${pool.baseSymbol} + ${pool.quoteSymbol}`
               : '—',
-          estimatedGas,
-          nativeBalance,
+          estimatedGas: '—',
+          nativeBalance: '—',
         },
         kernel: session.kernel,
         expectedChainId: chainId,

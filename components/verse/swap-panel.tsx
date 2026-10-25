@@ -3,11 +3,11 @@
 import { useId, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { ArrowLeftRight, ArrowUpDown } from 'lucide-react'
-import { createPublicClient, custom, formatUnits, parseUnits, type Hex } from 'viem'
+import { formatUnits, parseUnits, type Hex } from 'viem'
 
 import type {
   Locale,
-  FixturePolPosition,
+  PolPosition,
 } from '@/lib/data/fixture-repository'
 import { getClientChainConfig } from '@/lib/web3/chains'
 import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
@@ -21,16 +21,14 @@ import {
 
 import { getCopy } from '../global/copy'
 import { useAccountCenter } from '../global/use-account-center'
-import { useTxCenter, type WriteSpec } from '../global/use-tx-center'
+import { useTxCenter, useClearOnConfirmed, type WriteSpec } from '../global/use-tx-center'
 import { TxStatus } from '../global/tx-status'
 import {
-  readErc20Meta,
-  readErc20State,
+  readAllowances,
   readPoolKey,
   readSwapQuote,
-  readVerseAddresses,
-  type ContractReader,
 } from '../global/execution-reads'
+import { getTokenDecimals, getVerseSession } from '../global/write-session'
 import { formatAmount } from '../global/signal-ui'
 import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
 import { parseVerseIdParam } from '../global/routes'
@@ -92,12 +90,12 @@ export function SwapPanel({
   /** Sample account memecoin/uAsset balance (pol-positions fixture; null=slot --, same source as the Mint POL dialog) */
   memecoinBalance: number | null
   uAssetBalance: number | null
-  /** Reserves payable for par direct swap (PSM pairs read from fixture — the getFixtureParticipationOptions export; name=the token's own name, falls back to symbol when missing) */
+  /** Reserves payable for par direct swap (PSM pairs read from fixture — the getParticipationOptions export; name=the token's own name, falls back to symbol when missing) */
   reserves: { symbol: string; name?: string }[]
   /** Reserve wallet balance sample (pol-positions myReserve; null=slot '--') */
   reserveBalance: number | null
   /** POL/PT pool price and balance sample (pol-positions fixture; null=quote/balance slot state) */
-  pol: FixturePolPosition | null
+  pol: PolPosition | null
   /** Verse governance chain + display name (execution-chain gate; SwitchChainCta target) */
   governanceChain: number
   governanceChainName: string
@@ -126,6 +124,7 @@ export function SwapPanel({
   const [slippageText, setSlippageText] = useState('0.5')
   const [deadlineText, setDeadlineText] = useState('10')
   const [rateInverted, setRateInverted] = useState(false)
+  useClearOnConfirmed(tx.display, () => setAmount(''))
 
   // Stable-side candidates: raise uAsset + PSM-paired reserves (PSM par 1:1; reserve balance fixture missing → slot)
   const stableOptions: SwapTokenOption[] = [
@@ -224,40 +223,44 @@ export function SwapPanel({
     const contracts = resolved.config.contracts.addresses
     const router = contracts.MemeverseSwapRouter as Hex
     const hook = contracts.MemeverseUniswapHook as Hex
-    const launcher = contracts.MemeverseLauncher as Hex
     const kernel = resolved.config.kernel7702Implementation as Hex
     setResolving(true)
     setResolveFailed(false)
     try {
-      const client = createPublicClient({
-        chain: resolved.config.viemChain,
-        transport: custom({ request: provider.request }),
+      // 静态半命中页面预热缓存（0 往返）：池键是部署常量、精度按 chain+token 缓存，
+      // 点击链路只剩报价与 allowance 两读，且两者并行。
+      // One executable chain: a provider answering another chain is refused (VerseChainError),
+      // never silently read — these dialogs' figures are loaded for this chain only.
+      const session = await getVerseSession({
+        provider,
+        chains: [chainId],
+        eoa,
+        verseId: BigInt(verseId),
       })
-      const reader: ContractReader = {
-        read: (readParams) => client.readContract(readParams) as Promise<unknown>,
-      }
-      const verse = await readVerseAddresses(reader, launcher, BigInt(verseId))
-      const tokenIn = (direction === 'stable-to-meme' ? verse.uAsset : verse.memecoin) as Hex
-      const tokenOut = (direction === 'stable-to-meme' ? verse.memecoin : verse.uAsset) as Hex
+      const { reader } = session
+      const tokenIn = (direction === 'stable-to-meme' ? session.verse.uAsset : session.verse.memecoin) as Hex
+      const tokenOut = (direction === 'stable-to-meme' ? session.verse.memecoin : session.verse.uAsset) as Hex
       const key: PoolKey = await readPoolKey(reader, router, tokenIn, tokenOut)
       const zeroForOne = tokenIn.toLowerCase() === key.currency0.toLowerCase()
-      const [{ decimals: decimalsIn }, { decimals: decimalsOut }] = await Promise.all([
-        readErc20Meta(reader, tokenIn),
-        readErc20Meta(reader, tokenOut),
+      const [decimalsIn, decimalsOut] = await Promise.all([
+        getTokenDecimals(reader, chainId, tokenIn),
+        getTokenDecimals(reader, chainId, tokenOut),
       ])
       const amountIn = parseUnits(amount, decimalsIn)
-      const swapQuote = await readSwapQuote(
-        reader,
-        router,
-        key,
-        { zeroForOne, amountSpecified: -amountIn, sqrtPriceLimitX96: limitForDirection(zeroForOne) },
-        eoa,
-      )
+      const [swapQuote, [allowance]] = await Promise.all([
+        readSwapQuote(
+          reader,
+          router,
+          key,
+          { zeroForOne, amountSpecified: -amountIn, sqrtPriceLimitX96: limitForDirection(zeroForOne) },
+          eoa,
+        ),
+        readAllowances(reader, eoa, [{ token: tokenIn, spender: router }]),
+      ])
       const slippageBps = Math.round(slippage * 100)
       const minOut =
         (swapQuote.estimatedUserOutputAmount * BigInt(10000 - slippageBps)) / 10000n
       const deadlineSecs = BigInt(Math.floor(Date.now() / 1000) + (Number(deadlineText) || 10) * 60)
-      const { allowance } = await readErc20State(reader, tokenIn, eoa, router)
       const approval =
         allowance < amountIn
           ? approvalCall(tokenIn, router, amountIn)
@@ -270,20 +273,7 @@ export function SwapPanel({
         recipient: eoa,
         deadline: deadlineSecs,
       })
-      const { calls, calldata: batch } = buildSessionWrite({ hook, action, approval })
-      let estimatedGas = '—'
-      let nativeBalance = '—'
-      try {
-        const [gas, balance] = await Promise.all([
-          client.estimateGas({ account: eoa, to: eoa, data: batch }),
-          client.getBalance({ address: eoa }),
-        ])
-        estimatedGas = gas.toString()
-        nativeBalance = formatUnits(balance, 18)
-      } catch {
-        const balance = await client.getBalance({ address: eoa })
-        nativeBalance = formatUnits(balance, 18)
-      }
+      const { calls, calldata: batch } = buildSessionWrite({ hook, action, approval, swapSession: true })
       const spec: WriteSpec = {
         review: {
           chainId,
@@ -297,8 +287,9 @@ export function SwapPanel({
           authorizationChange: approval
               ? `${formatUnits(amountIn, decimalsIn)} ${sellToken.symbol}`
               : '—',
-          estimatedGas,
-          nativeBalance,
+          // 审阅面板不渲染 gas 字段，点击链路不预估
+          estimatedGas: '—',
+          nativeBalance: '—',
         },
         kernel,
         expectedChainId: chainId,

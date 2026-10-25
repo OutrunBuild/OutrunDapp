@@ -1,6 +1,6 @@
 import { X } from 'lucide-react'
 
-import type { Locale, FixtureGovernanceAsset } from '@/lib/data/fixture-repository'
+import type { Locale, GovernanceAsset } from '@/lib/data/fixture-repository'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -64,7 +64,7 @@ export function DaoFundDialog({
   locale: Locale
   title: string
   totalUsd: number
-  assets: FixtureGovernanceAsset[]
+  assets: GovernanceAsset[]
   actionLabel?: string
   triggerButton?: string
   showRegisteredNote?: boolean

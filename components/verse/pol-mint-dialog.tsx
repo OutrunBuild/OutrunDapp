@@ -3,19 +3,15 @@
 import { useId, useState } from 'react'
 import { ArrowDown, ArrowLeftRight } from 'lucide-react'
 
-import type { Locale, FixturePolPosition, FixtureVerse } from '@/lib/data/fixture-repository'
+import type { Locale, PolPosition, Verse } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { useAccountCenter } from '../global/use-account-center'
 import { ActionDialogShell, DialogCta } from '../global/action-dialogs'
-import { useTxCenter, type WriteSpec } from '../global/use-tx-center'
+import { useTxCenter, useClearOnConfirmed, type WriteSpec } from '../global/use-tx-center'
 import { TxStatus } from '../global/tx-status'
-import {
-  estimateSession,
-  readErc20Meta,
-  readErc20State,
-  resolveVerseSession,
-} from '../global/execution-reads'
+import { readAllowances } from '../global/execution-reads'
+import { getTokenDecimals, getVerseSession } from '../global/write-session'
 import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
 import {
   approvalCall,
@@ -56,8 +52,8 @@ export function PolMintDialog({
   uAssetUsd,
 }: {
   locale: Locale
-  verse: FixtureVerse
-  pol: FixturePolPosition
+  verse: Verse
+  pol: PolPosition
   /** Main-pool price: 1 memecoin = price uAsset (derived from the fixture candle close); null=no sample */
   price: number | null
   /** uAsset USD sample price; null=hide the USD conversion row */
@@ -85,6 +81,10 @@ export function PolMintDialog({
   const [rateInverted, setRateInverted] = useState(false)
   const [resolving, setResolving] = useState(false)
   const [resolveFailed, setResolveFailed] = useState(false)
+  useClearOnConfirmed(tx.display, () => {
+    setMemeAmount('')
+    setUAmount('')
+  })
 
   const polSymbol = `POL-${verse.symbol}`
   const memeVal = Number(memeAmount)
@@ -117,17 +117,20 @@ export function PolMintDialog({
     setResolving(true)
     setResolveFailed(false)
     try {
-      const session = await resolveVerseSession({
-        request: provider.request,
-        chainId,
+      // 静态半命中页面预热缓存（0 往返）；点击链路只剩一轮并行 allowance 读
+      // One executable chain: a provider answering another chain is refused (VerseChainError),
+      // never silently read — these dialogs' figures are loaded for this chain only.
+      const session = await getVerseSession({
+        provider,
+        chains: [chainId],
         eoa,
         verseId: BigInt(verseId),
       })
       const launcher = session.contracts.MemeverseLauncher as Hex
       const [memeDecimals, uDecimals, polDecimals] = await Promise.all([
-        readErc20Meta(session.reader, session.verse.memecoin).then((meta) => meta.decimals),
-        readErc20Meta(session.reader, session.verse.uAsset).then((meta) => meta.decimals),
-        readErc20Meta(session.reader, session.verse.pol).then((meta) => meta.decimals),
+        getTokenDecimals(session.reader, chainId, session.verse.memecoin),
+        getTokenDecimals(session.reader, chainId, session.verse.uAsset),
+        getTokenDecimals(session.reader, chainId, session.verse.pol),
       ])
       const memeDesired = parseUnits(memeAmount, memeDecimals)
       const uDesired = parseUnits(uAmount, uDecimals)
@@ -136,9 +139,9 @@ export function PolMintDialog({
       const uMin = (uDesired * BigInt(10000 - slippageBps)) / 10000n
       const outDesired = polOut != null ? parseUnits(String(polOut), polDecimals) : 0n
       const deadlineSecs = BigInt(Math.floor(Date.now() / 1000) + (Number(deadlineText) || 10) * 60)
-      const [memeAllow, uAllow] = await Promise.all([
-        readErc20State(session.reader, session.verse.memecoin, eoa, launcher).then((state) => state.allowance),
-        readErc20State(session.reader, session.verse.uAsset, eoa, launcher).then((state) => state.allowance),
+      const [memeAllow, uAllow] = await readAllowances(session.reader, eoa, [
+        { token: session.verse.memecoin, spender: launcher },
+        { token: session.verse.uAsset, spender: launcher },
       ])
       const approvals = [
         ...(memeAllow < memeDesired
@@ -162,10 +165,6 @@ export function PolMintDialog({
         approvals,
         action,
       })
-      const { estimatedGas, nativeBalance } = await estimateSession(
-        { client: session.client, reader: session.reader, eoa },
-        batch,
-      )
       const spec: WriteSpec = {
         review: {
           chainId,
@@ -180,8 +179,9 @@ export function PolMintDialog({
             approvals.length > 0
               ? `${verse.symbol} + ${verse.raiseAsset}`
               : '—',
-          estimatedGas,
-          nativeBalance,
+          // 审阅面板不渲染 gas 字段（网络费行来自 useGasQuote），点击链路不预估
+          estimatedGas: '—',
+          nativeBalance: '—',
         },
         kernel: session.kernel,
         expectedChainId: chainId,

@@ -6,7 +6,7 @@
 // snapshot + extendHourlyHistory derivation seam).
 import { describe, expect, it } from 'vitest';
 
-import { getFixtureSnapshot, getFixtureVerseTrade } from '../../lib/data/fixture-repository';
+import { getSnapshot, getVerseTrade } from '../../lib/data/fixture-repository';
 
 function assertAscending(label: string, times: number[]) {
   for (let i = 1; i < times.length; i++) {
@@ -19,11 +19,11 @@ function assertAscending(label: string, times: number[]) {
 }
 
 describe('candle timestamps strictly increasing (lightweight-charts setData precondition)', () => {
-  const verses = getFixtureSnapshot().verses.filter(
+  const verses = getSnapshot().verses.filter(
     (verse) => verse.stage === 'locked' || verse.stage === 'unlocked',
   );
   const versesWithCandles = verses.filter(
-    (verse) => (getFixtureVerseTrade(verse.id)?.candles.length ?? 0) > 0,
+    (verse) => (getVerseTrade(verse.id)?.candles.length ?? 0) > 0,
   );
 
   it('count of locked/unlocked verses with candle samples > 0 (guards against an emptied snapshot passing vacuously)', () => {
@@ -33,7 +33,7 @@ describe('candle timestamps strictly increasing (lightweight-charts setData prec
   it.each(versesWithCandles.map((verse) => [verse.id, verse.stage] as const))(
     '%s (%s): 1h full history + fine-grained samples strictly increasing',
     (verseId) => {
-      const trade = getFixtureVerseTrade(verseId)!;
+      const trade = getVerseTrade(verseId)!;
       assertAscending(
         `${verseId} 1h`,
         trade.candles.map((candle) => Date.parse(candle.t)),

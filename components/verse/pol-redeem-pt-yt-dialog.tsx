@@ -3,19 +3,17 @@
 import { useId, useState } from 'react'
 import { X } from 'lucide-react'
 
-import type { Locale, FixturePolPosition, FixtureVerse } from '@/lib/data/fixture-repository'
+import type { Locale, PolPosition, Verse } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { useAccountCenter } from '../global/use-account-center'
-import { useTxCenter, type WriteSpec } from '../global/use-tx-center'
+import { useTxCenter, useClearOnConfirmed, type WriteSpec } from '../global/use-tx-center'
 import { TxStatus } from '../global/tx-status'
 import {
-  estimateSession,
-  readErc20Meta,
-  readErc20State,
-  resolveVerseSession,
+  readAllowances,
   type ContractReader,
 } from '../global/execution-reads'
+import { getTokenDecimals, getVerseSession } from '../global/write-session'
 import { splitterAbi } from '@/lib/web3/abis'
 import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
 import {
@@ -74,12 +72,12 @@ export function PolRedeemPtYtDialog({
   uAssetUsd,
 }: {
   locale: Locale
-  verse: FixtureVerse
-  pol: FixturePolPosition
+  verse: Verse
+  pol: PolPosition
   mode: 'pt' | 'yt'
   /** Main-pool price (trade.tokenStats.price): for converting the YT memecoin leg to USD; null=USD row not rendered */
   price: number | null
-  /** uAsset USD sample (assets usdSample): for each leg's USD row; null=USD row not rendered */
+  /** uAsset USD price (assets usdPrice): for each leg's USD row; null=USD row not rendered */
   uAssetUsd: number | null
 }) {
   const copy = getCopy(locale).verseDesk
@@ -98,6 +96,7 @@ export function PolRedeemPtYtDialog({
   const [resolveFailed, setResolveFailed] = useState(false)
   const receiveLabelId = useId()
   const balanceErrorId = useId()
+  useClearOnConfirmed(tx.display, () => setAmount(''))
 
   const ptSymbol = `PT-${verse.symbol}`
   const ytSymbol = `YT-${verse.symbol}`
@@ -137,9 +136,12 @@ export function PolRedeemPtYtDialog({
     setResolving(true)
     setResolveFailed(false)
     try {
-      const session = await resolveVerseSession({
-        request: provider.request,
-        chainId,
+      // 静态半命中页面预热缓存（0 往返），点击链路只剩一轮并行 allowance 读
+      // One executable chain: a provider answering another chain is refused (VerseChainError),
+      // never silently read — these dialogs' figures are loaded for this chain only.
+      const session = await getVerseSession({
+        provider,
+        chains: [chainId],
         eoa,
         verseId: BigInt(verseId),
       })
@@ -151,9 +153,9 @@ export function PolRedeemPtYtDialog({
         functionName: mode === 'pt' ? 'getPT' : 'getYT',
         args: [BigInt(verseId)],
       })) as Hex
-      const { decimals } = await readErc20Meta(reader, burnToken)
+      const decimals = await getTokenDecimals(reader, chainId, burnToken)
       const amountBase = parseUnits(amount, decimals)
-      const { allowance } = await readErc20State(reader, burnToken, eoa, splitter)
+      const [allowance] = await readAllowances(reader, eoa, [{ token: burnToken, spender: splitter }])
       const approval =
         allowance < amountBase
           ? approvalCall(burnToken, splitter, amountBase)
@@ -163,10 +165,6 @@ export function PolRedeemPtYtDialog({
           ? redeemPtCall(splitter, { verseId: BigInt(verseId), ptAmount: amountBase, to: eoa })
           : redeemYtCall(splitter, { verseId: BigInt(verseId), ytAmount: amountBase, to: eoa })
       const { calls, calldata: batch } = buildSessionWrite({ hook: session.hook, action, approval })
-      const { estimatedGas, nativeBalance } = await estimateSession(
-        { client: session.client, reader: session.reader, eoa },
-        batch,
-      )
       const spec: WriteSpec = {
         review: {
           chainId,
@@ -180,8 +178,8 @@ export function PolRedeemPtYtDialog({
           authorizationChange: approval
               ? `${formatUnits(amountBase, decimals)} ${tokenSymbol}`
               : '—',
-          estimatedGas,
-          nativeBalance,
+          estimatedGas: '—',
+          nativeBalance: '—',
         },
         kernel: session.kernel,
         expectedChainId: chainId,

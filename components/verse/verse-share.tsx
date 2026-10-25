@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { Check, Gift, Link2, X } from 'lucide-react'
 
-import type { FixtureVerse, Locale } from '@/lib/data/fixture-repository'
+import type { Verse, Locale } from '@/lib/data/fixture-repository'
 
 import { XIcon } from '../global/brand-icons'
 import { getCopy } from '../global/copy'
@@ -30,7 +30,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
  * auto-open after execution is not wired
  * (the CTA does not fake execution, same as PolMintDialog).
  */
-export function VerseShare({ locale, verse }: { locale: Locale; verse: FixtureVerse }) {
+export function VerseShare({ locale, verse }: { locale: Locale; verse: Verse }) {
   const copy = getCopy(locale).verse
   const common = getCopy(locale).common
   const [hintIndex, setHintIndex] = useState(0)

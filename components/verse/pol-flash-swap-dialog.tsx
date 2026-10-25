@@ -3,20 +3,18 @@
 import { useId, useState } from 'react'
 import { ArrowDown, ArrowLeftRight } from 'lucide-react'
 
-import type { Locale, FixturePolPosition, FixtureVerse } from '@/lib/data/fixture-repository'
+import type { Locale, PolPosition, Verse } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { useAccountCenter } from '../global/use-account-center'
 import { ActionDialogShell, DialogCta } from '../global/action-dialogs'
-import { useTxCenter, type WriteSpec } from '../global/use-tx-center'
+import { useTxCenter, useClearOnConfirmed, type WriteSpec } from '../global/use-tx-center'
 import { TxStatus } from '../global/tx-status'
 import {
-  estimateSession,
-  readErc20Meta,
-  readErc20State,
-  resolveVerseSession,
+  readAllowances,
   type ContractReader,
 } from '../global/execution-reads'
+import { getTokenDecimals, getVerseSession } from '../global/write-session'
 import { splitterAbi } from '@/lib/web3/abis'
 import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
 import {
@@ -71,8 +69,8 @@ export function PolFlashSwapDialog({
   uAssetUsd,
 }: {
   locale: Locale
-  verse: FixtureVerse
-  pol: FixturePolPosition
+  verse: Verse
+  pol: PolPosition
   /** uAsset USD sample price; null=hide the USD conversion row */
   uAssetUsd: number | null
 }) {
@@ -97,6 +95,7 @@ export function PolFlashSwapDialog({
   // slippageToNumber)
   const [slippageText, setSlippageText] = useState('0.5')
   const [rateInverted, setRateInverted] = useState(false)
+  useClearOnConfirmed(tx.display, () => setAmount(''))
 
   const ytSymbol = `YT-${verse.symbol}`
   const clean = (raw: string) => setAmount(sanitizeAmount(raw))
@@ -145,9 +144,12 @@ export function PolFlashSwapDialog({
     setResolving(true)
     setResolveFailed(false)
     try {
-      const session = await resolveVerseSession({
-        request: provider.request,
-        chainId,
+      // 静态半命中页面预热缓存（0 往返），点击链路只剩一轮并行 allowance 读
+      // One executable chain: a provider answering another chain is refused (VerseChainError),
+      // never silently read — these dialogs' figures are loaded for this chain only.
+      const session = await getVerseSession({
+        provider,
+        chains: [chainId],
         eoa,
         verseId: BigInt(verseId),
       })
@@ -162,8 +164,8 @@ export function PolFlashSwapDialog({
         args: [BigInt(verseId)],
       })) as Hex
       const [ytDecimals, polDecimals] = await Promise.all([
-        readErc20Meta(reader, yt).then((meta) => meta.decimals),
-        readErc20Meta(reader, session.verse.pol).then((meta) => meta.decimals),
+        getTokenDecimals(reader, chainId, yt),
+        getTokenDecimals(reader, chainId, session.verse.pol),
       ])
       const ytAmount = parseUnits(amount, ytDecimals)
       const protectedPol =
@@ -212,16 +214,12 @@ export function PolFlashSwapDialog({
         inputs = `${formatUnits(ytAmount, ytDecimals)} ${ytSymbol}`
         minOutput = `${formatUnits(minPolOut, polDecimals)} POL-${verse.symbol}`
       }
-      const { allowance } = await readErc20State(reader, pullToken, eoa, router)
+      const [allowance] = await readAllowances(reader, eoa, [{ token: pullToken, spender: router }])
       const approval =
         allowance < pullAmount
           ? approvalCall(pullToken, router, pullAmount)
           : undefined
-      const { calls, calldata: batch } = buildSessionWrite({ hook: session.hook, action, approval })
-      const { estimatedGas, nativeBalance } = await estimateSession(
-        { client: session.client, reader: session.reader, eoa },
-        batch,
-      )
+      const { calls, calldata: batch } = buildSessionWrite({ hook: session.hook, action, approval, swapSession: true })
       const pullDecimals = mode === 'buy' ? polDecimals : ytDecimals
       const pullSymbol = mode === 'buy' ? `POL-${verse.symbol}` : ytSymbol
       const spec: WriteSpec = {
@@ -237,8 +235,8 @@ export function PolFlashSwapDialog({
           authorizationChange: approval
               ? `${formatUnits(pullAmount, pullDecimals)} ${pullSymbol}`
               : '—',
-          estimatedGas,
-          nativeBalance,
+          estimatedGas: '—',
+          nativeBalance: '—',
         },
         kernel: session.kernel,
         expectedChainId: chainId,

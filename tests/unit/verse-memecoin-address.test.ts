@@ -7,10 +7,10 @@
 // on-chain contract addresses are unique by nature.
 import { describe, expect, it } from 'vitest';
 
-import { getFixtureSnapshot } from '../../lib/data/fixture-repository';
+import { getSnapshot } from '../../lib/data/fixture-repository';
 
 describe('Verse memecoin CA: address-search data contract', () => {
-  const verses = getFixtureSnapshot().verses;
+  const verses = getSnapshot().verses;
   const deployed = verses.filter((verse) => verse.stage === 'locked' || verse.stage === 'unlocked');
 
   it('deployed verses (locked/unlocked) all carry a CA — address search never misses the deployed surface', () => {

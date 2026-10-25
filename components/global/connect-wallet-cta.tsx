@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import type { Locale } from '@/lib/data/fixture-repository'
 
 import { getCopy } from './copy'
+import { useLiveParticipations } from './live-participations'
 import { localePath } from './routes'
 import { useAccountCenter } from './use-account-center'
 
@@ -49,15 +50,18 @@ export function ConnectWalletCta({
 }
 
 /**
- * Connected-but-empty counterpart of the connect CTA (2026-10-15 user ruling): when the wallet
+ * Connected-but-empty counterpart of the connect CTA: when the wallet
  * is connected yet every portfolio zone is empty, the page keeps exactly one action — jump to
  * the discovery page. Same shell/skin as ConnectWalletCta (centered ax-ghost-cta); the page
- * mounts it only in the all-zones-empty state, so data present ⇒ not rendered.
+ * mounts it only in the all-zones-empty state, so data present ⇒ not rendered. The onchain
+ * build's zone data is client-only (wallet-provider scan), so the live participations
+ * presence counts toward "not empty" too — SSR hasZoneData cannot see it.
  */
 export function ExploreCta({ locale }: { locale: Locale }) {
   const { connected } = useAccountCenter()
+  const liveParticipations = useLiveParticipations()
   const copy = getCopy(locale).portfolio
-  if (!connected) return null
+  if (!connected || liveParticipations) return null
   // Discovery's no-match pattern lifted into the page slot: .empty-state + h3 + lg ghost CTA
   return (
     <div className="empty-state pf-explore-empty">

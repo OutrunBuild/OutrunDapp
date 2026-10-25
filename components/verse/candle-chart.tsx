@@ -11,7 +11,7 @@ import type {
   UTCTimestamp,
 } from 'lightweight-charts'
 
-import type { Locale, FixtureCandle, FixtureFineCandles } from '@/lib/data/fixture-repository'
+import type { Locale, Candle, FineCandles } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
 import { formatAmount, formatPercent } from '../global/signal-ui'
@@ -35,8 +35,8 @@ const MA_WINDOWS = [7, 30, 60] as const
 const MA_COLOR_VARS = ['--or-cyan', '--accent-echo', '--color-text-secondary'] as const
 const MA_ALPHAS = [0.55, 0.45, 0.9] as const
 
-function aggregate(candles: FixtureCandle[], size: number): FixtureCandle[] {
-  const out: FixtureCandle[] = []
+function aggregate(candles: Candle[], size: number): Candle[] {
+  const out: Candle[] = []
   for (let end = candles.length; end > 0; end -= size) {
     const bucket = candles.slice(Math.max(0, end - size), end)
     out.unshift({
@@ -86,8 +86,8 @@ export function CandleChart({
   pairLabel,
   header,
 }: {
-  candles: FixtureCandle[]
-  fineCandles: FixtureFineCandles | null
+  candles: Candle[]
+  fineCandles: FineCandles | null
   locale: Locale
   pairLabel: string
   header?: ReactNode
