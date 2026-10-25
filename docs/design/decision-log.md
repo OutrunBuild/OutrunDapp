@@ -771,3 +771,199 @@ C1 结算储备金按 spec 窄口径且 UI 不露出 · C2 建池剩余资金不
 - **裁定**：删除 body 级 `.ax-scanlines` 覆盖层；扫描线膜（`--scanline-white`，1px/4px）改为 `.ax-hud` / `.ax-hud-inner` 背景栈顶层——膜只随页面背景绘制，面板/弹窗/图标等内容表面天然不吃膜。023 补充 10 的「弹窗同膜」安排随之作废。页面背景区的视觉不变（膜与青网格同位）；面板损失的是 2% alpha 的膜纹（1x 不可感知）。
 - **验证**：uAsset 币面放大无条纹；页面背景区 CRT 膜纹与网格保持；tsc / check:design / check:contrast / check:design-docs / prettier 通过；e2e 基线重生成后全绿。
 - 签名：approved by Jasonrale（2026-10-23 用户裁定）
+
+## 决议 044 · 门槛条达标转下一阶段色（品红）（2026-10-23，用户裁定「当进度条达到 100% 直接变成下一阶段的主色调，品红色」；作用范围用户选定「卡片门槛条 + 详情页门槛条」）
+
+- **背景**：成功门槛达标（≥100%）此前只有数字变化，进度条保持阶段色（卡片=创世黄、详情页=青），满格与未满格在条形本身上无差别；达到 100% 实际意味着创世即将进入锁定阶段，条形应当承载这一阶段跃迁信号。
+- **裁定**：普通资金 / 杠杆利息两条门槛条的填充，在 `value >= 100` 时切换为下一阶段主色（创世→锁定 = 品红 `--accent-echo`）；百分比文本与标签颜色不变，仅条形承载信号。预购容量条不属于成功门槛，保持原色。实现走 `data-reached="true"`（填充 span）+ `background: var(--stage-next, var(--accent-echo))`，卡片与详情页 `ProgressMeter` 同一规则；数据语义层品红用法沿用决议 015 第 2 层（语义一致、允许面填充）。
+- **验证**：tsc / check:design / prettier 通过；`--stage-next` 已在共享阶段组中为 genesis 映射 `--accent-echo`，无新增 token。
+- 签名：approved by Jasonrale（2026-10-23 用户裁定）
+
+## 决议 045 · 嵌入式钱包写操作统一站内交易确认，Privy 自带钱包 UI 关闭（2026-10-25，用户裁定「按方案1走」）
+
+- **背景**：Kernel type-4 广播链路为携带 authorizationList 改为裸签名直发（`secp256k1_sign` + `eth_sendRawTransaction`，Privy 的 `eth_sendTransaction`/`eth_signTransaction` 管线均丢弃授权列表），嵌入式钱包由此变成静默签名器——决议 037/041 所依赖的「钱包弹框作最后一道确认」不复存在（用户实测：点确认后无任何弹窗直接上链；对照 faucet claim 此前会弹 Privy 自带确认）。
+- **裁定**：① Privy 配置 `embeddedWallets.showWalletUIs: false`，自带钱包 UI 全关；② tx-center 提升为全站 Provider（`TxCenterProvider`，挂 web3-providers），嵌入式/未识别钱包的 `executeDirect`/`executeSession` 一律先进站内确认态（`pending`），确认对话框（`TxConfirmDialog`，复用 ActionDialogShell/DetailRows）= 唯一同意面，字段取 `TxReview` 子集（网络/操作/合约/内容/授权变更/预估 gas，'—' 不渲染），首次 EIP-7702 委托按打开时 getCode 探测条件提示；外部钱包不拦（其钱包弹窗即确认）；Esc/外点/✕=取消，staged 写 resolve 'cancelled'、输入保留。决议 041「Confirm 即审阅终点」的动作弹窗层不变，本决议在其后补回签名前的最终确认位。
+- **验证**：tsc / vitest（15 文件 140 用例）/ check:design / cjk-font 重切全绿。
+- 签名：approved by Jasonrale（2026-10-25 用户裁定）
+
+## 决议 045 补充 1 · 签名终端形态与信息架构（2026-10-25，用户裁定「按方案A走」+「风险警示没必要，这是给自家产品用的」）
+
+- **背景**：045 首版确认框复用 `.pol-mint` 产品卡壳并平铺函数名/合约地址，用户否决：「没有独特的感觉，完全和网站其他弹窗一样，像产品功能；展示的信息也不对」。调研参照 MetaMask（账户→dapp 关系、gas 费用带 `Site suggested`/`Max fee`、Total=Amount+fee、固定 Reject/Confirm）与 Rabby（侧滑面板、Simulation Results 净余额变化、`Transacted before` 风险标记、广播模式、折叠 Advanced、gas 档位、签名前须处理警示条）后重做。
+- **裁定**：① 形态=右侧停靠签名终端（`≤52rem` 转底部 sheet），内容高度、左缘青 signal 边、状态条下缘 1px 品红回声线，**不复用产品卡壳**；② 信息架构=状态条（链/账户/READY）→ 人话意图 hero（产品动词 + 等宽金额）→ **原子批步骤**（approve + 动作，标注「同一笔交易内执行」，为 MetaMask 单调用所无的本仓优势）→ 付/得/预估 gas 台账 → 首次 EIP-7702 委托**事实性说明**（中性 Lock 图标，非警示、不勾选门控）→ `▸ 高级详情`（合约/函数/链 ID）；③ 函数名不入主视野：新增 `WriteSpec.intent` 与函数名→产品动词字典（未知标识符拆分退化），禁止裸露 Solidity selector；④ 焦点落终端本身（`initialFocus=false`），Enter 不会盲触 Confirm；⑤ 明确**不做**风险警示层（自家产品确认面，非通用钱包的 DApp 交互防护）。
+- **验证**：临时预览路由实测 1280/860/390 三档 + 英文 + 高级展开截图核对后删除；tsc / vitest / check:design / check:design-docs / cjk-font 全绿。
+- 签名：approved by Jasonrale（2026-10-25 用户裁定）
+
+## 决议 046 · 撤销签名终端，回到产品确认 + 三步条；嵌入式钱包加 Gas 控件（2026-10-25，用户裁定）
+
+- **背景**：045 及其补充 1 在动作弹窗之后又加了一道全站签名终端。用户裁定该层多余且方向错误：「不是让你模仿 Polymarket 的产品 UI，是参考交易的 UX」「没你想得那么复杂」「原本的三步条弹窗怎么没了，这个是产品 UI」。核实：三步条 `TxStatus` 未被删除，而是被确认门挡在其前——`begin()` 未触发，交易未开始，进度条自然不出现。
+- **裁定**：① 删除签名终端（`tx-confirm-dialog.tsx`、`tx-intent.ts`、`TxCenterProvider`/`pending` 门控、`WriteSpec.intent`、Sheet 右停靠模式与 `.tx-sheet`/`.tx-terminal*` CSS 全部回退）；② 确认面回到既有产品弹窗，点 Confirm 直接进入钱包管线并显示三步条；Privy `showWalletUIs` 恢复默认（faucet 等直写走其原生极简弹窗）；③ 错误展示收窄为两桶：**取消（非错误语气，保留输入）** 与 **失败（一句话 + 可重试）**，不做九类错误分类，原始 RPC 错误只进 dev console；④ 参与复核弹窗为嵌入式钱包新增 **Gas 控件**：展示 gas 上限与预估费用（同一估算器口径），提供慢/标准/快三档与可编辑 gwei；外部钱包不渲染（MetaMask 插件自带）。
+- **验证**：tsc / vitest 全量 / check:design / check:design-docs / cjk-font 全绿；Gas 控件经临时预览页截图核对后删除预览路由。
+- 签名：approved by Jasonrale（2026-10-25 用户裁定）
+
+## 决议 046 补充 1 · Gas 控件改为「档位卡各自报价 + 可展开自定义」（2026-10-25，用户裁定）
+
+- **背景**：首版 Gas 控件是三个文字预设 + 一个共享的 gwei 输入 + 一行费用，用户裁定「太丑、布局/大小/间距要更优雅」，并要求「Slow/Market/Fast 卡里各自显示自己的预估 gas 费，自定义可展开手动调节」；参考图仅示意需要展示的信息（最大基础费用/优先费用 + 当前值），不照抄布局。
+- **裁定**：① 三张档位卡（等宽 1fr）各自显示档位名、该档预估费用（原生币）与该档 maxFeePerGas（gwei），选中=青描边+抬升底；② 「自定义」为可展开行，内含 最大基础费用 / 优先费用 两个等宽输入（gwei）+ 真实"当前"值提示；费用=gasLimit×(base+tip)，随输入实时更新；③ 非法输入红描边并禁用确认，收起时回退标准档；④ 数据模型由单一 `gasPriceWei` 改为 EIP-1559 的 `maxFeePerGas`/`maxPriorityFeePerGas`，发送端仅在缺省时才读市场价；⑤ 不展示"12 小时区间"等无数据来源的信息。
+- **验证**：临时预览页 468/360 两档 + 展开态截图核对后删除；tsc / vitest / check:design / check:design-docs / cjk-font 全绿。
+- 签名：approved by Jasonrale（2026-10-25 用户裁定）
+
+## 决议 046 补充 2 · Gas 档位卡信息重排与自定义区重做（2026-10-25，用户裁定）
+
+- **背景**：补充 1 的卡片为「label / 费用 / gwei」三行竖排，自定义区为 label 左、输入右的行式布局。用户裁定：Market 改名「平均」；gwei 与档位名同一行；下方显示 gas 代币数量与美元价值；自定义区「太丑、细节不到位」。
+- **裁定**：① 档位名改「平均」（en=Avg）；② 卡片首行=档位名 + 该档 gwei（右对齐），次行=费用金额，末行=`符号 ≈ 美元`；③ 自定义改为两列字段：label 在上、输入框内嵌 gwei 单位、真实当前值提示在下，费用合计行保留 hairline 分隔；④ 卡片三列在内容宽度 <22rem 时转纵向列表（container query，按弹窗内容宽度而非视口）；⑤ 美元价值仅在提供原生币价格源时渲染（当前无数据源 → 不显示，不得编造）。
+- **验证**：临时预览页 420/358 两档 + 展开态截图核对后删除；tsc / vitest / check:design / check:design-docs / cjk-font 全绿。
+- 签名：approved by Jasonrale（2026-10-25 用户裁定）
+
+## 决议 046 补充 3 · 美元价值改走链上预言机（2026-10-25，用户裁定「不应该接入预言机来获取美元价格吗」）
+
+- **背景**：补充 2 把美元实现为环境变量参考价。用户指出应走预言机。核查三条测试网的 Chainlink 原生币/USD 喂价均在线且新鲜（BSC tBNB/USD、BSC tETH/USD、Base Sepolia ETH/USD、Arb Sepolia ETH/USD，实测更新距今 <1h）。
+- **裁定**：① 喂价地址作为部署事实登记在 `deployments/{chainId}.json` 的 `nativeUsdFeed`（`chains.ts` schema 可选字段，client 配置暴露 `nativeUsdFeed: string | null`）；② 客户端经钱包 provider 调 `latestRoundData()` + `decimals()`（无 RPC key，§14），`lib/web3/native-price.ts` 归一化并强制 24h 过期校验，非正值/过期/缺 feed 一律视为无价 → USD 行不渲染；③ 删除环境变量参考价方案，保证单一数据通路。
+- **验证**：`readNativeUsdPrice` 实链读 BNB/USD = 740.50；`chainlinkAnswerToUsd` 单测覆盖新鲜/过期/零值/负值/异常 decimals；tsc / vitest / check:design / check:design-docs / cjk-font / prettier 全绿。
+- 签名：approved by Jasonrale（2026-10-25 用户裁定）
+
+## 决议 046 补充 4 · Gas 改为「一行摘要 + 点开配置」（2026-10-25，用户裁定）
+
+- **背景**：补充 2 的三卡常驻形态被裁定仍不够好：多数情况默认档即够用，不应一上来就铺配置区。用户给出目标形态：一行「网络费用 / 金额（美元）/ ›」，点击才优雅弹出配置。
+- **裁定**：① 收起态=台账单行（44px，label 左、所选档费用+美元右、chevron；hover/focus chevron 转青），默认「平均」档；② 点击弹出锚定 Popover（21rem）：三行单选（label / gwei 右对齐 / 费用）+「自定义」折叠区（EIP-1559 两列输入、当前值提示、合计与「完成」）；选档即应用并关闭，自定义展开后停留至「完成」或外点；③ 弹层 `initialFocus=false`，避免首项焦点环被误读为选中；④ 美元仍取链上 Chainlink 喂价（补充 3），无价/过期则省略括号后缀。
+- **验证**：在真实 Dialog 内验证弹层叠放（浮于弹窗之上）与焦点落点；468/420 两档 + 收起/展开/自定义三态截图核对后删除预览路由；tsc / vitest / check:design / check:design-docs / cjk-font / prettier 全绿。
+- 签名：approved by Jasonrale（2026-10-25 用户裁定）
+
+## 决议 046 补充 5 · Gas 配置改为「弹窗内换面」+ 淡入淡出（2026-10-25，用户裁定）
+
+- **背景**：补充 4 的点开浮层被否——用户要求不要叠放，直接替换弹窗内 UI，并加渐入渐出，衔接要优雅、精致、高级。
+- **裁定**：① 摘要行仍是唯一常驻元素（默认平均档）；② 点击后**整窗内容替换**为 Gas 配置面，标题切换为「网络费用」，标题栏出现返回箭头；③ 切换用两段式过渡（110ms 淡出 + 轻微上移 → 换面 → 淡入），`prefers-reduced-motion` 下关闭过渡；④ 视图交接后焦点交给返回钮（进入）/摘要行（返回），避免整张弹窗卡片吃到 focus 环；⑤ 配置面=三行单选（label / gwei / 费用+美元）+ 自定义两列字段 + 全宽「完成」。
+- **验证**：真实 Dialog 内预览收起/配置/自定义三态与换面过渡；tsc / vitest / check:design / check:design-docs / cjk-font / prettier 全绿。
+- 签名：approved by Jasonrale（2026-10-25 用户裁定）
+
+## 决议 046 补充 6 · Gas 行内排版与实时刷新（2026-10-25，用户裁定）
+
+- **背景**：用户指出三点——美元价值应在 gas 代币数量**上方**（当时在下）；gwei 应**在整行内居中**（当时偏右）；并询问 Slow/Avg/Fast 与自定义里的数值是否链上实时、窗口应定时刷新且关闭即停。截图同时暴露 BSC base fee=0 被误判非法（Est. fee 显示 "Enter a valid gas price"）。
+- **裁定**：① 选项行改三段等分栅格（`1fr auto 1fr`）：label 左、gwei 真正居中、右侧费用栈改为「美元在上 / 代币数量在下」；② 数据来源确认并写入契约：gasLimit=stateOverride 估值、base fee=最新块 `baseFeePerGas`、priority=`eth_maxPriorityFeePerGas`（回退 gasPrice−base）、美元=Chainlink 喂价；③ 复核窗打开期间每 12s 轮询刷新（`document.visibilityState === 'visible'` 才请求），进入签名阶段或关闭窗口即停止；用户已编辑的自定义输入不被轮询覆盖；④ 自定义合法性改为 `base+priority > 0`（BSC base fee 常为 0）。
+- **验证**：预览核对排列与 base=0 合法态；tsc / vitest / check:design / check:design-docs / cjk-font / prettier 全绿。
+- 签名：approved by Jasonrale（2026-10-25 用户裁定）
+
+## 决议 046 补充 7 · Confirm 死锁修复（2026-10-25）
+
+- **背景**：用户报告 Confirm 无法点击（Privy 与 MetaMask 均出现）。排查：`disabled` 原含 `pendingSpec == null` 这一内部不变量与「自定义 gas 非法」两项；BSC base fee=0 曾被判非法，若用户从自定义页直接「完成」退出，非法态会留在复核页且错误不可见。
+- **裁定**：① `disabled` 收敛为 `resolving || running || (gas 控件已就绪且取值非法)`；`pendingSpec` 缺失改为点击时兜底并打 dev 错误（不再静默禁用）；② 退出 Gas 配置页时若取值非法自动回落「平均」档，错误不会藏到另一视图；③ 自定义合法性维持 `base+priority>0`（补充 6）；④ 增加 `data-blocked`（resolving/running/gas-invalid）供诊断。
+- **验证**：`wallet-participation` e2e（真实页面 × BSC fork × 注入外部钱包）点击 Confirm 全链路通过；tsc / vitest 469 / check:design / prettier 全绿。
+- 签名：approved by Jasonrale（2026-10-25 用户裁定）
+
+## 决议 046 补充 8 · 网络费用行贴近支付台账（2026-10-25，用户裁定）
+
+- **背景**：复核弹窗里「Pay amount」与「Network fee」之间视觉空隙过大（容器 grid gap 16px + 两行各自 44px 行高），读起来断裂。
+- **裁定**：网络费用行视为支付台账的延续（结构不变），仅对 `.participation-review--dialog > .gas-row` 施加 `margin-block-start: calc(-1 * var(--space-3))`，实测行间距 16px → **4px**，与行内 hairline 节奏连成一块。
+- **验证**：复刻复核弹窗结构实测 gap=4px，截图核对；tsc / check:design / prettier 全绿。
+- 签名：approved by Jasonrale（2026-10-25 用户裁定）
+
+## 决议 046 补充 9 · Gas 编辑面板两处间距（2026-10-25，用户裁定）
+
+- **背景**：编辑面板里最后一档（Fast）与「自定义」分割线之间有一处 16px 空档；「自定义」行与「完成」按钮之间也偏松。
+- **裁定**：`.gas-editor` 改用逐元素间距（grid gap 归零）——选项列表与分割线**贴紧（0）**；`gas-custom` 展开区上下留 `space-3 / space-2`；「完成」按钮上方保留 `space-2`（8px）。其余结构、颜色、行高不动。
+- **验证**：收起/展开两态截图核对；tsc / check:design / check:design-docs / prettier 全绿。
+- 签名：approved by Jasonrale（2026-10-25 用户裁定）
+
+## 决议 046 补充 10 · Gas 完成钮改用站内 ghost CTA 皮肤（2026-10-25，用户裁定）
+
+- **背景**：编辑面板的「完成」原为自绘实心黄钮，与站内 Confirm 的语言不一致。
+- **裁定**：改用 `Button size="lg" className="ax-ghost-cta"`（与复核弹窗 Confirm 同一皮肤）：非实心、黄描边、Paint Worklet 斜切缺角；hover 才实心黄底 + 深色字。`.gas-editor__done` 只保留宽度与上间距。
+- **验证**：放大截图核对静止/悬停两态（缺角边缘与实心悬停均与 Confirm 一致）；tsc / check:design / check:design-docs / prettier 全绿。
+- 签名：approved by Jasonrale（2026-10-25 用户裁定）
+
+## 决议 046 补充 11 · Confirm 灰态的根因=Gas 选择跨窗口残留（2026-10-25）
+
+- **背景**：用户再次报告 Confirm 不可点。核查门控表达式无误（`resolving || running || (gas ready && gasInvalid)`），根因是 `useGasQuote` 的状态生命周期：mode/自定义值不随复核窗关闭而重置，上一次窗口里留下的 `custom + 非法值` 会让下一次打开时立刻被判 `gas-invalid`，而错误提示藏在 Gas 配置视图里。
+- **裁定**：① 复核窗每次打开（`active` 上升沿）把 Gas 选择重置为「平均」、收起自定义、清编辑标记；② `active` 改为 `pendingSpec != null && tx.display === 'idle'`（关窗 / 进入签名即停轮询）；③ 若仍被 gas 非法值挡住，行动区上方直接显示 `gasInvalid` 文案，不再有"默默变灰"的按钮。
+- **验证**：外部钱包全链路 e2e（真实页面 × fork，点击 Confirm 完成交易）通过；tsc / vitest 469 / check:design / prettier 全绿。
+- 签名：approved by Jasonrale（2026-10-25 用户裁定）
+
+## 决议 046 补充 12 · Gas 非法态改为派生值 + 新规格即重置（2026-10-25）
+
+- **背景**：用户报告"一进窗就显示 Enter a valid gas price"。核查：复核窗关闭/重开时 hook 内部 mode 仍为 custom、值为非法；此前用镜像 state（`gasInvalid`）承接有效性，且只在 `active` 上升沿重置——跨窗口（或 HMR 保留状态）时镜像值会先于重置生效。
+- **裁定**：① 有效性改为**派生值** `invalid = mode==='custom' && !customValid`，删除 `onValidChange` 镜像与父级 `gasInvalid` state；② `useGasQuote` 增加 `resetToken`（父级传 `pendingSpec` 对象身份），**每次生成新规格即重置**为平均档，不再只依赖打开沿；③ 行动区错误提示继续读派生值，作为最后兜底。
+- **验证**：新增生命周期单测（非法自定义 → 关窗 → 重开 → 回到平均且 invalid=false）；tsc / vitest **470** / check:design / prettier 全绿。
+- 签名：approved by Jasonrale（2026-10-25 用户裁定）
+
+## 决议 046 补充 13 · Gas 文案与间距微调（2026-10-25，用户裁定）
+
+- **裁定**：① 自定义区两条提示统一为「Current」（zh「当前」）；② 全站 Gas 单位统一大写 **GWEI**（档位行、输入后缀、当前值提示）；③ `Advanced` 采用句首大写（取消该行的 `text-transform: uppercase`）；④ Advanced 折叠行与字段标签间距收紧（`.gas-custom` 上内边距 `space-3 → space-1`）。
+- **验证**：预览截图核对四点；tsc / vitest **478** / check:design / check:design-docs / prettier 全绿。
+- 签名：approved by Jasonrale（2026-10-25 用户裁定）
+
+## 决议 047 · Faucet Get UUSD 弹窗补回三步条（2026-10-25，用户裁定「Faucet 页的 Get UUSD 功能缺少三步条弹窗，使用 参与创世 功能的三步条弹窗」）
+
+- **背景**：决议 037 及补充曾以「简单操作不需要 loading」把 Get UUSD 弹窗的站内进度 UI 删净（只留钱包弹框与余额变化感知）。决议 046 已把「点 Confirm 后由三步条承载进度」定回产品口径（嵌入式钱包签名静默，钱包弹框不构成反馈），但兑换弹窗漏接，点击后除 CTA 变灰外无任何进度信号。
+- **裁定**：`components/faucet/faucet-swap-dialog.tsx` 在错误行之后渲染共享 `TxStatus`，判据与槽位对齐参与/Swap/四池等动作弹窗（`tx.active && !tx.reviewing`）；不恢复站内审阅面板，不新增文案、样式或组件。
+- **验证**：tsc / vitest / check:design / check:design-docs / prettier 全绿。
+- 签名：approved by Jasonrale（2026-10-25 用户裁定）
+
+## 决议 047 · 关闭 Privy 原生钱包 UI，Faucet 领取改用三步条弹窗（2026-10-25，用户裁定）
+
+- **背景**：Faucet 的 Claim 仍会弹出 Privy 自带钱包窗。用户裁定「现在不使用这个弹窗了」，并要求补上三步条弹窗。
+- **裁定**：① `embeddedWallets.showWalletUIs: false` 全站恢复（嵌入式签名静默；确认与反馈一律由产品界面承担）；② Faucet 领取（含批量）在执行期间弹出进度窗：`ActionDialogShell` + `TxStatus`（等待钱包签名 → 上链确认中 → 已上链），终态补一颗全宽 ghost CTA「关闭」；关窗即 `tx.reset()`；③ 领取失败/取消沿用三步条内的终态文案，行内旧错误块保留给关闭后的兜底。
+- **验证**：预览核对「领取」标题、三步条、终态按钮；tsc / vitest **485** / check:design / prettier 全绿。Faucet 兑换弹窗此前已内嵌 `TxStatus`，无需改动。
+- 签名：approved by Jasonrale（2026-10-25 用户裁定）
+
+## 决议 048 · 创世参与链闸门取真实部署集（2026-10-25，用户裁定）
+
+- **背景**：全链 verse 在非治理链打开创世详情页时，参与 CTA 恒定显示「Switch to BNB Smart Chain Testnet」——判据用了治理链（`omnichainIds[0]` 映射），把已实际部署该 verse 的 spoke 链也当成错链。创世按链独立结算（OB faq:58；每链 launcher 各自记账），落地链应可本链参与。
+- **裁定**：参与闸门改用真实落地集 `deployedChainIds`（与发现页同源；`omnichainIds` 是注册请求集，不作为部署证据）。钱包链在集合内→本链直接参与；集合外→CTA 换链，目标=治理链若在集合内，否则集合首链（`verseExecutionChains` 按链 id 升序，首链不受调用方顺序影响）。点击时实链核查同样按集合判定；组包链取 `getVerseSession` 探到的实链（`session.chainId`），执行器按 `spec.expectedChainId` 路由，缓存 chainId 陈旧不会把 A 链的 spec 交给 B 链钱包；审阅窗打开后钱包真实换链自动关窗重备。`lib/web3/chains.ts` 的 `verseExecutionChains` / `verseSwitchChainId` 为唯一判定口径。
+- **已知边界（数据作用域）**：详情页聚合进度/预购容量仍取治理链 canonical；非治理链的预购客户端闸门可能误挡（本地有容量却被治理链剩余挡住）或放行后链上 revert。链上 cap 兜底、无资金风险；标准/杠杆创世路径不受影响。彻底对齐需详情页按钱包链取数，另开一轮。
+- **验证**：`tests/unit/web3/chains.test.ts` 23 passed（落地集排序/治理链缺席回退/主网 set 成员/fixture 降级）；tsc / vitest **489** / check:design / check:freeze / check:design-docs / eslint / prettier 全绿（并行 write-session 落地集改造同批收口）。
+- 签名：approved by Jasonrale（2026-10-25 用户裁定）
+
+## 决议 048 · 参与成功页加交易跳转链接（2026-10-25，用户裁定）
+
+- **背景**：参与成功后用户无法查看自己的交易；用户要求按 Web3 产品惯例在新窗口的合适位置给出 tx 跳转。
+- **裁定**：成功态在支付台账与「查看资产组合」之间新增一行交易链接——标签即**缩略 tx id**（`formatHex` 前 6/后 4）+ 外链图标，青色的 link 角色色，`target="_blank"`；区块链浏览器取自链注册表 `explorer`（客户端安全解析，回退 `tx.context.review.chainId`）。
+- **验证**：预览核对位置/密度/颜色（缩略内联、居中、不抢 CTA）；tsc / vitest **489** / check:design / prettier 全绿。
+- 签名：approved by Jasonrale（2026-10-25 用户裁定）
+
+## 决议 048 补充 1 · 交易哈希改为带标签的台账行（2026-10-25，用户裁定）
+
+- **背景**：首版只显示缩略 hash（12px 居中），用户裁定「太小、可读性差、没人知道这是干什么的，要加 Transaction Hash 文案」。
+- **裁定**：改为标准台账行——左侧标签「交易哈希 / Transaction Hash」（`text-sm` 次级色），右侧缩略 hash + 外链图标（`text-base` 等宽、青色 link 角色），整行可点、hover 下划线；与上方「支付金额」行共用 44px 行高与 hairline，右缘对齐。
+- **验证**：预览截图核对标签、字号、对齐与点击区；tsc / vitest / check:design / prettier 全绿。
+- 签名：approved by Jasonrale（2026-10-25 用户裁定）
+
+## 决议 048 补充 2 · 交易哈希行去台账化并修复换行（2026-10-26）
+
+- **背景**：真机上该行出现外链图标掉行与一条多余分割线。原因：复用 `.participation-review__row` 带入了 `border-block-end`，且窄宽度下值容器未约束导致图标换行。首版预览只用一个宽度、图标与哈希恰好同宽，未暴露。
+- **裁定**：不再借用台账行——`.tx-success__hash` 自建 flex 行（`space-between`、无边框、`padding-block: space-2`、`white-space: nowrap`），值侧 `inline-flex` + 图标 `flex: 0 0 auto`。
+- **验证**：520 / 380 两种内容宽度实测行高 38.8px、值高 22.8px（单行），截图核对无分割线；tsc / vitest / check:design / prettier 全绿。
+- 签名：approved by Jasonrale（2026-10-26 用户裁定）
+
+## 决议 049 · Gas 三档改为「地板价 + feeHistory 分位」模型（2026-10-26，用户裁定/调研）
+
+- **背景**：用户质疑 Fast 的 1.3 倍数依据，并指出 BNB 链存在最低 gas 价（0.1 gwei）。实测确认：BSC 测试网 `eth_gasPrice=0.1 gwei`、`baseFee=0`，旧公式给 Slow 算出 **0.08 gwei——低于地板价，交易无法被打包**。
+- **调研**：Etherscan Gas Oracle 公开 Low/Medium/High 三档（Safe/Propose/Fast），文档未披露分位算法；MetaMask gas-api / Blocknative 一类的估值器均为「近期区块 + 分位」模型（原始文档当前不可达，置信度为行业实践而非引用）。实测三条测试网 `eth_feeHistory` 的 reward 分位（20 块）：
+  BSC 97 p10/p50/p90 = 0.021/0.054/0.217 gwei（均低于或接近 0.1 地板）；Base Sepolia = 0.0001/0.0011/0.0014；Arb Sepolia ≈ 0。
+- **裁定**：改为
+  `baseline = max(eth_gasPrice, nextBase + medianTip)`；
+  `maxFee = baseline × {1.00, 1.25, 1.60}`（Slow/Avg/Fast，替换旧 1.1/1.2/1.5+tip 体系）；
+  `baseTip = max(medianTip, eth_gasPrice − nextBase)`；
+  `tip = min(maxFee, baseTip × 同一倍数)`——零 base 链（BSC）上 tip 即有效价，倍数必须作用于 tip 才有快慢差异；
+  `nextBase`/`medianTip` 取自 `eth_feeHistory(20, [10,50,90])`，不支持时退化为 floor-only。
+  任何档位不得低于 `eth_gasPrice`（链的最低可打包价）。
+- **验证**：新增 `gas-tiers.test.ts` 覆盖 BSC（floor 生效）、ETH 型（base+median）、floor-only 退化；tsc / vitest **492** / check:design / cjk / prettier 全绿。
+- 签名：approved by Jasonrale（2026-10-26 用户裁定）
+
+## 决议 050 · Gas 分档模型自审与修订（2026-10-26，用户要求 review）
+
+- **自审发现**：① `tip ≤ maxFee` 是错的约束——协议实际支付 `min(tip, maxFee − baseFee)`，应改为该上限；② 拉取了 p10/p50/p90 却只用 p50，"分位模型"名不副实；③ 纯倍率在零 base 链上会让 Slow/Avg 崩到同一价；④ 自定义允许 `maxFee < nextBase`（不可广播）；⑤ 轮询每 12s 重估 gasLimit 属浪费（保留，作为精度与请求量的权衡）。
+- **修订**：tip 三层改为 p10/p50/p90，分别以地板 tip 托底并加最小阶梯（×1.25 / ×1.3），保证零 base 链仍单调；maxFee = `nextBase × {1.10,1.25,1.60} + tip`，再以 `eth_gasPrice` 托底；tip 上限改为 `maxFee − nextBase`；自定义新增 `isCustomGasValid`（价格 > 0 且 ≥ nextBase）并接入 Confirm 禁用。
+- **验证**：`gas-tiers.test.ts` 三例（BSC 地板/ETH 型 headroom/空市场退化）+ `isCustomGasValid` 一例；全量 **500** 用例通过，tsc / check:design / prettier 全绿。
+- 签名：approved by Jasonrale（2026-10-26 用户裁定）
+
+## 决议 050 补充 1 · Gas 刷新周期 12s → 20s（2026-10-26，用户裁定）
+
+- **裁定**：`GAS_REFRESH_MS = 20_000`；其余触发条件不变（复核窗打开才轮询、隐藏标签页跳过、关闭或进入签名即停）。
+- **验证**：tsc / vitest / check:design / check:design-docs / prettier 全绿。
+- 签名：approved by Jasonrale（2026-10-26 用户裁定）
+
+## 决议 050 补充 2 · Gas 轮询请求量收敛（2026-10-26，用户「继续省」）
+
+- **裁定**：① gas limit 按 `resetToken` 缓存，**每个复核窗只做一次 stateOverride 估值**（最贵的节点侧操作），后续轮询只刷费率；② Chainlink 聚合器 `decimals()` 进程级缓存（不可变量）；③ USD 参考价每窗读一次（价格变化远慢于费率，且只用于括号注释）；④ 三档结果做相等比较，未变化时复用旧数组，避免无意义重渲染。
+- **效果**：打开窗口 4 次 RPC（limit + gasPrice + feeHistory + USD）；此后每 20s 仅 **2 次**（gasPrice + feeHistory）。
+- **验证**：tsc / vitest **509** / check:design / prettier 全绿。
+- 签名：approved by Jasonrale（2026-10-26 用户裁定）

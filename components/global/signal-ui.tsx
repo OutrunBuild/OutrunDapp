@@ -176,7 +176,7 @@ export function ProgressMeter({
         aria-valuenow={Math.round(bounded)}
         aria-valuetext={`${formatPercent(value, locale)}%`}
       >
-        <span style={{ inlineSize: `${bounded}%` }} />
+        <span data-reached={value >= 100 ? 'true' : undefined} style={{ inlineSize: `${bounded}%` }} />
       </div>
       <div className="progress-meter__values" data-numeric>
         <span>{formatAmount(amount, locale)}</span>

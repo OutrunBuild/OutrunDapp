@@ -1141,7 +1141,7 @@ div > .wallet-select__note:last-child {
   translate: 0 1px;
 }
 
-/* Disabled buttons carry zero hover feedback here too (2026-10-22: raw :hover matches disabled
+/* Disabled buttons carry zero hover feedback here too (raw :hover matches disabled
    elements): every bridge hover rule is :not(:disabled)-gated, matching the cva not-disabled:
    hover gates. cva also carries the visible disabled grade (opacity 50 + not-allowed cursor)
    and gates its press nudge on enabled — pointerdown hits disabled controls and :active
@@ -1165,7 +1165,7 @@ div > .wallet-select__note:last-child {
   flex-shrink: 0;
   justify-content: center;
   gap: var(--space-2);
-  /* Space-2 padding at every tier (决议 035 补充 2): the 11-glyph address at
+  /* Space-2 padding at every tier: the 11-glyph address at
      --text-base needs ~106px; space-4 side padding leaves the desktop tier at
      104px — knife-edge overflow re-truncated an already-truncated address
      (double ellipsis). Space-2 (both tiers unified, mobile already used it)
@@ -1185,7 +1185,7 @@ div > .wallet-select__note:last-child {
   gap: var(--space-2);
   font-family: var(--font-data);
   font-variant-numeric: tabular-nums;
-  /* Address tier (决议 035 补充 2): mono + tabular at the button's base 16px but
+  /* Address tier: mono + tabular at the button's base 16px but
      weight 500, not the button prose 600 (600 mono at 16px reads as a slab — the
      original "not elegant" complaint; 14px read too small next to the 16px icon);
      truncation stays the site-wide formatHex default `0xBec9…6D12` (0x+4+4),
@@ -1209,8 +1209,7 @@ div > .wallet-select__note:last-child {
    button's sans two tiers up at medium (--text-lg/500 vs the address tier's
    --text-sm/500): the name is the identity display, and at button size it read
    smaller than the 16px glyph it sits next to; conversely the address is data and
-   stays a tier below the icon — the two-tier split IS the address≠name distinction
-   (决议 035) */
+   stays a tier below the icon — the two-tier split IS the address≠name distinction */
 .wallet-control__connected[data-label='name'] {
   font-family: inherit;
   font-variant-numeric: normal;
@@ -1228,7 +1227,7 @@ div > .wallet-select__note:last-child {
 
 /* Session-restore label slot: word-scale ghost of the pending label — the
    final labels measure 40px ("Login", 16px IBM Plex Sans) to ~106px (mono
-   address, 16px tier per 决议 035 补充 2), so 72px reads as a word for either landing; 8px = the 16px
+   address, 16px tier), so 72px reads as a word for either landing; 8px = the 16px
    label's x-height tier; sharp ends, same gray as the icon (in the real
    states icon and label share one color). Icon and bar breathe as one cluster
    (same pulse as the degrade-skeleton atoms; own class because
@@ -4382,6 +4381,12 @@ div > .wallet-select__note:last-child {
   background: var(--or-cyan);
 }
 
+/* Threshold reached: same next-stage transition as the discovery card meter (see
+   .economy-progress__track > span[data-reached]) */
+.progress-meter__track span[data-reached='true'] {
+  background: var(--stage-next, var(--accent-echo));
+}
+
 .progress-meter__values {
   color: var(--color-text-secondary);
   font-size: var(--text-sm);
@@ -4438,6 +4443,15 @@ div > .wallet-select__note:last-child {
 
 .stats-panel .verse-stats dt {
   font-size: var(--text-xs);
+}
+
+/* Hint bubble trigger beside the xs-size stat labels shrinks to the label's own size
+   (.swap-panel__details dt .create-info precedent) */
+.stats-panel .verse-stats dt .create-info {
+  inline-size: var(--text-xs);
+  block-size: var(--text-xs);
+  margin-inline-start: var(--space-1);
+  vertical-align: -2px;
 }
 
 .stats-panel .verse-stats dd {
@@ -8413,14 +8427,14 @@ div > .wallet-select__note:last-child {
 }
 
 /* Dual CTA on 1fr twin tracks = equal width, full-row span centers the pair
-   (pf-card/pool-card __actions syntax; user ruling 2026-10-21) */
+   (pf-card/pool-card __actions syntax) */
 .participation-review__actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
 }
 
-/* Review dialog body (2026-10-21 rounds 6–7: inline card → smaller popup; figures render as
+/* Review dialog body (inline card → smaller popup; figures render as
    hairline LEDGER ROWS, not floating numbers — label left secondary / mono value right); the
    shell head already separates, so the inline card's top padding is zeroed */
 .participation-review--dialog {
@@ -8444,9 +8458,43 @@ div > .wallet-select__note:last-child {
   color: var(--color-text-secondary);
 }
 
+/* Value cell: the figure plus, when the leg converts through the PSM, its derived fee as a
+   subordinate second line — both right-aligned on the ledger's single value axis, so the pair
+   reads as one item and the label column keeps one left edge (receipt convention: a derived
+   cost hugs the figure it comes from; peer rows would repeat the same label and lose the
+   attribution) */
+.participation-review__value {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: end;
+  text-align: end;
+}
+
+/* Rows carrying a value stack grow with their content: the label rides the amount line
+   (top-aligned) and the fee hangs below it, with block padding keeping the pair off the
+   row divider instead of letting it sit flush against the rule */
+.participation-review__row:has(.participation-review__fee) {
+  min-block-size: 0;
+  padding-block: var(--space-2);
+  align-items: start;
+}
+
+.participation-review__fee {
+  color: var(--color-text-tertiary);
+  font-size: var(--text-xs);
+  font-weight: normal;
+  line-height: 1.35;
+}
+
+/* Parameter rows (borrow rate): peer height and order, muted value — cyan stays reserved
+   for the enter-genesis amounts (cyan = receive/enter signal) */
+.participation-review__row--muted > span:last-child {
+  color: var(--color-text-secondary);
+}
+
 /* Row-value color coding: enter-genesis values cyan (functional/receive signal; yellow
    reserved for the CTA and the you-pay readout), you-pay total brand yellow + semibold
-   (token semantics "key readouts", user rulings 2026-10-21 rounds 3/5/7) */
+   (token semantics "key readouts") */
 .participation-review__row--genesis > span:last-child {
   color: var(--accent-link);
 }
@@ -8471,6 +8519,14 @@ div > .wallet-select__note:last-child {
   font-size: var(--text-sm);
 }
 
+/* Unwired-route note (review dialog): states why the primary CTA cannot execute instead of
+   leaving a silently dead Confirm — same secondary strip as the meta line above the actions */
+.participation-review__note {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
 /* Transaction signature status list (state flow: awaiting signature → on-chain confirmation →
    confirmed; shared by create-form + participation-panel via tx-status.tsx; signature/on-chain
    simulated by frontend timers, no hash/gas, key-fact rows omitted) */
@@ -8478,7 +8534,7 @@ div > .wallet-select__note:last-child {
   display: grid;
   gap: var(--space-2);
   /* The list centers as one block; rows inside stay left-aligned so the dots
-     hold a single column (user ruling 2026-10-23) */
+     hold a single column */
   inline-size: fit-content;
   margin-inline: auto;
   padding: 0;
@@ -8555,7 +8611,7 @@ div > .wallet-select__note:last-child {
   }
 }
 
-/* T6 confirmed = the receipt's closing stamp (user ruling redesign): centered check+title
+/* T6 confirmed = the receipt's closing stamp: centered check+title
    head, then the dialog's own ledger language closes it out — full-width hairline paid row
    (yellow value, --pay row vocabulary, hero numeral inside the row) + full-width CTA */
 .tx-success {
@@ -8571,6 +8627,14 @@ div > .wallet-select__note:last-child {
   }
 }
 
+/* Paid legs sit in ONE ledger block: consecutive rows share the confirm screen's 44px
+   rhythm and a single hairline, no grid gap between them — the outer gap then reads equal
+   above and below the block (was: every row a separate grid item, doubling the spacing
+   between the two legs) */
+.tx-success__rows {
+  display: grid;
+}
+
 .tx-success__head {
   display: flex;
   align-items: center;
@@ -8579,15 +8643,23 @@ div > .wallet-select__note:last-child {
   justify-self: center;
 }
 
-/* Success context turns the house check plate green (create-success accent precedent) */
+/* Success context fills the house check plate green, glyph flips near-white (create-success accent precedent) */
 .tx-success__head .review-check {
   border-color: var(--color-success);
-  color: var(--color-success);
+  background-color: var(--color-success);
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+}
+
+.tx-success__head .review-check svg {
+  inline-size: var(--text-sm);
 }
 
 .tx-success__title {
   margin: 0;
-  font-size: var(--text-md);
+  font-size: var(--text-lg);
   font-weight: var(--font-weight-semibold);
 }
 
@@ -8601,6 +8673,11 @@ div > .wallet-select__note:last-child {
 
 .tx-success > .ax-ghost-cta {
   justify-self: stretch;
+}
+/* Single-CTA states (confirmed / unwired route): one button fills the same track the
+   confirm pair occupies, so the action row stays aligned across states */
+.participation-review__actions--single {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .tx-success__summary {
@@ -8628,11 +8705,16 @@ div > .wallet-select__note:last-child {
 .create-success-pop__title-accent::after {
   content: '';
   display: inline-block;
-  inline-size: var(--space-4);
-  block-size: var(--space-2);
+  inline-size: calc(var(--space-4) * 0.75);
+  block-size: calc(var(--space-2) * 0.75);
   margin-inline-start: var(--space-2);
   background: var(--color-success);
-  clip-path: polygon(var(--space-1) 0, 100% 0, calc(100% - var(--space-1)) 100%, 0 100%);
+  clip-path: polygon(
+    calc(var(--space-1) * 0.75) 0,
+    100% 0,
+    calc(100% - var(--space-1) * 0.75) 100%,
+    0 100%
+  );
   vertical-align: 0.12em;
 }
 
@@ -9394,7 +9476,7 @@ div > .wallet-select__note:last-child {
     /* Fixed width 152px — the
       shrink = the slack budget after
       removing the green dot; padding space-3→space-2 in step (now base-class
-      rule, 决议 035 补充 2); the address "0x1111…0001" measures
+      rule); the address "0x1111…0001" measures
       ~106px
       (IBM Plex Mono 16px) and displays fully at both the 152 tier
       (content budget 112px) and the 160 desktop tier (120px).
@@ -9411,9 +9493,10 @@ div > .wallet-select__note:last-child {
     position: fixed;
     inset-inline: 0;
     inset-block-end: 0;
-    display: grid;
-    /* 6 cells: all usable items on the bottom bar (home/explore/launch/portfolio/referral/faucet) */
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    display: flex;
+    /* Equal split driven by the item count (navItems in app-shell.tsx): a fixed
+      column count drifts as soon as the bottom bar gains/loses a slot, leaving
+      the row left-shifted */
     min-block-size: calc(var(--space-8) + env(safe-area-inset-bottom));
     padding-block-end: env(safe-area-inset-bottom);
     border-block-start: 1px solid var(--color-border-strong);
@@ -9425,6 +9508,7 @@ div > .wallet-select__note:last-child {
   .mobile-navigation a,
   .mobile-navigation > span {
     display: flex;
+    flex: 1 1 0;
     min-inline-size: 0;
     flex-direction: column;
     align-items: center;
@@ -9623,7 +9707,7 @@ div > .wallet-select__note:last-child {
     display: block;
   }
 
-  /* Padding stays on the 决议 035 补充 2 all-tier space-2: space-3 here left the
+  /* Padding stays on the all-tier space-2: space-3 here left the
     connected address a 104px budget against its ~106px width — the original
     knife-edge double-ellipsis geometry */
   .marketing-header .wallet-control {
@@ -9816,8 +9900,10 @@ div > .wallet-select__note:last-child {
     border-block-end: 0 !important;
   }
 
-  .participation-review dl > div,
-  .participation-review__row {
+  /* Ledger rows keep their two columns at every width (a receipt's label/value pairing is the
+     scannable form; stacking turns the summary into a vertical list). Only the flat dl style
+     used by the create-form review still stacks. */
+  .participation-review dl > div {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -10311,6 +10397,18 @@ div > .wallet-select__note:last-child {
 .pf-zone-sub {
   display: grid;
   gap: var(--space-7);
+}
+
+/* Empty zone wrappers collapse: onchain builds leave zones structurally empty until their
+   data lands (server aggregates retired; participations scan client-side), and an empty
+   wrapper still spends its 48px group spacing — three stacked empty wrappers drew a ~144px
+   hole above the first populated zone (same family as the mobile tail-yield rule below).
+   React renders no nodes for null zones, so :has(*) separates populated from empty; the
+   mobile active-zone rules outrank this, so tab behavior is unchanged there. */
+.pf-zone-group:not(:has(*)),
+.pf-zone-sub:not(:has(*)),
+.pf-deck__tail:not(:has([data-zone-wrap] > *)) {
+  display: none;
 }
 
 .pf-zone-tabs {
@@ -11312,11 +11410,15 @@ button.pf-action__link {
   inset-block-start: 0;
   block-size: 2px;
   background: var(--stage-color, var(--color-border-strong));
+  /* The cut follows the panel diagonal's 1:1 slope WITHIN this element's 2px box (the line ends
+     where the panel cut begins). The panel-pseudo polygon shape (…, 100% var(--chamfer-panel), …)
+     is malformed for a 2px-tall element — its chamfer vertex lands below the box, the polygon
+     self-intersects, and the degenerate sliver right of the diagonal fills at some device-pixel
+     layouts only (user-visible at exactly 100% zoom: a dim tail floating past the card corner). */
   clip-path: polygon(
     0 0,
     calc(100% - var(--chamfer-panel)) 0,
-    100% var(--chamfer-panel),
-    100% 100%,
+    calc(100% - var(--chamfer-panel) + 2px) 100%,
     0 100%
   );
 }
@@ -12300,13 +12402,6 @@ button.pf-action__link {
   text-transform: uppercase;
 }
 
-.economy-progress__or::before {
-  content: '';
-  inline-size: var(--space-5);
-  block-size: var(--line-echo);
-  background: var(--color-border);
-}
-
 .economy-progress__item > div {
   display: flex;
   align-items: center;
@@ -12337,22 +12432,17 @@ button.pf-action__link {
 }
 
 .economy-progress__track > span {
-  position: relative;
   display: block;
   block-size: 100%;
   background: var(--stage-color);
   animation: ax-meter-fill 0.7s var(--ease-out);
 }
 
-/* Progress-end white cursor (a data-readout pointer, not a glow) */
-.economy-progress__track > span::after {
-  content: '';
-  position: absolute;
-  inset-inline-end: 0;
-  inset-block: calc(-1 * var(--line-echo));
-  inline-size: calc(var(--line-echo) * 2);
-  block-size: calc(100% + var(--line-echo) * 2);
-  background: var(--color-text);
+/* Threshold reached: the fill switches to the next stage's primary color (genesis yellow →
+   locked magenta); the percentage text keeps its own color — the bar alone carries the
+   transition signal */
+.economy-progress__track > span[data-reached='true'] {
+  background: var(--stage-next, var(--accent-echo));
 }
 
 .economy-progress__thresholds .economy-progress__item:nth-child(3) .economy-progress__track > span,
@@ -12364,17 +12454,6 @@ button.pf-action__link {
   from {
     inline-size: 0;
   }
-}
-
-/* Progress-end white cursor (a data-readout pointer, not a glow) */
-.economy-progress__track > span::after {
-  content: '';
-  position: absolute;
-  inset-inline-end: 0;
-  inset-block: calc(-1 * var(--line-echo));
-  inline-size: calc(var(--line-echo) * 2);
-  block-size: calc(100% + var(--line-echo) * 2);
-  background: var(--color-text);
 }
 
 .economy-card__facts {
@@ -12409,7 +12488,7 @@ button.pf-action__link {
   overflow-wrap: anywhere;
 }
 
-.economy-grid-sentinel {
+.economy-grid-scroll-anchor {
   block-size: 1px;
 }
 
@@ -13585,4 +13664,346 @@ button.pf-action__link {
   .fc-claims__foot [data-slot='button'] {
     inline-size: 100%;
   }
+}
+
+/* —— Gas control (embedded wallets) ——
+   Summary row -> the dialog body swaps to an in-place editor (no overlay), with a
+   fade-out/fade-in handoff driven by [data-leaving]. */
+.participation-review--dialog {
+  transition:
+    opacity 110ms var(--ease-out),
+    transform 110ms var(--ease-out);
+}
+
+.participation-review--dialog[data-leaving='true'] {
+  opacity: 0;
+  transform: translateY(calc(-1 * var(--space-1)));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .participation-review--dialog {
+    transition: none;
+  }
+}
+
+.pol-mint__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--space-7);
+  block-size: var(--space-6);
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.pol-mint__back:hover {
+  color: var(--accent-link);
+}
+
+/* The fee row continues the ledger above it: pull it into the review grid's 16px gap so
+   the hairline rhythm reads as one block (visual gap ≈ 4px). */
+.participation-review--dialog > .gas-row {
+  margin-block-start: calc(-1 * var(--space-3));
+}
+
+.gas-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  inline-size: 100%;
+  min-block-size: var(--row-height);
+  padding: 0;
+  border: 0;
+  border-block-end: 1px solid var(--color-border);
+  background: transparent;
+  text-align: start;
+  cursor: pointer;
+}
+
+.gas-row__label {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.gas-row__value {
+  display: inline-flex;
+  align-items: baseline;
+  margin-inline-start: auto;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.gas-row__usd {
+  margin-inline-start: var(--space-1);
+  color: var(--color-text-tertiary);
+}
+
+.gas-row__chevron {
+  flex: 0 0 auto;
+  inline-size: var(--space-3);
+  block-size: var(--space-3);
+  color: var(--color-text-tertiary);
+}
+
+.gas-row:hover .gas-row__chevron,
+.gas-row:focus-visible .gas-row__chevron {
+  color: var(--accent-link);
+}
+
+.gas-editor {
+  display: grid;
+  /* Spacing is owned per-element below: the option list meets the custom divider with no
+     gap, and only the Done button keeps a breath above it. */
+  gap: 0;
+  padding-block-start: var(--space-1);
+}
+
+.gas-editor__options {
+  display: grid;
+}
+
+.gas-option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: var(--row-height-relaxed);
+  padding-inline: var(--space-2);
+  border: 0;
+  background: transparent;
+  text-align: start;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+
+.gas-option + .gas-option {
+  border-block-start: 1px solid var(--color-border);
+}
+
+.gas-option:hover {
+  background: var(--color-surface-inset);
+}
+
+.gas-option[data-active='true'] {
+  background: var(--color-surface-inset);
+  box-shadow: inset 2px 0 0 var(--accent-link);
+}
+
+.gas-option__label {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.gas-option[data-active='true'] .gas-option__label {
+  color: var(--accent-link);
+}
+
+.gas-option__gwei {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  text-align: end;
+  white-space: nowrap;
+}
+
+.gas-option__fee {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+}
+
+.gas-option__fee > span {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.gas-option__fee i {
+  font-style: normal;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+.gas-editor__custom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  inline-size: 100%;
+  min-block-size: var(--row-height);
+  padding: 0 var(--space-2);
+  border: 0;
+  border-block-start: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  letter-spacing: var(--label-tracking);
+  /* Sentence case on purpose: the label reads "Advanced", not a shouted caption. */
+  text-transform: none;
+  cursor: pointer;
+}
+
+.gas-editor__custom[data-active='true'] {
+  color: var(--accent-link);
+}
+
+.gas-editor__custom svg {
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.gas-editor__custom[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
+.gas-custom {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-2) var(--space-2);
+}
+
+.gas-custom__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+@media (max-width: 20rem) {
+  .gas-custom__fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.gas-custom__field {
+  display: grid;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.gas-custom__field-label {
+  font-size: var(--text-xs);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.gas-custom__input {
+  position: relative;
+  display: block;
+}
+
+.gas-custom__input input {
+  inline-size: 100%;
+  block-size: var(--control-height);
+  padding-inline: var(--space-2) 2.75rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-inset);
+  color: var(--color-text);
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-sm);
+  text-align: end;
+}
+
+.gas-custom__input input[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.gas-custom__input i {
+  position: absolute;
+  inset-inline-end: var(--space-2);
+  inset-block-start: 50%;
+  transform: translateY(-50%);
+  font-style: normal;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  pointer-events: none;
+}
+
+.gas-custom__hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+.gas-custom__total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-block-start: var(--space-2);
+  border-block-start: 1px solid var(--color-border);
+}
+
+.gas-custom__total > span:first-child {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.gas-custom__total > span:last-child {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.gas-editor__done {
+  /* Skin comes from the shared ghost CTA (transparent + yellow chamfered border, hover
+     fills); this class only owns the layout. */
+  inline-size: 100%;
+  margin-block-start: var(--space-2);
+}
+
+/* Faucet claim progress dialog body: the three-step strip is the only
+   feedback while the embedded wallet signs silently. */
+.fc-claim-status {
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* Success receipt link: label + truncated hash on one line, no ledger border (the row
+   above already closes the block). `nowrap` keeps the icon from dropping to a second line
+   in narrow dialogs. */
+.tx-success__hash {
+  display: flex;
+  inline-size: 100%;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-block: var(--space-2);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tx-success__hash-label {
+  flex: 0 0 auto;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.tx-success__hash-value {
+  display: inline-flex;
+  min-inline-size: 0;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--accent-link);
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-base);
+  white-space: nowrap;
+}
+
+.tx-success__hash-value svg {
+  flex: 0 0 auto;
+}
+
+.tx-success__hash:hover .tx-success__hash-value {
+  text-decoration: underline;
 }

@@ -4,8 +4,8 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  // Disabled = visible grade + ZERO interaction feedback (2026-10-22 user rulings, root cause
-  // proven by an in-page probe on the user's browser): pointerdown/pointerup DO hit disabled
+  // Disabled = visible grade + ZERO interaction feedback (root cause proven by an in-page
+  // probe on the user's browser): pointerdown/pointerup DO hit disabled
   // controls (spec) and :active follows them, so a raw `active:translate-y-px` nudged disabled
   // buttons 1px on every press — the reported "jitter" — and raw :hover skin lit them up too.
   // Press nudge and hover skins are therefore gated on enabled; pointer-events stay on so

@@ -68,7 +68,7 @@ export function LoginSessionRestore() {
   // Authenticated but wallet-less (the `already logged in` early-return path:
   // the SDK skips both the exchange and the embedded-wallet creation that only
   // runs on a fresh login). Mint one explicitly so the link effect below has
-  // something to attach. The per-user sentinel is set only after success, so a
+  // something to attach. The per-user marker is set only after success, so a
   // transient failure can retry instead of wedging this page; two retries, then
   // the next session. Failures stay silent — a missing wallet must never surface
   // as a login error.

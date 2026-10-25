@@ -171,7 +171,7 @@ export function DialogCta({
   /** Copy override for the disconnected button (default = common.connect; verse trading
    * contexts use verseDesk.swapCta) */
   connectLabel?: string
-  /** Wrong-chain override (user ruling 2026-10-22): when set and connected, the CTA becomes the
+  /** Wrong-chain override: when set and connected, the CTA becomes the
    * network switch instead of the action — the desk never fires on-chain reads off-chain */
   switchChainTo?: {
     execChain: number
