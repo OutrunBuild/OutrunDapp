@@ -40,8 +40,8 @@ const ALLOWLIST = {
     '@graphprotocol/graph-cli': '0.98.1',
   },
   dependencies: {
-    zod: '4.5.4',
-    next: '16.3.3',
+    zod: '4.6.7',
+    next: '16.4.3',
     react: '19.2.8',
     'react-dom': '19.2.8',
     'lucide-react': '1.37.0',
@@ -58,7 +58,7 @@ const ALLOWLIST = {
     viem: '2.55.10',
     '@privy-io/react-auth': '3.38.0',
     '@privy-io/wagmi': '4.0.16',
-    '@sentry/nextjs': '10.72.0',
+    '@sentry/nextjs': '10.76.2',
   },
 };
 if (existsSync('package.json')) {
