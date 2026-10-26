@@ -8,7 +8,7 @@
 ## 1. 用户任务
 
 - 目标用户：**陌生访客**（首次到达，无钱包也可完整浏览）；回访用户经导航直达内页
-- 用户任务：①3 秒明白这是什么（Hero 定位）②判断可信度（证据带指标）③看懂双模块机制（引擎卡+机制入门段）④看懂生命周期（教育段）⑤进入产品（CTA）
+- 用户任务：①3 秒明白这是什么（Hero 定位）②判断可信度（证据带指标）③看懂三引擎机制（引擎卡+机制入门段）④看懂生命周期（教育段）⑤进入产品（CTA）
 - 完成定义：点击 CTA 进入 `/memeverse/explore` 或外跳文档
 - 最重要的一个决策：**要不要进产品**（Hero 主 CTA 与收尾 CTA 双出口；CTA 落发现页创世视图=有意漏斗）
 
@@ -19,7 +19,7 @@
 | SiteFooter | 品牌字标+一句话陈述；Protocol 组（发现页链接、#engines、#lifecycle 锚点）；Resources 组（OutrunBook 文档、GitHub 外链）；社交位（X/Discord/Telegram 根域名占位——官方账号链接待定，GitHub 真链）；© 2026+tagline | `home-page.tsx` SiteFooter |
 | Hero 定位区 | 标题（lead+accent 两段式，accent 多行折行渲染、句号单独着色）+副文案+主 CTA（→`/memeverse/explore`） | `.home-hero` |
 | 证据带（proof band） | 3 个数字：总锁定（$ 缩写格式）、已部署 Verse 数、累计参与地址数；`data-numeric` 数字语义 | `.home-proof-band` + `formatMarketCap` |
-| 引擎卡带（#engines） | 双引擎卡（title/description/note 三层：断言句+好处+机制注脚）；公平发射口径=供应全部在池内、无池外份额、三种参与同一套规则、未达标全额退款 | `.home-engine-strip`/`.home-engine` |
+| 引擎卡带（#engines） | 三引擎卡（title/description/note 三层：断言句+好处+机制注脚）；公平发射口径=供应全部在池内、无池外份额、三种参与同一套规则、未达标全额退款 | `.home-engine-strip`/`.home-engine` |
 | 机制入门段 | 营销文案分层（note=提炼钩子、desc=好处背后的 why）；POL 与权益注解（glosses） | `MechanismPrimer`（`mechanism-primer.tsx`） |
 | 生命周期教育段（#lifecycle） | 四阶段教育叙事+术语注解（复用机制段 POL/权益 gloss） | `VerseLifecycle`（`verse-lifecycle.tsx`、`term-gloss.tsx`） |
 | 收尾 CTA 区 | 主 CTA（→`/memeverse/explore`）+ 文档 CTA（→OutrunBook GitHub 外链） | `.home-final-cta` |
@@ -30,7 +30,7 @@
 
 | 数据 | 当前来源 | 生产来源 | 降级行为 |
 |---|---|---|---|
-| 总锁定 / Verse 数 / 参与地址 | `getFixtureSnapshot().homeMetrics`（fixtures） | Graph（RSC 聚合） | 数值带骨架或「—」+重试；不阻塞首屏 |
+| 总锁定 / Verse 数 / 参与地址 | `getHomeMetrics()`（`lib/data/fixture-repository.ts`：fixture 构建=fixtures 快照） | Graph（onchain-source 走 Graph ProtocolStats 逐链聚合，RSC） | 数值带骨架或「—」+重试；不阻塞首屏 |
 
 渲染边界：整页 RSC；CTA 为链接（Link/`<a>`）无客户端数据交互；OutrunShell 导航内含全局钱包按钮（Client 岛）。
 
@@ -76,4 +76,4 @@
 ## 10. fixture 场景
 
 - `normal`：证据带三数有值；`zero-balance`：冷启动全零；`rpc-fail`：指标 Error 态；`index-lag`：静默（数据稍旧，无可见状态）
-- 数据=fixture snapshot `homeMetrics`（`totalLocked`/`deployedVerseCount`/`participantCount`，经 `lib/data/fixture-repository.ts` 组装）；场景 ID 引 fixtures/scenarios/states.json
+- 数据经 `getHomeMetrics()` 组装（fixture 构建=fixtures 快照 `homeMetrics`，onchain 构建=Graph 逐链聚合）；场景 ID 引 fixtures/scenarios/states.json

@@ -82,10 +82,9 @@ primary 三变体；symbol/mono/favicon/图标为无纹理平涂版。
 ## 5. 接入示例
 
 ```html
-<!-- Next.js public/ 目录 -->
-<link rel="icon" href="/favicon.ico" sizes="48x48">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<!-- 实装：app/layout.tsx icons.icon 指向包内资产 -->
+<link rel="icon" href="/brand/BRAND-04-symbol-color-512.png">
+<!-- 05-favicon/（favicon.ico/favicon.svg/apple-touch-icon）为包内备选件，当前未接入 -->
 ```
 ```html
 <!-- currentColor 主题化（必须内联：<img> 是文档边界，外部 color 继承不进去） -->

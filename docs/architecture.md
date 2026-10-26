@@ -67,7 +67,7 @@ URL 方案：zh 路径带 `/zh` 前缀；en 为无前缀 canonical（`proxy.ts` 
 | `/`                     | 产品落地页       | Hero 定位（双模块闭环）、营销口径指标证据带、双引擎卡、机制入门与生命周期教育、进入产品 CTA；无个性化摘要（决议 007） |
 | `/memeverse/explore`    | Memeverse 发现   | Verse 列表（阶段 tab：创世中默认/锁定中/已解锁，不跨阶段混排）、阶段内排序、治理链/资产族/创世模式过滤、搜索、参与规模 |
 | `/memeverse/launch`     | 创建 Memeverse   | 注册参数、symbol 校验、多链选择、费用报价、提交和跨链注册状态                         |
-| `/memeverse/[verseId]`  | Verse 详情单页   | 头卡+判定面板（双门槛/Fast Genesis）+参与面板（Genesis/Preorder/退款/领取）+交易台持久区（统计条/K 线/Swap）+四标签 `?tab=liquidity\|pol\|vault\|dao`（流动性与 LP、POL 铸造/赎回与拆合、收益库赎回、DAO 治理） |
+| `/memeverse/[verseId]`  | Verse 详情单页   | 头卡+判定面板（双门槛/Fast Genesis）+参与面板（Genesis/Preorder/退款/领取）+交易台持久区（统计条/K 线/Swap）+四标签 `?tab=liquidity\|pol\|vault\|dao`（流动性与 LP、POL 铸造/赎回与拆合、收益库赎回、DAO 治理——提案创建/执行外置 Cactus（原 Tally）外链卡，站内不建创建表单；阶段推进/费分发/治理结算均为 permissionless 手动触发，无 keeper） |
 | `/portfolio`            | 统一资产与活动   | 六链余额、uAsset/SY 资产（行内跨链 BridgeDialog/面值兑换/存入储蓄入口）、CDP 仓位与债务赎回（open-term，`redeem` 唯一减借）、USR 储蓄（suToken）、GenesisCredit、Genesis/POL/PT/YT 凭证、待领取项、跨链在途/滞留提醒（跨链发起并入本页，v1 无独立 bridge 页；交易历史归全局交易中心，决议 007） |
 | `/referral`             | 推荐返佣         | 邀请链接（/ref/短码样式）、返佣 KPI（累计/待领/人数/费率）、逐币种领取、分账说明（65/25/10）、流水与朋友表 |
 | `/faucet`               | 测试网水龙头     | 三 mock 代币领取（逐 token 24h 冷却/批量）、Get UUSD（PSM 面值 1:1）、生息资产直达创世入口 |
@@ -133,9 +133,7 @@ Node.js `24.20.0` 是 2026-08-26 发布的最新稳定 LTS 版本（代号 Krypt
 
 ```text
 app/                 路由、布局、RSC 和页面组合
-features/            stake、bridge、genesis、swap、pol、governance、account
-entities/            asset、position、verse、proposal、transaction、account
-components/          通用 UI 与领域组件
+components/          通用 UI（ui/、design-system/）、跨页共享（global/，含写链路基建 hooks）、链上读数适配（data/）与领域组件（verse/home/discovery/create/portfolio/referral/faucet）
 lib/web3/            chain、RPC、wagmi、Privy、Kernel 和交易生命周期
 lib/data/            RPC/Graph repository、query key 和 ViewModel 映射
 contracts/abi/       冻结 ABI
@@ -145,7 +143,7 @@ fixtures/            原型和测试 fixture，生产构建禁止导入
 tests/               unit、integration、e2e 和 visual
 ```
 
-仓库根目录的运行时控制文件为 `.node-version`、`pnpm-workspace.yaml`、`.prettierrc.json`、`.prettierignore`、`scripts/bootstrap-pnpm.mjs` 和 `scripts/check-runtime.mjs`；它们与 `package.json` 的 `engines`/`packageManager` 字段共同构成可执行的环境与安全策略契约，不属于业务模块目录。`pnpm-workspace.yaml` 必须包含当前根 package 与双编译器桥包（`packages: ['.', 'vendor/typescript-bridge']`）并将 `@typescript/old` override 固定为 `npm:typescript@6.0.2`。
+仓库根目录的运行时控制文件为 `.node-version`、`pnpm-workspace.yaml`、`.prettierrc.json`、`.prettierignore`、`scripts/bootstrap-pnpm.mjs` 和 `scripts/check-runtime.mjs`；它们与 `package.json` 的 `engines`/`packageManager` 字段共同构成可执行的环境与安全策略契约，不属于业务模块目录。`pnpm-workspace.yaml` 必须包含当前根 package、subgraph 与双编译器桥包（`packages: ['.', 'subgraph', 'vendor/typescript-bridge']`）并将 `@typescript/old` override 固定为 `npm:typescript@6.0.2`。
 
 状态所有权固定如下：
 
@@ -355,13 +353,13 @@ manifest 记录：
 - runtime codehash。
 - Kernel V3.3 implementation 地址和 codehash。
 
-ABI RC 冻结后部署 Sepolia、Base Sepolia 和 BSC Testnet。前端合约集成只使用冻结 ABI 和真实测试网地址。冻结后的 ABI 语义变化必须提升 ABI 版本、更新 manifest、重新部署受影响测试网实例并完成全量回归。
+ABI RC 冻结后部署 Arbitrum Sepolia、Base Sepolia 和 BSC Testnet。前端合约集成只使用冻结 ABI 和真实测试网地址。冻结后的 ABI 语义变化必须提升 ABI 版本、更新 manifest、重新部署受影响测试网实例并完成全量回归。
 
 主网发布前将 ABI 冻结为 `v1`。生产前端保留旧 ABI 直到对应旧代理和用户交易全部完成，禁止原地覆盖 ABI 文件。
 
 ## 9. 链上数据架构
 
-数据按用途分成两条路径。
+数据按用途分成两条路径。取数纪律：每个数值只有一个权威来源与统一取数入口；真数据接入后不允许同一数值保留 fixture 与推导双路径并行维护。
 
 ### 9.1 直接 RPC
 
@@ -391,7 +389,7 @@ Memeverse 动态部署的 Memecoin、POL、PT、YT、YieldVault 和 Governor 使
 
 - 设计系统以 token 管理颜色、字体、间距、边框、阴影、层级和 motion。
 - shadcn 组件复制进仓库后，只通过 token 和明确 variant 扩展。
-- 领域组件至少包含 AmountInput、AssetSelector、ChainSelector、TransactionReview、TransactionStatus、AccountCapability、PositionTable、VerseStage、TokenPair 和 EmptyState。
+- 领域组件至少包含 AmountInput、AssetSelector、ChainSelector、ActionDialogShell、TransactionStatus、AccountCapability、PositionTable、VerseStage、TokenPair 和 EmptyState。
 - 所有按钮、输入、弹窗、菜单、表格和通知可使用键盘操作，并具有可见 focus state。
 - 图标按钮具有可访问名称；装饰图标对辅助技术隐藏。
 - 异步状态通过 `aria-live` 宣布；错误显示在操作附近并提供恢复动作。
@@ -434,7 +432,7 @@ Anvil 使用与合约仓相同的 Foundry `1.8.5`。集成测试覆盖：
 - delegation 替换、撤销、错误 codehash 和逐链状态隔离。
 - PSM 面值兑换（`tin`/`tout` 费率、`stockCap` headroom、dust 域 quote 返 0 而执行 revert）、USR ERC4626 计息（`accrualIndex` 平方求幂外推、封顶钳制、`usrRate` 前瞻生效）与 open-term CDP 仓位（`stakeForGenesis` 唯一铸造入口、债务/赎回状态机）。
 
-真实 Sepolia、Base Sepolia 和 BSC Testnet 测试使用 Privy embedded/external wallet、viem Type-4 transaction 和 Kernel V3.3 implementation。三条链都必须覆盖真实 authorization、带 `authorizationList` 的最终 Type-4 simulation、签名、提交、回执和 session Swap。该套件在 ABI、账户依赖、部署 manifest 变化和发布候选上执行，不作为普通样式 PR 的外部网络硬依赖。
+真实 Arbitrum Sepolia、Base Sepolia 和 BSC Testnet 测试使用 Privy embedded/external wallet、viem Type-4 transaction 和 Kernel V3.3 implementation。三条链都必须覆盖真实 authorization、带 `authorizationList` 的最终 Type-4 simulation、签名、提交、回执和 session Swap。该套件在 ABI、账户依赖、部署 manifest 变化和发布候选上执行，不作为普通样式 PR 的外部网络硬依赖。
 
 ## 12. 持续集成、部署与环境
 
@@ -452,7 +450,7 @@ GitHub Actions 是唯一 CI。所有 PR 必须通过：
 
 涉及 ABI、chain、account、Privy、external wallet、EIP-7702、Kernel、交易或 subgraph 的变更增加 Anvil fork 和真实测试网套件。
 
-机器闸门为 `.githooks` + GitHub Actions 双轨。`.githooks` 已入库（`git config core.hooksPath .githooks` 挂载）：pre-commit 对 staged blob 跑 prettier 与 eslint（staged-blob 语义，`--no-verify` 绕过后须补跑全量）；pre-push 跑全仓 typecheck 与 vitest 全量（vitest 内含 fixture 边界与设计三 checker）。CI 现状（2026-10-10）为上列契约的先导子集：typecheck、lint、format、vitest、冻结清单完整性已接线（lint 存量债已清偿、阻断已恢复，见 §25）；生产构建与 Playwright 原型期走本地 `pnpm build` / `pnpm test:e2e`，ABI 校验随冻结轮接线，均未进 CI。
+机器闸门为 `.githooks` + GitHub Actions 双轨。`.githooks` 已入库（`git config core.hooksPath .githooks` 挂载）：pre-commit 对 staged blob 跑 prettier 与 eslint（staged-blob 语义，`--no-verify` 绕过后须补跑全量）；pre-push 跑全仓 typecheck 与 vitest 全量（vitest 内含 fixture 边界与设计三 checker）。CI 现状为上列契约的先导子集：typecheck、lint、format、vitest、冻结清单完整性与 ABI manifest 校验（`scripts/check-abi-manifest.mjs`）已接线（lint 存量债已清偿、阻断已恢复，见 §25）；生产构建与 Playwright 原型期走本地 `pnpm build` / `pnpm test:e2e`，未进 CI。
 
 Vercel 环境固定为：
 

@@ -1,9 +1,8 @@
 // Onchain data adapter — the OUTRUN_DATA_SOURCE=onchain build-time alias target of
 // '@/lib/data/fixture-repository' (next.config.ts resolveAlias; fixture-boundary-contract
-// OUTRUN_DATA_SOURCE section). It lives in components/ on purpose: that is the sanctioned zone
-// allowed to reference the fixture repository (TYPE-ONLY imports — never runtime values), so the
-// shared ViewModel shapes stay single-sourced while the onchain build statically swaps every
-// runtime getter to real RPC/Graph data. Two-build rule: the fixture build resolves the real
+// OUTRUN_DATA_SOURCE section). It references the fixture repository TYPE-ONLY — never runtime
+// values — so the shared ViewModel shapes stay single-sourced while the onchain build statically
+// swaps every runtime getter to real RPC/Graph data. Two-build rule: the fixture build resolves the real
 // fixture repository and renders the stage-3 baseline byte-identically.
 //
 // Degrade discipline: fields without an on-chain source render nothing (null/empty), never

@@ -16,7 +16,7 @@
 3. **杠杆面板**：输入利息金额+支付资产（uAsset/创世积分直付；储备资产自动经面值兑换转 uAsset 利息——`leveragedGenesisByPSM`，全额作为利息，无 CDP 仓位）→ 实时预览：债务额度=利息÷利率（一次性比例**非年化**）、债务上限余量（**余量不足→输入实时拦截+显示剩余可建额度**——对照 PSM stockCap 模式） → 披露「损失上限=利息、无清算、创世失败利息全额退」
 4. **预购**：与普通/杠杆创世**同级**的独立参与路径（模式层第三项，仅预购不创世）；普通/杠杆面板内另提供「一键预购」开关——开启后出现预购金额输入，**实时显示可预购上限=创世资金按面值折算 uAsset×70%×容量比例（glossary 公式；容量比例为 per-Verse 读链参数，fixture 快照缺失时 UI 不渲染），超限输入实时拦截**（对照 stockCap 模式），最终按钮一笔同时提交创世+预购；全局预购容量口径不变（=(普通资金+杠杆债务本金)×70%×容量比例，读链）
 5. **代付**：无入口（决议 007 PD-11；`genesisUser`=调用者（产品约束 PD-11；合约层支持代付——genesis.md:95））
-6. **审阅卡**（提交前）：路径、金额、费率、到账/份额预估、滑点保护（minUAssetMinted/minSyOut/minTokenOut 下限——SPEC-S1 §6.1 签名）、授权链清单
+6. **确认卡**（提交前）：路径、金额、费率、到账/份额预估、滑点保护（minUAssetMinted/minSyOut/minTokenOut 下限——SPEC-S1 §6.1 签名）、授权链清单
 
 一步正典（PD-03）：面板内铸造/兑换原子直进创世（合约门单笔）；非创世语境（独立获取 uAsset）用 §2/§3 的独立入口，结果进余额。
 
@@ -38,22 +38,22 @@
 - **授权/状态面**：reserve 授权（**原生 ETH/BNB 免授权**——psm.md:20）→PSM `mint/redeem`（或经参与面板单笔合成）；状态面=交易中心；「换完即结清：无仓位、无债务」
 - **边界态**：储备枯竭关闭面值退出（redeem 侧不可用→说明+等待）；uAsset 暂停→reserveMint `EnforcedPause`（B1）
 - **出口**：参与语境→参与确认；独立语境→余额到账（Portfolio 原位刷新）
-- fixture：`normal`/`stockcap-full`/`dust-quote-zero`/`reserve-depleted`/`paused`
+- fixture：`normal`/`psm-stockcap-full`/`psm-dust-quote-zero`/`psm-reserve-depleted`/`paused`
 
 ## 3. EF-3 USR 储蓄
 
-- **挂载节点**：R-05 Portfolio 三分区之「仓位与储蓄」区 + 资产区 uAsset 行「存入储蓄」快捷入口（决议 007 PD-02）
+- **挂载节点**：R-05 Portfolio 分区③「仓位/储蓄/收益金库」之储蓄卡 + 资产区 uAsset 行「存入储蓄」快捷入口（决议 007 PD-02）
 - **触发条件**：v1 完整形态（PD-04）；三金库（suETH/suUSD/suBNB）；存取无门槛（未激活也可存取）
 - **预览面**：`previewDeposit/Redeem`（ERC4626，SPEC-S9）：储蓄份额/资产预估；**利率状态必显**：币种利率（usrRate）激活与否（0=未激活：存取照常、份额不增值）；份额价=accrualIndex（1e18 起，按秒增长，惰性结算——入口时推进）；显示「当前份额价」+「预估到账」
 - **授权/状态面**：uAsset 授权→`deposit/withdraw/redeem`（标准 ERC4626 无许可入口）；无滑点参数→**前端以执行时份额/资产下限复核**（SPEC-S9 集成指引）；状态面=交易中心
 - **警示**：直接向储蓄金库地址转账不产生储蓄份额且无法找回（OB:outstake/usr.md:20）→ 表单只用协议入口
 - **预算耗尽态**：利息暂停增长、已累积不变、存取不受影响（usr.md:20——利率状态并列展示）；**封顶钳制域**（SPEC-S9 §封顶规则）：份额价增长不越过「实际余额/流通份额」；UI 不展示内部钳制细节，只以 preview 实值为准
 - **出口**：完成→Portfolio 储蓄区原位刷新（不跳页）
-- fixture：`normal`/`rate-zero`（未激活）/`capped`（钳制域）/`share-price-growth`（时间推进）
+- fixture：`normal`/`usr-rate-zero`（未激活）/`usr-capped`（钳制域）/`usr-share-growth`（时间推进）
 
 ## 4. EF-4 CDP 仓位管理与债务赎回
 
-- **挂载节点**：R-05 Portfolio「仓位与储蓄」区（就地展开 sheet/抽屉）
+- **挂载节点**：R-05 Portfolio 仓位区（就地展开；保护期完整退出=保护期 Exit 弹窗，见 verse-yield.md）
 - **触发条件**：存在仓位（EF-1 或（历史）直接 `stakeForGenesis` 建立）；任意时刻可赎（无到期）
 - **仓位卡**（列表行→展开）：抵押生息资产（品牌+数量+当前价值）、未偿 uAsset 债务、生息状态；大白话披露（无到期/当前零利率·治理可调/无清算/随时可赎/需主动——PD-09；五件套=glossary 仓位词条）
 - **赎回面**：`redeem(positionId, syRedeemed, receiver, …)`（SPEC-S3 §3）：输入=要赎回的抵押数量（或比例）；**按比例双腿销债**（全赎=归还等值 uAsset+取回全部含息抵押；部分赎回=按比例、剩余仓位存续）；预览=minTokenOut 下限（tokenOut==SY 时直接校验，SPEC-S3 §3.4）
@@ -61,13 +61,13 @@
 - **赎出资产选择**：适配器矩阵可赎出物（读链）；「能存进去什么≠能原样取回什么」警示
 - **授权/状态面**：uAsset 授权→redeem；状态面=交易中心；完成=生息资产到账+仓位结清（或部分存续）
 - **出口**：Portfolio 仓位区原位刷新
-- fixture：`normal`/`partial-redeem`/`insufficient-uasset`（联动约束触发）/`cross-chain-collateral`（需桥回）
+- fixture：`normal`/`cdp-partial-redeem`/`cdp-insufficient-uasset`（联动约束触发）/`cdp-debt-redeem`；跨链抵押（需桥回）无对应 fixture 场景
 
 ## 全动线状态标注（共用）
 
-A4（首次写前启用引导）rendered-here（挂载点上下文）；A5–A12 delegated-to-global-surface（交易中心）；A13/A14/A15 rendered-here（预览加载/零仓位/报价失败）；B1 Paused rendered-here（SP 暂停位或 **uAsset 级暂停传导**（PSM/储蓄金库自身无 pause 位——peg-stability-module.md:11/usr-vaults.md:59）→对应操作禁用+归因说明）；B2 Undeployed rendered-here（SP/金库未注册→入口禁用）；B3 applied-to-page（预览走 RPC 不受索引影响；历史聚合降级）；B4 rendered-here（回表单草稿保留）。
+A4（首次写前启用引导）rendered-here（挂载点上下文）；A5–A12 delegated-to-global-surface（动作弹窗+TxStatus，GS-4）；A13/A14/A15 rendered-here（预览加载/零仓位/报价失败）；B1 Paused rendered-here（SP 暂停位或 **uAsset 级暂停传导**（PSM/储蓄金库自身无 pause 位——peg-stability-module.md:11/usr-vaults.md:59）→对应操作禁用+归因说明）；B2 Undeployed rendered-here（SP/金库未注册→入口禁用）；B3 applied-to-page（预览走 RPC 不受索引影响；历史聚合降级）；B4 rendered-here（回表单草稿保留）。
 
-> 本文件全部写操作（铸造/兑换/存取/赎回）：**原型只演示 ViewModel 状态，业务集成待实装**。
+> 本文件全部写操作（铸造/兑换/存取/赎回）已接 useTxCenter 真实写路径（Kernel type-4 直签 + EIP-1559；PSM 兑换免审阅直达钱包——skipReview）。
 
 ## 渲染边界
 

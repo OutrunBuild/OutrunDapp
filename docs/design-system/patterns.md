@@ -32,14 +32,14 @@
 ### 3.1 Explore（`components/discovery/discovery-page.tsx` + `discovery-browser.tsx`）
 
 `.discovery-intro` → `.lifecycle-tabs`（All + 四阶段，带计数）→ `.discovery-tools`（搜索 / 链筛选 ToggleGroup / 清除）→ `.discovery-results`（header 计数 + `.economy-grid` 卡片）→ 无结果 `.empty-state`。
-- 阶段过滤是 URL 状态（`?stage=`、`?chain=`、`?q=`），tab 是 `<a aria-current>`，可分享、可后退。
+- 阶段过滤是 URL 状态（`?stage=`、`?sort=`、`?chain=`、`?query=`、`?page=`），tab 是 `<a aria-current>`，可分享、可后退。
 - `aria-busy` 挂在 `.discovery-browser` 根，过渡期内不用骨架替换整页。
 
 ### 3.2 Verse 详情（`verse-page.tsx` + `participation-panel.tsx`）
 
 `.verse-hero`（身份 + StageBadge + 计时）→ `.stage-tabs` → `.verse-workbench`（`.workbench-primary` 表单/面板 + `.workbench-secondary` 门槛/时间线）。
 - 双门槛用两个 `ProgressMeter`，禁合并进度条。
-- 参与表单遵循 component-contract §1 AmountInput 与 §7 TransactionReview。
+- 参与表单遵循 component-contract §1 AmountInput 与 §7 ActionDialogShell。
 
 ### 3.3 首页（`home-page.tsx` + `mechanism-primer.tsx` + `verse-lifecycle.tsx`）
 
@@ -64,7 +64,7 @@
 | loading | 保留表头/标题，行用 Skeleton；根 `aria-busy` | 整页 spinner、闪动整块 |
 | empty | `.empty-state`：品红描边小方块 + 标题 + 一句引导 + 一个主行动 | 空白、仅一行灰字 |
 | error | 区块顶部 Alert（danger 描边）+ 人话原因 + 恢复动作（重试/调整） | 堆栈腔、无恢复动作 |
-| stale | 表头旁 warning 徽章 `Syncing · 2m behind`，数据以 RPC 为准提示 | 静默显示旧数据 |
+| stale | 历史类区块空态文案 `Syncing — history unavailable in this snapshot`（唯一现役位=蜡烛图空态）；快照类数字由服务端缓存静默沿用、写后由数据层收敛 | 静默显示无任何提示的过期历史 |
 
 交易流状态映射见 `components/design-system/state-matrix.md §3`。
 

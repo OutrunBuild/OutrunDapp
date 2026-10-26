@@ -33,15 +33,15 @@ symbol/名称占用校验=RPC（实时防抖）；费用报价=RPC（参数联�
 
 ## 5. 文案键
 
-create.symbol-hint（格式规则）/ create.govchain-note（治理链=质押、收益分配、DAO 投票所在链——glossary 全口径）/ create.fastGenesis（Fast Genesis：任一门槛达标即可提前结束创世，无需等到截止时间）/ create.lockup-note（锁定期 365 天硬约束，lifecycle.md:62）。剩余资金去向**不展示**（决议 C2）。
+`create.govChainNote`（治理链=质押、收益分配、DAO 投票所在链——glossary 全口径）/ `create.fastLabel`+`fastNote`（Fast Genesis：任一门槛达标即可提前结束创世，无需等到截止时间）/ `create.durationNote`（创世时长 min/max 读值口径）/ `create.rowLockup`（锁定期 365 天硬约束，lifecycle.md:62）/ `create.symbolError`|`symbolTaken`（symbol 格式与占用校验）。剩余资金去向**不展示**（决议 C2）。
 
 ## 6. 全状态标注
 
 A1 rendered-here（可填不可提）；A3 rendered-here（错链禁提）；A4–A7 delegated（启用/授权/签名）；A8–A12 delegated（交易中心；跨链注册为多阶段状态——源链确认≠部署完成）；A13 rendered-here（校验/报价骨架）；A14 N/A（表单无空态语义）；A15 rendered-here（校验失败+重试）；B1 N/A；B2 rendered-here（未部署链不可选）；B3 rendered-here（注册状态查询降级）；B4 rendered-here（回表单草稿保留）。
 
-## 7. 可点击主流程（写操作——原型只演示 ViewModel 状态，业务集成待实装）
+## 7. 可点击主流程（写操作——已接 useTxCenter 真实写路径，Kernel type-4 直签 + EIP-1559）
 
-填基本信息→symbol 实时校验→选链+治理链→参数→审阅卡（费用+滑点/下限）→授权→签名→提交→逐链部署进度→全部链部署完成（跳 Verse 页；部分链失败=逐链重试态）。
+填基本信息→symbol 实时校验→选链+治理链→参数→确认卡（报价总额+rowLockup）→钱包签名→提交→逐链部署进度→全部链部署完成（跳 Verse 页；部分链失败=逐链重试态）。
 
 ## 8. 错误恢复
 

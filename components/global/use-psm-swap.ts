@@ -12,10 +12,8 @@ import {
   approvalCall,
   psmMintCall,
   psmRedeemCall,
-  UNLIMITED_APPROVAL,
 } from '@/lib/web3/session-actions';
 
-import { getCopy } from './copy';
 import {
   readAllowances,
   readErc20Meta,
@@ -36,7 +34,6 @@ export function usePsmSwap(locale: Locale, uAssetSymbol: string) {
   const center = useAccountCenter();
   const { connected, connectAction: toggle } = center;
   const tx = useTxCenter();
-  const [unlimited, setUnlimited] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [resolveFailed, setResolveFailed] = useState(false);
   // Wallet refused/failed the EIP-7702 authorization before any popup: a capability gap
@@ -235,7 +232,7 @@ export function usePsmSwap(locale: Locale, uAssetSymbol: string) {
       }
       const approval =
         allowance < amountIn
-          ? approvalCall(payToken, psm, unlimited ? UNLIMITED_APPROVAL : amountIn)
+          ? approvalCall(payToken, psm, amountIn)
           : undefined;
       const action =
         mode === 'mint' ? psmMintCall(psm, eoa, amountIn) : psmRedeemCall(psm, eoa, amountIn);
@@ -260,11 +257,9 @@ export function usePsmSwap(locale: Locale, uAssetSymbol: string) {
             minOutput: '—',
             fee: labels.feeText,
             gasPayer: eoa,
-            authorizationChange: unlimited
-              ? getCopy(locale).wallet.approve.unlimited
-              : approval
-                ? `${formatUnits(amountIn, payDecimals)} ${labels.paySymbol}`
-                : '—',
+            authorizationChange: approval
+              ? `${formatUnits(amountIn, payDecimals)} ${labels.paySymbol}`
+              : '—',
             estimatedGas: '—',
             nativeBalance: '—',
           },
@@ -303,11 +298,9 @@ export function usePsmSwap(locale: Locale, uAssetSymbol: string) {
           minOutput: `${formatUnits(quoted, outDecimals)} ${labels.outSymbol}`,
           fee: labels.feeText,
           gasPayer: eoa,
-          authorizationChange: unlimited
-            ? getCopy(locale).wallet.approve.unlimited
-            : approval
-              ? `${formatUnits(amountIn, payDecimals)} ${labels.paySymbol}`
-              : '—',
+          authorizationChange: approval
+            ? `${formatUnits(amountIn, payDecimals)} ${labels.paySymbol}`
+            : '—',
           estimatedGas: '—',
           nativeBalance: '—',
         },
@@ -341,7 +334,5 @@ export function usePsmSwap(locale: Locale, uAssetSymbol: string) {
     resolveFailed,
     walletUnsupported,
     executionFailed,
-    unlimited,
-    setUnlimited,
   };
 }

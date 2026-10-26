@@ -4,7 +4,7 @@
 
 ## 1. 机制
 
-- 路由：`/[locale]/...`，`locale ∈ 'en' | 'zh'`；`/` → `/en`。校验用 `isLocale()`（`components/global/copy.ts`）。
+- 路由：`app/[locale]/...` 双语言树（`locale ∈ 'en' | 'zh'`）。对外 URL：en 无前缀（`proxy.ts` 内部 rewrite 到 `/en/**`），zh 带 `/zh` 前缀；外部直连 `/en/**` 被 `proxy.ts` 307 收敛到无前缀地址。语言切换一律走 `localePath()`（`components/global/routes.ts`），禁止手拼 `/${locale}`。校验用 `isLocale()`（`components/global/copy.ts`）。
 - 文案字典：`getCopy(locale)` 返回按页面分组的对象（`common` / `home` / `discovery` / `verse` …）。**所有用户可见字符串都从字典取**，组件内禁止硬编码文案。
 - 新增字符串：同时在 `en` 与 `zh` 两个分支添加，保持键名一致；缺一即视为未完成。
 - 壳层 `lang` 属性由 `OutrunShell` 设置（`zh-CN` / `en`），中文 `h1` 有独立缩放规则（`.outrun-site[lang='zh-CN'] .home-hero h1`）。
@@ -46,7 +46,7 @@
 
 - 图标按钮 `aria-label` 来自字典；装饰图标 `aria-hidden`。
 - 进度条 `aria-label` + 文本并行输出（`ProgressMeter` 已实现）。
-- 交易状态区 `aria-live="assertive"`；审阅区 `aria-live="polite"`。
+- 交易状态区 `aria-live="assertive"`。
 - `aria-busy` 于加载容器，不用 `role="status"` 的空 spinner 代替文字。
 
 ## 6. 溢出测试

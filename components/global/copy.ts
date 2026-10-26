@@ -128,9 +128,6 @@ const en = {
         txFailed: 'Transaction failed. Check your wallet.',
       },
       approve: {
-        unlimited: 'Unlimited approval',
-        unlimitedBody: 'Allow any amount? You can revoke it anytime.',
-        revoke: 'Revoke',
       },
     },
     home: {
@@ -612,7 +609,6 @@ const en = {
         '@OutrunBuild 🌱🌱🌱 Real growth isn\'t a solo mission — evolve wildly together in {symbol} Community. Boarding gate 👇 #Outrun #Memeverse #DAO #Memecoin #SmartMoney 🌱🌱🌱',
       ],
       unlockedAt: 'Unlocked at',
-      endedPending: 'Ended · awaiting stage advance',
       protection: 'Protection window remaining',
       successTitle: 'Either Threshold Can Move Genesis Forward',
       successBody: 'Standard funds and leverage interest are checked independently.',
@@ -1178,9 +1174,6 @@ const zh: typeof en = {
         txFailed: '交易失败，请检查钱包。',
       },
       approve: {
-        unlimited: '无限授权',
-        unlimitedBody: '允许无上限额度？可随时撤销。',
-        revoke: '撤销',
       },
     },
     home: {
@@ -1649,7 +1642,6 @@ const zh: typeof en = {
         '@OutrunBuild 🌱 真正的增长从来不是单打独斗，{symbol} 社区的登机口正开着 👇 #Outrun #Memeverse #DAO',
       ],
       unlockedAt: '实际解锁时间',
-      endedPending: '已截止 · 待阶段推进',
       protection: '保护期剩余',
       successTitle: '任一门槛独立达标，即可推进创世',
       successBody: '普通资金与杠杆利息分别判断。',

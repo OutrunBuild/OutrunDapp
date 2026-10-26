@@ -87,7 +87,7 @@ Skill 列表进上下文时只带名称与路径，正文按需延迟加载：�
 
 ## 架构边界
 
-- **fixture 数据边界（三层强制）**：`fixtures/**` → `lib/data/fixture-repository.ts`（唯一合法消费方）→ `components/**`（`ui/`、`design-system/` 通用层除外）。页面/组件禁止直接 import `fixtures/`，生产代码禁止反向到达；派生纪律：组件不自造领域数值——数值口径从产品真源取、样本数据落 `fixtures/`（见「产品真源」），fixture 快照缺失的字段按「null 不渲染」处理。由 `scripts/check-fixture-boundary.mjs` 的 `--source` / `--graph production` / `--bundle .next` 三层验证。
+- **fixture 数据边界（三层强制）**：`fixtures/**` → `lib/data/fixture-repository.ts`（唯一合法消费方）→ `components/**`（`ui/`、`design-system/` 通用层除外）。页面/组件禁止直接 import `fixtures/`，生产代码禁止反向到达；派生纪律：组件不自造领域数值——数值口径从产品真源取、样本数据落 `fixtures/`（见「产品真源」），fixture 快照缺失的字段按「null 不渲染」处理；样本量级调整只走等比缩尺，禁止归零/删构成。由 `scripts/check-fixture-boundary.mjs` 的 `--source` / `--graph production` / `--bundle .next` 三层验证。
 - **生产命名禁 `Fixture/mock/sample/prototype`**：生产类型/函数/字段一律去前缀（`Verse`、`Asset`、`getSnapshot`、`displayAccount`、`usdPrice`、`confirm`），旧名只许留别名过渡（移除条件写在别名块注释里）；`fixtures/schema.ts` 的字段也是生产命名的一部分，改名必须同步 `fixtures/data/*.json` 与单测；onchain 数据源放 `lib/data/onchain-source.ts`，禁止放 `components/`（构建别名与边界脚本同步改）。
 - **双编译器桥**：`typescript` 包 = `vendor/typescript-bridge`（bin/tsc 走 TS 7.0.2 CLI，require 转发 TS 6.0.2 API）。不要直接改桥、不要用 `typescript` 的程序 API 写 TS7 语法；tsconfig 禁 TS7 废弃选项（`baseUrl`、`target: es5` 等）。
 
@@ -144,6 +144,10 @@ pnpm dlx shadcn@latest add <component>   # pnpm workspace-root 检查会拦 dlx�
 安全性：owner EOA 自签 = relay 脚本就是信任锚，仅测试网。主网必须配真 DVN（`requiredDVNs` = 各链 DVN 合约，同一个 `LzSetConfig.s.sol` 可接线）。
 
 **BSC Testnet gas 陷阱**：验证者强制最低 0.1 gwei tip，forge/cast 默认 1559 交易（tip=1 wei）会被内存池静默黑洞（永不打包、无报错）。BSC 广播必须 `--legacy` + 显式 gasPrice（如 `--gas-price 15gwei`）。Base/Arb Sepolia 不受影响。
+
+## 阶段验收
+
+阶段交付的验收工作方式 = `docs/runbooks/`：`stage-*` 过程册记录各阶段的实装与验证过程，`acceptance-checklist.md` 是非专家黑盒验收清单（AC-1…AC-7，执行后回填执行记录）。两者为活文档，按阶段推进维护，不做整目录清理。
 
 ## 登记义务
 

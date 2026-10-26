@@ -5,7 +5,7 @@
     { "id": "chain-001", "scenario": ["normal"], "sourceRef": "docs/architecture.md#5", "chainId": 1, "name": "Ethereum", "env": "mainnet", "nativeSymbol": "ETH" },
     { "id": "chain-002", "scenario": ["normal"], "sourceRef": "docs/architecture.md#5", "chainId": 8453, "name": "Base", "env": "mainnet", "nativeSymbol": "ETH" },
     { "id": "chain-003", "scenario": ["normal"], "sourceRef": "docs/architecture.md#5", "chainId": 56, "name": "BNB Smart Chain", "env": "mainnet", "nativeSymbol": "BNB" },
-    { "id": "chain-004", "scenario": ["normal"], "sourceRef": "docs/architecture.md#5", "chainId": 11155111, "name": "Ethereum Sepolia", "env": "testnet", "nativeSymbol": "ETH" },
+    { "id": "chain-004", "scenario": ["normal"], "sourceRef": "docs/architecture.md#5", "chainId": 421614, "name": "Arbitrum Sepolia", "env": "testnet", "nativeSymbol": "ETH" },
     { "id": "chain-005", "scenario": ["normal"], "sourceRef": "docs/architecture.md#5", "chainId": 84532, "name": "Base Sepolia", "env": "testnet", "nativeSymbol": "ETH" },
     { "id": "chain-006", "scenario": ["undeployed", "rpc-fail", "index-lag"], "sourceRef": "docs/architecture.md#5", "chainId": 97, "name": "BNB Smart Chain Testnet", "env": "testnet", "nativeSymbol": "tBNB" }
   ]

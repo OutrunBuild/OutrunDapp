@@ -9,15 +9,15 @@
 
 | # | 状态 | 呈现要点 | 载体组件 |
 |---|---|---|---|
-| A1 | 未连接 Disconnected | 只读可浏览（任意查看链）；CTA `Connect wallet`；无自动弹窗 | AccountCapability |
-| A2 | 连接中 Connecting | 钱包列表弹层+选中 spinner | AccountCapability |
-| A3 | 普通外部 EOA | `Standard wallet`+升级引导（交易前一次性）；能力提示非阻断 | AccountCapability |
-| A4 | Privy embedded EOA | 同 A3 语义，来源标注 `Outrun wallet`（命名走 §2 术语） | AccountCapability |
-| A5 | 智能账户启用中（Authorization requested/signed、Delegation pending） | 步骤化文案+钱包内签名指引；期间 Swap 禁用原因显示 | AccountCapability |
-| A6 | 已启用 Kernel delegated | `Smart account ready`+逐链徽章；交易中心走 Type-4 流程 | AccountCapability + TransactionStatus |
-| A7 | Unsupported delegation | 黄警示+`Replace to trade`；不提供继续入口（§14） | AccountCapability |
-| A8 | 错误网络 | 触发器警示+网络对照说明+切换确认 | ChainSelector |
-| A9 | 替换/撤销委托中 | 步骤化状态+旧新实现对照 | AccountCapability |
+| A1 | 未连接 Disconnected | 只读可浏览（任意查看链）；CTA `Connect wallet`；无自动弹窗 | account-menu / account-dialog |
+| A2 | 连接中 Connecting | 钱包列表弹层+选中 spinner | account-menu / account-dialog |
+| A3 | 普通外部 EOA | `Standard wallet`+升级引导（交易前一次性）；能力提示非阻断 | account-menu / account-dialog |
+| A4 | Privy embedded EOA | 同 A3 语义，来源标注 `Outrun wallet`（命名走 §2 术语） | account-menu / account-dialog |
+| A5 | 智能账户启用中（Authorization requested/signed、Delegation pending） | 步骤化文案+钱包内签名指引；期间 Swap 禁用原因显示 | account-menu / account-dialog |
+| A6 | 已启用 Kernel delegated | `Smart account ready`+逐链徽章；交易中心走 Type-4 流程 | account-menu / account-dialog + tx-status |
+| A7 | Unsupported delegation | 黄警示+`Replace to trade`；不提供继续入口（§14） | account-menu / account-dialog |
+| A8 | 错误网络 | 触发器警示+网络对照说明+切换确认 | chain-selector-dialog |
+| A9 | 替换/撤销委托中 | 步骤化状态+旧新实现对照 | account-menu / account-dialog |
 
 ## 2. 交易与签名流程（§1 + §7）
 
@@ -44,7 +44,7 @@
 | D3 | Error（RPC 故障） | 内联错误+`Retry`；不吞错 |
 | D4 | Paused（协议暂停） | 黄横幅（受影响操作禁用+原因）+只读不受影响 |
 | D5 | Undeployed（未部署） | 结构化 `Not available on this chain yet`（禁零地址/占位地址，§5） |
-| D6 | Index lag >120s | `Syncing · Nm behind` 徽章+RPC 为准说明（§9.2） |
+| D6 | Index lag（subgraph 索引滞后） | 历史类区块空态 `Syncing — history unavailable in this snapshot`（唯一现役位=蜡烛图空态）；聚合数字由数据层等索引追平后收敛（写后刷新管线），界面不做「以链上读值为准」类提示 |
 | D7 | 成功/失败终态（页面级） | 结果区+后续动作 |
 | D8 | 测试网模式 | 持续可见测试网标识（§5） |
 

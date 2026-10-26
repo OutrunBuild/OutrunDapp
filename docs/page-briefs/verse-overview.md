@@ -18,8 +18,8 @@
 
 | 组件 | 职责 |
 |---|---|
-| Verse 头卡 | 名称/symbol/阶段徽章（VerseStage）+ Fast Genesis 徽章（fastGenesis 创世 verse）/治理链/关键倒计时（创世截止/解锁时间）；**黄昏区**（截止后、推进触发前）：倒计时显示「已截止 · 待阶段推进」 |
-| 黄昏区说明 | 链上阶段仍为 Genesis、参与仍合法且**计入达标判定**（合约只查 stage 不查 endTime——MemeverseLaunchImpl.sol:159-183）：**参与面板保持可用**（仍在创世阶段即产品逻辑，不禁止参与）+说明「截止已过·仍在创世阶段，参与仍计入成功判定」，「触发阶段推进」入口高亮（permissionless，任何人可触发） |
+| Verse 头卡 | 名称/symbol/阶段徽章（VerseStage）+ Fast Genesis 徽章（fastGenesis 创世 verse）/治理链；时间读数=绝对时间戳（创世截止/解锁时间，`formatStamp`——无随秒倒计时组件） |
+| 黄昏区（截止后、推进触发前） | 链上阶段仍为 Genesis、参与仍合法且**计入达标判定**（合约只查 stage 不查 endTime——MemeverseLaunchImpl.sol:159-183）；UI 承载=EndGenesisButton 可用性（`end-genesis-button.tsx`：截止一过任何人可触发——达标→锁定、未达标→退款，Fast 且门槛达标可提前触发；gated 态附展示型剩余时间 tick）；参与面板保持可用（仍在创世阶段即产品逻辑，不禁止参与） |
 | 判定面板（threshold-panel） | 双门槛进度条：普通资金与杠杆利息**独立**判断（预购与债务本金不计入，lifecycle.md:35-49）；最低成功额度；**Fast Genesis 状态行**（fastGenesis 创世 verse 专属）：未达标=「任一门槛达标即可提前结束创世，无需等到截止时间」；达标=青色「已达标 · 待推进。已满足成功阈值——任何人都可以触发阶段推进」（state-machines:33-35/lifecycle.md:52-54） |
 | 当前操作卡（action-panel） | 当前阶段开放的操作集（创世期：参与+预购；退款态：退款领取——按 SPEC-M9 状态机门控，**读链判定不前端硬编码**）；`data-stage` 阶段色 |
 | 参与面板 | **完整规范见 [asset-flows.md](asset-flows.md) §0**（普通创世默认+杠杆切换+预购分配器；直接参与/质押参与）——本页为 EF-1/EF-2 挂载节点 |
@@ -35,7 +35,7 @@
 
 ## 3. 数据依赖
 
-Verse 元数据/阶段=RPC（阶段变更需链上交易触发——lifecycle.md:51，前端不自动推断）；进度双口径=Graph+RPC 复核；参与面板数据=asset-flows §3；领取资格=RPC（每地址状态）；倒计时=客户端时钟+RPC 校准。B3 降级不影响阶段判定（以 RPC 为准）。
+Verse 元数据/阶段=RPC（阶段变更需链上交易触发——lifecycle.md:51，前端不自动推断）；阈值进度=服务端 Graph/链上配置（stale-while-revalidate 缓存，`chainAggregates` 逐链行——钱包实链在 verse 落地集内时即时值来自客户端探针）；写后刷新=双层管线（确认后 VerseLiveProvider 探针定向重读 + spec `writeScope`→`refreshVerseAfterWrite` 服务端收敛；参与地址=omni 逐链去重合计）；参与面板数据=asset-flows §0；领取资格=RPC（每地址状态）；时间读数=绝对时间戳。B3 降级不影响阶段判定（以 RPC 为准）。
 
 ## 4. URL 状态
 
@@ -43,18 +43,18 @@ Verse 元数据/阶段=RPC（阶段变更需链上交易触发——lifecycle.md
 
 ## 5. 文案键
 
-phase.genesis/locked/unlocked/refund（阶段徽章）；success.dual-threshold（双门槛独立判定说明）；verse.fastGenesis/fastGenesisNote/fastGenesisReached/fastGenesisReachedNote（Fast Genesis 徽章与判定面板状态行，glossary B）；verse.metricsTitle/genesisEnds/participantsLabel/estMarketCap/yourParticipation/notParticipating（统计面板）；participate.*（见 asset-flows）；protection.short（「本金守恒 · 24 小时保护期内可完整退出」——C5 短标签）+ 详情展开（OB 原句 genesis.md:37,58）；refund.once（每地址一次，退给受益人）。
+阶段徽章=VerseStage 契约（`copy.common.stages`）；successTitle/successBody（双门槛判定说明）；verse.fastGenesis/fastGenesisNote/fastGenesisReached/fastGenesisReachedNote（Fast Genesis 徽章与判定面板状态行，glossary B）；verse.metricsTitle/genesisEnds/participantsLabel/estMarketCap/yourParticipation/notParticipating（统计面板）；participate.*（见 asset-flows）；protection（C5 短标签+详情展开——OB 原句 genesis.md:37,58）；refundAction（每地址一次，退给受益人）。
 
 ## 6. 全状态标注
 
 A1 rendered-here（只读完整；参与面板引导连接）；A2 delegated-to-global-surface（钱包选择器）；A3 rendered-here（错链禁写：参与/领取禁用+说明）；A4 rendered-here（首次写前启用引导；**三分支**：code 为空→启用引导；code 非空但不匹配（C3）→「检测到其他应用的启用，需先替换」行内引导；已启用→直付）；A5–A12 delegated（交易中心；参与/领取交易状态）；A13 rendered-here（阶段/进度骨架）；A14 rendered-here（未参与→统计面板「未参与」文案+入口；退款态无记录→说明）；A15 rendered-here（数据失败重试）；B1 rendered-here（Verse 暂停位/池暂停→写操作禁用）；B2 rendered-here（该 Verse 未在当前查看链部署→引导切换链）；B3 rendered-here（静默降级，阶段以 RPC）；B4 rendered-here（回面板草稿保留）。
 
-## 7. 可点击主流程（写操作——原型只演示 ViewModel 状态，业务集成待实装）
+## 7. 可点击主流程（写操作——已接 useTxCenter 真实写路径，type-4 直签 + EIP-1559）
 
-1. 创世期：参与面板（普通/杠杆+预购分配）→ 审阅→授权→签名→提交→确认→份额到账视图（出口=本页确认态）
+1. 创世期：参与面板（普通/杠杆+预购分配）→确认卡→钱包签名→确认→份额到账视图（写后探针+中央层刷新；出口=本页确认态）
 2. 退款态：退款卡→确认→到账（每地址一次守卫）
-3. 锁定期起：领取项逐个/批量领取；进入四标签（liquidity=公开交易/加减池、pol/vault=拆分赎回系列、dao=治理）
-4. 解锁期：vault 标签赎回工作流（六步退出口径，规范见 verse-yield.md）
+3. 锁定期起：领取项逐个/批量领取；进入四标签（liquidity=公开交易/加减池、pol=拆分/闪电兑换/GenesisCredit 付息、vault=收益库质押、dao=治理）
+4. 解锁期：赎回系列入口（vault=收益库取回；保护期完整退出=Portfolio 的保护期 Exit 弹窗——见 verse-yield.md 职责划分）
 
 ## 8. 错误恢复
 

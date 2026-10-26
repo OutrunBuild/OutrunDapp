@@ -503,7 +503,7 @@ export async function PolPanel({
   )
 }
 
-/** DAO tab: overview + Tally external-link card + current/last cycle incentives (no proposal list) */
+/** DAO tab: overview + Cactus (formerly Tally) external-link card + current/last cycle incentives (no proposal list) */
 export function DaoPanel({
   locale,
   verse,

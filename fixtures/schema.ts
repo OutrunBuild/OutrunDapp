@@ -5,9 +5,9 @@ import { z } from 'zod';
 /** Six-chain whitelist -- 3 mainnets + 3 testnets */
 export const chainIdSchema = z.union([
   z.literal(1), z.literal(8453), z.literal(56),
-  z.literal(11155111), z.literal(84532), z.literal(97),
+  z.literal(421614), z.literal(84532), z.literal(97),
 ]);
-export const CHAIN_IDS = [1, 8453, 56, 11155111, 84532, 97] as const;
+export const CHAIN_IDS = [1, 8453, 56, 421614, 84532, 97] as const;
 
 /** Unsigned decimal string (shared shape for amount raw / nonce / blockNumber; semantics distinguished by the wrapping domain) */
 const decimalString = z.string().regex(/^\d+(\.\d+)?$/, 'decimal-string: ^\\d+(\\.\\d+)?$');

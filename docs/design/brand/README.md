@@ -1,6 +1,6 @@
 # OUTRUN Logo Package
 
-商用级标志资产包。`01–03` 由 `logo-variants/ai-renders/wordmark-master.png` 经标准矢量化管线（vtracer + potrace + svgo + resvg）转换；`04–06` 为 OR monogram（raster 源稿已删，2026-10-14 用户裁定，回收走 git 历史；管线 `script/logo-vectorize/or_monogram_v3.py` → `export_or.mjs`）。
+商用级标志资产包。`01–03` 由 `logo-variants/ai-renders/wordmark-master.png` 经标准矢量化管线（vtracer + potrace + svgo + resvg）转换；`04–06` 为 OR monogram（raster 源稿已删，2026-10-14 用户裁定，回收走 git 历史；矢量转换管线脚本未入库——资产以本包定稿为准，历史管线走 git 记录）。
 
 - 验收页：[preview.html](preview.html)
 - 使用规范 / 色彩 / 最小尺寸 / 管线说明：[logo-spec.md](logo-spec.md)

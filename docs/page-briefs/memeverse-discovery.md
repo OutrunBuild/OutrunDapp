@@ -31,11 +31,11 @@
 
 ## 4. URL 状态
 
-`?stage=genesis|locked|unlocked&sort=…&chain=…&asset=…&mode=normal|fast&q=…`——全部进查询参数；分享还原视图；tab 切换更新 URL（后退可用）。无 `all`/`refund` 值（跨阶段仅经搜索，退款态 Verse 动线由 Portfolio 承接）。
+`?stage=genesis|locked|unlocked&sort=…&order=…&chain=…&mode=normal|fast&query=…&page=…`——全部进查询参数（轴集=stage/sort/order/chain/mode/query/page）；分享还原视图；tab 切换更新 URL（后退可用）。无 `all`/`refund` 值（跨阶段仅经搜索，退款态 Verse 动线由 Portfolio 承接）。
 
 ## 5. 文案键
 
-stage.genesis/locked/unlocked（创世中/锁定中/已解锁）；progress.label（距最低成功额度）；sort.progress/time/size/heat/latest；discovery.mode/allModes/normalMode/fastGenesis（创世模式筛选器）；fastGenesis（Fast Genesis 徽章，glossary B）。术语引 glossary B 节。
+阶段名与排序标签=`discovery` 扁平键（`progress`（Success thresholds/距最低成功额度）、`omniRaised`、`heat`（Trading activity）等，随 `sort-options.ts` 排序全集）；`mode/allModes/normalMode/fastGenesis`（创世模式筛选器）；`fastGenesis`（Fast Genesis 徽章，glossary B）。术语引 glossary B 节。
 
 ## 6. 全状态标注
 

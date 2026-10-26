@@ -33,7 +33,7 @@ fixtures/**  →  lib/data/fixture-repository.ts  →  components/**（ui/design
 - **定格时机**：构建期（build-time pin）。两模式 = 两次构建；同一构建产物内 fixture/真实双路径静态共存即违规（本契约禁核心源码目录动态 resolver、禁 onchain 图到达 `fixtures/**` 的直接推论）。对已构建产物在运行期改此变量不改变其数据路径；运行期读取仅继续守卫非数据面（如 scenario 参数解析，见 `scripts/check-scenario-boundary.mjs` 头注）。
 - **选择点**：`lib/data/source-resolver.ts` 是真数据路径的唯一选择点——onchain 构建的数据消费只经它取得真实 repository（真实数据或结构化 unavailable，永不回退 fixture）；原型模式沿用本契约的 fixture-repository 合法桥（components 直连，不经 source-resolver）。
 - **接线纪律**：消费图因切换接线变化时同步更新本契约登记，不得放宽任何豁免；onchain 构建必须过 `--graph onchain` 与 `--bundle` 两层。
-- **切换实现登记（2026-10-15，阶段 5 步骤 7）**：onchain 构建经 `next.config.ts` 构建期 resolveAlias（turbopack+webpack 双配置，仅 `OUTRUN_DATA_SOURCE=onchain` 时激活）把 `@/lib/data/fixture-repository` 精确重定向到 `components/data/onchain-adapter.ts`。适配器位于 components 区（合法引 fixture-repository 的**纯类型**，运行时值零引用——单测锁死），以 `lib/data/repository.ts`（RPC）+ `lib/data/graph/graph-repository.ts`（Graph）实现同名导出面；无链上来源的字段按 null/空态纪律降级（faucet 冷却 null 不渲染=2026-10-14 裁定）。页面侧消费点（10 个 RSC 文件）async 化并 `await` getter——fixture 模式下 await 同步值，渲染与基线逐字节一致。
+- **切换实现登记（2026-10-15，阶段 5 步骤 7）**：onchain 构建经 `next.config.ts` 构建期 resolveAlias（turbopack+webpack 双配置，仅 `OUTRUN_DATA_SOURCE=onchain` 时激活）把 `@/lib/data/fixture-repository` 精确重定向到 `lib/data/onchain-source.ts`。适配器以 **type-only** 引 fixture-repository 的共享 ViewModel 形状（运行时值零引用——单测锁死），运行时同名导出面由 `lib/data/repository.ts`（RPC）+ `lib/data/graph/graph-repository.ts`（Graph）实现；无链上来源的字段按 null/空态纪律降级（faucet 冷却 null 不渲染=2026-10-14 裁定）。页面侧消费点 async 化并 `await` getter——fixture 模式下 await 同步值，渲染与基线逐字节一致。
 
 ## 当前 allowlist
 

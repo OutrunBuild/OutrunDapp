@@ -1,49 +1,51 @@
 # Brief：`/portfolio`（统一资产与活动）
 
-- routes.json ID：R-05；决议 007（PD-02/08 三分区；PD-10 跨链在途提醒；跨链功能并入本页——v1 无独立 bridge 页，资产区行内 BridgeDialog 发起）
+- routes.json ID：R-05；决议 007（PD-02/08 分区结构、PD-10 跨链在途提醒；跨链功能并入本页——v1 无独立 bridge 页，资产区行内 BridgeDialog 发起）
 - 依据：architecture §2（修订行）/§5/§9；product-intent.md R-05；OB:reference/participation-map.md:30-44（凭证兑付时间线）；asset-flows.md EF-3/EF-4（就地展开）
-- 信息优先级=三分区（决议 007，无跨链历史/无交易历史）
+- 信息优先级=四分区（决议 007 分区结构的现行版）：①待办 ②资产与跨链 ③仓位/储蓄/收益金库 ④参与凭证；页头签名=KPI 状态带+净值 hero
 
 ## 1. 用户任务
 
 - 目标用户：P2/P4+全部参与者
-- 用户任务：①看清持有什么、何时能兑付成什么 ②执行待办（领取/赎回/执行到账）③管理仓位与储蓄（EF-4/EF-3 就地）④看六链余额
+- 用户任务：①看清持有什么、何时能兑付成什么 ②执行待办（领取/赎回/执行到账）③管理仓位与储蓄（EF-4/EF-3 就地）④看多链余额（链集=部署链，按 deployments 动态）
 - 完成定义：任一资产动作完成（领取/赎回/存取）
 - 最重要的一个决策：**下一步处理哪项资产**（可行动区按截止时间排序，最紧急置顶）
 
-## 2. 核心组件（三分区）
+## 2. 核心组件（四分区 + 页头签名）
 
 | 分区 | 组件 |
 |---|---|
-| ①可行动（置顶） | 待办卡列表：待领取（初始 YT/辅助池分成/LP 费/预购可领量/**创世退款**〔每地址一次〕/**周期激励临期**/**创世积分空投领取**）、待执行收益库赎回（等待期已过，memecoin-staking.md:30）、24 小时保护期倒计时（解锁后，genesis.md:43）、跨链在途/滞留（状态+处理入口）；**按截止时间排序**，逾期后果标注（激励逾期并入国库等）；**出口规则**：跨 Verse 领取类（YT/分成/LP 费/预购/创世退款/周期激励）→深链对应 Verse 领取中心；收益库待执行赎回与仓位赎回→就地执行；创世积分领取→就地（限主链，非主链禁用+切链提示）；跨链卡→就地 BridgeDialog/交易中心跨链详情 |
-| ②仓位与储蓄 | CDP 仓位卡（EF-4 就地展开赎回）；USR 储蓄卡（EF-3 就地展开存取+利率状态）；资产区 uAsset 行内「存入储蓄」「面值兑换」「跨链」（BridgeDialog）快捷入口；**独立持有的生息资产（SY，如 wstETH/sUSDe）单列资产行**（未入仓位的抵押物——architecture §2「uAsset/SY 资产」） |
-| ③凭证 | POL/PT/YT 按兑付时间线分组（participation-map.md:30-44：何时获得/何时能兑付/兑付成什么/风险性质）；每凭证操作入口→对应 Verse 详情页标签（vault=拆分/赎回、liquidity=移除流动性） |
+| 页头签名 | KPI 状态带（`.pf-kpi`：待办/可领双芯片，摘要即导航、锚点滚动）；净值 hero（`.pf-hero`：Liquid Assets 口径=钱包+储蓄+金库待领，mono 主读数+三段分配条+图例） |
+| ①待办（置顶） | 只收「逾期有后果」项：待领取（YT/分成/LP 费/预购/创世退款〔每地址一次〕/周期激励临期）、24 小时保护期倒计时卡（解锁后，genesis.md:43）、收益库待取合计 signpost；按截止时间排序、卡=页内锚点/限时警报、领取=独立面板；**出口规则**：跨 Verse 领取类→深链对应 Verse 领取中心，收益库待执行赎回与仓位赎回→就地执行，创世积分领取→就地（限主链，非主链禁用+切链提示）；跨链在途/滞留段不占版面（sent 无需行动） |
+| ②资产与跨链 | uAsset 清单+Credit 清单（UETH/UUSD/UBNB，链徽+法币折算）+ SY 独立持产行（未入仓位的抵押物）+ 不可跨链资产页脚行；行内 Convert/Bridge 弹窗入口，移动端=整行 hit 层开底部操作面板 |
+| ③仓位/储蓄/收益金库 | CDP 仓位表（Redeem 就地，EF-4——「无到期·无利息·无清算·随时可赎」glossary 口径）；USR 储蓄卡（EF-3 存取+APY/份额）；收益金库表（Stake 深链 `?tab=vault` 常驻、Withdraw 仅成熟赎回时并存） |
+| ④参与凭证 | 按阶段分组（genesis/locked/unlocked）：内嵌面板+阶段顶线+台账行；创世行=参与额+截止注、锁定行=可领 YT+预计解锁日（创世截止+365d 固定锁期，MemeverseRegistrationLib.sol:14）；行尾深链 verse |
 
-另有：六链余额总览条（uAsset 族+原生资产，链分组）；GenesisCredit 余额（uAsset 族计，跨 Verse 通用——genesis-credit.md:17；付息入口→选择目标 Verse：参与中 Verse 直达其参与面板，无则跳发现页）。
+另有 GenesisCredit 余额行（uAsset 族计，跨 Verse 通用——genesis-credit.md:17；付息入口→选择目标 Verse：参与中 Verse 直达其参与面板，无则跳发现页）。
 
-桌面：可行动横条（有则显）→ 三分区两列（仓位储蓄左/凭证右）+余额条顶。移动：可行动→余额→仓位储蓄→凭证。密度=高（全站天花板之一，分区消化）。
+桌面：页头签名→四分区两列（仓位储蓄金库左/凭证右）。移动（≤54rem）：分区页签 deck（`.pf-deck`/`.pf-zone-tabs`，页签条吸顶、KPI 带让位角标）+台账行降档。密度=高（全站天花板之一，分区消化）。
 
 ## 3. 数据依赖
 
-余额/授权/回执=**RPC 实时（永不降级为陈旧索引——§9/§16）**；聚合/凭证历史=Graph（B3 静默降级——数据稍旧无可见状态；可行动区不受影响——待办判定走 RPC）；倒计时=客户端+RPC 校准。
+余额/授权/回执=**RPC 实时（永不降级为陈旧索引——§9/§16）**；聚合/凭证历史=Graph（B3 静默降级——数据稍旧无可见状态；可行动区不受影响——待办判定走 RPC）；倒计时=锚定快照剩余时间的展示型走秒（纯显示 tick，不触发重读）。
 
 渲染边界：三分区主体 RSC（Graph）；每卡片操作=Client 岛；EF-3/EF-4 就地展开复用动线组件。
 
 ## 4. URL 状态
 
-`?section=action|positions|participations`（分区锚点）；无 hash 深链到卡片（卡片量动态）。
+无分区 URL 参数；深链走 `#pf-*` 页内锚点（KPI 芯片/待办卡目标）与移动端分区页签；`?claimable=1` 默认凭证页签；金库深链=`?tab=vault&action=withdraw`（落 verse 详情页）。
 
 ## 5. 文案键
 
-action.deadline-soft（今日内）/ action.deadline-urgent（即将截止）/ participations.unlockable-now（可兑付）/ positions.no-maturity（无到期 · 无利息 · 无清算 · 随时可赎 · 需主动操作——glossary 五件套；短标签+展开全口径）/ redeem.vault（收益库赎回·待执行）/ redeem.position（仓位赎回）/ savings.rate-status（币种利率：激活/未激活）。
+`portfolio.action.deadlineWithin`（Ends in {t}，倒计时徽章）/ `vaultReadyTitle` / `refundTitle`（待办与领取面板铭牌）/ `positions.cdpRedeem`（仓位行赎回）/ `savings.apy`（储蓄利率）——键集以 copy.ts `portfolio.*` 现状为准。
 
 ## 6. 全状态标注
 
 A1 rendered-here（引导连接后显示个性化分区）；A3 rendered-here（链切换语境，本页跨链只读+写操作按链禁用）；A4–A12：A4 rendered-here（EF-3/4 首次写）、A5–A12 delegated（交易中心）；A13 rendered-here（各分区骨架）；A14 rendered-here（零持仓→「开始参与」→发现页；各区独立空态）；A15 rendered-here；B1 rendered-here（仓位/金库暂停→对应操作禁用）；B2 rendered-here（某链未部署→该链余额区标注）；B3 rendered-here（聚合降级横幅+余额照常）；B4 rendered-here。
 
-## 7. 可点击主流程（写操作——原型只演示 ViewModel 状态，业务集成待实装）
+## 7. 可点击主流程（写操作——已接 useTxCenter 真实写路径）
 
-待办卡→对应动作（领取/执行/处理跨链）；EF-4 赎回 sheet 就地展开→审阅→执行→仓位刷新；EF-3 存取同；凭证卡→跳转对应页操作。
+待办卡→对应动作（领取/执行）；EF-4 仓位赎回=保护期 Exit 弹窗（`protection-exit-dialog.tsx` 就地多步向导）→确认→执行→仓位刷新；EF-3 存取与 Convert/Bridge 弹窗同走动作弹窗确认（ActionDialogShell）→钱包；凭证卡→跳转对应页操作。
 
 ## 8. 错误恢复
 

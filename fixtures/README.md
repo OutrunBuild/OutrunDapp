@@ -10,7 +10,7 @@
 
 - 数值域分治：`amount={raw,decimals}`、`rate={raw,unit:bps|ppm|ratio,scale}`、`nonce`/`blockNumber`=非负整数字符串、时间=固定 UTC ISO、ID=前缀-整数。
 - 确定性：禁 `Math.random()`/`Date.now()`/运行时随机 UUID；一切派生自 `data/seed.json`（时间锚 2026-09-16T12:00:00Z）。
-- 六链限 architecture §5 chainId（1/8453/56/11155111/84532/97）。
+- 链集限 architecture §5 测试网集 chainId（421614/84532/97；schema 与 data 同步）。
 - 每条记录带 `sourceRef`（仓库相对路径+章节锚：`docs/architecture.md#…` 或 `docs/page-briefs/source-map.md#M/S…`）。
 - 语义约束在 `invariants/`（amounts/lifecycle/cross-chain/state-scenarios），machine-checkable 子集由 `tests/unit/fixtures/schema.test.ts` 断言。
 - 重建 manifest：`rtk node scripts/write-file-hash.mjs` 不适用多文件——用 `rtk node -e`（见下）；manifest 自身条目 hash 固定为 `"self"`，不递归。

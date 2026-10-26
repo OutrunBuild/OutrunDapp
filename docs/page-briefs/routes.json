@@ -34,7 +34,7 @@
       "id": "R-02",
       "kind": "route",
       "path": "/memeverse/explore",
-      "responsibility": "Memeverse 发现：Verse 列表（阶段 tab：创世中默认/锁定中/已解锁）、阶段内排序、治理链/资产族/创世模式过滤、搜索、参与规模",
+      "responsibility": "Memeverse 发现：Verse 列表（阶段 tab：创世中默认/锁定中/已解锁）、阶段内排序、链/创世模式过滤、搜索、参与规模",
       "dynamicParams": [],
       "fixturePath": null,
       "sources": [

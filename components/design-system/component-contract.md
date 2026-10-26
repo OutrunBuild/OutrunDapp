@@ -70,17 +70,17 @@
 | 状态 | loading=骨架行（保持表头）；empty=EmptyState 内嵌；error=表顶错误条+重试；零余额/零仓位=空态变体文案 |
 | 数据规则 | 全数字列 data-numeric 右对齐；地址/hash 截断+复制按钮（复制成功 toast）；涨跌色=success/danger token |
 | 键盘 | 行 Tab 可达；Enter 展开/收起；排序按钮 `aria-sort` |
-| 索引延迟 | lag>120s → 表头同步徽章 `Syncing · 2m behind`（warning 色）+ 数据以 RPC 为准提示（§9.2） |
+| 索引延迟 | 索引滞后由数据层收敛（写后刷新管线等索引追平再失效缓存）；表组件不做「以链上读值为准」类提示，历史类空态走 `Syncing — history unavailable in this snapshot`（现役位=蜡烛图） |
 
-## 7. TransactionReview（交易审阅）
+## 7. ActionDialogShell（动作弹窗确认）
 
 | 方面 | 契约 |
 |---|---|
-| 用途 | 签名前统一审阅（§7：目标链/账户/合约/函数语义/输入/最小输出/费用/gas/授权变化） |
-| 结构 | 摘要头（动作名+TokenPair）+ 明细行（可展开，Jupiter 范式 PU-005）+ 费率分解区（动态费率四项展开：基础 1%·逆向冲击·波动·短期冲击，硬顶 100%）+ 主/次按钮 |
-| 状态 | default；loading=`Simulating…`（Type-4 模拟中，禁用按钮+行内状态）；simulation 失败=错误块（解码后 custom error 人话+恢复：调整参数/重试/取消）；禁用条件=余额不足 gas/授权缺失/报价过期（`Quote expired → Refresh quote`） |
-| 规则 | 审阅数字全部 data-numeric；价格保护线/滑点/截止必显；授权变化单独区块（`This gives the pool access to …` 措辞） |
-| aria | 审阅区 `aria-live="polite"` 于状态变化 |
+| 用途 | 各写流程签名前的统一确认壳（`components/global/action-dialogs.tsx`）：弹窗内单段 Confirm → 钱包签名；简单直调流免审阅直发钱包（§34） |
+| 结构 | `.pol-mint` 卡壳；报价/网络费等面板数据在开窗前取齐，弹窗一次渲染、不后补行（点击链路 RPC 预算纪律） |
+| 状态 | 签名→确认→完成 三步条=`tx-status.tsx`（§8）；失败=错误块（人话原因+恢复动作：调整参数/重试/取消） |
+| 规则 | 数字全部 data-numeric；授权变化按各流程需要呈现（「This gives … access to …」措辞） |
+| aria | 交易状态 `aria-live` 由 §8 承担（assertive） |
 
 ## 8. TransactionStatus（交易中心状态）
 
@@ -91,7 +91,7 @@
 | 状态映射 | 见 state-matrix.md §3；跨链=`Message pending` 常驻直到目标链确认（源链 hash≠完成，§7） |
 | 动效 | 步骤推进=状态反馈动效（非装饰）；Confirmed=回声确认 |
 | aria | `aria-live="assertive"`（交易状态是关键信息）；每步文本化 |
-| 原型落地 | `components/global/tx-status.tsx`（2026-10-01）：T4→T5→T6 三步条，create-form 确认注册信息 + participation-panel 确认参与信息共用；无钱包——签名/上链由前端定时模拟推进（≈1.6s/≈1.2s；驱动=共享 hook `components/global/tx-simulation.ts` `useTxSimulation`，2026-10-08 由两调用方逐份内联复制收敛，`onConfirmed` 回调承载注册流开弹窗差异），无 hash/gas 故关键事实行省略；T6 展示：注册流=自动弹窗（`.pol-mint` 壳复用，「查看 Verse」CTA→样本 verse-021——新 verseId 链上才产生，生产=注册回执；用户裁定 2026-10-01）、参与流=内联 `.tx-success` 回声块（CTA→portfolio）；拒签 T9 模拟不含 |
+| 原型落地 | `components/global/tx-status.tsx`（2026-10-01）：T4→T5→T6 三步条，create-form 确认注册信息 + participation-panel 确认参与信息共用；无钱包——签名/上链由前端定时模拟推进（≈1.6s/≈1.2s；驱动=两调用方各自内联的 tick 逻辑（无共享模块），`onConfirmed` 回调承载注册流开弹窗差异），无 hash/gas 故关键事实行省略；T6 展示：注册流=自动弹窗（`.pol-mint` 壳复用，「查看 Verse」CTA→样本 verse-021——新 verseId 链上才产生，生产=注册回执；用户裁定 2026-10-01）、参与流=内联 `.tx-success` 回声块（CTA→portfolio）；拒签 T9 模拟不含 |
 
 ## 9. AccountCapability（账户能力）
 
@@ -172,7 +172,7 @@
 |---|---|
 | 用途 | Verse 详情页副工作台（`workbench-secondary` 首位）：按阶段告知用户当下可做什么、解释阶段推进入口状态（`components/verse/verse-page.tsx` CurrentAction；样式 `.action-panel*`） |
 | 创世文案四态 | 按双口径达标+Fast Genesis 分派（真源 lifecycle.md:53-55，2026-09-22 文案重写）：①常规（未达标未截止）=「创世开放参与中。截止后任何人可触发阶段推进。」②非 Fast 已达标=「成功门槛已达标——创世将进入锁定。阶段推进待创世截止后触发。」③Fast 未达标=「任一门槛达标，任何人即可触发阶段推进——无需等到截止。」④Fast 已达标=「任何人现在即可触发阶段推进，提前结束创世。」；旧第二句「截止后参与仍计入判断」属黄昏区口径（决议 008），只在截止后未推进态成立，当前 fixture 无该态样本、不常驻渲染 |
-| 按钮 | 创世=「End Genesis／结束创世」客户端组件 `end-genesis-button.tsx` 直写 `MemeverseLauncher.changeStage(verseId)`（§29 无审阅直发钱包、无 title——数据层披露文案不进 UI，copy-and-i18n.md §2 同族禁令）。启用=Fast 已达标即点、或截止后（无论 Fast 与达标与否——达标→锁定、未达标→退款，lifecycle.md:51-55；非 Fast 达标也等截止；墙钟走秒解锁）；落地集外钱包换 SwitchChainCta（同参与面板闸门——创世逐链结算）；点击链路唯一往返=eth_chainId 探链选址；spec 带 writeScope（verse）——确认后中央层刷新把整页翻出创世工作台；未连接=点开登录选择器；harness 构建保持 inert disabled（基线稳定）；组包失败=降级行 errorBody。非创世=「Connect to check eligibility」disabled+title=`noParticipation`（连钱包读资格——真实解释，保留）；locked 额外出行「触发费用分配」说明块 |
+| 按钮 | 创世=「End Genesis／结束创世」客户端组件 `end-genesis-button.tsx` 直写 `MemeverseLauncher.changeStage(verseId)`（§34 无审阅直发钱包、无 title——数据层披露文案不进 UI，copy-and-i18n.md §2 同族禁令）。启用=Fast 已达标即点、或截止后（无论 Fast 与达标与否——达标→锁定、未达标→退款，lifecycle.md:51-55；非 Fast 达标也等截止；墙钟走秒解锁）；落地集外钱包换 SwitchChainCta（同参与面板闸门——创世逐链结算）；点击链路唯一往返=eth_chainId 探链选址；spec 带 writeScope（verse）——确认后中央层刷新把整页翻出创世工作台；未连接=点开登录选择器；harness 构建保持 inert disabled（基线稳定）；组包失败=降级行 errorBody。非创世=「Connect to check eligibility」disabled+title=`noParticipation`（连钱包读资格——真实解释，保留）；locked 额外出行「触发费用分配」说明块 |
 | 结构 | `.action-panel__head` 横排=阶段图标（32px 描边框，`--space-6`；2026-09-25 用户裁定框 40→32，内图形 `--text-md` 不缩）+「What you can do now」标题同行；下方正文/按钮/费用分配块纵向 `gap: var(--space-3)` |
 | 规则 | 图标随阶段语义+阶段色（2026-09-22 用户裁定多轮：原 GitCommitHorizontal 常青框→沙漏→里程碑→`ChevronsRight` 双箭头，用户选定——下一步行动/现在就动）：genesis=双箭头/黄、locked=锁/品红、unlocked=盾/青、refund=退回/橙（token 同 stage-badge）；数字无；文案全走 `getCopy(locale)` 双语；与参与面板分工=面板管操作、本卡管阶段推进解释，不重复参与引导 |
 
@@ -433,12 +433,12 @@
 |---|---|
 | 用途 | 测试网代币获取页（六功能）：三 mock 币每日领取（USDC/sUSDS/aUSDC）+ 一键领取（batchClaim）+ PSM 面值兑换双向（Get UUSD=USDC→UUSD / Back to USDC=UUSD→USDC）。参照物=旧 demo 水龙头按钮组+Get UUSD 弹窗两图（功能映射，视觉按本站语言）。Get UUSD 机制口径=**PSM（UUSD 唯一获取路径）**——2026-10-09 用户核对合约后自纠终值「只能通过 PSM 获得 UUSD，水龙头领取的其余生息资产直接走 stakeForGenesis」（当日三轮：PSM→质押铸造→回归 PSM，中间轮作废） |
 | 机制口径 | G：claim 每 token 24h 一次（`Faucet.sol:43` `ClaimTooSoon`）、日限一次性全额 mint（deploy 脚本 addToken 1,000,000×1e18/币，三 mock 均 18-dec，source-map S10/S11）；batchClaim 前端只传可领集合（合约按传入数组原子执行，任一冷却中整笔回滚）；PSM=面值 1:1 双向、tin/tout 费率、mint 受 stockCap headroom、redeem 受池储备、无滑点/deadline 参数（S8）；生息资产（sUSDS/aUSDC）不经 UUSD——直接 `stakeForGenesis` 进创世（router-and-user-flows §4：唯一铸造入口 SP.stakeForGenesis、铸出 uAsset 与 genesis 需求严格绑定；卡片说明文案带出此去向）。S：费率展示值（0.10% 每向）/headroom/余额/冷却剩余=fixtures/data/faucet.json 样本 |
-| 实现 | `components/faucet/faucet-page.tsx`（RSC）+ `faucet-claims.tsx`（client，含 UUSD 兑换行）+ `faucet-swap-dialog.tsx`（client）；数据=`getFixtureFaucet()`；样式 `.fc-claims`（globals.css），复用 `.pf-panel`/`.pf-claim-row`/`.ref-nameplate`/`.token-select__badge`/`.ax-ghost-cta` 原语 |
+| 实现 | `components/faucet/faucet-page.tsx`（RSC）+ `faucet-claims.tsx`（client，含 UUSD 兑换行）+ `faucet-swap-dialog.tsx`（client）；数据=`getFaucet()`；样式 `.fc-claims`（globals.css），复用 `.pf-panel`/`.pf-claim-row`/`.ref-nameplate`/`.token-select__badge`/`.ax-ghost-cta` 原语 |
 | 台账面板 | **单一面板**（2026-10-09 四轮：两卡合并——用户裁定「这就是个水龙头」，卡面零机制解释，费率/额度细节收进弹窗）：铭牌行 tokensTitle（Testnet Tokens/测试网代币）+ claimsNote（每 24 小时重置）→ 三领取行（下条）→ hairline 分隔的**一键领推行** `.fc-claims__batch`（全部代币/All tokens 加粗+batchNote 两行 + 右 Batch Claim/Connect outline sm）→ footer=**UUSD 兑换入口** `.fc-claims__foot`（UUSD 品牌章 20px + UUSD + swapFrom 短语（`{a}` 占位=`__asset` 原子单元「14px USDC 章+符号」inline-flex 不可断行，2026-10-09 用户裁定加内联图标；裸 img 首版在窄容器折成独行已废）+ Get UUSD 黄色幽灵钮 sm=页内唯一黄，弹窗触发器）。2026-10-09 五轮：一键领取与 Get UUSD 换位（批量归数据组尾、UUSD 归页脚漏斗出口）、删 `1 : 1` 行读数（swapRate 键删，弹窗内 Rate 行保留）；六轮：UUSD 章光学配平（0=读低、-2.5px=读高，终值 -2px 过冲）；七轮（用户裁定「USDC 再放大、UUSD 与 USDC 同大对齐」）：**双章统一 18px**、USDC 章内联单元 `vertical-align:-5px` 钉位（inline-flex baseline 取自 img 底缘会骑到行上方）+swapFrom `{a}` 占位；八轮微调（各下 0.5px/UUSD 右 1px）；九轮终稿：**双章互齐锁线**（对邻文各自配平会因粗体/灰字光学中心不同而互差 2px——用户抓出；USDC 章 img 上提 2px，实测双章中心同 553.0、互差 0.0） |
 | 领取行 | 图标（TokenIconMark 28px——USDC/sUSDS/aUSDC 三币 2026-10-09 起全有官方图标；`.token-select__badge` 二字徽章保留为无图标品类回落）+ symbol/name + 日限读数（`data-numeric`）+ 连接态冷却行（Ready=success / `Ready in {t}`=warning，t=en `21h 25m`、zh `21 小时 25 分`——小时+分钟档，staticDuration 日粒度不适合 ≤24h 域）+ Claim（outline sm）。行只读：Claim 恒禁用、hover 中和（ref-pending 2026-10-08 同口径）。冷却=fixture `cooldownRemainingMs` 按墙钟每秒递减（vault `RedeemCountdown` 同口径纯展示 tick 非链上写），到 0 转 Ready；未连接不渲染冷却行（无用户归属）。**onchain 模式（2026-10-15 阶段 5 接线）：`cooldownRemainingMs=null`（链上无 getter/事件，2026-10-14 用户裁定）→ 冷却槽位不渲染（类型放宽 `number\|null`，fixture 模式恒有值渲染不变）；日限/headroom/费率=RPC 真读数（Faucet.tokenInfos/PSM tin·tout·stockCap−netMinted）** |
 | 行动条 | 见「台账面板」行——一键领推行（断连=Connect 可点切换连接/连接=Batch Claim 按 claim() probe 可领集合执行）+ 页脚 UUSD 入口（恒可点开弹窗，连接态由弹窗 CTA 承接） |
 | 发送形态 | **直接 EOA 写、免站内审阅（2026-10-22 用户裁定，决议 036）**：`begin/endAccountSession` 只给 Router 写用——Faucet.claim 直接 mint、无需 account session。点 Claim 经 `executeDirect` 直进钱包弹框，无站内审阅面板（领水无输出/费用/授权变化，九项面板全是噪音；钱包弹框已展示 To/网络/费用）。单币=claim(token) 直调 Faucet；多币=`faucetBatchClaimCall`（Faucet.batchClaim，合约侧原子）；`use-tx-center` direct 分支（**免站内模拟、同字段直签广播**，2026-10-22 二轮用户裁定：点击直弹钱包，必败交易由钱包自身预检拦截——确认框内红色警告或拒发，强签=链上 revert 烧微量测试网 gas；余额不重复校验，钱包预检拒收空账户）；站内无进度 UI（TxStatus 三步条与钱包 loading 重复，2026-10-22 用户裁定删除；成功靠余额变化感知，失败看钱包报错，解析失败红字 FieldError 保留）。**冷却期按钮禁用（2026-10-22 用户裁定「没 ready 就不可点」）：confirmed 回执当刻对本次领取的行写入乐观冷却 `now+24h`（`FAUCET_COOLDOWN_S`）锁定 Claim，随后 lastClaimed 重读单调合并不倒退——lastClaimed 链上只增不归零，滞后区块读到 0/旧值不允许把已知冷却打回 Ready，杜绝「回执后 RPC 滞后→行假 Ready→重复点击被钱包预检静默拦截」** |
-| 兑换弹窗 | 触发=Get UUSD（ax-ghost-cta **size sm**——四轮合并后落 UUSD 行 actions 列，与 Claim 钮同行高；页内唯一黄）；壳=共享 `ActionDialogShell/AmountField/DetailRows/DialogCta`（`components/global/action-dialogs.tsx`）：方向 chips（Get UUSD / Back to USDC）+ 金额字段（Balance/Max/余额不足 FieldError）+ 明细（Rate 方向化 `1 USDC = 1 UUSD` / Fee（方向对应 tin/tout）/ You receive=输入×(1−费率) / Mint capacity left 仅 Get 方向）+ CTA（未连接=Connect 可点；已连接=输入有效且 executionReady 时点击接 PSM 管线，不再恒定禁用）。**免站内审阅（2026-10-22 用户裁定，决议 037）**：弹窗四行明细已承载 Rate/Fee/You receive/Mint capacity left，点击后经 `usePsmSwap.start(..., { skipReview: true })` → `use-tx-center.executeSession` 直进钱包确认（session batch 保留 approval+mint 同批原子性），不渲染 `TxReviewPanel`、无无限授权/撤销控件（审批默认精确额度），进度=共享三步条 `TxStatus`（`tx.active && !tx.reviewing` 时渲染于错误行之后，与参与/Swap/四池等动作弹窗同槽同判据；决议 047 依 046 恢复——嵌入式钱包签名静默，钱包弹框不构成反馈），成功另以余额变化并存感知、取消保留输入。**钱包路由（2026-10-22 终稿）**：`use-tx-center.executeByWallet` 单一分派——Privy 内嵌钱包走 Kernel type-4（approval+mint 同批）；外部钱包（MetaMask 等）走 EIP-5792 `wallet_sendCalls`（PSM spec 的 `calls` 两腿原样进钱包，升级确认在钱包弹窗内完成，不签 authorization）；探索失败或无 `calls` 时返回 `unsupported`，弹窗内 `FieldError` 展示 `wallet.account.callsUnsupported`（「当前钱包暂无法完成这笔交易」）并禁用 CTA，不伪装成用户取消、不谎称需升级钱包。轮询 `wallet_getCallsStatus` 超时保持 Confirming…（返回 pending，不判取消），关闭弹窗 `reset()` 清态；执行失败（回退/RPC/gas）展示 `wallet.errors.txFailed`。Portfolio Convert 弹窗仍走 `startReview`，其审阅面板经同一路由按钱包分派（面板 `errorKind` 展示 wallet-unsupported）。模式切换保留输入；打开为空输入（2026-10-08 全站口径）；无滑点/deadline 参数→不设设置齿轮。**余额来源（2026-10-21 用户裁定：个人数值不占服务端资源，SSR 只带 accountless 值）**：连接态=弹窗打开时经钱包 provider 现读 PSM `uAsset()/reserveToken()` 两侧 `balanceOf`（在途/失败=null→AmountField `--`，null 不渲染纪律）；未连接=服务端 accountless 值（onchain=0、fixture=样本，fixture/e2e 基线不变）；`getFixtureFaucet` 恒走 30s SWR config 缓存（key `faucet-97`），连接态 claim 可领探测本就在客户端（faucet-claims） |
+| 兑换弹窗 | 触发=Get UUSD（ax-ghost-cta **size sm**——四轮合并后落 UUSD 行 actions 列，与 Claim 钮同行高；页内唯一黄）；壳=共享 `ActionDialogShell/AmountField/DetailRows/DialogCta`（`components/global/action-dialogs.tsx`）：方向 chips（Get UUSD / Back to USDC）+ 金额字段（Balance/Max/余额不足 FieldError）+ 明细（Rate 方向化 `1 USDC = 1 UUSD` / Fee（方向对应 tin/tout）/ You receive=输入×(1−费率) / Mint capacity left 仅 Get 方向）+ CTA（未连接=Connect 可点；已连接=输入有效且 executionReady 时点击接 PSM 管线，不再恒定禁用）。**免站内审阅（2026-10-22 用户裁定，决议 037）**：弹窗四行明细已承载 Rate/Fee/You receive/Mint capacity left，点击后经 `usePsmSwap.start(..., { skipReview: true })` → `use-tx-center.executeSession` 直进钱包确认（session batch 保留 approval+mint 同批原子性），不渲染 `TxReviewPanel`、无无限授权/撤销控件（审批默认精确额度），进度=共享三步条 `TxStatus`（`tx.active && !tx.reviewing` 时渲染于错误行之后，与参与/Swap/四池等动作弹窗同槽同判据；决议 047 依 046 恢复——嵌入式钱包签名静默，钱包弹框不构成反馈），成功另以余额变化并存感知、取消保留输入。**钱包路由**：`use-tx-center` 经 `lib/web3/write-route.ts` 的 `routeWrite` 按钱包分派——Privy 内嵌钱包走 Kernel type-4（approval+mint 同批）；外部钱包（MetaMask 等）走 EIP-5792 `wallet_sendCalls`（PSM spec 的 `calls` 两腿原样进钱包，升级确认在钱包弹窗内完成，不签 authorization）；探索失败或无 `calls` 时返回 `unsupported`，弹窗内 `FieldError` 展示 `wallet.account.callsUnsupported`（「当前钱包暂无法完成这笔交易」）并禁用 CTA，不伪装成用户取消、不谎称需升级钱包。轮询 `wallet_getCallsStatus` 超时保持 Confirming…（返回 pending，不判取消），关闭弹窗 `reset()` 清态；执行失败（回退/RPC/gas）展示 `wallet.errors.txFailed`。Portfolio Convert 弹窗与参与/Swap/四池等动作弹窗同槽同判据，经同一路由按钱包分派（`errorKind` 展示 wallet-unsupported）。模式切换保留输入；打开为空输入（2026-10-08 全站口径）；无滑点/deadline 参数→不设设置齿轮。**余额来源（2026-10-21 用户裁定：个人数值不占服务端资源，SSR 只带 accountless 值）**：连接态=弹窗打开时经钱包 provider 现读 PSM `uAsset()/reserveToken()` 两侧 `balanceOf`（在途/失败=null→AmountField `--`，null 不渲染纪律）；未连接=服务端 accountless 值（onchain=0、fixture=样本，fixture/e2e 基线不变）；`getFaucet` 恒走 30s SWR config 缓存（key `faucet-97`），连接态 claim 可领探测本就在客户端（faucet-claims） |
 | aria | 面板 `aria-labelledby`（h2）；chips `role="group"`+`data-selected`；数字全 `data-numeric`；弹窗 base-ui Dialog 内置 focus 圈闭/还原；✕=common.close |
 | 导航 | navItems 增 `faucet`（Droplets 图标）→ 侧栏+移动底栏（底栏 6 格，grid 列数同步 5→6）；marketing 顶栏第 5 项（编号 05，决议 024 自动序号）；copy `common.faucet` 双语 |
 | e2e | `e2e/pages.ts`：faucet/faucet-disconnected（en 三档）+ zh-faucet/zh-faucet-disconnected（zh 移动档）；导航扩项波及全站既有基线→全量重录（`--update-snapshots=all`） |
@@ -466,12 +466,24 @@
 | 顶栏显示 | Google 名（无名取邮箱）、X @username（无取 name）、MetaMask 取地址截断；身份标签只在 onchain 构建挂载 |
 | aria | 行钮可达名=行文案；错误行 role=alert；图标装饰 aria-hidden |
 
+## 37. 写链路基建（components/global/）
+
+| 模块 | 职责 |
+|---|---|
+| `use-tx-center.ts` | 全站写流中枢：`executeDirect`（免审阅直签，§34）/ `executeSession`（Kernel 会话批）→ `lib/web3/write-route.ts` `routeWrite` 按钱包分派（内嵌钱包=type-4、外部钱包=EIP-5792 `wallet_sendCalls`，无 `calls` 返回 unsupported）；`outcome === 'confirmed'` 时按 spec 的 `writeScope` 统一调 `refreshVerseAfterWrite`（中央层刷新，lib/data/write-refresh.ts） |
+| `write-session.ts` | 点击链路会话缓存：`prefetchVerseSession` 首次交互预热（verse 元组/部署表/token decimals），`getVerseSession`/`getTokenDecimals` 点击时命中缓存；同落地链+verse+account 在途解析并发合并 |
+| `genesis-live.tsx` | `VerseLiveProvider`：交易确认（`tx.display === 'confirmed'`）或账号/链切换时经钱包 provider 定向探针重读（`writeNonce` 信号），读数只在钱包实链 ∈ verse 落地集时落值、失败保持基线（null 不覆盖）——见 §14 |
+| `use-psm-swap.ts` | PSM 面值兑换写路径（`skipReview: true` 免审阅直达钱包，§34） |
+| `execution-reads.ts` | 执行链链上读（verse registry、池键、quote、token 状态），全部经活跃钱包 provider（客户端路径无服务端密钥），reader 接口可在无链环境单测 |
+| `live-participations.ts` | Portfolio 参与区客户端在场的存在性 store：onchain 构建下参与区经钱包 provider 读行，向页级 ExploreCta 发布「是否扫到行」——全分区空态门（SSR hasZoneData 在 onchain 构建结构性为空） |
+
 ## 附：组件间通用交互契约
 
 - 弹层（AssetSelector/ChainSelector/交易中心）：Esc 关闭、焦点圈闭（focus trap）、关闭后焦点还原触发器。
 - 所有异步动作：进行中可取消或明确不可取消；完成后 toast + 内联状态双通道。
 - 复制：`navigator.clipboard` 写入 + 内联 ✓ 1600ms 回落（共享实现 `useCopy`（components/global/use-copy.ts）；无 toast、无失败回退为当前有意口径，2026-10-08 附则对账）。
 - 地址/hash/symbol/长文本：截断统一 `0x1234…abcd`（共享实现 `formatHex`，signal-ui）；悬停提示与复制钮随各组件裁定、非全站强制（referral 两表纯文本缩略，CopyAddress/链接面板/分享弹窗带复制钮）。
+- 交易反馈面归属：站内确认=各流程动作弹窗（明细行+网络费在窗内），进度=弹窗内三步状态条（TxStatus）；错误两桶（可恢复 FieldError / 终态失败块）；Gas 控件仅嵌入式钱包路径，外部钱包不渲染。签名终端层（站内独立签名确认面）曾试行并整体撤销，勿再引入。
 
 ## TokenIconMark（uAsset 代币图标，2026-10-07 定稿）
 
@@ -479,6 +491,7 @@
 |---|---|
 | 用途 | 代币资产身份图标：uAsset 族（UUSD/UETH/UBNB，含 Credit 前缀匹配）=品牌章；储备/原生（BNB/ETH/USDC/USDT）=官方**代币**图标（CoinGecko/Trust Wallet 代币资产源，全部落 `public/tokens/`；ETH=蓝圆白菱代币图标，勿用 `public/chains/` 灰阶链徽——链徽归链属语义，2026-10-07 用户纠错；第三方资产不套品牌章）；`components/global/token-icons.tsx`，`hasTokenIcon(symbol)` 谓词供混合列表降级判断；2026-10-09 扩 sUSDS/aUSDC——sUSDS=Sky 官方 CoinGecko 收录资产（assets.coingecko.com coins/52721，绿币白 S，250px PNG）；aUSDC=Aave 官方 `@aave/aave-ui-kit` 内嵌组合标（USDC+Aave 徽标 256 SVG，Aave 自家 aToken 客户端合成口径） |
 | 制式 | v3.1 印章：黄地圆 `--logo-yellow` #FCEE0A + 品红字 `--logo-magenta-bright` #FF06B5，纯双色平涂、无边框角标渐变；几何=官方标轮廓追踪（ETH/BNB，`script/token-icons/extract-glyphs.py`）+ 对标调轻 $（UUSD 手绘）；构造/审计全记录 `docs/design/token-icons/README.md` |
+| 辉光 | 品牌章允许辉光——token 图标属品牌资产层，豁免于「数据层文本零 glow」约束（零 glow 只辖数字/数据文本） |
 | 资产 | `public/tokens/<t>.svg`（512 viewBox 主形）+ `<t>-256.png`（Trust Wallet 上架格式，`script/token-icons/export-png.mjs` 透明底导出）；改几何走 `script/token-icons/build.mjs` 重跑，禁手改 SVG |
 | 接入位 | Portfolio 资产行 tile（20px，替代旧链徽/$ 文本占位——链徽只表达链属，2026-10-07 定稿换装）；Swap 选币器行（28px：uAsset=品牌章、BNB/ETH/USDC/USDT=官方图标，2026-10-07 用户指漏 BNB 后补；memecoin/POL/PT/YT 无图标品类保持二字文本徽章）；链徽仍归链分布行/跨链弹窗/Network 列（链属语义不变）；/faucet 领取行（sUSDS/aUSDC，2026-10-09） |
 | 降级 | 未知 symbol 返回 null（谓词 false 时调用方渲染自身兜底，如选币器文本徽章）；无 alt（装饰性，aria-hidden 用法与 ChainLogoMark 同契约） |

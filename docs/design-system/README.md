@@ -56,7 +56,7 @@ docs/design-system/                        本目录：可执行系统
 components/design-system/tokens.css        token 唯一源
 components/design-system/*.md              契约（token/component/state/motion）
 app/globals.css                            主题桥接 + 页面级 class（.product-shell、.economy-card 等）
-components/ui/*                            shadcn 基础件（base-ui 版：button/input/select/field/label/separator/slider/toggle/toggle-group）
+components/ui/*                            shadcn 基础件（base-ui 版：button/input/select/field/label/separator/dialog/dropdown-menu/popover/sheet/switch/textarea/toggle/toggle-group/tooltip）
 components/global/signal-ui.tsx         系统原子：StageBadge / SectionHeading / ProgressMeter / 格式化函数
 components/global/app-shell.tsx         OutrunShell：产品壳与营销壳
 components/global/copy.ts               双语文案字典（getCopy）
@@ -66,7 +66,7 @@ public/brand/                              字标与符号成品（禁改色/拉
 ## 5. 变更规则
 
 - 新增视觉值：先加 token 到 `tokens.css` 并在 `token-contract.md` 登记角色，再使用。
-- 新增可复用组件：领域件放 `components/<域>/`（verse/home/discovery/create/portfolio）、跨页共享放 `components/global/`、基础件放 `components/ui/`，并在 [components.md](./components.md) 登记公开 API、状态与禁忌。
+- 新增可复用组件：领域件放 `components/<域>/`（verse/home/discovery/create/portfolio/referral/faucet）、链上读数适配放 `components/data/`、跨页共享放 `components/global/`、基础件放 `components/ui/`，并在 [components.md](./components.md) 登记公开 API、状态与禁忌。
 - 新增页面级 class：放 `app/globals.css`，命名 `block__element`，状态用 `data-*`（`data-active`、`data-stage`、`data-open`），不用修饰类叠加。
 - 触及品牌方向、色板、字体角色、密度的变更 = 需要新决议，写入 `decision-log.md` 并由人工签署后才可实施。
 - `DESIGN.md` 定稿正文只反映最新状态：变更叙事与时间点注记（「已删/已改 + 日期」式）只进 `decision-log.md` 对应条目，正文禁追注；现行约束连同其 why 直接写正文。

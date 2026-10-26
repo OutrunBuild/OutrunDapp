@@ -78,7 +78,7 @@ const SAMPLE_VERSE_ID = 'verse-021'
  *  pattern as the vault card's GOVERNANCE_TESTNET): the quote decides "is the origin chain the
  *  governance chain" by comparing the wallet chainId against the governance chain's testnet
  *  counterpart */
-const GOVERNANCE_TESTNET: Record<number, number> = { 1: 11155111, 8453: 84532, 56: 97 }
+const GOVERNANCE_TESTNET: Record<number, number> = { 1: 421614, 8453: 84532, 56: 97 }
 
 const encoder = new TextEncoder()
 

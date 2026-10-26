@@ -17,14 +17,14 @@
 | 组件 | 职责 |
 |---|---|
 | Swap 面板 | 方向切换（Memecoin↔uAsset）/金额/报价（参考价+预估到账+费率预估）；**报价≠保证成交**提示（yt-flash-swap.md §5.5：报价只保证历史快照精确，不保证未来成交——spec 口径） |
-| 费率构成展开 | 基础费+动态费（冲击累积）+开池衰减费（开池 50%→1%/15 分钟，hook.md:46）；EWVWAP 豁免效果表述（「让价格回归均衡的交易可豁免动态费」——机制词不上 UI，决议 007（EWVWAP 效果的精确表述）） |
+| 费率构成展开 | 基础费+动态费（冲击累积）+开池衰减费（开池 50%→1%/15 分钟，hook.md:46）；EWVWAP 豁免效果表述（「让价格回归均衡的交易可豁免动态费」——机制词不上 UI，决议 007）。**未实装**：Swap 面板现仅单行 Fee，三层构成展开为规范项 |
 | 滑点与下限 | **分语境预填默认值**（常态 0.5%〔Jupiter/老版 demo 同值〕；开池衰减期预填更高默认——低默认会连环 revert），可改；最低到账数量+截止时间（未设拒绝执行）保留。**口径：费率不额外吃滑点**——费在输入侧一次扣除、报价即费后到账量、无 fee-on-fee（swap-flow.md:49-66 一次选费+费后 delta 结算；uniswap-v4.md:70），滑点阈值作用于费后报价，覆盖的是报价→执行间的价格漂移与动态费状态漂移（动态费=per-address/per-pool state，重入防护即为此——swap-flow.md:159,243） |
-| 快捷金额 | **Half / Max 按钮**（余额一半/全部快捷填入）〔letsbonk/Jupiter 实测+老版 demo 先例〕 |
+| 快捷金额 | Max 按钮（余额全部快捷填入）。Half 按钮=未实装规范项 |
 | 流动性面板 | **四池选择器**（主池 Memecoin/uAsset 默认；POL/uAsset、PT/uAsset、PT/POL 可选）+ 加池/移除（Router `addLiquidity/removeLiquidity`，池无关，min 保护+deadline——SPEC-M5/M14：`beforeAddLiquidityLogic` 仅要求经 Router，不限池）；LP 份额与累计费用（费用领取=Hook `claimFeesCore` 执行入口；余额预览=Router `previewClaimableFees` 只读——swap-integration.md:189-196）；分成说明 65/35（有推荐人 65/25/10——uniswap-v4.md:102-104） |
-| 推荐返佣 | 推荐码/链接携带（返佣归属展示） |
+| 推荐返佣 | 推荐码/链接携带（返佣归属展示）。**未实装**：返佣展示不在本期，referral 机制见 R-06 |
 | 代币统计条 | 市值/流动性/24h 成交量/持有人数/总供应（Graph+主池价计算）——memecoin 交易信任信号〔市场实测 PU-009d/002d+老版 demo 先例（PU-000d 统计胶囊行）〕 |
 | 合约地址 | CA 地址+复制按钮（图表区下方）〔老版 demo 先例〕 |
-| K 线图 | Memecoin/uAsset 主池价格 K 线（OHLC）：粒度切换（1m/5m/1h/1d）；**保护窗区间标注为暂停交易段**（窗口内无成交）；成交懒加载；reduced-motion 下无动画只静态渲染；数据=Graph 聚合 swap 事件（B3 降级→隐藏历史段+提示） |
+| K 线图 | Memecoin/uAsset 主池价格 K 线（OHLC）：粒度切换（7 档，含 15m/4h/1w）；保护窗区间标注为暂停交易段=未实装规范项（窗口内无成交）；成交懒加载；reduced-motion 下无动画只静态渲染；数据=Graph 聚合 swap 事件（B3 降级→隐藏历史段+提示） |
 | 池信息卡 | 四池概览（TVL/24h 量）；选中池深度图/近期成交（Graph） |
 
 桌面：Swap+K 线左（大）+池信息右；流动性 Tab 切换。移动：Tab（Swap/流动性/池信息）纵排，K 线 390px 折叠展开。密度=高（全站密度天花板之一，交易台密度允许——PD-06）。
@@ -37,7 +37,7 @@
 
 ## 4. URL 状态
 
-交易台=详情页持久区（locked/unlocked 态自动可见）；流动性=`?tab=liquidity`；`?input=…&ref=…`（输入预填/推荐码进查询参数）；分享还原 tab 与输入预填。
+交易台=详情页持久区（locked/unlocked 态自动可见）；流动性=`?tab=liquidity`；`?input=…&ref=…`（输入预填/推荐码进查询参数）=未实装规范项；分享还原 tab。
 
 ## 5. 文案键
 
@@ -49,9 +49,9 @@ A1 rendered-here（报价可看不可交易）；A3 rendered-here（错链禁交
 
 ## 7. 可点击主流程
 
-> 阶段前置降级（URL 直达）：Verse 在创世/退款态时无公开市场——交易台/标签不渲染，页面呈 Genesis 态组件+引导（四池在达标时才建立）。（写操作——原型只演示 ViewModel 状态，业务集成待实装；**不伪造链上成功**）
+> 阶段前置降级（URL 直达）：Verse 在创世/退款态时无公开市场——交易台/标签不渲染，页面呈 Genesis 态组件+引导（四池在达标时才建立）。（写操作——Swap/流动性已接 useTxCenter 真实写路径，type-4 直签 + EIP-1559；费率三层展开/返佣/输入预填未实装）
 
-1. Swap：选方向→输金额→报价刷新→展开费率→设滑点下限→审阅卡（到账预估+授权链）→授权（如需）→签名→提交→确认→成交到账视图
+1. Swap：选方向→输金额→报价刷新→设滑点下限→确认卡（到账预估）→钱包签名→确认→成交到账视图
 2. 流动性：加池（双资产输入+比例校验）→审阅→执行→POL 到账；移除：输份额→预览底层→执行
 3. 失败示例必测：滑点保护触发 revert、拒签、错链禁写
 
@@ -61,7 +61,7 @@ A1 rendered-here（报价可看不可交易）；A3 rendered-here（错链禁交
 
 ## 9. 视觉证据
 
-DESIGN.md 四轴；交易台密度=P4 受众页（PD-06 分层）；数字全部 tabular-nums、等宽仅数据字段（决议 001-A）；费率构成用分层展开（默认收起，防新手过载）；TokenPair/AmountInput/TransactionReview 契约。
+DESIGN.md 四轴；交易台密度=P4 受众页（PD-06 分层）；数字全部 tabular-nums、等宽仅数据字段（决议 001-A）；费率构成用分层展开（规范项，默认收起防新手过载）；TokenPair/AmountInput/ActionDialogShell 契约。
 
 ## 10. fixture 场景
 

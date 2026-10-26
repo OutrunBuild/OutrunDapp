@@ -6,7 +6,7 @@
       "id": "faucet-001",
       "scenario": ["normal"],
       "sourceRef": "docs/page-briefs/source-map.md#S10",
-      "chainId": 11155111,
+      "chainId": 421614,
       "tokens": [
         {
           "symbol": "USDC",
