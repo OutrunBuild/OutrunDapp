@@ -3,10 +3,12 @@
 // resolution logic unit-testable without a chain (§11.1).
 import { createPublicClient, custom, type Abi, type Chain, type Hex } from 'viem';
 
-import { erc20ReadAbi, launcherAbi, polendAbi, splitterAbi, swapRouterAbi } from '@/lib/web3/abis';
+import { erc20ReadAbi, hookAbi, launcherAbi, polendAbi, psmAbi, splitterAbi, swapRouterAbi } from '@/lib/web3/abis';
 import { preorderCapacityCeilingBase } from '@/lib/web3/contract-formulas';
 import { getClientChainConfig } from '@/lib/web3/chains';
 import type { Eip1193Request } from '@/lib/web3/active-provider';
+import { tracePhase } from '@/lib/web3/click-trace';
+import { poolIdOf, priceQuotePerBase } from '@/lib/web3/pool-quote';
 import type { PoolKey } from '@/lib/web3/session-actions';
 
 export type ContractReader = {
@@ -15,6 +17,8 @@ export type ContractReader = {
     abi: Abi;
     functionName: string;
     args?: readonly unknown[];
+    /** eth_call from-address for msg.sender-scoped views (e.g. claimablePreorderMemecoin) */
+    account?: Hex;
   }): Promise<unknown>;
 };
 
@@ -185,6 +189,12 @@ export type SwapQuote = {
   feeBps: bigint;
   estimatedUserInputAmount: bigint;
   estimatedUserOutputAmount: bigint;
+  /** Fee split of the same preview: the pair the card's single fee row folds together. */
+  estimatedProtocolFeeAmount: bigint;
+  estimatedLpFeeAmount: bigint;
+  /** True when both fee legs settle on the input side; false means the protocol leg is
+   *  taken from the output and must be converted to input units before being added. */
+  protocolFeeOnInput: boolean;
 };
 
 export async function readSwapQuote(
@@ -195,32 +205,106 @@ export async function readSwapQuote(
   trader: Hex,
 ): Promise<SwapQuote> {
   const tuple = asTupleArray(
-    await reader.read({
-      address: router,
-      abi: swapRouterAbi,
-      functionName: 'quoteSwap',
-      args: [
-        {
-          currency0: key.currency0,
-          currency1: key.currency1,
-          fee: key.fee,
-          tickSpacing: key.tickSpacing,
-          hooks: key.hooks,
-        },
-        {
-          zeroForOne: params.zeroForOne,
-          amountSpecified: params.amountSpecified,
-          sqrtPriceLimitX96: params.sqrtPriceLimitX96,
-        },
-        trader,
-      ],
-    }),
+    await tracePhase('quote', () =>
+      reader.read({
+        address: router,
+        abi: swapRouterAbi,
+        functionName: 'quoteSwap',
+        args: [
+          {
+            currency0: key.currency0,
+            currency1: key.currency1,
+            fee: key.fee,
+            tickSpacing: key.tickSpacing,
+            hooks: key.hooks,
+          },
+          {
+            zeroForOne: params.zeroForOne,
+            amountSpecified: params.amountSpecified,
+            sqrtPriceLimitX96: params.sqrtPriceLimitX96,
+          },
+          trader,
+        ],
+      }),
+    ),
   );
   return {
     feeBps: BigInt(String(tuple[0])),
     estimatedUserInputAmount: BigInt(String(tuple[1])),
     estimatedUserOutputAmount: BigInt(String(tuple[2])),
+    estimatedProtocolFeeAmount: BigInt(String(tuple[3] ?? 0)),
+    estimatedLpFeeAmount: BigInt(String(tuple[4] ?? 0)),
+    protocolFeeOnInput: Boolean(tuple[5]),
   };
+}
+
+/** PSM par-swap quote: the contract's mint/redeem preview, identical to execution output in
+ *  the non-dust domain (fee-only math, no price input). Used to price the reserve leg of a
+ *  swap and to convert between the card's input token and the pool's uAsset leg. */
+export async function readPsmQuote(
+  reader: ContractReader,
+  psm: Hex,
+  mode: 'mint' | 'redeem',
+  amount: bigint,
+): Promise<bigint> {
+  return BigInt(
+    String(
+      await tracePhase('psm-quote', () =>
+        reader.read({
+          address: psm,
+          abi: psmAbi,
+          functionName: mode === 'mint' ? 'quoteMint' : 'quoteRedeem',
+          args: [amount],
+        }),
+      ),
+    ),
+  );
+}
+
+/** Same-clock spot reference for the price-impact row, in display units of tokenOut per
+ *  tokenIn. Derives the pool price exactly the way the SSR trade desk does — LP supply off
+ *  the hook, then the router's full-range amount quote at the live sqrtPrice
+ *  (MemeverseSwapRouter.quoteAmountsForLiquidity) — so the ratio is the pool's spot price at
+ *  read time. Runs inside the quote poll's Promise.all, which is the point: impact must never
+ *  compare a fresh quote against a page-load-age price. Null (pool absent, zero LP, or any
+ *  read error) degrades only the impact row — the quote itself stays usable. */
+export async function readSwapSpotOutPerIn(
+  reader: ContractReader,
+  router: Hex,
+  hook: Hex,
+  key: PoolKey,
+  tokenIn: Hex,
+  decimalsIn: number,
+  decimalsOut: number,
+): Promise<number | null> {
+  try {
+    const lpSupply = BigInt(
+      String(
+        await reader.read({
+          address: hook,
+          abi: hookAbi,
+          functionName: 'cachedLpTotalSupply',
+          args: [poolIdOf(key)],
+        }),
+      ),
+    );
+    if (lpSupply <= 0n) return null;
+    const tuple = asTupleArray(
+      await reader.read({
+        address: router,
+        abi: swapRouterAbi,
+        functionName: 'quoteAmountsForLiquidity',
+        args: [key.currency0, key.currency1, lpSupply],
+      }),
+    );
+    const amount0 = BigInt(String(tuple[0]));
+    const amount1 = BigInt(String(tuple[1]));
+    const inIsCurrency0 = tokenIn.toLowerCase() === key.currency0.toLowerCase();
+    const [amountInLeg, amountOutLeg] = inIsCurrency0 ? [amount0, amount1] : [amount1, amount0];
+    return priceQuotePerBase(amountInLeg, decimalsIn, amountOutLeg, decimalsOut);
+  } catch {
+    return null;
+  }
 }
 
 export async function readErc20Meta(
@@ -240,20 +324,46 @@ export async function readAllowances(
   owner: Hex,
   legs: readonly { token: Hex; spender: Hex }[],
 ): Promise<bigint[]> {
-  return Promise.all(
-    legs.map(async (leg) =>
-      BigInt(
-        String(
-          await reader.read({
-            address: leg.token,
-            abi: erc20ReadAbi,
-            functionName: 'allowance',
-            args: [owner, leg.spender],
-          }),
+  return tracePhase(
+    'allowance',
+    () =>
+      Promise.all(
+        legs.map(async (leg) =>
+          BigInt(
+            String(
+              await reader.read({
+                address: leg.token,
+                abi: erc20ReadAbi,
+                functionName: 'allowance',
+                args: [owner, leg.spender],
+              }),
+            ),
+          ),
         ),
       ),
-    ),
+    `${legs.length} leg${legs.length === 1 ? '' : 's'}`,
   );
+}
+
+/** Router quote of the amounts one reference amount of LP needs at the pool's current price.
+ *  Amounts are rounded up by the router, so a target derived from them never exceeds the
+ *  caller's budgets. */
+export async function readLiquidityQuote(
+  reader: ContractReader,
+  router: Hex,
+  tokenA: Hex,
+  tokenB: Hex,
+  referenceLiquidity: bigint,
+): Promise<{ amountA: bigint; amountB: bigint }> {
+  const tuple = asTupleArray(
+    await reader.read({
+      address: router,
+      abi: swapRouterAbi,
+      functionName: 'quoteExactAmountsForLiquidity',
+      args: [tokenA, tokenB, referenceLiquidity],
+    }),
+  );
+  return { amountA: BigInt(String(tuple[0])), amountB: BigInt(String(tuple[1])) };
 }
 
 export type PoolSideKind = 'meme' | 'uasset' | 'pol' | 'pt';
@@ -277,16 +387,26 @@ export async function resolvePoolTokens(
     if (kind === 'meme') return session.verse.memecoin;
     if (kind === 'uasset') return session.verse.uAsset;
     if (kind === 'pol') return session.verse.pol;
-    const splitter = session.contracts.POLSplitter as Hex;
-    return (await reader.read({
-      address: splitter,
-      abi: splitterAbi,
-      functionName: 'getPT',
-      args: [verseId],
-    })) as Hex;
+    return readPTToken(reader, session.contracts.POLSplitter as Hex, verseId);
   };
   const [base, quote] = await Promise.all([resolve(baseKind), resolve(quoteKind)]);
   return { base, quote };
+}
+
+/** Splitter PT address (`getPT`) — zero until launch: PT/YT deploy once via initializeVerse
+ *  in the launcher's launch path (POLSplitterUpgradeable.sol:213; MemeverseLaunchImpl.sol:329,
+ *  leverage-independent), so callers treat zero as "no PT leg". */
+export async function readPTToken(
+  reader: ContractReader,
+  splitter: Hex,
+  verseId: bigint,
+): Promise<Hex> {
+  return (await reader.read({
+    address: splitter,
+    abi: splitterAbi,
+    functionName: 'getPT',
+    args: [verseId],
+  })) as Hex;
 }
 
 export type VerseSession = {

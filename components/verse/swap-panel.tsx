@@ -1,66 +1,92 @@
 'use client'
 
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { ArrowLeftRight, ArrowUpDown } from 'lucide-react'
-import { formatUnits, parseUnits, type Hex } from 'viem'
+import { ArrowDown, ArrowLeftRight, ArrowUpDown, ChevronLeft } from 'lucide-react'
+import { formatUnits, type Hex } from 'viem'
+import { toBaseUnits } from '@/lib/web3/base-units'
 
 import type {
   Locale,
   PolPosition,
 } from '@/lib/data/fixture-repository'
-import { getClientChainConfig } from '@/lib/web3/chains'
-import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
-import {
-  approvalCall,
-  buildSessionWrite,
-  limitForDirection,
-  swapExactInputCall,
-  type PoolKey,
-} from '@/lib/web3/session-actions'
+import { buildSessionWrite } from '@/lib/web3/session-actions'
 
 import { getCopy } from '../global/copy'
 import { useAccountCenter } from '../global/use-account-center'
 import { useTxCenter, useClearOnConfirmed, type WriteSpec } from '../global/use-tx-center'
-import { TxStatus } from '../global/tx-status'
-import {
-  readAllowances,
-  readPoolKey,
-  readSwapQuote,
-} from '../global/execution-reads'
-import { getTokenDecimals, getVerseSession } from '../global/write-session'
-import { formatAmount } from '../global/signal-ui'
-import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
+import { TxProgressDialog } from '../global/tx-progress-dialog'
+import { TxSuccessDialog } from '../global/tx-success-dialog'
+import { useTxSuccessGate } from '../global/use-tx-success'
+import { formatAmount, formatPercent } from '../global/signal-ui'
+import { readAllowances } from '../global/execution-reads'
+import { ActionDialogShell, DialogCta } from '../global/action-dialogs'
+import { GasEditor, GasSummaryRow } from '../global/gas-setting'
+import { useGasQuote, type GasOverride } from '../global/use-gas-quote'
+import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount, trimFractionZeros, typedAmountPositive } from '../global/amount-input'
 import { parseVerseIdParam } from '../global/routes'
 import { useVerseExecChain } from '../global/switch-chain-cta'
-import { fmtTokenAmount, fmtUsd } from '../global/amount-format'
+import { fmtTokenAmount, fmtTokenAmountExact, fmtUsd } from '../global/amount-format'
 import { getSlippageIssue, slippageToNumber } from '../global/slippage-input'
 import { SwapSettings } from '../global/swap-settings'
-import { DialogCta } from '../global/action-dialogs'
-import { SwapTokenSelectDialog, type SwapTokenOption } from './swap-token-select-dialog'
+import { Dialog } from '@/components/ui/dialog'
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { SwapTokenSelectDialog, type SwapTokenOption } from './swap-token-select-dialog'
+import { buildSwapPlan, swapApprovalLegs, swapFeeBps } from './swap-plan'
+import {
+  impactTone,
+  minOutOf,
+  priceImpactOf,
+  quoteForContext,
+  resolveSwapQuoteContext,
+  spotReferenceOf,
+  toDisplay,
+  useSwapLiveQuote,
+  type MemeTokenId,
+} from './swap-live-quote'
+import { useTradeBalances } from './trade-balances'
 
-/** Meme-side candidate token ids (categories, not standalone symbols: derived from the POL-/PT-
- * prefixes; YT stays off the card — Flash Swap is a single POL↔YT channel tool, living in the
- * Tokenization page's YT-well dedicated dialog PolFlashSwapDialog) */
-type MemeTokenId = 'meme' | 'pol' | 'pt'
+/** One formatted swap leg — the amount is 6-dp display tier, the symbol rides the ticker face */
+type SwapLeg = { amount: string; symbol: string }
+
+/** What the confirm dialog freezes at click time — the success screen re-reads these, never
+ *  the (already cleared) form. Price impact stays off the dialog (2026-10-27 ruling): danger
+ *  is already blocked at the CTA gate, warning lives on the card's details rows. */
+type SwapSnapshot = {
+  pay: SwapLeg
+  receive: SwapLeg
+  minReceived: SwapLeg
+  feePercent: string
+}
+
+function fillTemplate(template: string, values: Record<string, string>): string {
+  return template.replace(/\{(\w+)\}/g, (match, key: string) => values[key] ?? match)
+}
 
 /**
  * Standard Swap panel: the top-right settings button holds slippage/deadline;
- * the details rows keep only reference price/price impact/min received/route; no static explainer copy.
- * CTA wired to the account center (the connect-wallet button is clickable):
- * disconnected=Connect Wallet clickable, sharing the switch with the header's WalletControl;
- * connected + onchain + uAsset↔memecoin pair = review → Type-4 session swap;
- * otherwise the action stays disabled (no faked on-chain execution).
+ * the details rows keep only rate/price impact/min received/swap fee; no static explainer copy.
+ * Quote layer: the executable legs (uAsset↔memecoin/POL/PT) quote live through the wallet
+ * provider (`quoteSwap`), so output/min-received/price-impact are the values execution will
+ * see; while
+ * the quote for the current input is pending the output slot shows the pending spinner — the
+ * linear reference conversion never stands in for a quote (market convention, Uniswap-style);
+ * disconnected/fixture states and failed reads keep the SSR reference conversion (onchain
+ * builds render real market prices, fixture builds the e2e samples). CTA is a state machine — the button itself
+ * states why it cannot fire. Confirm flow mirrors the participation review dialog: click
+ * resolves everything the dialog paints (quote freshness, allowance, embedded gas estimate),
+ * then one ActionDialogShell walks review → three-step status → swap-complete (the 7702
+ * session batch folds the exact-amount approval into the signed bundle, so no approval row).
  * The input/output side tokens open a select dialog: stable side=
  * uAsset + its PSM-paired reserves
- * (par 1:1), Meme side=memecoin/POL/PT; the quote converts linearly via both sides' reference
- * prices for the chosen pair —
- * meme=main-pool price, POL=POL/uAsset pool price, PT=PT/POL pool price×POL price.
- * YT stays off the card: Flash Swap is a single POL↔YT channel
- * tool (both buy and sell specify the YT amount), living in the Tokenization page's YT-well
- * dedicated dialog PolFlashSwapDialog.
+ * (par 1:1), Meme side=memecoin/POL/PT — each meme leg swaps its own pool (memecoin↔uAsset
+ * primary; POL↔uAsset and PT↔uAsset auxiliary, four-pools.md); reserve legs have no verse
+ * pool (the PSM par channel is their exit) and stay listed but disabled with the reason on
+ * the row (onchain builds only). YT stays off the card: Flash Swap is a single
+ * POL↔YT channel tool (both buy and sell specify the YT amount), living in the Tokenization
+ * page's YT-well dedicated dialog PolFlashSwapDialog.
  */
 export function SwapPanel({
   locale,
@@ -83,18 +109,20 @@ export function SwapPanel({
   /** Token full name (verse.name fixture) — secondary text of the select dialog row */
   memecoinName: string
   uAssetSymbol: string
-  /** Main-pool price: 1 Memecoin = price uAsset (derived from the fixture candle close) */
+  /** Main-pool price: 1 Memecoin = price uAsset (onchain builds: real candles; fixture: sample) */
   price: number
-  /** uAsset USD sample price (fixture; null=hide the USD conversion row) */
+  /** uAsset USD price (onchain builds: PSM par / Chainlink feed; null=hide the USD conversion row) */
   uAssetUsd: number | null
-  /** Sample account memecoin/uAsset balance (pol-positions fixture; null=slot --, same source as the Mint POL dialog) */
+  /** Account memecoin/uAsset balance (SSR samples; onchain personal values are client-side probes; null=slot --) */
   memecoinBalance: number | null
   uAssetBalance: number | null
-  /** Reserves payable for par direct swap (PSM pairs read from fixture — the getParticipationOptions export; name=the token's own name, falls back to symbol when missing) */
-  reserves: { symbol: string; name?: string }[]
-  /** Reserve wallet balance sample (pol-positions myReserve; null=slot '--') */
+  /** Reserves payable on the PSM par channel (getParticipationOptions export). `id` is the
+   *  reserve token address on deployed builds (the onchain adapter keys assets by address);
+   *  `name` is the token's own name, falling back to its symbol. */
+  reserves: { id: string; symbol: string; name?: string; decimals?: number }[]
+  /** Reserve wallet balance (probe value on onchain builds; null=slot '--') */
   reserveBalance: number | null
-  /** POL/PT pool price and balance sample (pol-positions fixture; null=quote/balance slot state) */
+  /** POL/PT pool price and balance sample (null=quote/balance slot state) */
   pol: PolPosition | null
   /** Verse governance chain + display name (execution-chain gate; SwitchChainCta target) */
   governanceChain: number
@@ -102,10 +130,14 @@ export function SwapPanel({
 }) {
   const copy = getCopy(locale).verseDesk
   const common = getCopy(locale).common
+  const verseCopy = getCopy(locale).verse
   const center = useAccountCenter()
   const { connected, connectAction: toggle } = center
   const { execChain, wrongChain, switchChain } = useVerseExecChain(governanceChain)
   const tx = useTxCenter()
+  // Confirmed → receipt gate: the success dialog is the flow's last dialog, stacked over
+  // the confirm dialog (whose body stays in review form underneath).
+  const { successOpen, setSuccessOpen, receipt } = useTxSuccessGate(tx)
   const params = useParams()
   const rawVerseId = params?.verseId
   const verseId = parseVerseIdParam(rawVerseId)
@@ -126,19 +158,61 @@ export function SwapPanel({
   const [rateInverted, setRateInverted] = useState(false)
   useClearOnConfirmed(tx.display, () => setAmount(''))
 
-  // Stable-side candidates: raise uAsset + PSM-paired reserves (PSM par 1:1; reserve balance fixture missing → slot)
+  // Confirm dialog (review → three-step status → swap complete), participation-review shaped
+  const [confirming, setConfirming] = useState(false)
+  const [pendingSpec, setPendingSpec] = useState<WriteSpec | null>(null)
+  const [gasOverride, setGasOverride] = useState<GasOverride | null>(null)
+  const [gasEditing, setGasEditing] = useState(false)
+  const [snapshot, setSnapshot] = useState<SwapSnapshot | null>(null)
+
+  // Wallet-provider balance probe (onchain builds): fills the supply-side Balance rows the SSR
+  // leaves slotted — accountless server payload, personal values client-side only. Fixture
+  // builds keep the SSR samples (probe returns null). Re-reads when a swap confirms here.
+  const [settleTick, setSettleTick] = useState(0)
+  const prevDisplayRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (tx.display === 'confirmed' && prevDisplayRef.current !== 'confirmed') {
+      setSettleTick((tick) => tick + 1)
+    }
+    prevDisplayRef.current = tx.display
+  }, [tx.display])
+  const walletBalances = useTradeBalances({
+    verseId,
+    uAssetSymbol,
+    governanceChain,
+    refreshKey: settleTick,
+  })
+  const displayMemecoinBalance = walletBalances?.memecoin ?? memecoinBalance
+  const displayUAssetBalance = walletBalances?.uAsset ?? uAssetBalance
+  const displayReserveBalance = walletBalances?.reserve ?? reserveBalance
+  const displayPolBalance = walletBalances?.pol ?? pol?.myPol ?? null
+  const displayPtBalance = walletBalances?.pt ?? pol?.myPt ?? null
+  // Exact wallet reads win over the float aliases whenever the probe landed (float64 can
+  // round a real balance upward — a Max prefill re-parsed from it would trip the gate);
+  // non-executable legs (reserves on real builds) carry no exact read.
+  const exactMemecoin = walletBalances?.exact.memecoin ?? null
+  const exactUAsset = walletBalances?.exact.uAsset ?? null
+
+  // Stable-side candidates: raise uAsset + PSM-paired reserves. Every reserve listed here is
+  // routable on real builds (the PSM bridges it to the verse uAsset in the same batch), so no
+  // row is disabled for lack of a route; a build without the PSM pair simply lists none.
+  const realMode = center.source === 'real'
+  const reserveId = (reserve: { id: string; symbol: string }): string =>
+    reserve.id.startsWith('0x') ? reserve.id : reserve.symbol
   const stableOptions: SwapTokenOption[] = [
     {
       id: uAssetSymbol,
       symbol: uAssetSymbol,
       name: copy.mintSideUasset,
-      balance: uAssetBalance,
+      balance: displayUAssetBalance,
+      exact: exactUAsset,
     },
     ...reserves.map((reserve) => ({
-      id: reserve.symbol,
+      id: reserveId(reserve),
       symbol: reserve.symbol,
       name: reserve.name ?? reserve.symbol,
-      balance: reserveBalance,
+      balance: displayReserveBalance,
+      exact: walletBalances?.exact.reserve ?? null,
     })),
   ]
   // uAsset price per 1 token: reserves=par 1; POL=POL/uAsset pool price (fixture sample);
@@ -152,24 +226,27 @@ export function SwapPanel({
       id: 'meme',
       symbol: memecoinSymbol,
       name: memecoinName,
-      balance: memecoinBalance,
+      balance: displayMemecoinBalance,
+      exact: exactMemecoin,
     },
     {
       id: 'pol',
       symbol: polSymbol,
       name: copy.polTag,
-      balance: pol?.myPol ?? null,
+      balance: displayPolBalance,
+      exact: walletBalances?.exact.pol ?? null,
     },
     {
       id: 'pt',
       symbol: ptSymbol,
       name: copy.ptFullName,
-      balance: pol?.myPt ?? null,
+      balance: displayPtBalance,
+      exact: walletBalances?.exact.pt ?? null,
     },
   ]
   const priceInUAsset = new Map<string, number | null>([
     [uAssetSymbol, 1],
-    ...reserves.map((reserve) => [reserve.symbol, 1] as const),
+    ...reserves.map((reserve) => [reserveId(reserve), 1] as const),
     ['meme', price > 0 ? price : null],
     ['pol', polPrice],
     ['pt', pol != null && polPrice != null ? polPrice * pol.ptPricePerPol : null],
@@ -181,161 +258,330 @@ export function SwapPanel({
   const buyToken = direction === 'stable-to-meme' ? memeSide : stableSide
   const sellBalance = sellToken.balance
   const buyBalance = buyToken.balance
-  // Simulated quote: linear conversion via both sides' reference prices for the chosen pair
-  // (reserve leg=PSM par 1:1; slippage/dynamic fee defer to on-chain execution reads)
+  const sellExact = sellToken.exact ?? null
+  // Reference conversion (linear via both sides' reference prices) — the display fallback for
+  // states without a live quote (disconnected / fixture / probe failure); execution always
+  // quotes on-chain.
   const parsed = Number(amount)
-  const valid = Number.isFinite(parsed) && parsed > 0
-  const overBalance = sellBalance != null && Number.isFinite(parsed) && parsed > sellBalance
+  const valid = typedAmountPositive(amount, sellExact)
+  const overBalance =
+    sellExact != null
+      ? valid && toBaseUnits(amount, sellExact.decimals) > sellExact.base
+      : sellBalance != null && Number.isFinite(parsed) && parsed > sellBalance
   const sellPrice = priceInUAsset.get(sellToken.id) ?? null
   const buyPrice = priceInUAsset.get(buyToken.id) ?? null
   const pairRate =
     sellPrice != null && buyPrice != null && buyPrice > 0 ? sellPrice / buyPrice : null
-  const quote = valid && pairRate != null ? parsed * pairRate : null
+  const referenceQuote = valid && pairRate != null ? parsed * pairRate : null
   // While slippage is out of bounds, no (1−s/100) derivation (s>100 yields negative tokens);
   // min received/max slippage rows fall back to slots
   const slippage = slippageToNumber(slippageText)
   const slippageIssue = getSlippageIssue(slippage)
-  const minReceived = quote != null && slippageIssue == null ? quote * (1 - slippage / 100) : null
-  // Onchain execution (uAsset↔memecoin exact-input only; reserves/POL/PT legs resolve no
-  // addresses and stay disabled). Everything resolves through the wallet provider: verse
-  // registry → pool key → quote (trader = execution EOA, §M2 trader contract) → approval →
-  // session batch. No page prop threading: verseId comes from the route.
+  const slippageBps = Math.round(slippage * 100)
+  const referenceMinReceived =
+    referenceQuote != null && slippageIssue == null ? referenceQuote * (1 - slippage / 100) : null
+  // Onchain execution. Every listed pair is routable: uAsset↔meme directly, a reserve↔meme
+  // through the PSM in the same batch. Everything resolves through the wallet provider: verse
+  // registry → pool key → quote → allowance → session batch. No page prop threading: verseId
+  // comes from the route.
   const verseIdValid = verseId != null
+  const pairExecutable = !stableSide.unavailable && !memeSide.unavailable
+  // A reserve selection keeps the pool leg on memecoin↔uAsset and bridges the difference
+  // through the PSM; the quote layer needs to know which side it is pricing.
+  const stableIsReserve = stableOptions.slice(1).some((token) => token.id === stableSide.id)
+  const stableToken = stableIsReserve
+    ? ({ kind: 'reserve', address: stableSide.id as Hex } as const)
+    : ({ kind: 'uasset' } as const)
   const executionReady =
-    center.source === 'real' &&
+    realMode &&
     connected &&
     center.chainSupported &&
     !wrongChain &&
     center.chainId != null &&
     center.address != null &&
     verseIdValid &&
-    stableSide.id === uAssetSymbol &&
-    memeSide.id === 'meme'
+    pairExecutable
+  const live = useSwapLiveQuote({
+    active: executionReady,
+    eoa: center.address as Hex | null,
+    chainId: center.chainId,
+    verseId,
+    direction,
+    memeTokenId: memeId,
+    uAssetSymbol,
+    stableToken,
+    amount,
+  })
+  // Live-quote display halves: the values execution will see. A quote only answers its own
+  // request — during the debounce window the latest quote still describes the previous amount.
+  // In the live pipeline that gap is a pending state (spinner slot + fetching CTA), never the
+  // linear reference conversion: spot price × input can sit orders of magnitude off a deep
+  // route's real fill, and echoing it as the output fabricates a quote. The reference
+  // conversion prices only the states the live pipeline cannot reach — fixture/disconnected,
+  // and live reads that failed.
+  const liveQuote = live.value
+  const liveUsable = executionReady && liveQuote != null && liveQuote.amount === amount
+  const quotePending = executionReady && valid && !liveUsable && !live.failed
+  const referenceUsable = !executionReady || live.failed
+  const liveOutDisplay = liveUsable && liveQuote ? toDisplay(liveQuote.out, liveQuote.decimalsOut) : null
+  const displayOut = liveOutDisplay ?? (referenceUsable ? referenceQuote : null)
+  // The buy side floors on the CARD's output token; a reserve leg's output decimals differ
+  // from the pool leg's, so the quote carries both.
+  const cardOutDecimals = liveQuote?.cardDecimalsOut ?? liveQuote?.decimalsOut ?? 18
+  const liveMinReceived =
+    liveUsable && liveQuote && slippageIssue == null
+      ? `${fmtTokenAmount(toDisplay(minOutOf(liveQuote.out, slippageBps), cardOutDecimals), locale)} ${buyToken.symbol}`
+      : null
+  const minReceivedText =
+    slippageIssue == null
+      ? (liveMinReceived ??
+        (referenceUsable && referenceMinReceived != null
+          ? `${fmtTokenAmount(referenceMinReceived, locale)} ${buyToken.symbol}`
+          : null))
+      : null
+  // Impact measures the executable quote against the pool spot captured in the SAME quote
+  // pass — never against the page-load reference conversion, whose drift since page load
+  // would masquerade as impact. The reference is the spot × input (per-unit spot × total in
+  // = total reference); the quote's own fee is subtracted (fee keeps its own row); without a
+  // live quote or an unreadable spot there is nothing honest to print.
+  const impact =
+    liveUsable && liveQuote != null && liveOutDisplay != null
+      ? priceImpactOf(spotReferenceOf(liveQuote.spotOutPerIn, Number(liveQuote.amount)), liveOutDisplay, liveQuote.feeBps)
+      : null
+  const impactToneNow = impactTone(impact)
+  // Uniswap's readout: fixed two decimals, and a positive impact that rounds to 0.00 shows
+  // "<0.01%" instead of a bare zero — the row must never read as "no measurement".
+  let impactText: string | null = null
+  if (impact != null) {
+    impactText = formatPercent(impact * 100, locale, 2)
+    if (impact > 0 && impactText === '0.00') impactText = '<0.01'
+  }
+  // Fee rate = one row for the whole transaction, as a percentage of the card's input token.
+  // The router fee comes from the same quoteSwap preview execution runs; on a reserve leg the
+  // PSM face-value fee rides along (already converted by the quote layer). Without a live quote
+  // there is no honest rate to print (dynamic fee → '--' slot).
+  const feeBpsTotal =
+    liveUsable && liveQuote != null
+      ? swapFeeBps({ quote: liveQuote, cardInBase: toBaseUnits(amount, liveQuote.cardDecimalsIn) })
+      : null
+  const swapFeeText =
+    feeBpsTotal != null ? `${formatPercent(feeBpsTotal / 100, locale, 2)}%` : null
 
-  async function startSwapReview(): Promise<void> {
+  async function startSwap(): Promise<void> {
     if (!executionReady || !valid || slippageIssue != null || resolving) return
-    const provider = getActiveEip1193Provider()
     const eoa = center.address as Hex | null
     const chainId = center.chainId
-    if (!provider || !eoa || chainId == null) return
-    const resolved = getClientChainConfig(chainId)
-    if (resolved.status !== 'ok' || resolved.config.contracts.status !== 'deployed') return
-    const contracts = resolved.config.contracts.addresses
-    const router = contracts.MemeverseSwapRouter as Hex
-    const hook = contracts.MemeverseUniswapHook as Hex
-    const kernel = resolved.config.kernel7702Implementation as Hex
+    if (!eoa || chainId == null || verseId == null) return
     setResolving(true)
     setResolveFailed(false)
     try {
-      // 静态半命中页面预热缓存（0 往返）：池键是部署常量、精度按 chain+token 缓存，
-      // 点击链路只剩报价与 allowance 两读，且两者并行。
-      // One executable chain: a provider answering another chain is refused (VerseChainError),
-      // never silently read — these dialogs' figures are loaded for this chain only.
-      const session = await getVerseSession({
-        provider,
-        chains: [chainId],
+      // Static halves (session, pool key, decimals, PT address) come from the shared caches
+      // the live quote layer warmed; the click adds only the allowance read beside a
+      // cache-checked quote refresh, both in parallel.
+      const ctx = await resolveSwapQuoteContext({
         eoa,
-        verseId: BigInt(verseId),
+        chainId,
+        verseId,
+        direction,
+        memeTokenId: memeId,
+        uAssetSymbol,
+        stableToken,
+        amount,
       })
-      const { reader } = session
-      const tokenIn = (direction === 'stable-to-meme' ? session.verse.uAsset : session.verse.memecoin) as Hex
-      const tokenOut = (direction === 'stable-to-meme' ? session.verse.memecoin : session.verse.uAsset) as Hex
-      const key: PoolKey = await readPoolKey(reader, router, tokenIn, tokenOut)
-      const zeroForOne = tokenIn.toLowerCase() === key.currency0.toLowerCase()
-      const [decimalsIn, decimalsOut] = await Promise.all([
-        getTokenDecimals(reader, chainId, tokenIn),
-        getTokenDecimals(reader, chainId, tokenOut),
-      ])
-      const amountIn = parseUnits(amount, decimalsIn)
-      const [swapQuote, [allowance]] = await Promise.all([
-        readSwapQuote(
-          reader,
-          router,
-          key,
-          { zeroForOne, amountSpecified: -amountIn, sqrtPriceLimitX96: limitForDirection(zeroForOne) },
-          eoa,
-        ),
-        readAllowances(reader, eoa, [{ token: tokenIn, spender: router }]),
-      ])
-      const slippageBps = Math.round(slippage * 100)
-      const minOut =
-        (swapQuote.estimatedUserOutputAmount * BigInt(10000 - slippageBps)) / 10000n
-      const deadlineSecs = BigInt(Math.floor(Date.now() / 1000) + (Number(deadlineText) || 10) * 60)
-      const approval =
-        allowance < amountIn
-          ? approvalCall(tokenIn, router, amountIn)
-          : undefined
-      const action = swapExactInputCall(router, {
-        key,
-        zeroForOne,
-        amountIn,
-        amountOutMinimum: minOut,
-        recipient: eoa,
+      if (!ctx) {
+        setResolveFailed(true)
+        setResolving(false)
+        return
+      }
+      // Three execution shapes share one quote pipeline:
+      //  - uAsset leg: approve the pool input, swap exact-in.
+      //  - reserve buy (reserve → mint uAsset → memecoin): approve the reserve to the PSM, mint
+      //    (deterministic par output), approve that exact uAsset to the router, then the same
+      //    exact-in swap inside the session window.
+      //  - reserve sell (memecoin → uAsset → redeem): the router's swapExactInToReserve does
+      //    both legs in one call, so the batch is one approval plus one router action.
+      const reserve = ctx.reserve
+      const isBuy = reserve != null && ctx.tokenIn === reserve.uAsset
+      const quote = await quoteForContext(ctx, eoa)
+      const minOut = minOutOf(quote.out, slippageBps)
+      const deadlineSecs = BigInt(
+        Math.floor(Date.now() / 1000) + (Number(deadlineText) || 10) * 60,
+      )
+      const plan = buildSwapPlan({
+        ctx,
+        minOut,
+        minUAssetOut:
+          reserve != null && !isBuy && quote.psm != null
+            ? minOutOf(quote.psm.uAssetAmount, slippageBps)
+            : 0n,
+        amountIn: ctx.amountIn,
+        uAssetIn: quote.psm?.uAssetAmount ?? 0n,
         deadline: deadlineSecs,
+        eoa,
+        allowances: await readAllowances(ctx.reader, eoa, swapApprovalLegs(ctx)),
       })
-      const { calls, calldata: batch } = buildSessionWrite({ hook, action, approval, swapSession: true })
+      const { calls, calldata: batch } = buildSessionWrite({
+        hook: ctx.hook,
+        action: plan.action,
+        ...(plan.approvals.length === 1 ? { approval: plan.approvals[0] } : {}),
+        ...(plan.approvals.length > 1 ? { approvals: plan.approvals } : {}),
+        ...(plan.preActions.length > 0 ? { preActions: plan.preActions } : {}),
+        swapSession: true,
+      })
       const spec: WriteSpec = {
         review: {
           chainId,
           account: eoa,
-          targetContract: router,
-          functionName: 'swap',
-          inputs: `${formatUnits(amountIn, decimalsIn)} ${sellToken.symbol}`,
-          minOutput: `${formatUnits(minOut, decimalsOut)} ${buyToken.symbol}`,
-          fee: `${swapQuote.feeBps} bps`,
+          targetContract: plan.target,
+          functionName: plan.functionName,
+          inputs: `${formatUnits(ctx.amountIn, ctx.cardDecimalsIn)} ${sellToken.symbol}`,
+          minOutput: `${formatUnits(minOut, ctx.cardDecimalsOut)} ${buyToken.symbol}`,
+          fee: `${formatPercent(swapFeeBps({ quote, cardInBase: ctx.amountIn }) / 100, locale, 2)}%`,
           gasPayer: eoa,
-          authorizationChange: approval
-              ? `${formatUnits(amountIn, decimalsIn)} ${sellToken.symbol}`
-              : '—',
-          // 审阅面板不渲染 gas 字段，点击链路不预估
+          // The 7702 session batch folds the exact-amount approval into the signed bundle —
+          // no separate approval step exists to surface.
+          authorizationChange: '—',
           estimatedGas: '—',
           nativeBalance: '—',
         },
-        kernel,
+        kernel: ctx.kernel,
         expectedChainId: chainId,
         batchCallData: batch,
         calls,
-        quoteId: `${verseId}:${tokenIn}:${tokenOut}:${amountIn}`,
+        quoteId: quote.key,
         minOutput: minOut.toString(),
         slippageBps,
         deadline: Number(deadlineSecs),
-        manifestVersion: resolved.config.contracts.abiVersion,
+        manifestVersion: ctx.manifestVersion,
         crossChain: false,
+        writeScope: { kind: 'verse', chainId, verseId },
       }
-      void tx.executeSession(spec)
-    } catch {
+      const legOf = (raw: bigint, decimals: number, symbol: string): SwapLeg => ({
+        amount: fmtTokenAmount(toDisplay(raw, decimals), locale),
+        symbol,
+      })
+      setSnapshot({
+        pay: legOf(ctx.amountIn, ctx.cardDecimalsIn, sellToken.symbol),
+        receive: legOf(quote.out, ctx.cardDecimalsOut, buyToken.symbol),
+        minReceived: legOf(minOut, ctx.cardDecimalsOut, buyToken.symbol),
+        feePercent: `${formatPercent(swapFeeBps({ quote, cardInBase: ctx.amountIn }) / 100, locale, 2)}%`,
+      })
+      setPendingSpec(spec)
+      // `resolving` stays held until the dialog opens (the open effect below releases it)
+    } catch (error) {
+      // Dev-only: the UI collapses every prepare failure into one generic line.
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[swap] prepare failed', error)
+      }
       setResolveFailed(true)
-    } finally {
       setResolving(false)
     }
   }
 
+  const gasQuote = useGasQuote({
+    locale,
+    chainId: pendingSpec?.review.chainId ?? null,
+    eoa: (pendingSpec?.review.account as Hex | undefined) ?? null,
+    kernel: (pendingSpec?.kernel as Hex | undefined) ?? null,
+    data: pendingSpec?.batchCallData ?? null,
+    active: pendingSpec != null && tx.display === 'idle',
+    resetToken: pendingSpec,
+    onResolved: setGasOverride,
+  })
+
+  // Open only once everything the dialog paints is in hand: the prepared write and, for the
+  // embedded wallet, its fee quote (external wallets price in their own prompt, so they do
+  // not wait). Opening earlier pops the Network Fee row into an already rendered card.
+  useEffect(() => {
+    if (confirming || pendingSpec == null) return
+    const open = () => {
+      setResolving(false)
+      setConfirming(true)
+    }
+    if (gasQuote.wallet === 'external' || gasQuote.settled) {
+      open()
+      return
+    }
+    // A quote that never settles must not strand the click: the wallet prices itself when the
+    // dApp passes no fee, so the row is optional and the dialog still opens.
+    const id = setTimeout(open, 4000)
+    return () => clearTimeout(id)
+  }, [confirming, pendingSpec, gasQuote.wallet, gasQuote.settled])
+
+  function closeConfirm(): void {
+    // While a signature/broadcast is in flight the dialog is the only progress surface —
+    // it stays until the flow settles.
+    if (tx.running) return
+    tx.reset()
+    setConfirming(false)
+    setPendingSpec(null)
+    setSnapshot(null)
+    setGasEditing(false)
+  }
+
+  function leaveGasView(): void {
+    // Leaving the gas view never strands an invalid custom price: fall back to the market
+    // preset so Confirm cannot sit disabled behind the other view.
+    if (gasQuote.invalid) gasQuote.select('market')
+    setGasEditing(false)
+  }
+
   // USD conversion: each side's uAsset price × uAssetUsd (reserves borrow the PSM
-  // par-equivalent uAsset price);
+  // par-equivalent uAsset price). The pool-side price rides the quote's own spot read —
+  // same pass as the output — so pool drift since page load cannot masquerade as gain or
+  // loss in the echo (spotOutPerIn is the pool leg's out-per-in: the meme-side price when
+  // selling, its reciprocal when buying). Reference states (no live quote) keep the page
+  // snapshot on both halves — the reference conversion already prices both sides with it —
+  // and a live output with an unreadable spot echoes no pool-side USD row.
   // display formatting goes through global/amount-format (fmtUsd/fmtTokenAmount) — raw float
   // products carry precision noise
+  const livePoolPrice =
+    liveUsable && liveQuote != null && liveQuote.spotOutPerIn != null && liveQuote.spotOutPerIn > 0
+      ? direction === 'stable-to-meme'
+        ? 1 / liveQuote.spotOutPerIn
+        : liveQuote.spotOutPerIn
+      : null
+  const sellEchoPrice =
+    direction === 'meme-to-stable' ? (liveUsable ? livePoolPrice : sellPrice) : sellPrice
+  const buyEchoPrice =
+    direction === 'stable-to-meme' ? (liveUsable ? livePoolPrice : buyPrice) : buyPrice
   const sellUsd =
-    uAssetUsd == null || !valid || sellPrice == null
+    uAssetUsd == null || !valid || sellEchoPrice == null
       ? null
-      : fmtUsd(parsed * sellPrice * uAssetUsd, locale)
+      : fmtUsd(parsed * sellEchoPrice * uAssetUsd, locale)
   const buyUsd =
-    uAssetUsd == null || quote == null || buyPrice == null
+    uAssetUsd == null || displayOut == null || buyEchoPrice == null
       ? null
-      : fmtUsd(quote * buyPrice * uAssetUsd, locale)
-  // Route row wording: reserve leg prefixed PSM; meme side by pool (YT moved off the card — see the component header note)
-  const routeLegs: string[] = []
-  if (stableSide.id !== uAssetSymbol) routeLegs.push(copy.routeLegPsm)
-  if (memeId === 'pol') routeLegs.push(copy.routePoolPol)
-  else if (memeId === 'pt') routeLegs.push(copy.routePoolPt)
-  else routeLegs.push(copy.routePoolMain)
-  // Reference price row: 1 Meme side ≈ N stable side (reversible; either side's price missing → '--' slot)
-  const memePriceInUAsset = priceInUAsset.get(memeSide.id) ?? null
-  const stablePriceInUAsset = priceInUAsset.get(stableSide.id) ?? null
-  const rateReady =
-    memePriceInUAsset != null &&
-    stablePriceInUAsset != null &&
-    memePriceInUAsset > 0 &&
-    stablePriceInUAsset > 0
+      : fmtUsd(displayOut * buyEchoPrice * uAssetUsd, locale)
+  // Rate row: the executable quote's own price (received ÷ input — fee and impact included,
+  // recomputed as quotes move); the reference pair prices only the no-quote states. Either
+  // side unknown → '--' slot. The input-side token sits on the left by default (1 sell ≈ N
+  // buy — follows the direction flip); reversible via the flip button. No route row:
+  // execution paths are this verse's own pools.
+  const executionRate = liveUsable && liveOutDisplay != null && valid ? liveOutDisplay / parsed : null
+  const rateValue = executionRate ?? (referenceUsable ? pairRate : null)
+  const rateReady = rateValue != null && rateValue > 0
+
+  // CTA state machine: the button itself states why it cannot fire (market convention; the
+  // dead silent-disabled swap button is gone). Disconnected/wrong-chain states live in
+  // DialogCta's own branches.
+  const cta: { label: string; disabled: boolean } = !valid
+    ? { label: copy.swapEnterAmount, disabled: true }
+    : overBalance
+      ? { label: fillTemplate(copy.swapInsufficientBalance, { symbol: sellToken.symbol }), disabled: true }
+      : slippageIssue != null
+        ? { label: copy.swapInvalidSlippage, disabled: true }
+        : realMode && !pairExecutable
+          ? { label: copy.swapPairUnavailable, disabled: true }
+          : resolving || quotePending
+            ? { label: copy.swapFetchingQuote, disabled: true }
+            : tx.running || confirming
+              ? { label: copy.swapAction, disabled: true }
+              : realMode
+                ? impactToneNow === 'danger'
+                  ? { label: copy.swapHighImpact, disabled: true }
+                  : { label: copy.swapAction, disabled: false }
+                : { label: copy.swapAction, disabled: true }
 
   return (
     <section className="swap-panel ax-glow-card" aria-labelledby="swap-title">
@@ -358,7 +604,9 @@ export function SwapPanel({
           <span>{copy.swapSell}</span>
           <span className="swap-panel__balance">
             {copy.balance}:{' '}
-            {sellBalance != null ? (
+            {sellExact != null ? (
+              <span data-numeric>{fmtTokenAmountExact(sellExact.base, sellExact.decimals, locale)}</span>
+            ) : sellBalance != null ? (
               <span data-numeric>{formatAmount(sellBalance, locale)}</span>
             ) : (
               '--'
@@ -366,8 +614,14 @@ export function SwapPanel({
             <button
               type="button"
               className="swap-panel__max"
-              disabled={sellBalance == null}
-              onClick={() => setAmount(sellBalance != null ? amountToInputString(sellBalance) : '')}
+              disabled={sellExact != null ? sellExact.base === 0n : sellBalance == null || sellBalance <= 0}
+              onClick={() =>
+                setAmount(
+                  sellExact != null
+                    ? trimFractionZeros(formatUnits(sellExact.base, sellExact.decimals))
+                    : amountToInputString(sellBalance ?? 0),
+                )
+              }
             >
               {copy.max}
             </button>
@@ -389,6 +643,7 @@ export function SwapPanel({
             locale={locale}
             selectedId={sellToken.id}
             options={direction === 'stable-to-meme' ? stableOptions : memeOptions}
+            unavailableNote={copy.swapPairUnavailable}
             onSelect={(id) => {
               if (direction === 'stable-to-meme') setStableId(id)
               else setMemeId(id as MemeTokenId)
@@ -413,21 +668,30 @@ export function SwapPanel({
           <span id={buyLabelId}>{copy.swapBuy}</span>
           <span>
             {copy.balance}:{' '}
-            {buyBalance != null ? <span data-numeric>{formatAmount(buyBalance, locale)}</span> : '--'}
+            {buyToken.exact != null ? (
+              <span data-numeric>{fmtTokenAmountExact(buyToken.exact.base, buyToken.exact.decimals, locale)}</span>
+            ) : buyBalance != null ? (
+              <span data-numeric>{formatAmount(buyBalance, locale)}</span>
+            ) : (
+              '--'
+            )}
           </span>
         </div>
         <div className="swap-panel__field-row">
           <output
             className="swap-panel__output numeric-input"
             data-numeric
+            aria-busy={quotePending || undefined}
             aria-label={`${copy.swapBuy} ${buyToken.symbol}`}
           >
-            {quote != null ? fmtTokenAmount(quote, locale) : '0.00'}
+            {displayOut != null ? fmtTokenAmount(displayOut, locale) : '0.00'}
+            {quotePending ? <span className="swap-panel__pending-spinner" aria-hidden="true" /> : null}
           </output>
           <SwapTokenSelectDialog
             locale={locale}
             selectedId={buyToken.id}
             options={direction === 'stable-to-meme' ? memeOptions : stableOptions}
+            unavailableNote={copy.swapPairUnavailable}
             onSelect={(id) => {
               if (direction === 'stable-to-meme') setMemeId(id as MemeTokenId)
               else setStableId(id)
@@ -441,10 +705,10 @@ export function SwapPanel({
           <dt>{copy.swapRate}</dt>
           <dd className="swap-panel__rate">
             <span data-numeric>
-              {memePriceInUAsset != null && stablePriceInUAsset != null && rateReady
+              {rateReady
                 ? rateInverted
-                  ? `1 ${stableSide.symbol} ≈ ${fmtTokenAmount(stablePriceInUAsset / memePriceInUAsset, locale)} ${memeSide.symbol}`
-                  : `1 ${memeSide.symbol} ≈ ${fmtTokenAmount(memePriceInUAsset / stablePriceInUAsset, locale)} ${stableSide.symbol}`
+                  ? `1 ${buyToken.symbol} ≈ ${fmtTokenAmount(1 / (rateValue as number), locale)} ${sellToken.symbol}`
+                  : `1 ${sellToken.symbol} ≈ ${fmtTokenAmount(rateValue as number, locale)} ${buyToken.symbol}`
                 : '--'}
             </span>
             <button
@@ -460,29 +724,32 @@ export function SwapPanel({
         </div>
         <div>
           <dt>{copy.priceImpact}</dt>
-          <dd>{valid ? <span data-numeric>≤ 0.5%</span> : '--'}</dd>
+          <dd>
+            {impactText != null ? (
+              <span data-numeric data-tone={impactToneNow ?? undefined}>
+                {impactText}%
+              </span>
+            ) : (
+              '--'
+            )}
+          </dd>
         </div>
         <div>
           <dt>{copy.minReceived}</dt>
-          <dd data-numeric>{minReceived != null ? `${fmtTokenAmount(minReceived, locale)} ${buyToken.symbol}` : '--'}</dd>
+          <dd data-numeric>{minReceivedText ?? '--'}</dd>
         </div>
         <div>
-          <dt>{copy.maxSlippage}</dt>
-          <dd data-numeric>{slippageIssue == null ? `${slippage}%` : '--'}</dd>
-        </div>
-        <div>
-          <dt>{copy.route}</dt>
-          <dd>{routeLegs.join(' → ')}</dd>
+          <dt>{copy.swapFee}</dt>
+          <dd data-numeric>{swapFeeText ?? '--'}</dd>
         </div>
       </dl>
       <DialogCta
         locale={locale}
         connected={connected}
         onConnect={toggle}
-        onAction={() => void startSwapReview()}
-        label={copy.swapAction}
-        disabled={!valid || overBalance || slippageIssue != null || !executionReady || resolving || tx.running}
-        title={copy.swapActionNote}
+        onAction={() => void startSwap()}
+        label={cta.label}
+        disabled={cta.disabled}
         connectLabel={copy.swapCta}
         switchChainTo={
           wrongChain
@@ -493,8 +760,150 @@ export function SwapPanel({
       {resolveFailed ? (
         <FieldError>{common.degrade.errorBody}</FieldError>
       ) : null}
-      
-      {tx.active && !tx.reviewing ? <TxStatus locale={locale} state={tx.display} /> : null}
+      {confirming ? (
+        <Dialog
+          open
+          onOpenChange={(open) => {
+            if (!open) closeConfirm()
+          }}
+        >
+          <ActionDialogShell
+            title={gasEditing ? verseCopy.gasNetworkFee : copy.swapConfirmTitle}
+            closeLabel={common.close}
+            toolbar={
+              gasEditing ? (
+                <button
+                  type="button"
+                  className="pol-mint__back"
+                  aria-label={common.back}
+                  onClick={() => leaveGasView()}
+                >
+                  <ChevronLeft aria-hidden="true" size={16} />
+                </button>
+              ) : undefined
+            }
+          >
+            <div aria-live="polite">
+              {gasEditing && gasQuote.ready ? (
+                <GasEditor quote={gasQuote} title={verseCopy.gasTitle} onDone={() => leaveGasView()} />
+              ) : (
+                <>
+                  {snapshot ? (
+                    <div className="swap-review">
+                      <div className="swap-review__leg">
+                        <span className="swap-review__label">{copy.flashYouPay}</span>
+                        <span className="swap-review__amount">
+                          <span data-numeric className="swap-review__pay">
+                            {snapshot.pay.amount}
+                          </span>{' '}
+                          <span className="ax-ticker">{snapshot.pay.symbol}</span>
+                        </span>
+                      </div>
+                      <span className="pol-mint__arrow" aria-hidden="true">
+                        <ArrowDown size={16} />
+                      </span>
+                      <div className="swap-review__leg">
+                        <span className="swap-review__label">{copy.mintYouReceive}</span>
+                        <span className="swap-review__amount">
+                          <span data-numeric className="swap-review__receive">
+                            {snapshot.receive.amount}
+                          </span>{' '}
+                          <span className="ax-ticker">{snapshot.receive.symbol}</span>
+                        </span>
+                      </div>
+                      <span className="swap-review__min">
+                        {copy.minReceived}
+                        <span data-numeric className="swap-review__min-value">
+                          {snapshot.minReceived.amount} {snapshot.minReceived.symbol}
+                        </span>
+                      </span>
+                      <dl className="swap-review__meta">
+                        <div className="swap-review__meta-row">
+                          <dt>{copy.swapFee}</dt>
+                          <dd data-numeric>{snapshot.feePercent}</dd>
+                        </div>
+                        {gasQuote.ready ? (
+                          <div className="swap-review__meta-row">
+                            <GasSummaryRow
+                              label={verseCopy.gasNetworkFee}
+                              value={gasQuote.rowValue}
+                              usd={gasQuote.rowUsd}
+                              onEdit={() => setGasEditing(true)}
+                            />
+                          </div>
+                        ) : null}
+                      </dl>
+                      {gasQuote.ready && gasQuote.invalid ? (
+                        <FieldError>{verseCopy.gasInvalid}</FieldError>
+                      ) : null}
+                      <div className="swap-review__actions">
+                        <Button variant="outline" onClick={closeConfirm}>
+                          {verseCopy.revise}
+                        </Button>
+                        <Button
+                          className="ax-ghost-cta"
+                          // The review body stays mounted under the progress dialog while the
+                          // write runs, so tx.running must lock the confirm against re-entry.
+                          disabled={
+                            pendingSpec == null ||
+                            tx.running ||
+                            (gasQuote.ready && gasQuote.invalid)
+                          }
+                          onClick={() => {
+                            if (!pendingSpec) return
+                            const spec = gasOverride
+                              ? { ...pendingSpec, ...gasOverride }
+                              : pendingSpec
+                            void tx.executeSession(spec)
+                          }}
+                        >
+                          {copy.swapConfirmTitle}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
+                </>
+              )}
+              {resolveFailed ? <FieldError>{common.degrade.errorBody}</FieldError> : null}
+            </div>
+          </ActionDialogShell>
+        </Dialog>
+      ) : null}
+      {/* Feedback pair (2026-10-26 弹窗序列纪律): progress = its own button-less dialog
+          stacked on the confirm dialog (always second-to-last); confirmed yields to the
+          generic receipt dialog, the last one. Receipt legs read the click-time snapshot
+          (the form's amount clears on landing). */}
+      <TxProgressDialog
+        locale={locale}
+        title={copy.swapConfirmTitle}
+        state={tx.display}
+        open={tx.active && !successOpen}
+        onDismiss={tx.reset}
+      />
+      <TxSuccessDialog
+        locale={locale}
+        title={copy.swapDoneTitle}
+        lead={copy.swapDoneLead}
+        accent={copy.swapDoneAccent}
+        rows={
+          snapshot
+            ? [
+                { label: copy.flashYouPay, value: `${snapshot.pay.amount} ${snapshot.pay.symbol}` },
+                {
+                  label: copy.swapReceived,
+                  value: `${snapshot.receive.amount} ${snapshot.receive.symbol}`,
+                },
+              ]
+            : []
+        }
+        txHash={receipt?.hash}
+        txChainId={receipt?.chainId}
+        open={successOpen}
+        onOpenChange={(next) => {
+          setSuccessOpen(next)
+          if (!next) closeConfirm()
+        }}
+      />
     </section>
   )
 }

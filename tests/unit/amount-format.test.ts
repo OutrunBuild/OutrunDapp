@@ -1,12 +1,14 @@
-// Unit tests for tiered large-number display (tiers:
-// >=1e21 scientific / >=1e15 compact / normal otherwise)
-// Threshold boundaries and per-tier en/zh output are pinned, so the five call
-// sites cannot drift back to raw toFixed number walls.
+// Unit tests for tiered trade-amount display (Uniswap-style tiers: '<0.00001' display
+// floor / six significant digits below 1e4 / grouped two decimals below 1e15 /
+// international K-M-B-T compact / scientific overflow guard). Threshold boundaries and
+// per-tier en/zh output are pinned, so the call sites cannot drift back to raw toFixed
+// number walls or CJK large-number units.
 import { describe, expect, it } from 'vitest';
 import {
   COMPACT_AMOUNT_THRESHOLD,
   PRICE_SUBSCRIPT_ZERO_THRESHOLD,
   SCIENTIFIC_AMOUNT_THRESHOLD,
+  TOKEN_AMOUNT_DISPLAY_FLOOR,
   fmtPrice,
   fmtTiered,
   fmtTokenAmount,
@@ -14,21 +16,27 @@ import {
 } from '../../components/global/amount-format';
 
 describe('fmtTokenAmount', () => {
-  it('normal tier toFixed(6): regular magnitude, small values, integers', () => {
-    expect(fmtTokenAmount(1234.567891, 'en')).toBe('1234.567891');
-    expect(fmtTokenAmount(0.000123456789, 'en')).toBe('0.000123');
-    expect(fmtTokenAmount(42, 'en')).toBe('42.000000');
+  it('display floor: 0 renders plain, sub-floor positives render <0.00001', () => {
+    expect(fmtTokenAmount(0, 'en')).toBe('0');
+    expect(fmtTokenAmount(TOKEN_AMOUNT_DISPLAY_FLOOR / 10, 'en')).toBe('<0.00001');
   });
 
-  it('1e15-1 stays in the normal tier (threshold lower edge; long strings handled by CSS truncation)', () => {
-    expect(fmtTokenAmount(COMPACT_AMOUNT_THRESHOLD - 1, 'en')).toBe('999999999999999.000000');
+  it('below 1e4: six significant digits, trailing zeros trimmed, grouped', () => {
+    expect(fmtTokenAmount(1234.567891, 'en')).toBe('1,234.57');
+    expect(fmtTokenAmount(0.000123456789, 'en')).toBe('0.000123457');
+    expect(fmtTokenAmount(42, 'en')).toBe('42');
+    expect(fmtTokenAmount(0.5, 'zh')).toBe('0.5');
   });
 
-  it('compact tier >=1e15: en gets T suffix, zh gets CJK compact units', () => {
+  it('1e4 to 1e15: grouped two decimals (1e15-1 stays un-compacted; overlong handled by CSS ellipsis)', () => {
+    expect(fmtTokenAmount(123456.7891, 'en')).toBe('123,456.79');
+    expect(fmtTokenAmount(COMPACT_AMOUNT_THRESHOLD - 1, 'en')).toBe('999,999,999,999,999.00');
+  });
+
+  it('compact tier >=1e15: international K/M/B/T symbols in both locales (no CJK units)', () => {
     expect(fmtTokenAmount(3e15, 'en')).toBe('3000T');
-    expect(fmtTokenAmount(3e15, 'zh')).toBe('3000万亿');
-    expect(fmtTokenAmount(1e16, 'en')).toBe('10,000T');
-    expect(fmtTokenAmount(1e16, 'zh')).toBe('10,000万亿');
+    expect(fmtTokenAmount(3e15, 'zh')).toBe('3000T');
+    expect(fmtTokenAmount(8.30799102221e19, 'zh')).toBe('83,079,910.22T');
   });
 
   it('scientific tier >=1e21: same E notation for en and zh', () => {
@@ -37,8 +45,7 @@ describe('fmtTokenAmount', () => {
   });
 
   it('negative numbers use the same tiers (tier chosen on abs)', () => {
-    expect(fmtTokenAmount(-3e15, 'en')).toBe('-3000T');
-    expect(fmtTokenAmount(-1234.5, 'en')).toBe('-1234.500000');
+    expect(fmtTokenAmount(-1234.5, 'en')).toBe('-1,234.5');
   });
 });
 
@@ -48,8 +55,9 @@ describe('fmtUsd', () => {
     expect(fmtUsd(0.5, 'zh')).toBe('0.5');
   });
 
-  it('large amounts tiered the same way', () => {
+  it('large amounts tiered the same way (compact/scientific pinned to international symbols)', () => {
     expect(fmtUsd(3e15, 'en')).toBe('3000T');
+    expect(fmtUsd(3e15, 'zh')).toBe('3000T');
     expect(fmtUsd(2.5e21, 'zh')).toBe('2.5E21');
   });
 });
@@ -58,6 +66,7 @@ describe('fmtTiered', () => {
   it('custom normal-tier formatter passes through (compactDigits only affects the upper two tiers)', () => {
     expect(fmtTiered(1.5, 'en', 3, (v) => `x${v.toFixed(1)}`)).toBe('x1.5');
     expect(fmtTiered(3e15, 'en', 3, () => 'unused')).toBe('3000T');
+    expect(fmtTiered(3e15, 'zh', 3, () => 'unused')).toBe('3000T');
   });
 
   it('tier thresholds are 1e15 and 1e21', () => {

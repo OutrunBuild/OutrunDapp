@@ -1,20 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, Search, X } from 'lucide-react'
+import { ChevronDown, Search } from 'lucide-react'
 
 import type { Locale } from '@/lib/data/fixture-repository'
 
+import { fmtTokenAmountExact } from '../global/amount-format'
 import { getCopy } from '../global/copy'
+import { ActionDialogShell } from '../global/action-dialogs'
 import { TokenIconMark, hasTokenIcon } from '../global/token-icons'
 import { formatAmount } from '../global/signal-ui'
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
+import { Dialog, DialogClose, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 
 /** Selectable token row model (assembled by SwapPanel — price/route computed in the panel, the dialog only handles selection) */
@@ -24,6 +20,12 @@ export type SwapTokenOption = {
   name: string
   /** Row balance sample; null=fixture missing → '--' slot */
   balance: number | null
+  /** Exact wallet read (raw base units + decimals) when the probe landed; wins over
+   * `balance` for the row display — the float sample stays the fixture fallback */
+  exact?: { base: bigint; decimals: number } | null
+  /** True when this pair has no executable route yet (onchain builds): the row stays listed
+   *  but cannot be picked — the reason rides the row, not a toast */
+  unavailable?: boolean
 }
 
 /**
@@ -40,12 +42,15 @@ export function SwapTokenSelectDialog({
   selectedId,
   options,
   onSelect,
+  unavailableNote,
 }: {
   locale: Locale
   /** Currently selected token id (row data-selected highlight + aria-selected) */
   selectedId: string
   options: SwapTokenOption[]
   onSelect: (id: string) => void
+  /** Row note for unavailable pairs (rendered only on unavailable rows) */
+  unavailableNote?: string
 }) {
   const copy = getCopy(locale).verseDesk
   const common = getCopy(locale).common
@@ -73,20 +78,7 @@ export function SwapTokenSelectDialog({
         <strong>{selected?.symbol}</strong>
         <ChevronDown aria-hidden="true" size={14} />
       </DialogTrigger>
-      <DialogContent className="pol-mint-pop">
-        <div className="pol-mint">
-          <header className="pol-mint__head">
-            <DialogTitle className="pol-mint__title">{copy.selectTokenTitle}</DialogTitle>
-            <div className="pol-mint__controls">
-              <DialogClose
-                render={
-                  <button type="button" className="pol-mint__close" aria-label={common.close} />
-                }
-              >
-                <X aria-hidden="true" size={16} />
-              </DialogClose>
-            </div>
-          </header>
+      <ActionDialogShell glow={false} title={copy.selectTokenTitle} closeLabel={common.close}>
           {/* The search row uses the global input bridge skin ([data-slot='input'] carries
               !important; an outer box overlay would clash as a double box),
               left icon=overlay absolute positioning (same technique as .create-suffix) */}
@@ -119,39 +111,61 @@ export function SwapTokenSelectDialog({
               next?.focus()
             }}
           >
-            {filtered.map((option) => (
-              <li key={option.id} role="option" aria-selected={option.id === selectedId}>
-                <DialogClose
-                  render={
-                    <button
-                      type="button"
-                      className="token-select__row"
-                      data-selected={option.id === selectedId || undefined}
-                      onClick={() => onSelect(option.id)}
-                    />
-                  }
-                >
-                  {hasTokenIcon(option.symbol) ? (
-                    <TokenIconMark symbol={option.symbol} size={28} aria-hidden="true" />
-                  ) : (
-                    <span className="token-select__badge" aria-hidden="true">
-                      {badgeOf(option.symbol)}
-                    </span>
-                  )}
+            {filtered.map((option) => {
+              const glyph = hasTokenIcon(option.symbol) ? (
+                <TokenIconMark symbol={option.symbol} size={28} aria-hidden="true" />
+              ) : (
+                <span className="token-select__badge" aria-hidden="true">
+                  {badgeOf(option.symbol)}
+                </span>
+              )
+              const content = (
+                <>
+                  {glyph}
                   <span className="token-select__id">
                     <strong>{option.symbol}</strong>
-                    <span>{option.name}</span>
+                    <span>{option.unavailable ? (unavailableNote ?? option.name) : option.name}</span>
                   </span>
                   <span className="token-select__balance" data-numeric>
-                    {option.balance != null ? formatAmount(option.balance, locale) : '--'}
+                    {option.exact != null
+                      ? fmtTokenAmountExact(option.exact.base, option.exact.decimals, locale)
+                      : option.balance != null
+                        ? formatAmount(option.balance, locale)
+                        : '--'}
                   </span>
-                </DialogClose>
-              </li>
-            ))}
+                </>
+              )
+              return (
+                <li
+                  key={option.id}
+                  role="option"
+                  aria-selected={option.id === selectedId}
+                  aria-disabled={option.unavailable || undefined}
+                >
+                  {option.unavailable ? (
+                    <button type="button" className="token-select__row" data-unavailable="true" disabled>
+                      {content}
+                    </button>
+                  ) : (
+                    <DialogClose
+                      render={
+                        <button
+                          type="button"
+                          className="token-select__row"
+                          data-selected={option.id === selectedId || undefined}
+                          onClick={() => onSelect(option.id)}
+                        />
+                      }
+                    >
+                      {content}
+                    </DialogClose>
+                  )}
+                </li>
+              )
+            })}
           </ul>
           {filtered.length === 0 ? <p className="token-select__empty">{copy.tokenNoResults}</p> : null}
-        </div>
-      </DialogContent>
+      </ActionDialogShell>
     </Dialog>
   )
 }

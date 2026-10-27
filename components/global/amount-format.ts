@@ -1,18 +1,25 @@
 /**
- * Tiered display for large numbers (the single convention for derived amounts on the
- * verse trading desk; input-side sanitization lives in amount-input.ts in this directory):
- * >= 1e15 uses Intl compact notation (en `39,226T` / zh `39,226` + CJK "trillion" unit;
- * compact does not elide on huge values and degrades to the full digit string + unit
- * suffix), >= 1e21 uses scientific notation (`4.3585E40`), and the normal case uses the
- * normal format.
- * Fully expanded long strings and toFixed scientific notation are barred from card
+ * Tiered display for derived trade amounts (the single convention for the verse trading
+ * desk; input-side sanitization lives in amount-input.ts in this directory), modeled on
+ * the Uniswap interface number standards:
+ * - 0 renders `0`; (0, 1e-5) renders `<0.00001` (below the display floor the digits are noise);
+ * - < 1e4: six significant digits with a two-decimal minimum, grouped;
+ * - < 1e15: grouped two decimals — trade amounts never compact below the layout guard;
+ * - >= 1e15: compact notation with the international K/M/B/T symbols (the compact tier is
+ *   pinned to en-US so zh never swaps in CJK large-number units — same convention as
+ *   signal-ui's formatMarketCap);
+ * - >= 1e21: scientific notation (`4.36E40`) as the overflow guard.
+ * Fully expanded long strings and bare toFixed scientific notation are barred from card
  * faces (a 180-digit input overflows the Swap card); the CSS truncation/ellipsis
  * fallback lives in globals.css.
  */
+import { formatUnits } from 'viem'
 import type { Locale } from '@/lib/data/fixture-repository'
 
 export const COMPACT_AMOUNT_THRESHOLD = 1e15
 export const SCIENTIFIC_AMOUNT_THRESHOLD = 1e21
+/** Token amounts below this render `<0.00001` — the display floor of the same name in the Uniswap interface. */
+export const TOKEN_AMOUNT_DISPLAY_FLOOR = 1e-5
 
 const localeTagOf = (locale: Locale) => (locale === 'zh' ? 'zh-CN' : 'en-US')
 
@@ -22,12 +29,14 @@ export function fmtTiered(
   compactDigits: number,
   normal: (v: number) => string,
 ) {
-  const localeTag = localeTagOf(locale)
   const abs = Math.abs(value)
+  // The guard tiers are pinned to en-US: zh-CN compact emits CJK units (万亿) and its
+  // scientific casing differs — guard-tier values keep one international rendering in
+  // both locales.
   if (abs >= SCIENTIFIC_AMOUNT_THRESHOLD)
-    return value.toLocaleString(localeTag, { notation: 'scientific', maximumFractionDigits: compactDigits })
+    return value.toLocaleString('en-US', { notation: 'scientific', maximumFractionDigits: compactDigits })
   if (abs >= COMPACT_AMOUNT_THRESHOLD)
-    return value.toLocaleString(localeTag, { notation: 'compact', maximumFractionDigits: compactDigits })
+    return value.toLocaleString('en-US', { notation: 'compact', maximumFractionDigits: compactDigits })
   return normal(value)
 }
 
@@ -38,10 +47,29 @@ export function fmtUsd(value: number, locale: Locale) {
   )
 }
 
-/** Received-amount/protection-price/exchange-rate display: toFixed(6) in the normal case
- * (bare toFixed emits a long `2.74e+109` scientific-notation string for >= 1e21) */
+/** Received-amount/protection-price/exchange-rate display: six significant digits
+ * (trailing zeros trimmed) below 1e4, grouped two decimals below the compact guard,
+ * then the shared upper tiers */
 export function fmtTokenAmount(value: number, locale: Locale) {
-  return fmtTiered(value, locale, 4, (v) => v.toFixed(6))
+  if (value === 0) return '0'
+  if (value > 0 && value < TOKEN_AMOUNT_DISPLAY_FLOOR) return '<0.00001'
+  const localeTag = localeTagOf(locale)
+  // NB: Intl ignores fraction-digit options once significant-digit options are set, so
+  // the sub-1e4 tier is significant-digits only — do not add minimumFractionDigits here.
+  return fmtTiered(value, locale, 2, (v) =>
+    Math.abs(v) < 1e4
+      ? v.toLocaleString(localeTag, { maximumSignificantDigits: 6 })
+      : v.toLocaleString(localeTag, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+  )
+}
+
+/** Exact wallet balance (raw base units + decimals) through the same tiered display.
+ * Display-only: gates compare the bigint directly and Max prefills the full-precision
+ * string (Uniswap's toExact convention); Number(formatUnits) cannot represent 18-dec
+ * balances exactly, but every tier renders at most six digits — far inside float64's
+ * ~17-digit envelope, so the rounding never reaches a displayed digit. */
+export function fmtTokenAmountExact(base: bigint, decimals: number, locale: Locale) {
+  return fmtTokenAmount(Number(formatUnits(base, decimals)), locale)
 }
 
 /** Unit-price subscript-zero switch threshold: once leading zeros after the decimal

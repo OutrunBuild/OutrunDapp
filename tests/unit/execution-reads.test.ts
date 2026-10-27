@@ -11,6 +11,7 @@ import {
   readGenesisParticipation,
   readPoolKey,
   readSwapQuote,
+  readSwapSpotOutPerIn,
   readVerseAddresses,
   readVerseAggregates,
   resolvePoolTokens,
@@ -186,7 +187,66 @@ describe('readSwapQuote', () => {
       feeBps: 30n,
       estimatedUserInputAmount: 1000n,
       estimatedUserOutputAmount: 990n,
+      estimatedProtocolFeeAmount: 5n,
+      estimatedLpFeeAmount: 3n,
+      protocolFeeOnInput: true,
     });
+  });
+});
+
+describe('readSwapSpotOutPerIn', () => {
+  const HOOK = '0x6666666666666666666666666666666666666666' as Hex;
+  const key = {
+    currency0: TOKEN_A,
+    currency1: TOKEN_B,
+    fee: 0x800000,
+    tickSpacing: 200,
+    hooks: HOOK,
+  };
+  const E18 = 10n ** 18n;
+
+  it('derives the spot as the full-range amount ratio at the live sqrtPrice', async () => {
+    const reader = stubReader({
+      cachedLpTotalSupply: 1000n,
+      quoteAmountsForLiquidity: [10n * E18, 200n * E18],
+    });
+    await expect(
+      readSwapSpotOutPerIn(reader, ROUTER, HOOK, key, TOKEN_A, 18, 18),
+    ).resolves.toBeCloseTo(20);
+  });
+
+  it('inverts the ratio when the input leg is currency1', async () => {
+    const reader = stubReader({
+      cachedLpTotalSupply: 1000n,
+      quoteAmountsForLiquidity: [10n * E18, 200n * E18],
+    });
+    await expect(
+      readSwapSpotOutPerIn(reader, ROUTER, HOOK, key, TOKEN_B, 18, 18),
+    ).resolves.toBeCloseTo(0.05);
+  });
+
+  it('carries each leg through its own decimals', async () => {
+    const reader = stubReader({
+      cachedLpTotalSupply: 1000n,
+      quoteAmountsForLiquidity: [1n * E18, 3_000_000n],
+    });
+    await expect(
+      readSwapSpotOutPerIn(reader, ROUTER, HOOK, key, TOKEN_A, 18, 6),
+    ).resolves.toBeCloseTo(3);
+  });
+
+  it('degrades to null on an empty pool — the quote itself stays usable', async () => {
+    const reader = stubReader({ cachedLpTotalSupply: 0n });
+    await expect(
+      readSwapSpotOutPerIn(reader, ROUTER, HOOK, key, TOKEN_A, 18, 18),
+    ).resolves.toBeNull();
+  });
+
+  it('degrades to null on a read error instead of failing the quote pass', async () => {
+    const reader = stubReader({});
+    await expect(
+      readSwapSpotOutPerIn(reader, ROUTER, HOOK, key, TOKEN_A, 18, 18),
+    ).resolves.toBeNull();
   });
 });
 

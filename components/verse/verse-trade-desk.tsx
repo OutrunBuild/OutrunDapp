@@ -93,7 +93,8 @@ export async function VerseTradeDesk({
         <div className="trade-chart" data-numeric>
           {/* Layout: first row token name + single-row
               chips (MC/Liq/Vol/Pop/TS label and value on the same line);
-              second row left=large price+change, right=CA chip */}
+              price+change+CA ride in the chart header row (price left, CA after it,
+              granularity flush right) */}
           <div className="token-strip" data-numeric>
             <div className="token-strip__row">
               <strong className="token-strip__symbol ax-glitch-text">{verse.symbol}</strong>
