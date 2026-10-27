@@ -6,7 +6,11 @@ import { useSign7702Authorization, useWallets } from '@privy-io/react-auth';
 import type { Hex } from 'viem';
 
 import { getClientChainConfig } from '@/lib/web3/chains';
-import { getActiveEip1193Provider, isWeb3Configured } from '@/lib/web3/active-provider';
+import {
+  getActiveEip1193Provider,
+  isWeb3Configured,
+  useActiveEip1193Provider,
+} from '@/lib/web3/active-provider';
 import { refreshVerseAfterWrite } from '@/lib/data/write-refresh';
 import {
   INITIAL_TX_CONTEXT,
@@ -18,6 +22,7 @@ import {
   type TxEvent,
 } from '@/lib/web3/tx-center';
 import {
+  resolveAtomicCalls,
   runCalls,
   runDirect,
   runSession,
@@ -28,13 +33,14 @@ import {
 import { routeWrite, type WalletKind } from '@/lib/web3/write-route';
 
 import { useAccountCenter } from './use-account-center';
+import { notifyVerseWrite } from './verse-write-signal';
 
 export type { WriteOutcome, WriteSpec } from '@/lib/web3/tx-executor';
 
 // NEXT_PUBLIC_ mirror is the client-inlinable projection; the server var covers SSR.
 const ONCHAIN_BUILD =
-  process.env.NEXT_PUBLIC_OUTRUN_DATA_SOURCE === 'onchain' ||
-  process.env.OUTRUN_DATA_SOURCE === 'onchain';
+  process.env.NEXT_PUBLIC_OUTRUN_DATA_SOURCE !== 'fixture' &&
+  process.env.OUTRUN_DATA_SOURCE !== 'fixture';
 
 export type WriteFlow = {
   context: TxContext;
@@ -91,6 +97,17 @@ function useRealTxCenter(): WriteFlow {
     if (!wallet) return 'unknown';
     return wallet.walletClientType === 'privy' ? 'embedded' : 'external';
   }, [center.address, wallets]);
+
+  // The 5792 capability probe is a full wallet round trip (seconds on some wallet builds)
+  // whose answer does not change during a connection. Run it once the connection settles so
+  // the first write does not pay it between Confirm and the prompt.
+  const activeProvider = useActiveEip1193Provider();
+  useEffect(() => {
+    const address = center.address as Hex | null;
+    if (walletKind !== 'external' || activeProvider == null || address == null) return;
+    if (center.chainId == null) return;
+    void resolveAtomicCalls(activeProvider, center.chainId, address);
+  }, [walletKind, activeProvider, center.address, center.chainId]);
 
   const [context, setContext] = useState<TxContext>(INITIAL_TX_CONTEXT);
   const [reviewing, setReviewing] = useState(false);
@@ -221,6 +238,9 @@ function useRealTxCenter(): WriteFlow {
       // the write into a perpetually head-trailing index).
       if (outcome === 'confirmed' && spec.writeScope?.kind === 'verse') {
         const scope = spec.writeScope;
+        // Client-side twin of the central refresh: mounted personal-value probes re-read their
+        // batch now (server data converges through refreshVerseAfterWrite below)
+        notifyVerseWrite();
         const txHash = lastHashRef.current;
         void refreshVerseAfterWrite({
           chainId: scope.chainId,

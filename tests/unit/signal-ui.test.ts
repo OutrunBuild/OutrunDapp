@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   formatAmount,
+  formatCountdown,
   formatDay,
   formatDate,
   formatHex,
@@ -32,10 +33,16 @@ describe('formatAmount: decimal-place tiers + compact two-decimal discipline', (
   });
 });
 
-describe('formatPercent: one decimal', () => {
+describe('formatPercent: one decimal by default, fixed precision on request', () => {
   it('rounds to one decimal', () => {
     expect(formatPercent(12.25, 'en')).toBe('12.3');
     expect(formatPercent(0, 'zh')).toBe('0');
+  });
+
+  it('fixed digits pad trailing zeros (price impact shows two decimals)', () => {
+    expect(formatPercent(12.2, 'en', 2)).toBe('12.20');
+    expect(formatPercent(0.004, 'en', 2)).toBe('0.00');
+    expect(formatPercent(0, 'zh', 2)).toBe('0.00');
   });
 });
 
@@ -77,5 +84,25 @@ describe('formatDay: date only (Dec 25, 2024 form)', () => {
     expect(formatDay('2026-10-01T00:00:00Z', 'en')).toBe('Oct 1, 2026');
     expect(formatDay('2026-09-30T18:00:00Z', 'en')).toBe('Oct 1, 2026');
     expect(formatDay('2026-10-01T00:00:00Z', 'zh')).toBe('2026年10月1日');
+  });
+});
+
+describe('formatCountdown: genesis deadline spans', () => {
+  it('day spans use day/hour words per locale', () => {
+    expect(formatCountdown(2 * 86_400_000 + 4 * 3_600_000, 'en')).toBe('2d 4h');
+    expect(formatCountdown(2 * 86_400_000 + 4 * 3_600_000, 'zh')).toBe('2 天 4 小时');
+  });
+
+  it('hour spans use hour/minute words per locale', () => {
+    expect(formatCountdown(5 * 3_600_000 + 30 * 60_000, 'en')).toBe('5h 30m');
+    expect(formatCountdown(5 * 3_600_000 + 30 * 60_000, 'zh')).toBe('5 小时 30 分');
+  });
+
+  it('sub-hour spans show whole minutes, never a seconds readout or a pending zero', () => {
+    expect(formatCountdown(90_000, 'en')).toBe('1m');
+    expect(formatCountdown(90_000, 'zh')).toBe('1 分钟');
+    expect(formatCountdown(45 * 60_000, 'en')).toBe('45m');
+    expect(formatCountdown(10_000, 'en')).toBe('1m');
+    expect(formatCountdown(-1_000, 'en')).toBe('0m');
   });
 });

@@ -96,6 +96,9 @@ export type GasQuote = {
   ready: boolean
   /** True once a quote has landed at least once (the review waits for it, with a timeout). */
   settled: boolean
+  /** The active wallet's kind once known: external wallets price in their own prompt, so a
+   *  review window must not wait on `settled` for them. */
+  wallet: 'embedded' | 'external' | null
   /** The current selection cannot be used (custom pair missing/zero). Derived, never mirrored. */
   invalid: boolean
   options: GasOption[]
@@ -357,6 +360,7 @@ export function useGasQuote({
   return {
     ready,
     settled: gasLimit != null && tiers != null,
+    wallet: embedded === null ? null : embedded ? 'embedded' : 'external',
     invalid: mode === 'custom' && !customValid,
     options:
       ready && presets

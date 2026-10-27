@@ -1,5 +1,5 @@
 // Session write-action builders (architecture.md §6.3 + frozen contract specs per
-// source-map.md M1–M4/S1/S4/S8/S11). Pure encodeFunctionData over the frozen v1-rc ABIs:
+// source-map.md M1–M4/S1/S4/S8/S11). Pure encodeFunctionData over the frozen v1-rc2 ABIs:
 // each builder returns one Router (or Hook/Faucet/PSM/USR/Governor) call; the caller wraps
 // it as the Router leg of buildSessionBatch (approvals? → action, with the hook's
 // begin/end session guards only on swapSession paths).
@@ -119,6 +119,56 @@ export function swapExactInputCall(router: Hex, swap: ExactInputSwap): BatchExec
         swap.amountOutMinimum,
         0n,
         swap.hookData ?? '0x',
+      ],
+    }),
+  };
+}
+
+export type ReserveSwapLeg = {
+  key: PoolKey;
+  zeroForOne: boolean;
+  /** Exact memecoin input pulled from the caller */
+  amountIn: bigint;
+  /** Floor on the swap leg's uAsset output */
+  minUAssetOut: bigint;
+  /** Peg Stability Module that redeems the uAsset into its bound reserve token */
+  psm: Hex;
+  /** Reserve token the caller expects the PSM to pay out (checked on-chain) */
+  reserveToken: Hex;
+  /** Floor on the reserve amount delivered to `recipient` */
+  minReserveOut: bigint;
+  recipient: Hex;
+  deadline: bigint;
+  hookData?: Hex;
+};
+
+/** Memecoin → uAsset swap plus PSM redemption in one Router call (exact-input semantics):
+ *  the router swaps `amountIn` into its own balance and redeems exactly that balance delta, so
+ *  nothing but this call's output reaches the PSM. The two floors carry all slippage — the
+ *  swap leg is floored on uAsset and the redemption on reserve output. */
+export function swapExactInToReserveCall(router: Hex, leg: ReserveSwapLeg): BatchExecution {
+  return {
+    target: router,
+    value: 0n,
+    callData: encodeFunctionData({
+      abi: swapRouterAbi,
+      functionName: 'swapExactInToReserve',
+      args: [
+        {
+          currency0: leg.key.currency0,
+          currency1: leg.key.currency1,
+          fee: leg.key.fee,
+          tickSpacing: leg.key.tickSpacing,
+          hooks: leg.key.hooks,
+        },
+        leg.amountIn,
+        leg.minUAssetOut,
+        leg.psm,
+        leg.reserveToken,
+        leg.minReserveOut,
+        leg.recipient,
+        leg.deadline,
+        leg.hookData ?? '0x',
       ],
     }),
   };
@@ -366,6 +416,58 @@ export function claimPreorderCall(launcher: Hex, verseId: bigint): BatchExecutio
       abi: launcherAbi,
       functionName: 'claimUnlockedPreorderMemecoin',
       args: [verseId],
+    }),
+  };
+}
+
+/** One-shot initial-YT claim (SettlementImpl: totalNormalClaimableYT × userFund ÷ totalNormalFunds). */
+export function claimNormalYTCall(launcher: Hex, verseId: bigint): BatchExecution {
+  return {
+    target: launcher,
+    value: 0n,
+    callData: encodeFunctionData({
+      abi: launcherAbi,
+      functionName: 'claimNormalYT',
+      args: [verseId],
+    }),
+  };
+}
+
+/** Auxiliary-pool fee-share claim (uAsset + PT legs, one tx). */
+export function claimNormalFeesCall(launcher: Hex, verseId: bigint): BatchExecution {
+  return {
+    target: launcher,
+    value: 0n,
+    callData: encodeFunctionData({
+      abi: launcherAbi,
+      functionName: 'claimNormalFees',
+      args: [verseId],
+    }),
+  };
+}
+
+/** LP-fee claim: fees crystallize to the msg.sender's LP position only — the recipient is a
+ *  forwarding address, never an alternative owner (Hook: "Fee ownership is derived strictly
+ *  from msg.sender"). */
+export function claimLpFeesCall(hook: Hex, key: PoolKey, recipient: Hex): BatchExecution {
+  return {
+    target: hook,
+    value: 0n,
+    callData: encodeFunctionData({
+      abi: hookAbi,
+      functionName: 'claimFeesCore',
+      args: [
+        {
+          key: {
+            currency0: key.currency0,
+            currency1: key.currency1,
+            fee: key.fee,
+            tickSpacing: key.tickSpacing,
+            hooks: key.hooks,
+          },
+          recipient,
+        },
+      ],
     }),
   };
 }
@@ -1008,6 +1110,9 @@ export type SessionWriteInput = {
   action: BatchExecution;
   approval?: BatchExecution;
   approvals?: BatchExecution[];
+  /** Non-Router legs that must run before the swap session and the Router action (e.g. a PSM
+   *  mint funding the swap's uAsset input on the reserve-buy path). */
+  preActions?: BatchExecution[];
   /**
    * Hook-pool swap actions only (MemeverseSwapRouter.swap/swapWithPermit2 and the YT flash
    * swaps): the hook's beforeSwap/afterSwap revert AccountSessionNotActive without an active
@@ -1033,6 +1138,7 @@ export function buildSessionWrite(input: SessionWriteInput): {
   const calls = buildSessionBatch({
     ...(input.approval ? { approval: input.approval } : {}),
     ...(input.approvals ? { approvals: input.approvals } : {}),
+    ...(input.preActions ? { preActions: input.preActions } : {}),
     ...(input.swapSession ? { beginAccountSession: beginSessionCall(input.hook) } : {}),
     routerAction: input.action,
     ...(input.swapSession ? { endAccountSession: endSessionCall(input.hook) } : {}),

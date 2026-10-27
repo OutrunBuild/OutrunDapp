@@ -85,7 +85,7 @@ export function SwapSettings({
         aria-label={settingsLabel}
         render={
           <button type="button">
-            <Settings2 aria-hidden="true" />
+            <Settings2 aria-hidden="true" size={20} />
           </button>
         }
       />

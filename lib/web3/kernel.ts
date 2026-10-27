@@ -63,6 +63,10 @@ export type SessionBatchParts = {
   approval?: BatchExecution;
   /** Multiple approvals (e.g. two-sided liquidity): ordered before begin, after `approval`. */
   approvals?: BatchExecution[];
+  /** Non-Router legs that must run before the swap session and the single Router action
+   *  (e.g. a PSM mint that funds the swap's uAsset input). Ordered after approvals so the
+   *  mint's own approval lands first. */
+  preActions?: BatchExecution[];
   /** Swap-session guards — present only for hook-pool swap actions (see buildSessionWrite). */
   beginAccountSession?: BatchExecution;
   /** Exactly one Router action per batch. */
@@ -71,11 +75,12 @@ export type SessionBatchParts = {
   endAccountSession?: BatchExecution;
 };
 
-/** Assemble the fixed call order: approvals? → (begin → Router → end)? */
+/** Assemble the fixed call order: approvals? → preActions? → (begin → Router → end)? */
 export function buildSessionBatch(parts: SessionBatchParts): BatchExecution[] {
   return [
     ...(parts.approval ? [parts.approval] : []),
     ...(parts.approvals ?? []),
+    ...(parts.preActions ?? []),
     ...(parts.beginAccountSession ? [parts.beginAccountSession] : []),
     parts.routerAction,
     ...(parts.endAccountSession ? [parts.endAccountSession] : []),
@@ -88,7 +93,52 @@ const STANDARD_REVERT_ABI = [
 ] as const;
 
 export type RevertKind =
-  'batch-reverted' | 'kernel-error' | 'error-string' | 'panic' | 'claim-too-soon' | 'unknown';
+  | 'batch-reverted'
+  | 'kernel-error'
+  | 'error-string'
+  | 'panic'
+  | 'claim-too-soon'
+  | 'psm-cap-exceeded'
+  | 'psm-reserve-short'
+  | 'psm-dust'
+  | 'reserve-leg-unavailable'
+  | 'unknown';
+
+/** Custom errors the reserve-leg swap can surface from the PSM and the router: the PSM's mint
+ *  cap, an exhausted reserve, a dust amount the fee floors to zero, and the router's own
+ *  binding floors. Kept as a selector map so a decode does not need to guess which ABI to try. */
+const PSM_ERROR_ABI = [
+  { type: 'error', name: 'StockCapExceeded', inputs: [] },
+  { type: 'error', name: 'ZeroInput', inputs: [] },
+  // The PSM pays out from its own reserve balance: a shortfall surfaces as a failed transfer,
+  // which OpenZeppelin's SafeERC20 reports as this error.
+  { type: 'error', name: 'SafeERC20FailedOperation', inputs: [{ name: 'token', type: 'address' }] },
+  {
+    type: 'error',
+    name: 'ReserveOutBelowMinimum',
+    inputs: [
+      { name: 'actual', type: 'uint256' },
+      { name: 'minimum', type: 'uint256' },
+    ],
+  },
+  {
+    type: 'error',
+    name: 'PsmUAssetMismatch',
+    inputs: [
+      { name: 'expected', type: 'address' },
+      { name: 'actual', type: 'address' },
+    ],
+  },
+  {
+    type: 'error',
+    name: 'PsmReserveMismatch',
+    inputs: [
+      { name: 'expected', type: 'address' },
+      { name: 'actual', type: 'address' },
+    ],
+  },
+  { type: 'error', name: 'InvalidPsm', inputs: [{ name: 'psm', type: 'address' }] },
+] as const;
 
 export type DecodedRevert = {
   /** Machine-readable class for the transaction error model (UI copy maps it per locale). */
@@ -101,10 +151,37 @@ export type DecodedRevert = {
  * Faucet direct writes surface ClaimTooSoon so the faucet panel can name the 24h cooldown
  * instead of falling back to the generic unknown line.
  */
+function decodePsmRevert(data: Hex): RevertKind | null {
+  try {
+    const decoded = decodeErrorResult({ abi: PSM_ERROR_ABI, data });
+    switch (decoded.errorName) {
+      case 'StockCapExceeded':
+        return 'psm-cap-exceeded';
+      case 'ZeroInput':
+        return 'psm-dust';
+      case 'SafeERC20FailedOperation':
+        return 'psm-reserve-short';
+      case 'ReserveOutBelowMinimum':
+      case 'PsmUAssetMismatch':
+      case 'PsmReserveMismatch':
+      case 'InvalidPsm':
+        return 'reserve-leg-unavailable';
+      default:
+        return null;
+    }
+  } catch {
+    return null;
+  }
+}
+
 export function decodeNestedRevert(data: Hex | null | undefined): DecodedRevert {
   if (!data || data === '0x' || data.length < 10) {
     return { kind: 'unknown' };
   }
+  // Reserve-leg codes first: the batch wraps every leg, so the inner selector is what names
+  // the actual cause for the user.
+  const psmKind = decodePsmRevert(data);
+  if (psmKind != null) return { kind: psmKind };
   try {
     const decoded = decodeErrorResult({ abi: kernelAbi, data });
     if (decoded.errorName === 'ExecutionReverted') {

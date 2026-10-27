@@ -13,9 +13,12 @@ export function formatAmount(value: number, locale: Locale, compact = false) {
   }).format(value)
 }
 
-export function formatPercent(value: number, locale: Locale) {
+export function formatPercent(value: number, locale: Locale, fractionDigits?: number) {
   return new Intl.NumberFormat(locale === 'zh' ? 'zh-CN' : 'en-US', {
-    maximumFractionDigits: 1,
+    maximumFractionDigits: fractionDigits ?? 1,
+    // Callers that need a fixed precision (price impact) get padded trailing zeros too;
+    // the default one-decimal callers keep dropping them.
+    ...(fractionDigits == null ? {} : { minimumFractionDigits: fractionDigits }),
   }).format(value)
 }
 
@@ -80,6 +83,25 @@ export function formatDay(value: string, locale: Locale) {
 export function SourceRef(_: { value: string; id?: string }) {
   // Provenance stays attached to fixture data for internal review, never in the public interface.
   return null
+}
+
+/** Genesis countdown text shared by the stage-advance CTA and any future deadline
+ * readouts: wall-clock remaining until endsAt as day/hour/minute words — the finest
+ * tier is minutes (no seconds readout; the caller's unlock tick stays per-second).
+ * A pending span never displays zero minutes. */
+export function formatCountdown(remainingMs: number, locale: Locale): string {
+  const left = Math.max(0, remainingMs)
+  const days = Math.floor(left / 86_400_000)
+  const hours = Math.floor((left % 86_400_000) / 3_600_000)
+  const minutes = Math.floor((left % 3_600_000) / 60_000)
+  if (days > 0) {
+    return locale === 'zh' ? `${days} 天 ${hours} 小时` : `${days}d ${hours}h`
+  }
+  if (hours > 0) {
+    return locale === 'zh' ? `${hours} 小时 ${minutes} 分` : `${hours}h ${minutes}m`
+  }
+  const minutesLeft = left <= 0 ? 0 : Math.max(1, minutes)
+  return locale === 'zh' ? `${minutesLeft} 分钟` : `${minutesLeft}m`
 }
 
 export function StageBadge({ stage, locale }: { stage: VerseStage; locale: Locale }) {

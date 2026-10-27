@@ -24,8 +24,8 @@ import { openWalletSelector } from './wallet-selector-dialog';
 
 // NEXT_PUBLIC_ mirror is the client-inlinable projection; the server var covers SSR.
 const ONCHAIN_BUILD =
-  process.env.NEXT_PUBLIC_OUTRUN_DATA_SOURCE === 'onchain' ||
-  process.env.OUTRUN_DATA_SOURCE === 'onchain';
+  process.env.NEXT_PUBLIC_OUTRUN_DATA_SOURCE !== 'fixture' &&
+  process.env.OUTRUN_DATA_SOURCE !== 'fixture';
 
 const CAPABLE_PROVIDER: ProviderCapability = { canSignAuthorization: true, canSendType4: true };
 const LIMITED_PROVIDER: ProviderCapability = { canSignAuthorization: false, canSendType4: false };

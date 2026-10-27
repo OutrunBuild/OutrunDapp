@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createPublicClient, custom, formatUnits, parseUnits, type Hex } from 'viem';
+import { createPublicClient, custom, formatUnits, type Hex } from 'viem';
 
 import type { Locale } from '@/lib/data/fixture-repository';
 import { psmAbi } from '@/lib/web3/abis';
 import { getClientChainConfig } from '@/lib/web3/chains';
 import { getActiveEip1193Provider } from '@/lib/web3/active-provider';
 import { encodeKernelExecute } from '@/lib/web3/kernel';
+import { toBaseUnits } from '@/lib/web3/base-units';
 import {
   approvalCall,
   psmMintCall,
@@ -200,7 +201,8 @@ export function usePsmSwap(locale: Locale, uAssetSymbol: string) {
         read: (readParams) => client.readContract(readParams) as Promise<unknown>,
       };
       const payToken = (mode === 'mint' ? reserveToken : uAsset) as Hex;
-      const amountIn = parseUnits(amount, payDecimals);
+      const amountIn = toBaseUnits(amount, payDecimals);
+      if (amountIn === 0n) throw new Error('typed amount below one base unit');
       // Allowance: reuse the warmed value when it already covers, otherwise probe once.
       // Either way refresh silently in the background so the next click is warmer —
       // the popup never waits for this read.

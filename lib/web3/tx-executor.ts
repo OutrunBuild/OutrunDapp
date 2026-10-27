@@ -5,6 +5,7 @@
 import { createPublicClient, createWalletClient, custom, type Chain, type Hex } from 'viem';
 
 import type { AccountEvent } from './account';
+import { flushClickTrace, tracePhase } from './click-trace';
 import {
   executionToCall,
   pollCallsStatus,
@@ -126,6 +127,60 @@ function unsupported(deps: ExecDeps): WriteOutcome {
   return 'unsupported';
 }
 
+/** Capability answers are stable for one provider connection + chain + account. */
+const atomicSupport = new WeakMap<Eip1193ProviderLike, Map<string, Promise<boolean>>>();
+
+function atomicKey(chainId: number, address: Hex): string {
+  return `${chainId}:${address.toLowerCase()}`;
+}
+
+function atomicSupportFor(provider: Eip1193ProviderLike): Map<string, Promise<boolean>> {
+  let entries = atomicSupport.get(provider);
+  if (!entries) {
+    entries = new Map();
+    atomicSupport.set(provider, entries);
+  }
+  return entries;
+}
+
+/**
+ * Cached capability probe. The wallet round trip can take seconds on some builds, and its
+ * answer only changes when the wallet's own feature set does — one probe per provider
+ * connection covers every click on the page. Only a positive answer is cached: a wallet that
+ * gains 5792 support later must not stay blocked behind a page-lifetime "no".
+ *
+ * The answer is parsed for the requested chain, but a flat-envelope wallet answers for its
+ * active chain: warming with a stale chain id can only cost one extra probe on the real
+ * chain, never a wrong capability.
+ */
+export function resolveAtomicCalls(
+  provider: Eip1193ProviderLike,
+  chainId: number,
+  address: Hex,
+): Promise<boolean> {
+  const entries = atomicSupportFor(provider);
+  const key = atomicKey(chainId, address);
+  const cached = entries.get(key);
+  if (cached) return cached;
+  const probe = supportsAtomicCalls((args) => provider.request(args), chainId, address).then(
+    (supported) => {
+      if (!supported && entries.get(key) === probe) entries.delete(key);
+      return supported;
+    },
+  );
+  entries.set(key, probe);
+  return probe;
+}
+
+/** A wallet that answered unsupported at send time must be re-probed on the next click. */
+export function forgetAtomicCalls(
+  provider: Eip1193ProviderLike,
+  chainId: number,
+  address: Hex,
+): void {
+  atomicSupportFor(provider).delete(atomicKey(chainId, address));
+}
+
 /**
  * Direct EOA write (§7/§14 simple-call exception): sign and broadcast the exact fields
  * with no site-side simulation or review — the wallet's own pre-flight is the failure
@@ -153,14 +208,17 @@ export async function runDirect(
   dispatch({ type: 'simulation-ok' });
   let hash: Hex;
   try {
-    hash = await wallet.sendTransaction({
-      account: eoa,
-      chain: deps.chain,
-      to: direct.to,
-      data: direct.data,
-      value: direct.value ?? 0n,
-    });
+    hash = await tracePhase('wallet.sendTransaction', () =>
+      wallet.sendTransaction({
+        account: eoa,
+        chain: deps.chain,
+        to: direct.to,
+        data: direct.data,
+        value: direct.value ?? 0n,
+      }),
+    );
   } catch (error) {
+    flushClickTrace('wallet.sendTransaction failed');
     if (isUserRejection(error)) {
       dispatch({ type: 'user-rejected' });
       return 'cancelled';
@@ -168,6 +226,7 @@ export async function runDirect(
     dispatch({ type: 'tx-reverted', kind: 'unknown' });
     return 'failed';
   }
+  flushClickTrace('wallet.sendTransaction returned');
   dispatch({ type: 'tx-signed', hash });
   dispatch({ type: 'receipt-pending' });
   const receipt = await reader.waitForTransactionReceipt({ hash });
@@ -352,34 +411,44 @@ export async function runCalls(spec: WriteSpec, deps: ExecDeps): Promise<WriteOu
   if (!calls || calls.length === 0) return unsupported(deps);
   const { provider, eoa, dispatch } = deps;
   const request = (args: { method: string; params?: unknown }) => provider.request(args);
-  const atomic = await supportsAtomicCalls(request, deps.chain.id, eoa);
+  const atomic = await tracePhase('wallet.capabilities', () =>
+    resolveAtomicCalls(deps.provider, deps.chain.id, eoa),
+  );
   if (!atomic) {
     // One method missing on this wallet, not a broken provider: do not poison the
     // account centre's capability gate.
+    flushClickTrace('wallet_getCapabilities unsupported');
     return unsupported(deps);
   }
   if (deps.isStale()) return 'failed';
   dispatch({ type: 'preflight-ok' });
   let batchId: string | null;
   try {
-    const response = await request({
-      method: 'wallet_sendCalls',
-      params: sendCallsParams({
-        from: eoa,
-        chain: deps.chain,
-        calls: calls.map(executionToCall),
+    const response = await tracePhase('wallet.sendCalls', () =>
+      request({
+        method: 'wallet_sendCalls',
+        params: sendCallsParams({
+          from: eoa,
+          chain: deps.chain,
+          calls: calls.map(executionToCall),
+        }),
       }),
-    });
+    );
     batchId = sendCallsId(response);
   } catch (error) {
+    flushClickTrace('wallet_sendCalls failed');
     if (isUserRejection(error)) {
       dispatch({ type: 'user-rejected' });
       return 'cancelled';
     }
-    if (isMethodUnavailable(error)) return unsupported(deps);
+    if (isMethodUnavailable(error)) {
+      forgetAtomicCalls(deps.provider, deps.chain.id, eoa);
+      return unsupported(deps);
+    }
     dispatch({ type: 'tx-reverted', kind: 'unknown' });
     return 'failed';
   }
+  flushClickTrace('wallet_sendCalls returned');
   if (batchId == null) {
     dispatch({ type: 'tx-reverted', kind: 'unknown' });
     return 'failed';

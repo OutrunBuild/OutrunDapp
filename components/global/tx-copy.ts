@@ -33,6 +33,14 @@ export function txErrorText(locale: Locale, kind: TxErrorKind | RevertKind): str
       return errors.panic;
     case 'claim-too-soon':
       return getCopy(locale).faucet.claimedHint;
+    case 'psm-cap-exceeded':
+      return errors.psmCapExceeded;
+    case 'psm-reserve-short':
+      return errors.psmReserveShort;
+    case 'psm-dust':
+      return errors.psmDust;
+    case 'reserve-leg-unavailable':
+      return errors.reserveLegUnavailable;
     case 'unknown':
       return errors.unknown;
   }

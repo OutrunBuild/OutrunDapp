@@ -4,7 +4,7 @@ import { useSyncExternalStore } from 'react';
 
 /**
  * Non-production account harness (runbook step 5): the e2e/visual successor of the retired
- * test harness wallet. Active ONLY when OUTRUN_DATA_SOURCE !== 'onchain' — onchain builds drive the
+ * test harness wallet. Active ONLY in fixture mode (OUTRUN_DATA_SOURCE=fixture; onchain is the default) — onchain builds drive the
  * real hooks in use-account-center and never touch this store (assertHarness throws there).
  * Zero fixture imports, so no boundary registration is needed.
  *
@@ -13,8 +13,8 @@ import { useSyncExternalStore } from 'react';
  */
 // NEXT_PUBLIC_ mirror is the client-inlinable projection; the server var covers SSR.
 const ONCHAIN_BUILD =
-  process.env.NEXT_PUBLIC_OUTRUN_DATA_SOURCE === 'onchain' ||
-  process.env.OUTRUN_DATA_SOURCE === 'onchain';
+  process.env.NEXT_PUBLIC_OUTRUN_DATA_SOURCE !== 'fixture' &&
+  process.env.OUTRUN_DATA_SOURCE !== 'fixture';
 
 function assertHarness(): void {
   if (ONCHAIN_BUILD) throw new Error('outrun: test harness is unavailable on onchain builds');

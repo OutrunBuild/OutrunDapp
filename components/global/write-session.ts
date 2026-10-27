@@ -1,4 +1,4 @@
-// 交易弹窗的点击链路预算（AGENTS.md 性能纪律 · 点击链路 RPC 预算）＋ 执行链选址。
+// 交易弹窗的点击链路预算（docs/engineering/performance.md · 点击链路 RPC 预算）＋ 执行链选址。
 //
 // 一次写操作需要的链上数据分两半：
 // - 静态半：部署表、launcher 的 verse 元组、token decimals —— 创世后不再变化；
@@ -13,6 +13,7 @@
 import type { Hex } from 'viem';
 
 import type { Eip1193ProviderLike, Eip1193Request } from '@/lib/web3/active-provider';
+import { tracePhase } from '@/lib/web3/click-trace';
 
 import {
   readErc20Meta,
@@ -77,7 +78,10 @@ export async function probeVerseChain(
   provider: Eip1193ProviderLike,
   chains: readonly number[],
 ): Promise<number> {
-  const live = Number.parseInt(String(await provider.request({ method: 'eth_chainId' })), 16);
+  const live = Number.parseInt(
+    String(await tracePhase('chain.probe', () => provider.request({ method: 'eth_chainId' }))),
+    16,
+  );
   if (!chains.includes(live)) throw new VerseChainError();
   return live;
 }
@@ -107,13 +111,17 @@ export function getVerseSession(
     const entry: SessionEntry = {
       request,
       promise: (async () => {
-        const session = await resolve({
-          request,
-          chainId: live,
-          eoa: input.eoa,
-          verseId: input.verseId,
-        });
-        const { decimals } = await readErc20Meta(session.reader, session.verse.uAsset);
+        const session = await tracePhase('session.registry', () =>
+          resolve({
+            request,
+            chainId: live,
+            eoa: input.eoa,
+            verseId: input.verseId,
+          }),
+        );
+        const { decimals } = await tracePhase('session.meta', () =>
+          readErc20Meta(session.reader, session.verse.uAsset),
+        );
         return { ...session, uAssetDecimals: decimals };
       })(),
     };
