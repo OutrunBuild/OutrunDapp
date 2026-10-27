@@ -6,8 +6,9 @@
  * Back = UUSD→USDC redeem), mechanism facts (face value 1:1, tin/tout fees, mint bounded
  * by stockCap headroom, no slippage/deadline params → no settings gear). Primitives reuse
  * global/action-dialogs; CTA semantics = when connected, the action button is
- * gated only by input (no faked settlement) — same as ConvertDialog; in-flight progress = the
- * shared three-step strip. Balance display:
+ * gated only by input (no faked settlement) — same as ConvertDialog; in-flight feedback =
+ * the faucet progress/success dialog pair (faucet-tx-dialogs), never a strip in this
+ * dialog. Balance display:
  * the SSR payload carries accountless values only — the connected wallet reads its own
  * PSM-pair balances through its provider when the dialog opens. Signed-out
  * gate: on onchain builds the yellow trigger keeps its look
@@ -26,12 +27,14 @@ import { getClientChainConfig } from '@/lib/web3/chains'
 import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
 
 import { ActionDialogShell, AmountField, DetailRows, DialogCta } from '../global/action-dialogs'
+import { TxProgressDialog } from '../global/tx-progress-dialog'
+import { TxSuccessDialog } from '../global/tx-success-dialog'
+import { useTxSuccessGate } from '../global/use-tx-success'
 import { getCopy } from '../global/copy'
 import { readErc20Meta, type ContractReader } from '../global/execution-reads'
 import { useAccountCenter } from '../global/use-account-center'
 import { usePsmSwap } from '../global/use-psm-swap'
 import { useClearOnConfirmed } from '../global/use-tx-center'
-import { TxStatus } from '../global/tx-status'
 import { formatAmount, formatPercent } from '../global/signal-ui'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogTrigger } from '@/components/ui/dialog'
@@ -60,6 +63,15 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fauce
     setAmount('')
   }
   const [open, setOpen] = useState(false)
+  // Success-dialog echo captured at click time: the amount input is cleared on confirm, so
+  // the receipt cannot re-derive the legs from live state.
+  const [deal, setDeal] = useState<{
+    pay: string
+    paySymbol: string
+    receive: string
+    outSymbol: string
+  } | null>(null)
+  const { successOpen, setSuccessOpen, receipt } = useTxSuccessGate(tx)
   // Closing discards the transaction center state: a batch left Confirming… (poll deadline)
   // must not keep the CTA disabled the next time the dialog opens.
   useEffect(() => {
@@ -85,6 +97,12 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fauce
   const [tokenDecimals, setTokenDecimals] = useState<{ uAsset: number; reserve: number } | null>(
     null,
   )
+  // Exact wallet balances (raw base units + decimals): the gate/Max/balance display reads
+  // these — the float `balances` above stays only for legacy display fallbacks.
+  const [exactBalances, setExactBalances] = useState<{
+    uAsset: { base: bigint; decimals: number }
+    reserve: { base: bigint; decimals: number }
+  } | null>(null)
   // Exact quote when the chain wads + decimals landed (Get = mint, Back = redeem); the
   // fixture sample keeps the ratio math so recorded baselines stay byte-identical.
   const feeWad = mode === 'get' ? swap.feeInWad : swap.feeOutWad
@@ -140,7 +158,8 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fauce
         reader.read({ address: token, abi: erc20ReadAbi, functionName: 'balanceOf', args: [eoa] }),
         readErc20Meta(reader, token),
       ])
-      return { value: Number(formatUnits(BigInt(String(raw)), decimals)), decimals }
+      const base = BigInt(String(raw))
+      return { value: Number(formatUnits(base, decimals)), base, decimals }
     }
     void (async () => {
       try {
@@ -152,6 +171,10 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fauce
         if (!cancelled) {
           setBalances({ uAsset: myUAsset.value, reserve: myReserve.value })
           setTokenDecimals({ uAsset: myUAsset.decimals, reserve: myReserve.decimals })
+          setExactBalances({
+            uAsset: { base: myUAsset.base, decimals: myUAsset.decimals },
+            reserve: { base: myReserve.base, decimals: myReserve.decimals },
+          })
         }
       } catch {
         // silent degrade: AmountField keeps '--'
@@ -170,9 +193,17 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fauce
       : mode === 'get'
         ? balances.reserve
         : balances.uAsset
+  const exactBalance = !liveBalances
+    ? null
+    : exactBalances == null
+      ? null
+      : mode === 'get'
+        ? exactBalances.reserve
+        : exactBalances.uAsset
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <>
+      <Dialog open={open} onOpenChange={setOpen}>
       {lockTrigger ? (
         <Button className="ax-ghost-cta" size="sm" onClick={toggle}>
           {copy.swapCta}
@@ -195,6 +226,7 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fauce
           locale={locale}
           label={copy.amount}
           balance={balance}
+          exactBalance={exactBalance}
           balanceLabel={copy.balance}
           maxLabel={copy.max}
           value={amount}
@@ -254,7 +286,15 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fauce
           locale={locale}
           connected={connected}
           onConnect={toggle}
-          onAction={() =>
+          onAction={() => {
+            setDeal({
+              pay: formatAmount(parsed, locale),
+              paySymbol,
+              receive:
+                exactReceive ??
+                (valid ? formatAmount(parsed * (1 - (fee ?? 0)), locale) : amount),
+              outSymbol,
+            })
             void psm.start(
               mode === 'get' ? 'mint' : 'redeem',
               amount,
@@ -267,7 +307,7 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fauce
               // facts, so the wallet popup is the only confirmation.
               { skipReview: true },
             )
-          }
+          }}
           label={mode === 'get' ? copy.ctaGet : copy.ctaBack}
           disabled={
             !valid ||
@@ -285,11 +325,44 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fauce
           <FieldError>{getCopy(locale).wallet.errors.txFailed}</FieldError>
         ) : null}
         {resolveFailed ? <FieldError>{getCopy(locale).common.degrade.errorBody}</FieldError> : null}
-        {/* Progress = the shared three-step strip, same slot as every other action dialog.
-            Embedded-wallet signing is silent, so the wallet popup cannot be the only
-            feedback. */}
-        {tx.active && !tx.reviewing ? <TxStatus locale={locale} state={tx.display} /> : null}
       </ActionDialogShell>
     </Dialog>
+    {/* Feedback pair (2026-10-26 用户裁定): progress = its own button-less dialog stacked on
+        this one (always second-to-last); confirmed yields to the success dialog, the last
+        one. Failure rows stay in this dialog underneath. */}
+    <TxProgressDialog
+      locale={locale}
+      title={copy.swapTitle}
+      state={tx.display}
+      open={tx.active && !successOpen}
+      onDismiss={tx.reset}
+    />
+    <TxSuccessDialog
+      locale={locale}
+      title={mode === 'get' ? copy.swapDoneGet : copy.swapDoneBack}
+      lead={mode === 'get' ? copy.swapDoneGetLead : copy.swapDoneBackLead}
+      accent={copy.swapDoneAccent}
+        rows={[
+          ...(deal
+            ? [
+                {
+                  label: getCopy(locale).common.txYouPaid,
+                  value: deal.pay,
+                  symbol: deal.paySymbol,
+                },
+                {
+                  label: getCopy(locale).common.txReceived,
+                  value: deal.receive,
+                  symbol: deal.outSymbol,
+                },
+              ]
+            : []),
+        ]}
+      txHash={receipt?.hash}
+      txChainId={receipt?.chainId}
+      open={successOpen}
+      onOpenChange={setSuccessOpen}
+    />
+    </>
   )
 }

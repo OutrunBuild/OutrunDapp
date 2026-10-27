@@ -42,9 +42,9 @@ export function parseVerseIdParam(raw: unknown): string | null {
   return typeof raw === 'string' && /^\d+$/.test(raw) ? raw : null
 }
 
-/** The trading desk's four tab keys (?tab= deep-link whitelist — matches VerseTabs'
+/** The trading desk's five tab keys (?tab= deep-link whitelist — matches VerseTabs'
  * ToggleGroupItem value) */
-export const VERSE_TAB_KEYS = ['liquidity', 'pol', 'vault', 'dao'] as const
+export const VERSE_TAB_KEYS = ['liquidity', 'pol', 'vault', 'dao', 'claim'] as const
 
 /** URL ?tab=/?action= raw values → whitelist narrowing (unknown values and case
  * variants are dropped; action only accepts withdraw — same convention as the VersePage

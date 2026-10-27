@@ -9,10 +9,10 @@ import {
   type KeyboardEvent,
 } from 'react'
 import Link from 'next/link'
-import { Calculator, Check, ChevronDown, Globe, ImagePlus, Info, RotateCcw, WalletCards, X } from 'lucide-react'
+import { Calculator, Check, ChevronDown, Globe, ImagePlus, Info, RotateCcw, WalletCards } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { TxSuccessDialog } from '../global/tx-success-dialog'
 import {
   Field,
   FieldDescription,
@@ -117,9 +117,9 @@ function FieldInfo({ text, hoverOnly }: { text: string; hoverOnly?: boolean }) {
   )
 }
 
-/** Registration success dialog: opens automatically when the flow reaches the success step;
-    after closing, the review card keeps a completed step + View Verse fallback; the shell reuses
-    .pol-mint (same as the DAO/POL dialogs) — background/border glow/padding all live on that layer */
+/** Registration success (2026-10-26 统一口径): the site-generic receipt dialog. Rows echo
+    the registered identity; the View Verse CTA stays fixture-only (a real verse id exists
+    only after indexing). */
 function CreateSuccessDialog({
   locale,
   open,
@@ -139,43 +139,24 @@ function CreateSuccessDialog({
 }) {
   const copy = getCopy(locale)
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <div className="pol-mint">
-          <header className="pol-mint__head">
-            <DialogTitle className="pol-mint__title">
-              {copy.create.launchDoneLead}
-              {copy.create.launchDoneAccent ? (
-                <span className="create-success-pop__title-accent">
-                  {copy.create.launchDoneAccent}
-                </span>
-              ) : null}
-            </DialogTitle>
-            <div className="pol-mint__controls">
-              <DialogClose
-                render={<button type="button" className="pol-mint__close" aria-label={copy.common.close} />}
-              >
-                <X aria-hidden="true" size={16} />
-              </DialogClose>
-            </div>
-          </header>
-          <div className="create-success-pop__body">
-            <p className="tx-success__summary">
-              {fill(copy.create.launchSummary, { name, symbol, chain: chainName })}
-            </p>
-            {hideVerseLink ? null : (
-              <Button
-                className="ax-ghost-cta"
-                nativeButton={false}
-                render={<Link href={verseHref(locale, SAMPLE_VERSE_ID)} />}
-              >
-                {copy.create.successViewVerse}
-              </Button>
-            )}
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <TxSuccessDialog
+      locale={locale}
+      open={open}
+      onOpenChange={onOpenChange}
+      title={`${copy.create.launchDoneLead}${copy.create.launchDoneAccent}`}
+      lead={copy.create.launchDoneLead}
+      accent={copy.create.launchDoneAccent}
+      rows={[
+        { label: copy.create.nameLabel, value: name },
+        { label: copy.create.symbolLabel, value: symbol },
+        { label: copy.create.govChainLabel, value: chainName },
+      ]}
+      cta={
+        hideVerseLink
+          ? undefined
+          : { label: copy.create.successViewVerse, href: verseHref(locale, SAMPLE_VERSE_ID) }
+      }
+    />
   )
 }
 

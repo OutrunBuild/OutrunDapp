@@ -11,7 +11,9 @@ import type {
 import { getCopy } from '../global/copy'
 import { useAccountCenter } from '../global/use-account-center'
 import { useTxCenter, useClearOnConfirmed, type WriteSpec } from '../global/use-tx-center'
-import { TxStatus } from '../global/tx-status'
+import { TxProgressDialog } from '../global/tx-progress-dialog'
+import { TxSuccessDialog, type TxSuccessRow } from '../global/tx-success-dialog'
+import { useTxSuccessGate } from '../global/use-tx-success'
 import {
   readAllowances,
 } from '../global/execution-reads'
@@ -25,7 +27,8 @@ import {
   redeemMemecoinLiquidityUnwrapCall,
 } from '@/lib/web3/session-actions'
 import { useParams } from 'next/navigation'
-import { formatUnits, parseUnits, type Hex } from 'viem'
+import { formatUnits, type Hex } from 'viem'
+import { estimateBaseUnitsFloor, toBaseUnits } from '@/lib/web3/base-units'
 import { ActionDialogShell, AmountField, DetailRows, DialogCta } from '../global/action-dialogs'
 import { slippageToNumber, getSlippageIssue } from '../global/slippage-input'
 import { formatAmount } from '../global/signal-ui'
@@ -79,6 +82,9 @@ export function ProtectionExitDialog({
   const center = useAccountCenter()
   const { connected, connectAction: toggle } = center
   const tx = useTxCenter()
+  const { successOpen, setSuccessOpen, receipt } = useTxSuccessGate(tx)
+  // Receipt legs snapshotted at the click (the amount clears on landing).
+  const [exitRows, setExitRows] = useState<TxSuccessRow[]>([])
   const params = useParams()
   const rawVerseId = params?.verseId
   // Numeric verse id: route segment on verse pages, legacy verse-NNN row id on /portfolio.
@@ -112,6 +118,20 @@ export function ProtectionExitDialog({
 
   async function startExitReview(): Promise<void> {
     if (!executionReady || !valid || resolving) return
+    setExitRows(
+      [
+        mOut != null
+          ? { label: common.txReceived, value: formatAmount(mOut, locale), symbol: verse.symbol }
+          : null,
+        uOut != null
+          ? {
+              label: common.txReceived,
+              value: formatAmount(uOut, locale),
+              symbol: verse.raiseAsset,
+            }
+          : null,
+      ].filter((row) => row != null),
+    )
     if (mode === 'split' && slippageIssue != null) return
     const provider = getActiveEip1193Provider()
     const eoa = center.address as Hex | null
@@ -131,7 +151,8 @@ export function ProtectionExitDialog({
       })
       const launcher = session.contracts.MemeverseLauncher as Hex
       const decimals = await getTokenDecimals(session.reader, chainId, session.verse.pol)
-      const amountBase = parseUnits(amount, decimals)
+      const amountBase = toBaseUnits(amount, decimals)
+      if (amountBase === 0n) throw new Error('typed amount below one base unit')
       const [allowance] = await readAllowances(session.reader, eoa, [
         { token: session.verse.pol, spender: launcher },
       ])
@@ -150,13 +171,16 @@ export function ProtectionExitDialog({
         // currency0/1 order follows the sorted main-pool pair.
         const sorted =
           session.verse.memecoin.toLowerCase() < session.verse.uAsset.toLowerCase()
+        // min-out bounds floor — never a hair above the estimate (Uniswap rounding
+        // convention); String() would emit scientific notation in the dust range and
+        // viem's parseUnits rejects it outright
         const uMin =
           minU != null
-            ? parseUnits(String(minU), await getTokenDecimals(session.reader, chainId, session.verse.uAsset))
+            ? estimateBaseUnitsFloor(minU, await getTokenDecimals(session.reader, chainId, session.verse.uAsset))
             : 0n
         const mMin =
           minM != null
-            ? parseUnits(String(minM), await getTokenDecimals(session.reader, chainId, session.verse.memecoin))
+            ? estimateBaseUnitsFloor(minM, await getTokenDecimals(session.reader, chainId, session.verse.memecoin))
             : 0n
         const deadlineSecs = BigInt(Math.floor(Date.now() / 1000) + (Number(deadlineText) || 10) * 60)
         action = redeemMemecoinLiquidityUnwrapCall(launcher, {
@@ -231,7 +255,8 @@ export function ProtectionExitDialog({
     mOut != null && price != null && uAssetUsd != null ? mOut * price * uAssetUsd : null
 
   return (
-    <Dialog>
+    <>
+      <Dialog>
       {/* data-slot pinned back to button: the theme bridge matches the skin by
           [data-slot='button']; the card-bottom CTA uses the same style */}
       <DialogTrigger data-slot="button" render={<Button variant="outline" />}>
@@ -382,9 +407,28 @@ export function ProtectionExitDialog({
           disabled={!valid || !executionReady || resolving || tx.running}
         />
         {resolveFailed ? <FieldError>{common.degrade.errorBody}</FieldError> : null}
-        
-        {tx.active && !tx.reviewing ? <TxStatus locale={locale} state={tx.display} /> : null}
       </ActionDialogShell>
-    </Dialog>
+      </Dialog>
+      {/* Feedback pair (2026-10-26 弹窗序列纪律): progress = its own button-less dialog
+          (second-to-last), confirmed yields to the generic receipt dialog (last). */}
+      <TxProgressDialog
+        locale={locale}
+        title={action.exitTitle}
+        state={tx.display}
+        open={tx.active && !successOpen}
+        onDismiss={tx.reset}
+      />
+      <TxSuccessDialog
+        locale={locale}
+        title={action.exitDoneTitle}
+        lead={action.exitDoneLead}
+        accent={action.exitDoneAccent}
+        rows={exitRows}
+        txHash={receipt?.hash}
+        txChainId={receipt?.chainId}
+        open={successOpen}
+        onOpenChange={setSuccessOpen}
+      />
+    </>
   )
 }

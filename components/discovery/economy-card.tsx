@@ -182,10 +182,12 @@ export function EconomyCard({ locale, verse, chains, onOpen }: EconomyCardProps)
             </Link>
           </h3>
         </div>
-        {verse.projectedMarketCap != null ? (
+        {verse.marketCapUsd != null ? (
           <div className="economy-card__cap">
-            <span>{copy.discovery.marketCap}</span>
-            <b data-numeric>${formatMarketCap(verse.projectedMarketCap)}</b>
+            <span>{copy.discovery.marketCapShort}</span>
+            {/* Derived (raised × 2 × uAsset USD sample), same source as the detail-page
+                metrics row */}
+            <b data-numeric>${formatMarketCap(verse.marketCapUsd)}</b>
           </div>
         ) : null}
         <div className="economy-card__badges">

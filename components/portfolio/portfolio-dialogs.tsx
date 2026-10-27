@@ -17,7 +17,9 @@ import { getCopy } from '../global/copy'
 import { useAccountCenter } from '../global/use-account-center'
 import { usePsmSwap } from '../global/use-psm-swap'
 import { useTxCenter, useClearOnConfirmed, type WriteSpec } from '../global/use-tx-center'
-import { TxStatus } from '../global/tx-status'
+import { TxProgressDialog } from '../global/tx-progress-dialog'
+import { TxSuccessDialog, type TxSuccessRow } from '../global/tx-success-dialog'
+import { useTxSuccessGate } from '../global/use-tx-success'
 import {
   readAllowances,
   readErc20Meta,
@@ -34,7 +36,8 @@ import {
   usrDepositCall,
   usrRedeemCall,
 } from '@/lib/web3/session-actions'
-import { createPublicClient, custom, formatUnits, padHex, parseUnits, type Hex } from 'viem'
+import { createPublicClient, custom, formatUnits, padHex, type Hex } from 'viem'
+import { estimateBaseUnitsCeil, toBaseUnits } from '@/lib/web3/base-units'
 import { ChainLogoMark } from '../global/chain-icons'
 import { formatAmount, formatPercent } from '../global/signal-ui'
 import { ActionDialogShell, AmountField, DetailRows, DialogCta } from '../global/action-dialogs'
@@ -64,6 +67,9 @@ export function BridgeDialog({
   balancesByChain: Array<{ chainId: number; name: string; amount: number }>;
 }) {
   const copy = getCopy(locale).portfolio.assets
+  const chainNameOf = (chainId: number): string | undefined =>
+    chains.find((chain) => chain.chainId === chainId)?.name ??
+    balancesByChain.find((row) => row.chainId === chainId)?.name
   const [fromChain, setFromChain] = useState(balancesByChain[0]?.chainId ?? chains[0]?.chainId ?? 1)
   const [toChain, setToChain] = useState(
     chains.find((chain) => chain.chainId !== (balancesByChain[0]?.chainId ?? 1))?.chainId ??
@@ -77,6 +83,10 @@ export function BridgeDialog({
   const center = useAccountCenter()
   const { connected, connectAction: toggle } = center
   const tx = useTxCenter()
+  const { successOpen, setSuccessOpen, receipt } = useTxSuccessGate(tx)
+  // Receipt legs snapshotted at the click (the amount clears on landing); bridge done =
+  // source-chain send confirmed, arrival is a separate later event.
+  const [bridgeRows, setBridgeRows] = useState<TxSuccessRow[]>([])
   const [resolving, setResolving] = useState(false)
   const [resolveFailed, setResolveFailed] = useState(false)
   useClearOnConfirmed(tx.display, () => setAmount(''))
@@ -91,6 +101,15 @@ export function BridgeDialog({
 
   async function startBridgeReview(): Promise<void> {
     if (!executionReady || !valid || resolving) return
+    setBridgeRows([
+      { label: copy.bridgeFrom, value: chainNameOf(fromChain) ?? '—' },
+      { label: copy.bridgeTo, value: chainNameOf(toChain) ?? '—' },
+      {
+        label: getCopy(locale).common.txSent,
+        value: formatAmount(parsed, locale),
+        symbol: assetSymbol,
+      },
+    ])
     const provider = getActiveEip1193Provider()
     const eoa = center.address as Hex | null
     const chainId = center.chainId
@@ -117,7 +136,8 @@ export function BridgeDialog({
         read: (readParams) => client.readContract(readParams) as Promise<unknown>,
       }
       const { decimals } = await readErc20Meta(reader, uAsset)
-      const amountLD = parseUnits(amount, decimals)
+      const amountLD = toBaseUnits(amount, decimals)
+      if (amountLD === 0n) throw new Error('typed amount below one base unit')
       const toBytes32 = padHex(eoa, { size: 32 })
       const sendParam = {
         dstEid: dst.config.layerZeroEid,
@@ -172,7 +192,8 @@ export function BridgeDialog({
   }
 
   return (
-    <Dialog>
+    <>
+      <Dialog>
       <DialogTrigger data-slot="button" render={<Button variant="outline" size="xs" />}>
         {triggerLabel}
       </DialogTrigger>
@@ -246,10 +267,30 @@ export function BridgeDialog({
         {resolveFailed ? (
           <p role="alert">{getCopy(locale).common.degrade.errorBody}</p>
         ) : null}
-        
-        {tx.active && !tx.reviewing ? <TxStatus locale={locale} state={tx.display} /> : null}
       </ActionDialogShell>
-    </Dialog>
+      </Dialog>
+      {/* Feedback pair (2026-10-26 弹窗序列纪律): progress = its own button-less dialog
+          (second-to-last), confirmed yields to the generic receipt dialog (last). Bridge
+          done = source-chain send confirmed; arrival follows separately. */}
+      <TxProgressDialog
+        locale={locale}
+        title={copy.bridgeTitle}
+        state={tx.display}
+        open={tx.active && !successOpen}
+        onDismiss={tx.reset}
+      />
+      <TxSuccessDialog
+        locale={locale}
+        title={copy.bridgeDoneTitle}
+        lead={copy.bridgeDoneLead}
+        accent={copy.bridgeDoneAccent}
+        rows={bridgeRows}
+        txHash={receipt?.hash}
+        txChainId={receipt?.chainId}
+        open={successOpen}
+        onOpenChange={setSuccessOpen}
+      />
+    </>
   )
 }
 
@@ -284,6 +325,9 @@ export function ConvertDialog({
   const psm = usePsmSwap(locale, uAssetSymbol)
   const { connected, toggle } = psm
   const { tx, executionReady, resolving } = psm
+  const { successOpen, setSuccessOpen, receipt } = useTxSuccessGate(tx)
+  // Receipt legs snapshotted at the click (the amount clears on landing).
+  const [convertRows, setConvertRows] = useState<TxSuccessRow[]>([])
   const [mode, setMode] = useState<'mint' | 'redeem'>('mint')
   const [amount, setAmount] = useState('')
   // Each mode pays a different token, so a carried-over amount would be read against the
@@ -303,7 +347,8 @@ export function ConvertDialog({
   const overBalance = balance != null && Number.isFinite(parsed) && parsed > balance
 
   return (
-    <Dialog>
+    <>
+      <Dialog>
       <DialogTrigger data-slot="button" render={<Button variant="outline" size="xs" />}>
         {triggerLabel}
       </DialogTrigger>
@@ -367,23 +412,54 @@ export function ConvertDialog({
           locale={locale}
           connected={connected}
           onConnect={toggle}
-          onAction={() =>
+          onAction={() => {
+            setConvertRows([
+              {
+                label: getCopy(locale).common.txYouPaid,
+                value: formatAmount(parsed, locale),
+                symbol: balanceSymbol,
+              },
+              {
+                label: getCopy(locale).common.txReceived,
+                value: `≈ ${formatAmount(parsed * (1 - (fee ?? 0)), locale)}`,
+                symbol: mode === 'mint' ? uAssetSymbol : reserveSymbol,
+              },
+            ])
             void psm.start(mode === 'mint' ? 'mint' : 'redeem', amount, {
               paySymbol: balanceSymbol,
               outSymbol: mode === 'mint' ? uAssetSymbol : reserveSymbol,
               feeText: fee != null ? `${formatPercent(fee * 100, locale)}%` : '—',
             })
-          }
+          }}
           label={copy.convertSubmit}
           disabled={!valid || mintBlocked || overBalance || !executionReady || resolving || tx.running}
         />
         {psm.resolveFailed ? (
           <p role="alert">{getCopy(locale).common.degrade.errorBody}</p>
         ) : null}
-        
-        {tx.active && !tx.reviewing ? <TxStatus locale={locale} state={tx.display} /> : null}
       </ActionDialogShell>
-    </Dialog>
+      </Dialog>
+      {/* Feedback pair (2026-10-26 弹窗序列纪律): progress = its own button-less dialog
+          (second-to-last), confirmed yields to the generic receipt dialog (last). */}
+      <TxProgressDialog
+        locale={locale}
+        title={`${copy.convertTitle} · ${uAssetSymbol}`}
+        state={tx.display}
+        open={tx.active && !successOpen}
+        onDismiss={tx.reset}
+      />
+      <TxSuccessDialog
+        locale={locale}
+        title={copy.convertDoneTitle}
+        lead={copy.convertDoneLead}
+        accent={copy.convertDoneAccent}
+        rows={convertRows}
+        txHash={receipt?.hash}
+        txChainId={receipt?.chainId}
+        open={successOpen}
+        onOpenChange={setSuccessOpen}
+      />
+    </>
   )
 }
 
@@ -419,6 +495,9 @@ export function CdpRedeemDialog({
   const center = useAccountCenter()
   const { connected, connectAction: toggle } = center
   const tx = useTxCenter()
+  const { successOpen, setSuccessOpen, receipt } = useTxSuccessGate(tx)
+  // Receipt leg snapshotted at the click (the amount clears on landing).
+  const [redeemRows, setRedeemRows] = useState<TxSuccessRow[]>([])
   const [amount, setAmount] = useState('')
   const [resolving, setResolving] = useState(false)
   const [resolveFailed, setResolveFailed] = useState(false)
@@ -438,6 +517,13 @@ export function CdpRedeemDialog({
 
   async function startCdpRedeemReview(): Promise<void> {
     if (!executionReady || !valid || resolving || positionId == null || spAddress == null) return
+    setRedeemRows([
+      {
+        label: getCopy(locale).common.txYouRepaid,
+        value: formatAmount(parsed, locale),
+        symbol: uAssetSymbol,
+      },
+    ])
     const provider = getActiveEip1193Provider()
     const eoa = center.address as Hex | null
     const chainId = center.chainId
@@ -475,11 +561,14 @@ export function CdpRedeemDialog({
       const totalDebt = position.principalDebt + position.accruedInterest
       if (totalDebt <= 0n) throw new Error('outrun: empty position')
       const { decimals } = await readErc20Meta(reader, uAsset)
-      const full = parseUnits(String(debt), decimals) <= totalDebt
+      // full-repay classification ceils the display estimate: only when even the rounded-UP
+      // debt fits the on-chain standing is the estimate certainly ≤ totalDebt
+      const full = estimateBaseUnitsCeil(debt, decimals) <= totalDebt
       // Partial legs pro-rate ceil per the state machine (§3); full takes the whole standing.
+      // The repayment numerator parses the raw input string (never its float re-stringified).
       const syRedeemed = full
         ? position.syStaked
-        : (parseUnits(String(parsed), decimals) * position.syStaked + totalDebt - 1n) / totalDebt
+        : (toBaseUnits(amount, decimals) * position.syStaked + totalDebt - 1n) / totalDebt
       // tokenOut = SY direct (no oracle, no slippage leg); minTokenOut = exact passes §4.
       const sy = (await reader.read({
         address: spAddress,
@@ -542,7 +631,8 @@ export function CdpRedeemDialog({
   }
 
   return (
-    <Dialog>
+    <>
+      <Dialog>
       <DialogTrigger data-slot="button" render={<Button variant="outline" size="xs" />}>
         {triggerLabel}
       </DialogTrigger>
@@ -585,10 +675,29 @@ export function CdpRedeemDialog({
         {resolveFailed ? (
           <p role="alert">{getCopy(locale).common.degrade.errorBody}</p>
         ) : null}
-        
-        {tx.active && !tx.reviewing ? <TxStatus locale={locale} state={tx.display} /> : null}
       </ActionDialogShell>
-    </Dialog>
+      </Dialog>
+      {/* Feedback pair (2026-10-26 弹窗序列纪律): progress = its own button-less dialog
+          (second-to-last), confirmed yields to the generic receipt dialog (last). */}
+      <TxProgressDialog
+        locale={locale}
+        title={`${copy.cdpRedeem} · ${uAssetSymbol}`}
+        state={tx.display}
+        open={tx.active && !successOpen}
+        onDismiss={tx.reset}
+      />
+      <TxSuccessDialog
+        locale={locale}
+        title={copy.cdpRedeemDoneTitle}
+        lead={copy.cdpRedeemDoneLead}
+        accent={copy.cdpRedeemDoneAccent}
+        rows={redeemRows}
+        txHash={receipt?.hash}
+        txChainId={receipt?.chainId}
+        open={successOpen}
+        onOpenChange={setSuccessOpen}
+      />
+    </>
   )
 }
 
@@ -621,6 +730,10 @@ export function UsrSavingsDialog({
   const center = useAccountCenter()
   const { connected, connectAction: toggle } = center
   const tx = useTxCenter()
+  const { successOpen, setSuccessOpen, receipt } = useTxSuccessGate(tx)
+  // Receipt legs snapshotted at the click (the amount clears on landing): the moved amount
+  // plus its share-index conversion on the other side.
+  const [savingsRows, setSavingsRows] = useState<TxSuccessRow[]>([])
   const [amount, setAmount] = useState('')
   const [resolving, setResolving] = useState(false)
   const [resolveFailed, setResolveFailed] = useState(false)
@@ -638,6 +751,21 @@ export function UsrSavingsDialog({
 
   async function startUsrReview(): Promise<void> {
     if (!executionReady || !valid || resolving) return
+    setSavingsRows([
+      {
+        label:
+          mode === 'deposit'
+            ? getCopy(locale).common.txYouDeposited
+            : getCopy(locale).common.txYouWithdrew,
+        value: formatAmount(parsed, locale),
+        symbol: mode === 'deposit' ? vault.uAssetSymbol : vault.shareSymbol,
+      },
+      {
+        label: getCopy(locale).common.txReceived,
+        value: `≈ ${formatAmount(mode === 'deposit' ? parsed / index : parsed * index, locale)}`,
+        symbol: mode === 'deposit' ? vault.shareSymbol : vault.uAssetSymbol,
+      },
+    ])
     const provider = getActiveEip1193Provider()
     const eoa = center.address as Hex | null
     const chainId = center.chainId
@@ -670,7 +798,8 @@ export function UsrSavingsDialog({
           .then((value) => Number(value)),
       ])
       const amountBase =
-        mode === 'deposit' ? parseUnits(amount, uAssetDecimals) : parseUnits(amount, shareDecimals)
+        mode === 'deposit' ? toBaseUnits(amount, uAssetDecimals) : toBaseUnits(amount, shareDecimals)
+      if (amountBase === 0n) throw new Error('typed amount below one base unit')
       const allowance =
         mode === 'deposit'
           ? ((await readAllowances(reader, eoa, [{ token: uAssetAddr, spender: vaultAddr }]))[0] ??
@@ -725,7 +854,8 @@ export function UsrSavingsDialog({
   }
 
   return (
-    <Dialog>
+    <>
+      <Dialog>
       <DialogTrigger data-slot="button" render={<Button variant="outline" />}>
         {triggerLabel}
       </DialogTrigger>
@@ -778,10 +908,29 @@ export function UsrSavingsDialog({
         {resolveFailed ? (
           <p role="alert">{getCopy(locale).common.degrade.errorBody}</p>
         ) : null}
-        
-        {tx.active && !tx.reviewing ? <TxStatus locale={locale} state={tx.display} /> : null}
       </ActionDialogShell>
-    </Dialog>
+      </Dialog>
+      {/* Feedback pair (2026-10-26 弹窗序列纪律): progress = its own button-less dialog
+          (second-to-last), confirmed yields to the generic receipt dialog (last). */}
+      <TxProgressDialog
+        locale={locale}
+        title={`${copy.badge} · ${vault.uAssetSymbol}`}
+        state={tx.display}
+        open={tx.active && !successOpen}
+        onDismiss={tx.reset}
+      />
+      <TxSuccessDialog
+        locale={locale}
+        title={mode === 'deposit' ? copy.depositDoneTitle : copy.withdrawDoneTitle}
+        lead={mode === 'deposit' ? copy.depositDoneLead : copy.withdrawDoneLead}
+        accent={copy.savingsDoneAccent}
+        rows={savingsRows}
+        txHash={receipt?.hash}
+        txChainId={receipt?.chainId}
+        open={successOpen}
+        onOpenChange={setSuccessOpen}
+      />
+    </>
   )
 }
 
@@ -826,7 +975,7 @@ export function AssetActionsSheet({
               <SheetClose
                 render={<button type="button" className="pol-mint__close" aria-label={getCopy(locale).common.close} />}
               >
-                <X aria-hidden="true" size={16} />
+                <X aria-hidden="true" size={17} />
               </SheetClose>
             </div>
           </header>

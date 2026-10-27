@@ -4,8 +4,8 @@
 
 // NEXT_PUBLIC_ mirror is the client-inlinable projection; the server var covers SSR.
 const ONCHAIN_BUILD =
-  process.env.NEXT_PUBLIC_OUTRUN_DATA_SOURCE === 'onchain' ||
-  process.env.OUTRUN_DATA_SOURCE === 'onchain';
+  process.env.NEXT_PUBLIC_OUTRUN_DATA_SOURCE !== 'fixture' &&
+  process.env.OUTRUN_DATA_SOURCE !== 'fixture';
 
 /** Whitelist of screenshot-freeze hook ids */
 export const SCENARIO_IDS = ['loading', 'empty', 'error'] as const;

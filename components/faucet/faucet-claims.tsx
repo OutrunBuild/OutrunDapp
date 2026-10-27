@@ -35,9 +35,9 @@ import { TokenIconMark, hasTokenIcon } from '../global/token-icons'
 import { Button } from '@/components/ui/button'
 
 import { FaucetSwapDialog } from './faucet-swap-dialog'
-import { ActionDialogShell } from '../global/action-dialogs'
-import { TxStatus } from '../global/tx-status'
-import { Dialog } from '@/components/ui/dialog'
+import { TxProgressDialog } from '../global/tx-progress-dialog'
+import { TxSuccessDialog } from '../global/tx-success-dialog'
+import { useTxSuccessGate } from '../global/use-tx-success'
 
 /** Cooldown remaining (domain ≤24h): en compact hour/minute form, zh CJK unit words with
  *  spaces (staticDuration's day granularity does not fit the cooldown range) */
@@ -78,6 +78,11 @@ export function FaucetClaims({ locale, faucet }: { locale: Locale; faucet: Fauce
   const [elapsedMs, setElapsedMs] = useState(0)
   const [resolving, setResolving] = useState(false)
   const [resolveFailed, setResolveFailed] = useState(false)
+  // Success-dialog echo: the claimed symbols captured at click time (the receipt cannot
+  // re-derive them from flow state).
+  const [lastClaim, setLastClaim] = useState<string[] | null>(null)
+  const { successOpen: claimSuccessOpen, setSuccessOpen: setClaimSuccessOpen, receipt: claimReceipt } =
+    useTxSuccessGate(tx)
   // Per-token cooldown end (epoch ms) from lastClaimed storage reads: undefined =
   // unprobed, null = never claimed (ready now), number = ready at that time. Absolute
   // deadlines let a post-claim refresh re-read only the touched rows without rebasing
@@ -257,6 +262,7 @@ export function FaucetClaims({ locale, faucet }: { locale: Locale; faucet: Fauce
     }
     setResolving(true)
     setResolveFailed(false)
+    setLastClaim(symbols)
     try {
       // No review panel (§29): faucet claims fire straight at the wallet popup.
       // The review object below is a state-machine anchor only (never rendered).
@@ -440,27 +446,39 @@ export function FaucetClaims({ locale, faucet }: { locale: Locale; faucet: Fauce
         </div>
       ) : null}
       {resolveFailed ? <FieldError>{common.degrade.errorBody}</FieldError> : null}
-      {/* Claim progress: embedded signing is silent, so the three-step strip is the only
-          feedback; it also carries the cancelled/reverted outcome. */}
-      <Dialog
-        open={tx.active}
-        onOpenChange={(open) => {
-          if (!open) tx.reset()
-        }}
-      >
-        <ActionDialogShell title={copy.claim} closeLabel={common.close}>
-          <div className="fc-claim-status">
-            <TxStatus locale={locale} state={tx.display} />
-            {tx.display === 'confirmed' ||
-            tx.display === 'cancelled' ||
-            tx.display === 'reverted' ? (
-              <Button className="ax-ghost-cta" size="lg" onClick={() => tx.reset()}>
-                {common.close}
-              </Button>
-            ) : null}
-          </div>
-        </ActionDialogShell>
-      </Dialog>
+      {/* Feedback pair (2026-10-26 用户裁定): progress = its own button-less dialog (always
+          second-to-last); confirmed yields to the claim-success dialog, the last one.
+          Cancelled/reverted outcomes stay in the progress dialog until dismissed via the
+          shell ✕; error rows meanwhile render in the page status block above. */}
+      <TxProgressDialog
+        locale={locale}
+        title={copy.claim}
+        state={tx.display}
+        open={tx.active && !claimSuccessOpen}
+        onDismiss={tx.reset}
+      />
+      <TxSuccessDialog
+        locale={locale}
+        title={copy.claimDone}
+        lead={copy.claimDoneLead}
+        accent={copy.claimDoneAccent}
+        rows={(lastClaim ?? [])
+          .map((symbol) => {
+            const token = faucet.tokens.find((entry) => entry.symbol === symbol)
+            return token == null
+              ? null
+              : {
+                  label: common.txReceived,
+                  value: formatAmount(token.dailyLimit, locale),
+                  symbol,
+                }
+          })
+          .filter((row): row is { label: string; value: string; symbol: string } => row != null)}
+        txHash={claimReceipt?.hash}
+        txChainId={claimReceipt?.chainId}
+        open={claimSuccessOpen}
+        onOpenChange={setClaimSuccessOpen}
+      />
       <footer className="fc-claims__foot">
         {/* UUSD swap entry (footer primary action): identity + the Get UUSD yellow dialog trigger,
             details live in the dialog. swapFrom's {a} placeholder = an inline "USDC icon + symbol"

@@ -47,9 +47,12 @@ function MakeupLine({
   holdings: NonNullable<ParticipationRow['holdings']>
 }) {
   const parts: string[] = []
-  if (holdings.pol > 0) parts.push(`${formatAmount(holdings.pol, locale, true)} POL`)
-  if (holdings.pt > 0) parts.push(`${formatAmount(holdings.pt, locale, true)} PT`)
-  if (holdings.yt > 0) parts.push(`${formatAmount(holdings.yt, locale, true)} YT`)
+  if (holdings.pol != null && holdings.pol > 0)
+    parts.push(`${formatAmount(holdings.pol, locale, true)} POL`)
+  if (holdings.pt != null && holdings.pt > 0)
+    parts.push(`${formatAmount(holdings.pt, locale, true)} PT`)
+  if (holdings.yt != null && holdings.yt > 0)
+    parts.push(`${formatAmount(holdings.yt, locale, true)} YT`)
   if (parts.length === 0) return null
   return <span className="pf-participation-row__makeup">{parts.join(' · ')}</span>
 }
