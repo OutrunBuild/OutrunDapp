@@ -14,7 +14,7 @@
 
 ## 2. 锁定工具链（全部精确版本，禁 caret/range；下列为契约断言对象、非全集——全集以 architecture §3 与 package.json 为准）
 
-devDependencies：`typescript7@npm:typescript@7.0.2`、`typescript@link:./vendor/typescript-bridge`（bin/tsc 走 TS 7.0.2 CLI，require 转发 TS 6.0.2 API）、`vitest@4.1.11`、`vite@8.2.2`、`prettier@3.9.6`、`@types/node@24.13.3`；dependencies：`zod@4.5.4`。
+devDependencies：`typescript7@npm:typescript@7.0.2`、`typescript@link:./vendor/typescript-bridge`（bin/tsc 走 TS 7.0.2 CLI，require 转发 TS 6.0.2 API）、`vitest@4.1.11`、`vite@8.2.2`、`prettier@3.9.6`、`@types/node@24.13.3`；dependencies：`zod@4.6.7`。
 
 ## 3. 脚手架红线
 

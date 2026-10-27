@@ -18,18 +18,18 @@
 
 | 组件 | 职责 |
 |---|---|
-| Verse 头卡 | 名称/symbol/阶段徽章（VerseStage）+ Fast Genesis 徽章（fastGenesis 创世 verse）/治理链；时间读数=绝对时间戳（创世截止/解锁时间，`formatStamp`——无随秒倒计时组件） |
+| Verse 头卡 | 名称/symbol/阶段徽章（VerseStage）+ Fast Genesis 徽章（fastGenesis 创世 verse）/治理链；无时间读数（创世截止时间承载=推进钮倒计时，见 EndGenesisButton） |
 | 黄昏区（截止后、推进触发前） | 链上阶段仍为 Genesis、参与仍合法且**计入达标判定**（合约只查 stage 不查 endTime——MemeverseLaunchImpl.sol:159-183）；UI 承载=EndGenesisButton 可用性（`end-genesis-button.tsx`：截止一过任何人可触发——达标→锁定、未达标→退款，Fast 且门槛达标可提前触发；gated 态附展示型剩余时间 tick）；参与面板保持可用（仍在创世阶段即产品逻辑，不禁止参与） |
 | 判定面板（threshold-panel） | 双门槛进度条：普通资金与杠杆利息**独立**判断（预购与债务本金不计入，lifecycle.md:35-49）；最低成功额度；**Fast Genesis 状态行**（fastGenesis 创世 verse 专属）：未达标=「任一门槛达标即可提前结束创世，无需等到截止时间」；达标=青色「已达标 · 待推进。已满足成功阈值——任何人都可以触发阶段推进」（state-machines:33-35/lifecycle.md:52-54） |
 | 当前操作卡（action-panel） | 当前阶段开放的操作集（创世期：参与+预购；退款态：退款领取——按 SPEC-M9 状态机门控，**读链判定不前端硬编码**）；`data-stage` 阶段色 |
 | 参与面板 | **完整规范见 [asset-flows.md](asset-flows.md) §0**（普通创世默认+杠杆切换+预购分配器；直接参与/质押参与）——本页为 EF-1/EF-2 挂载节点 |
-| 统计面板（stats-panel） | 创世截止时间/参与人数/预估市值（projectedMarketCap，null 不渲染）/我的参与（零参与=未参与文案） |
+| 统计面板（stats-panel） | 全链筹集（omniRaised 跨链合计）/参与地址（omni 合计）/预计市值（`marketCapUsd` 分阶段：创世=全链筹集×2×uAsset 美元样本价、已部署=现价×总供应、退款不渲染；`MC:` 标签为 Explore 卡头格式）/您的参与（零参与=未参与文案）；截止行已撤——截止时间只落推进钮倒计时（分钟级，<72h 黄/<24h 红） |
 | 触发费分发 | **permissionless 入口**（锁定期起）：任何人触发手续费分发、获执行奖励（主池 uAsset 费 0.25% 当前默认——lifecycle.md:75/playbooks.md:102）；显示可触发状态+预估奖励+手续费提示 |
 | 触发阶段推进 | **permissionless 入口**：阶段推进需链上交易触发、不随时间自动发生（lifecycle.md:51/state-machines:69）——显示当前可推进阶段+触发按钮（手续费由触发者承担；到点未触发则后续操作阻塞，此入口即出口） |
 | 四池概览 | 主池（Memecoin/uAsset）+三辅助池；资金流向 70/30 与 POL 2:3:2、PT 1:2（four-pools.md:22-23）；剩余资金去向不展示（决议 C2） |
-| 领取/退款中心 | 退款领取（每地址一次；POLend 杠杆退款领受益人、普通/预购退款领领取人——无代付下两者同为本账户）；锁定期起领取项（初始 YT、辅助池分成、LP 费、预购线性解锁可领量） |
+| 领取/退款中心 | **已落地为第五签 Claim Center**（2026-10-26 用户裁定：tab 形态、确认弹窗一步、未连接不渲染徽章、四行一次做全）：锁定期起领取项（预购线性解锁可领量、创世 YT、辅助池分成、LP 费——LP 首版仅主池）集中第五签，`?tab=claim` 深链；契约见 component-contract §38；退款领取（每地址一次；POLend 杠杆退款领受益人、普通/预购退款领领取人——无代付下两者同为本账户）仍在退款态 `.refund-settle` 整区，与领取中心阶段互斥不共面 |
 
-**Locked/Unlocked 态**：交易台持久区（`VerseTradeDesk`，规范见 verse-trade.md）+ 四标签（`VerseTabs`，白名单 `liquidity|pol|vault|dao`——components/global/routes.ts `VERSE_TAB_KEYS`）。
+**Locked/Unlocked 态**：交易台持久区（`VerseTradeDesk`，规范见 verse-trade.md）+ 五标签（`VerseTabs`，白名单 `liquidity|pol|vault|dao|claim`——components/global/routes.ts `VERSE_TAB_KEYS`；第五签=领取中心，`ClaimCenterProvider` 包住标签区共享一次 entitlements 读）。
 
 桌面：头卡+判定横排 → 参与面板左/操作右 → 统计横排。移动：头部→判定→参与面板→操作→折叠。密度=高（T2 上限内）。
 

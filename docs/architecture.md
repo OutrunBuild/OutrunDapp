@@ -83,7 +83,7 @@ URL 方案：zh 路径带 `/zh` 前缀；en 为无前缀 canonical（`proxy.ts` 
 | Runtime                              | Node.js                            | 24.20.0（本地/CI）；24.x（Vercel） | 本地与 CI 精确使用 Krypton LTS `24.20.0`；Vercel 使用受支持的 `24.x` 并记录实际 patch                                                                            |
 | Package manager                      | pnpm                               | 11.24.0                            | 严格依赖解析和高效缓存                                                                                                                                           |
 | Toolchain bootstrap                  | Corepack                           | 0.34.5                             | 显式固定版本并固定 pnpm 版本；不依赖 Node 安装包中的默认版本                                                                                                     |
-| Framework                            | Next.js                            | 16.3.3                             | App Router、React Server Components、服务端数据聚合和 Vercel 原生部署                                                                                            |
+| Framework                            | Next.js                            | 16.4.3                             | App Router、React Server Components、服务端数据聚合和 Vercel 原生部署                                                                                            |
 | UI runtime                           | React                              | 19.2.8                             | 页面和交互组件                                                                                                                                                   |
 | React types                          | `@types/react`、`@types/react-dom` | 19.2.18 / 19.2.5                   | React 19 类型声明，Testing Library 必填 peer                                                                                                                     |
 | Node types                           | `@types/node`                      | 24.13.3                            | Node.js 24 类型声明，Next.js/Vitest 构建支持                                                                                                                     |
@@ -98,7 +98,7 @@ URL 方案：zh 路径带 `/zh` 前缀；en 为无前缀 canonical（`proxy.ts` 
 | Icons                                | lucide-react                       | 1.37.0                             | 统一图标系统                                                                                                                                                     |
 | Charting                             | lightweight-charts                 | 5.2.1                              | Verse 详情页 K 线交易台（candle-chart），客户端渲染不进 RSC 树                                                                                                    |
 | Async state                          | TanStack Query                     | 5.102.8                            | RPC、GraphQL、交易和缓存状态                                                                                                                                     |
-| Validation                           | Zod                                | 4.5.4                              | 配置、部署 manifest、表单和 API 边界校验                                                                                                                         |
+| Validation                           | Zod                                | 4.6.7                              | 配置、部署 manifest、表单和 API 边界校验                                                                                                                         |
 | Ethereum state                       | wagmi                              | 3.7.7                              | 钱包连接、账户、网络和 React 链状态                                                                                                                              |
 | Ethereum client                      | viem                               | 2.55.10                            | RPC、ABI、带 `authorizationList` 的 Type-4 交易、直接交易 simulation 和 EIP-7702                                                                                 |
 | Wallet platform                      | `@privy-io/react-auth`             | 3.38.0                             | embedded EOA、外部钱包连接、登录、活动钱包选择和 EIP-7702 authorization                                                                                          |
@@ -115,7 +115,7 @@ URL 方案：zh 路径带 `/zh` 前缀；en 为无前缀 canonical（`proxy.ts` 
 | End-to-end tests                     | Playwright                         | 1.62.1                             | 双语、响应式、视觉和交易流程测试                                                                                                                                 |
 | Accessibility scan                   | `@axe-core/playwright`             | 4.13.0                             | Playwright e2e 内嵌 axe 无障碍扫描（`check:e2e` 门禁组成部分）                                                                                                    |
 | Ethereum Virtual Machine integration | Foundry/Anvil                      | 1.8.5                              | 与合约仓一致的本地链和 fork 测试                                                                                                                                 |
-| Monitoring                           | `@sentry/nextjs`                   | 10.72.0                            | 客户端、服务端、RPC 和交易错误监控                                                                                                                               |
+| Monitoring                           | `@sentry/nextjs`                   | 10.76.2                            | 客户端、服务端、RPC 和交易错误监控                                                                                                                               |
 
 shadcn 组件复制件依赖四个随附样式工具——`class-variance-authority 0.7.1`、`clsx 2.1.1`、`tailwind-merge 3.3.1`、`tw-animate-css 1.4.0`（variant 组合、类名合并与入场动画；版本证据见 §18）。
 
@@ -133,7 +133,7 @@ Node.js `24.20.0` 是 2026-08-26 发布的最新稳定 LTS 版本（代号 Krypt
 
 ```text
 app/                 路由、布局、RSC 和页面组合
-components/          通用 UI（ui/、design-system/）、跨页共享（global/，含写链路基建 hooks）、链上读数适配（data/）与领域组件（verse/home/discovery/create/portfolio/referral/faucet）
+components/          通用 UI（ui/、design-system/）、跨页共享（global/，含写链路基建 hooks）与领域组件（verse/home/discovery/create/portfolio/referral/faucet）
 lib/web3/            chain、RPC、wagmi、Privy、Kernel 和交易生命周期
 lib/data/            RPC/Graph repository、query key 和 ViewModel 映射
 contracts/abi/       冻结 ABI
@@ -569,7 +569,7 @@ Sentry 中的钱包地址默认哈希化；只有用户主动复制或进入区�
 - pnpm `11.24.0`：[npm](https://www.npmjs.com/package/pnpm/v/11.24.0)、[releases](https://github.com/pnpm/pnpm/releases)。
 - `@types/node 24.13.3`：[npm](https://www.npmjs.com/package/@types/node/v/24.13.3)。
 - PostCSS `8.5.26` 与 `@tailwindcss/postcss 4.3.3`：[PostCSS npm](https://www.npmjs.com/package/postcss/v/8.5.26)、[Tailwind PostCSS npm](https://www.npmjs.com/package/@tailwindcss/postcss/v/4.3.3)。
-- Next.js `16.3.3`：[release](https://github.com/vercel/next.js/releases/tag/v16.3.3)。
+- Next.js `16.4.3`：[release](https://github.com/vercel/next.js/releases/tag/v16.4.3)。
 - React `19.2.8`：[release](https://github.com/facebook/react/releases/tag/v19.2.8)。
 - TypeScript `7.0.2`：[npm](https://www.npmjs.com/package/typescript/v/7.0.2)、[repository](https://github.com/microsoft/TypeScript)、[7.0 公告](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)；主编译器 alias 为 `typescript7: npm:typescript@7.0.2`。普通包名 `typescript` 经 `link:` 指向本地桥包 `vendor/typescript-bridge`：`main` 转发 [兼容包 npm](https://www.npmjs.com/package/@typescript/typescript6/v/6.0.2) `@typescript/typescript6@6.0.2` 的 API，`bin/tsc` 调用 TS 7 CLI；该兼容包声明 `@typescript/old: npm:typescript@^6`，由 `pnpm-workspace.yaml` override 精确解析为 `typescript@6.0.2`。TypeScript 7 尚无稳定程序化 API，故 typescript-eslint 保持 TypeScript 6 API 进程隔离。
 - Tailwind CSS `4.3.3`：[release](https://github.com/tailwindlabs/tailwindcss/releases/tag/v4.3.3)。
@@ -579,7 +579,7 @@ Sentry 中的钱包地址默认哈希化；只有用户主动复制或进入区�
 - lucide-react `1.37.0`：[npm](https://www.npmjs.com/package/lucide-react/v/1.37.0)、[repository](https://github.com/lucide-icons/lucide)。
 - lightweight-charts `5.2.1`：[npm](https://www.npmjs.com/package/lightweight-charts/v/5.2.1)、[repository](https://github.com/tradingview/lightweight-charts)。
 - TanStack Query `5.102.8`：[npm](https://www.npmjs.com/package/@tanstack/react-query/v/5.102.8)、[repository](https://github.com/TanStack/query)。
-- Zod `4.5.4`：[npm](https://www.npmjs.com/package/zod/v/4.5.4)、[repository](https://github.com/colinhacks/zod)。
+- Zod `4.6.7`：[npm](https://www.npmjs.com/package/zod/v/4.6.7)、[repository](https://github.com/colinhacks/zod)。
 - wagmi `3.7.7`：[release](https://github.com/wevm/wagmi/releases/tag/wagmi%403.7.7)。
 - viem `2.55.10`：[release](https://github.com/wevm/viem/releases/tag/viem%402.55.10)、[EIP-7702 Type-4 transaction](https://viem.sh/docs/eip7702/sending-transactions)、[authorization simulation](https://viem.sh/docs/contract/simulateContract)；项目在 `2.56.x` 持续维护，当前因 Privy peer 固定旧 patch。
 - Privy `@privy-io/react-auth 3.38.0`、`@privy-io/wagmi 4.0.16`：[React SDK](https://www.npmjs.com/package/@privy-io/react-auth/v/3.38.0)、[wagmi bridge](https://www.npmjs.com/package/@privy-io/wagmi/v/4.0.16)、[EIP-7702 authorization](https://docs.privy.io/wallets/using-wallets/ethereum/sign-7702-authorization)、[外部钱包配置](https://docs.privy.io/wallets/connectors/setup/configuring-external-connector-wallets)、[wagmi integration](https://docs.privy.io/wallets/connectors/ethereum/integrations/wagmi)、[定价](https://www.privy.io/pricing)。
@@ -595,14 +595,14 @@ Sentry 中的钱包地址默认哈希化；只有用户主动复制或进入区�
 - `@types/react 19.2.18`、`@types/react-dom 19.2.5`：[npm](https://www.npmjs.com/package/@types/react/v/19.2.18)、[npm](https://www.npmjs.com/package/@types/react-dom/v/19.2.5)。
 - ESLint `10.9.1`、typescript-eslint `8.68.0`：[ESLint](https://www.npmjs.com/package/eslint/v/10.9.1)、[typescript-eslint](https://www.npmjs.com/package/typescript-eslint/v/8.68.0)、[repository](https://github.com/typescript-eslint/typescript-eslint)。
 - Prettier `3.9.6`：[npm](https://www.npmjs.com/package/prettier/v/3.9.6)、[repository](https://github.com/prettier/prettier)。
-- Sentry JavaScript `10.72.0`：[release](https://github.com/getsentry/sentry-javascript/releases/tag/10.72.0)。
+- Sentry JavaScript `10.76.2`：[release](https://github.com/getsentry/sentry-javascript/releases/tag/10.76.2)。
 - Foundry `1.8.5`：[release](https://github.com/foundry-rs/foundry/releases/tag/v1.8.5)，与 Memeverse/OutStake CI 固定版本一致。
 - Vercel Node.js 版本与 Corepack 配置：[Node.js versions](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions)、[build Corepack](https://vercel.com/docs/builds/configure-a-build#corepack)。
 - Next.js App Router nonce CSP 与动态渲染代价：[Content Security Policy guide](https://nextjs.org/docs/app/guides/content-security-policy)；Vercel custom Install Command：[package managers](https://vercel.com/docs/package-managers)、[`vercel.json` installCommand](https://vercel.com/docs/project-configuration/vercel-json#installcommand)。
 - Next.js 16 TypeScript 7 build 使用项目本地 `tsc` CLI：[Using TypeScript 7](https://nextjs.org/docs/pages/api-reference/config/typescript#using-typescript-7)、[`useTypeScriptCli`](https://nextjs.org/docs/app/api-reference/config/next-config-js/useTypeScriptCli)。
 - Privy CSP：[implementation guide](https://docs.privy.io/security/implementation-guide/content-security-policy)；WalletConnect CSP：[official guide](https://github.com/walletconnect/walletconnect-docs/blob/main/docs/advanced/security/content-security-policy.md)；Sentry CSP：[official guide](https://docs.sentry.io/platforms/javascript/common/install/loader/#content-security-policy)。
 - ZeroDev Kernel V3.3 外部合约证据：`docs/architecture/kernel-v3.3-evidence.md`、[v3.3 tag](https://github.com/zerodevapp/kernel/tree/v3.3)。
-- Node.js 24 兼容性核验：Next.js `16.3.3` requires `>=20.9.0`；TypeScript `7.0.2` requires `>=16.20.0`；ESLint `10.9.1` supports `>=24`；vite `8.2.2` supports `>=22.12.0`；Vitest `4.1.11` supports `>=24.0.0`；Playwright `1.62.1` requires `>=20`；`@graphprotocol/graph-cli 0.98.1` requires `>=20.18.1`；`@sentry/nextjs 10.72.0` requires `>=18`。阶段 3 必须在 Node `24.20.0` 下完成 frozen install、typecheck、lint、format、test 和 production build，未执行不视为兼容性已证明。
+- Node.js 24 兼容性核验：Next.js `16.4.3` requires `>=20.9.0`；TypeScript `7.0.2` requires `>=16.20.0`；ESLint `10.9.1` supports `>=24`；vite `8.2.2` supports `>=22.12.0`；Vitest `4.1.11` supports `>=24.0.0`；Playwright `1.62.1` requires `>=20`；`@graphprotocol/graph-cli 0.98.1` requires `>=20.18.1`；`@sentry/nextjs 10.76.2` requires `>=18`。阶段 3 必须在 Node `24.20.0` 下完成 frozen install、typecheck、lint、format、test 和 production build，未执行不视为兼容性已证明。
 - Alchemy、Infura、Vercel、GitHub Actions 和 Sentry 托管服务没有可固定的语义版本号：[Alchemy pricing](https://www.alchemy.com/pricing)、[Infura pricing](https://www.infura.io/pricing)、[Vercel pricing](https://vercel.com/pricing)、[GitHub Actions billing](https://docs.github.com/en/billing/managing-billing-for-your-products/managing-billing-for-github-actions/about-billing-for-github-actions)、[Sentry pricing](https://sentry.io/pricing/)。
 
 证据分类：上列版本、兼容性、网络支持和价格均来自项目官方 release、npm、源码仓或服务官方文档，检索日期为 2026-08-31；本文不把无法版本化核验的社区讨论声明为社区共识。框架分层、原型载体、逐链基础设施映射、Type-4 simulation 边界和交付门属于架构独立判断，置信度高；月成本仅代表当前公开价格，未来账单预测置信度中，发布前必须按实际 MAU 和用量复核。
@@ -705,8 +705,22 @@ MemeverseYTFlashSwapRouter 三测试网补部署（阶段 4「未部署」遗留
 
 - §7「每笔交易签名前显示九项」修订为按交易定制：简单直调（Faucet claim/batchClaim 这类无输出、无费用、无授权变化的直接 EOA 写）跳过站内审阅面板，点 Claim 直进钱包确认弹框；复杂交易（创世/参与/Swap/POL/治理等）保留审阅面板。审阅面板本身是按交易定制的 UI，不是全站写死的九项。
 - 直调仍受 §14 约束：同字段 eth_call 模拟先行（`use-tx-center` direct 分支）、签名后字段变化废弃。余额不由站内重复校验——空账户过不了钱包自己的预检（节点在 mempool 前拒收，无任何花费）。免的是站内确认 UI 与重复校验，不是模拟。
-- AC-1 第 5/6 步同步改写：有审阅面板的交易抄面板核钱包弹框；直调交易只核钱包弹框 To/网络（见 acceptance-checklist.md）。
+- AC-1 第 5/6 步同步改写：有审阅面板的交易抄面板核钱包弹框；直调交易只核钱包弹框 To/网络。
 - 同轮补充（Get UUSD，2026-10-22 用户裁定）：PSM 面值兑换弹窗自带 Rate/Fee/You receive/Mint capacity left 四行、无滑点/deadline，站内审阅卡同样删除；该流仍需 approval+mint 同批，故走无面板的 `executeSession`，不是 direct。Portfolio Convert 弹窗不受影响，仍保留审阅面板。
 - 三轮补充（钱包路由，2026-10-22 用户指出 MetaMask 本身支持 EIP-7702）：`use-tx-center` 的执行入口收口为 `executeByWallet` 单一分派（决策体抽到 `lib/web3/write-route.ts`），`confirm`/`executeSession`/`executeDirect` 全部经它：direct 直调 → Privy 内嵌钱包 Kernel type-4（`useSign7702Authorization` 的 `secp256k1_sign` 仅内嵌钱包可用）→ 外部钱包 EIP-5792 `wallet_sendCalls`（spec 携带 `calls` 时；钱包在自己的弹窗内完成 7702 升级，dapp 不签 authorization）→ 无 `calls` 的 spec 返回 `unsupported`（`wallet-unsupported` 状态，不伪装成用户取消）。执行管线抽到 `lib/web3/tx-executor.ts`（端口注入、无 React/Privy 依赖）；`session-actions` 的 `buildSessionWrite` 同时产出 5792 `calls` 与 Kernel `calldata`，全部 Router 弹窗（Swap/POL/池/金库/创建/参与/Portfolio 桥/保护窗）共用，外部钱包无需逐弹窗适配。`wallet_getCapabilities` 探测失败只影响该笔，不标脏全局 provider capability；`wallet_getCallsStatus` 参数为 `[batchId]`、状态按规范数字码解析（100/200/400/500/600），轮询超时保持 Confirming…（pending），不判取消；`begin/reset` 递增 run 代际，旧异步续写不得写入新流程。
 - 二轮补充（直调免模拟，2026-10-22 用户裁定「必败交易为什么不是钱包自己模拟」）：免审阅的直接 EOA 写连站内 eth_call 也删除——点击直进钱包弹框，必败交易由钱包自身预检拦截（MetaMask 等在确认框内红色警告；强签则链上 revert、烧微量测试网 gas）。领取流站内进度/错误 UI 删除后，模拟结果（`simulation-failed`/`errorKind`）已无站内消费方，保留只剩弹窗前固定 RPC 往返与必败时无声失败两个负面效果。§7 直调句与 §14「所有写操作先 simulation」按此加简单直调例外；`use-tx-center` direct 分支事件链原样保留（`simulation-ok` 仅作状态推进，无链上读）。Get UUSD 的 session/type-4 管线不受影响——授权管线与 §6.4 gas 闸门需要自身模拟。
 - 四轮补充（审阅面板全席废除，2026-10-23 用户裁定「弹窗即审阅，不能 Review 两次」）：上条「复杂交易保留审阅面板」作废——TxReviewPanel 站内审阅站全站删除（组件/CSS/`startReview`/`cancelReview`/`confirm` API 一并退役），所有 Router 弹窗（参与/Swap/四池/POL/金库/创建/Portfolio）与直调统一走「动作弹窗 Confirm → `executeSession`/`executeDirect` → 钱包弹框」单段审阅；钱包弹框是技术细节的唯一展示位（To/网络/费用/数据），站内不再镜像。§7 审阅九项条款至此整体退役（决议 041）。
+
+## 30. 架构修订记录（2026-10-27，PSM 储备腿交换 + ABI v1-rc2 轮）
+
+用户裁定（产品口径：交换卡保持 exact-in；USDC 是 UUSD 的 PSM 输入腿，需要能在交换卡上直接买卖，不是只列一行灰色的「暂不可交易」）：
+
+- 合约侧（Memeverse `6f026e1`）新增 `MemeverseSwapRouter.swapExactInToReserve(...)`：单笔内完成 memecoin→uAsset 的内部 exact-input swap 与外部 PSM 赎回（uAsset→储备 token）。它在任何资金移动前校验 `psm.uAsset()` 与 `psm.reserveToken()` 双绑定，swap 输出落在 Router 自身并用余额差赎回（隔离 Router 上既有的同类代币尘埃），两份 floor（`minUAssetOut` / `minReserveOut`）承载滑点，入口带 transient 重入锁，不发业务事件。OutStake 零改动。
+- 买入方向不新增合约入口：`approve reserve→PSM → PSM.mint → approve uAsset→router → swap(exact-in)` 由一批完成，因为 `quoteMint` 是 1:1 减费的确定性输出，后续 swap 的 `amountIn` 是静态值。`buildSessionBatch` 因此增加 `preActions`（approvals → preActions → begin → Router → end）。
+- ABI 版本从 `v1-rc` 升到 `v1-rc2`：`contracts/abi/v1-rc/` 整目录冻结不动，`v1-rc2/` 是完整新快照（38 个文件，只有 `MemeverseSwapRouter.json` 变化）。`scripts/deployment-schema.mjs` 导出 `ABI_VERSIONS` 与 `CURRENT_ABI_VERSION`，五个生成/校验脚本（`export-abi` / `check-abi-manifest` / `gen-subgraph-config` / `generate-deployment-artifacts` / 对应 fixture）全部改为从该常量取版本，不再硬编码目录名；应用侧只有 `lib/web3/abis.ts` 一个文件知道目录。`deployments/*.json` 的 `abiVersion` 同步为 `v1-rc2`。
+- 报价层：`resolveSwapQuoteContext` 区分池腿（memecoin↔uAsset）与卡片腿（储备选中时是 USDC），`SwapQuoteValue` 增加 `cardDecimalsIn/Out` 与可选 `psm` 段（`uAssetAmount` / `psmAmountIn` / `psmAmountOut` / `feeInInput`）。PSM 报价直接读 `quoteMint`/`quoteRedeem`，不读 `tin`/`tout` 固定值。
+- 费用呈现：只保留 `swapFee` 一行，语义改为「本次交易按输入币计的总成本」。Router 费取 `quoteSwap` 的 `estimatedLpFeeAmount` + `estimatedProtocolFeeAmount`（协议费在输出侧时按本笔汇率折回输入币），PSM 费取两端报价差再折成输入币，两者相加后除以输入额。uAsset 直连时 PSM 项为 0，行值退化为原行为。
+- 执行层：新增 `components/verse/swap-plan.ts`（纯函数，可单测）把三种批次形状钉死——uAsset 直连、储备买入（mint→swap）、储备卖出（Router 单调用）；`swap-panel` 只负责读 allowance 与组装 `WriteSpec`。
+- 失败面：`decodeNestedRevert` 新增 `psm-cap-exceeded` / `psm-reserve-short` / `psm-dust` / `reserve-leg-unavailable` 四类，文案中英各四条；这四类都在 `tx-copy.ts` 映射，不会落到通用「未知错误」。
+- 部署（2026-10-28）：三链已重部署 `swaprouter` 批，Router 同址 `0x416315158C6779DCbAFc14869FF55921D30DE7fa`、Lens `0x350D7b9096Ba127B22189e78953272fb708E1f80`，nonce 为 256-bit 随机值（记录见 `DEPLOYMENT.md` §1「局部换代」）。只换这两个合约：uAsset/PSM/launcher/hook/POLend/SP 仍是 nonce-4 地址。launcher 的 `memeverseSwapRouter` 与 hook 的 `poolInitializer` 已重指向新 Router。
+- 链上验证：用 BSC 上真实 OSMK verse（`52837714424155436352242994144496188832833587031649586216523996295503828439311`）跑 fork 测试，两个方向都通过——卖出 100 OSMK → 0.003181 USDC（返回值=实际到账，Router 零 uAsset 残留）；买入 10 USDC → 9.99 UUSD（0.1% 费）→ 307.46 OSMK（无 UUSD 残留）。测试同时暴露两条前端必须满足的前置条件：hook 要求 `beginAccountSession` 的调用方有代码（EIP-7702 委托或部署账户），且 swap 必须在 session 窗口内——这正是 `buildSessionWrite` 的 `swapSession: true` 路径。

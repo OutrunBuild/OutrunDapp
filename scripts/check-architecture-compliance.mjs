@@ -4,7 +4,7 @@
 // Directory layout and the RSC/Client boundary are advisory extension points (not scanned here);
 // fixture isolation is enforced by scripts/check-fixture-boundary.mjs. Deferred advisories are
 // printed so missing app code is not misreported as a pass.
-// 4) click-path budget (AGENTS.md 性能纪律): every write dialog must resolve its verse session
+// 4) click-path budget (docs/engineering/performance.md): every write dialog must resolve its verse session
 // through the shared prefetch cache; importing the raw resolver in a component is where the
 // per-click verse-tuple read came from, so it is rejected here instead of found by hand later.
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
@@ -15,7 +15,7 @@ const deferred = [];
 
 // 1) version allowlist (exact versions; caret/ranges forbidden)
 // typescript allows two forms: a direct pin to npm:@typescript/typescript6@6.0.2,
-// or the dual-compiler bridge link:./vendor/typescript-bridge (Next 16.3.3 useTypeScriptCli
+// or the dual-compiler bridge link:./vendor/typescript-bridge (Next 16.4.3 useTypeScriptCli
 // requires bin/tsc inside the typescript package; bridge API=TS6.0.2/CLI=TS7.0.2).
 const ALLOWLIST = {
   devDependencies: {

@@ -6,7 +6,7 @@
 
 | 仓库 | 基线 commit | 提交 subject | 工作树 |
 |---|---|---|---|
-| Memeverse（`/home/azkrale/Web3Project/Memeverse`） | `e327abb` | `snapshot: select build-info by the batch's tier — cache-hit batches freeze stale files` | — |
+| Memeverse（`/home/azkrale/Web3Project/Memeverse`） | `6f026e1` | `docs: swap spec step order matches code - reserve floor before PSM allowance reset (gate:fast pass)` | — |
 | OutStake（`/home/azkrale/Web3Project/OutStake`） | `ecc67c1` | `docs(deployment): wrapper tier mechanism is FOUNDRY_PROFILE=tN profiles (not --optimizer-runs CLI)`（部署机器轮收尾） | — |
 | OutrunBook（`/home/azkrale/Web3Project/OutrunBook`） | main `d8f167f`（zh 分支 `9ee861d` 同步） | `docs(memeverse): document post-launch POL supply entries — mintPOLToken from Locked, redeemMemecoinLiquidity from Unlocked` | — |
 
@@ -18,7 +18,7 @@
 |---|---|---|
 | ZeroDev Kernel V3.3 tag commit | `cd697c7e21715d015e0643af22310a99aa17433b`（`v3.3`） | `docs/architecture/kernel-v3.3-evidence.md`（sha256 `01e0ebc67c9e9662…`） |
 | CSP 机器可读基准 | `docs/security/csp-origins.json` | sha256 `5827107a69ae0b0e…`（v3：增 BSC dataseed origin，Origin 先登记再放行 §14） |
-| 唯一架构真相 | `docs/architecture.md` | sha256 `c5140ddec422afd8…`（§29 简单直调免审阅轮） |
+| 唯一架构真相 | `docs/architecture.md` | sha256 `9b3abf0cbfedfdad…`（§30 版本/目录漂移对齐轮） |
 | pnpm-lock | `pnpm-lock.yaml` | `docs/page-briefs/pnpm-lock.sha256`（`scripts/write-file-hash.mjs` 重出） |
 | ABI 冻结 manifest（阶段 4） | `contracts/abi/v1-rc/manifest.json`（37 份 ABI + 三链合约/codehash/Kernel） | sha256 `92f47e4f0da93158…`（`scripts/write-file-hash.mjs`；CI=check-abi-manifest.mjs） |
 | deployments 链配置（阶段 4） | `deployments/{421614,84532,97}.json` | sha256 `ef5c8456…`(421614)/`0283009f…`(84532)/`8b6f3755…`(97)（`scripts/write-file-hash.mjs`） |
@@ -36,12 +36,12 @@
 
 ## 5. 事实引用矩阵（路径均为各自仓库相对路径）
 
-### 5.1 Memeverse @ `e327abb`
+### 5.1 Memeverse @ `6f026e1`
 
 | # | 路径 | 覆盖的 brief 事实 |
 |---|---|---|
-| M1 | `docs/spec/swap/swap-flow.md` | 普通_swap 流程、account session 事实（R-04 交易台、GS-01/账户子机） |
-| M2 | `docs/spec/swap/swap-integration.md` | swap 集成边界（R-04 交易台） |
+| M1 | `docs/spec/swap/swap-flow.md` | 普通_swap 流程、account session 事实、PSM 储备卖出资金流 `swapExactInToReserve`（R-04 交易台、GS-01/账户子机） |
+| M2 | `docs/spec/swap/swap-integration.md` | swap 集成边界；§3.4 储备腿入口 `swapExactInToReserve`（exact-in、PSM 双绑定、两份 floor、无新事件）（R-04 交易台） |
 | M3 | `docs/spec/swap/permit2.md` | Permit2 授权流（R-04 交易台；界面只说「授权」） |
 | M4 | `docs/spec/swap/yt-flash-swap.md` | YT Flash Swap（R-04 交易台、R-04 Vault） |
 | M5 | `docs/spec/swap/uniswap-v4.md` | 池/动态费率/LP 事实（R-04 Liquidity）；referral 规则：单层无绑定/自推荐合法/按链独立（:106，R-06） |

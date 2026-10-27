@@ -27,13 +27,13 @@ fixtures/**  →  lib/data/fixture-repository.ts  →  components/**（ui/design
 
 当前行为（以代码与单测为准）：`resolveSpec` 按 tsconfig paths 解析 `@/` 别名（别名形态的桥消费方/直连 fixtures/graph 遍历均在拦截范围）；不支持形态别名（精确键/多目标）fail-closed 落 `unresolved-import` 注记；引号开头拼接动态 `import('../x' + y)` 落 `dynamic-source-resolver`；两参 import attributes（`import('./x', { with: … })`）按静态可解析放行；违规注记按 `file|line|kind|detail` 去重。已知边界：魔法注释 `import(/* c */ './x')` 仍按动态注记；`require.resolve('…')` 不纳入判定（运行时路径解析、不进 import 图；bundle 哨兵层兜底内容泄漏），本仓零触发。单测 `tests/unit/fixtures/boundary.test.ts` 全绿。
 
-## OUTRUN_DATA_SOURCE 数据源开关语义（2026-10-14 登记，阶段 5 步骤 1；同日用户裁定值名=onchain）
+## OUTRUN_DATA_SOURCE 数据源开关语义（2026-10-14 登记，阶段 5 步骤 1；同日用户裁定值名=onchain；2026-10-26 用户裁定默认值反转）
 
-- **取值**：`onchain` → 真数据路径（`lib/data/source-resolver.ts` → RPC/Graph repository）；未设置或 `fixture` → 原型 fixture 路径（默认：本地原型、e2e、视觉基线）。其他取值一律按 fixture 语义——仅与 `'onchain'` 精确匹配走真数据（先例：`lib/prototype/scenario.ts` 的 `=== 'onchain'` 判定）。命名语义：该开关只表达**数据源维度**（链上真数据 vs 原型 fixture），不表达环境维度（主网/测试网）——测试网真数据同为 `onchain`；曾拟名 `production` 因与主网生产环境语义混淆被否（2026-10-14 用户裁定）。
+- **取值（2026-10-26 反转：onchain 为默认）**：未设置或 `onchain` → 真数据路径（`lib/data/source-resolver.ts` → RPC/Graph repository）；**仅显式 `fixture`** → 原型 fixture 路径（`pnpm dev:fixture` / `pnpm build:fixture`；e2e/视觉基线沿用，playwright.config 显式传 `OUTRUN_DATA_SOURCE=fixture`）。其他取值一律按 onchain 语义——仅与 `'fixture'` 精确匹配才走 fixture（客户端镜像 `NEXT_PUBLIC_OUTRUN_DATA_SOURCE` 在 fixture 构建置 `fixture`、其余置 `onchain`）。命名语义：该开关只表达**数据源维度**（链上真数据 vs 原型 fixture），不表达环境维度（主网/测试网）——测试网真数据同为 `onchain`；曾拟名 `production` 因与主网生产环境语义混淆被否（2026-10-14 用户裁定）。
 - **定格时机**：构建期（build-time pin）。两模式 = 两次构建；同一构建产物内 fixture/真实双路径静态共存即违规（本契约禁核心源码目录动态 resolver、禁 onchain 图到达 `fixtures/**` 的直接推论）。对已构建产物在运行期改此变量不改变其数据路径；运行期读取仅继续守卫非数据面（如 scenario 参数解析，见 `scripts/check-scenario-boundary.mjs` 头注）。
 - **选择点**：`lib/data/source-resolver.ts` 是真数据路径的唯一选择点——onchain 构建的数据消费只经它取得真实 repository（真实数据或结构化 unavailable，永不回退 fixture）；原型模式沿用本契约的 fixture-repository 合法桥（components 直连，不经 source-resolver）。
 - **接线纪律**：消费图因切换接线变化时同步更新本契约登记，不得放宽任何豁免；onchain 构建必须过 `--graph onchain` 与 `--bundle` 两层。
-- **切换实现登记（2026-10-15，阶段 5 步骤 7）**：onchain 构建经 `next.config.ts` 构建期 resolveAlias（turbopack+webpack 双配置，仅 `OUTRUN_DATA_SOURCE=onchain` 时激活）把 `@/lib/data/fixture-repository` 精确重定向到 `lib/data/onchain-source.ts`。适配器以 **type-only** 引 fixture-repository 的共享 ViewModel 形状（运行时值零引用——单测锁死），运行时同名导出面由 `lib/data/repository.ts`（RPC）+ `lib/data/graph/graph-repository.ts`（Graph）实现；无链上来源的字段按 null/空态纪律降级（faucet 冷却 null 不渲染=2026-10-14 裁定）。页面侧消费点 async 化并 `await` getter——fixture 模式下 await 同步值，渲染与基线逐字节一致。
+- **切换实现登记（2026-10-15 阶段 5 步骤 7；2026-10-26 极性更新）**：onchain 构建经 `next.config.ts` 构建期 resolveAlias（turbopack+webpack 双配置，**非 `OUTRUN_DATA_SOURCE=fixture` 时激活**——默认即 onchain）把 `@/lib/data/fixture-repository` 精确重定向到 `lib/data/onchain-source.ts`。适配器以 **type-only** 引 fixture-repository 的共享 ViewModel 形状（运行时值零引用——单测锁死），运行时同名导出面由 `lib/data/repository.ts`（RPC）+ `lib/data/graph/graph-repository.ts`（Graph）实现；无链上来源的字段按 null/空态纪律降级（faucet 冷却 null 不渲染=2026-10-14 裁定）。页面侧消费点 async 化并 `await` getter——fixture 模式下 await 同步值，渲染与基线逐字节一致。
 
 ## 当前 allowlist
 
