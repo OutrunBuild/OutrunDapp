@@ -1,15 +1,18 @@
 'use client'
 
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { ArrowDown, ArrowLeftRight } from 'lucide-react'
 
 import type { Locale, PolPosition, VerseTrade } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
+import { useVerseBalances } from './trade-balances'
 import { useAccountCenter } from '../global/use-account-center'
 import { ActionDialogShell, DialogCta } from '../global/action-dialogs'
 import { useTxCenter, useClearOnConfirmed, type WriteSpec } from '../global/use-tx-center'
-import { TxStatus } from '../global/tx-status'
+import { TxProgressDialog } from '../global/tx-progress-dialog'
+import { TxSuccessDialog, type TxSuccessRow } from '../global/tx-success-dialog'
+import { useTxSuccessGate } from '../global/use-tx-success'
 import {
   readAllowances,
   resolvePoolTokens,
@@ -23,11 +26,12 @@ import {
   removeLiquidityCall,
 } from '@/lib/web3/session-actions'
 import { useParams } from 'next/navigation'
-import { formatUnits, parseUnits, type Hex } from 'viem'
+import { formatUnits, type Hex } from 'viem'
+import { estimateBaseUnitsFloor, toBaseUnits } from '@/lib/web3/base-units'
 import { SwapSettings } from '../global/swap-settings'
 import { formatAmount } from '../global/signal-ui'
-import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
-import { fmtTokenAmount, fmtUsd } from '../global/amount-format'
+import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount, trimFractionZeros, typedAmountPositive } from '../global/amount-input'
+import { fmtTokenAmount, fmtTokenAmountExact, fmtUsd } from '../global/amount-format'
 import { getSlippageIssue, slippageToNumber } from '../global/slippage-input'
 import { parseVerseIdParam } from '../global/routes'
 import { useVerseExecChain } from '../global/switch-chain-cta'
@@ -77,6 +81,9 @@ export function PoolRemoveLiquidityDialog({
   const { connected, connectAction: toggle } = center
   const { execChain, wrongChain, switchChain } = useVerseExecChain(governanceChain)
   const tx = useTxCenter()
+  const { successOpen, setSuccessOpen, receipt } = useTxSuccessGate(tx)
+  // Receipt legs snapshotted at the click (the amount clears on landing).
+  const [removeRows, setRemoveRows] = useState<TxSuccessRow[]>([])
   const params = useParams()
   const rawVerseId = params?.verseId
   const verseId = parseVerseIdParam(rawVerseId)
@@ -93,9 +100,28 @@ export function PoolRemoveLiquidityDialog({
   const [rateInverted, setRateInverted] = useState(false)
   useClearOnConfirmed(tx.display, () => setLpAmount(''))
 
-  const lpBalance = pol == null ? null : pol.myLp[pool.pool]
+  // Wallet-provider LP balance for this pool (onchain builds); re-reads when a remove confirms.
+  const [settleTick, setSettleTick] = useState(0)
+  const prevDisplayRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (tx.display === 'confirmed' && prevDisplayRef.current !== 'confirmed') {
+      setSettleTick((tick) => tick + 1)
+    }
+    prevDisplayRef.current = tx.display
+  }, [tx.display])
+  const live = useVerseBalances({ verseId, governanceChain, refreshKey: settleTick })
+
+  const lpBalance = live?.lp[pool.pool] ?? pol?.myLp[pool.pool] ?? null
+  // Exact LP read wins over the float alias whenever the probe landed (float64 can round a
+  // real balance upward — a Max prefill re-parsed from it would trip the gate)
+  const lpExact = live?.exact.lp[pool.pool] ?? null
   // Max fill value (null/≤0 → empty); computed upfront to avoid losing narrowing inside the closure
-  const maxLp = amountToInputString(lpBalance ?? 0)
+  const maxLp =
+    lpExact != null
+      ? lpExact.base === 0n
+        ? ''
+        : trimFractionZeros(formatUnits(lpExact.base, lpExact.decimals))
+      : amountToInputString(lpBalance ?? 0)
   // POL/uAsset pool market price sample (for the POL-denominated side's ≈$ conversion)
   const polPrice = pol?.marketPricePerPol ?? null
   const lpSymbol = `${pool.baseSymbol}/${pool.quoteSymbol} LP`
@@ -112,8 +138,11 @@ export function PoolRemoveLiquidityDialog({
     pool.pool === 'main' ? price : pool.pool === 'pol-uasset' ? polPrice : ptAnchorRatio
 
   const lpVal = Number(lpAmount)
-  const valid = Number.isFinite(lpVal) && lpVal > 0
-  const lpOver = lpBalance != null && lpVal > lpBalance
+  const valid = typedAmountPositive(lpAmount, lpExact)
+  const lpOver =
+    lpExact != null
+      ? Number.isFinite(lpVal) && toBaseUnits(lpAmount, lpExact.decimals) > lpExact.base
+      : lpBalance != null && lpVal > lpBalance
   const executionReady =
     center.source === 'real' &&
     connected &&
@@ -125,6 +154,31 @@ export function PoolRemoveLiquidityDialog({
 
   async function startRemoveReview(): Promise<void> {
     if (!executionReady || !valid || lpOver || slippageIssue != null || resolving) return
+    setRemoveRows([
+      {
+        label: common.txYouWithdrew,
+        value: formatAmount(Number(lpAmount), locale),
+        symbol: 'LP',
+      },
+      ...(baseOut != null
+        ? [
+            {
+              label: common.txReceived,
+              value: `≈ ${formatAmount(baseOut, locale)}`,
+              symbol: pool.baseSymbol,
+            },
+          ]
+        : []),
+      ...(quoteOut != null
+        ? [
+            {
+              label: common.txReceived,
+              value: `≈ ${formatAmount(quoteOut, locale)}`,
+              symbol: pool.quoteSymbol,
+            },
+          ]
+        : []),
+    ])
     const provider = getActiveEip1193Provider()
     const eoa = center.address as Hex | null
     const chainId = center.chainId
@@ -155,12 +209,14 @@ export function PoolRemoveLiquidityDialog({
         getTokenDecimals(reader, chainId, base),
         getTokenDecimals(reader, chainId, quote),
       ])
-      const liquidity = parseUnits(lpAmount, lpDecimals)
+      const liquidity = toBaseUnits(lpAmount, lpDecimals)
+      if (liquidity === 0n) throw new Error('typed amount below one base unit')
       const slippageBps = Math.round(slippage * 100)
-      // mins derive from the display minQuote/minBase (fall back to zero when slotted).
+      // mins derive from the display minQuote/minBase (fall back to zero when slotted);
+      // slippage bounds floor — never a hair above the estimate (Uniswap rounding convention)
       const minQuoteBase =
-        minQuote != null ? parseUnits(String(minQuote), quoteDecimals) : 0n
-      const minBaseBase = minBase != null ? parseUnits(String(minBase), baseDecimals) : 0n
+        minQuote != null ? estimateBaseUnitsFloor(minQuote, quoteDecimals) : 0n
+      const minBaseBase = minBase != null ? estimateBaseUnitsFloor(minBase, baseDecimals) : 0n
       const sorted = base.toLowerCase() < quote.toLowerCase()
       const currency0 = (sorted ? base : quote) as Hex
       const currency1 = (sorted ? quote : base) as Hex
@@ -205,9 +261,14 @@ export function PoolRemoveLiquidityDialog({
         deadline: Math.floor(Date.now() / 1000) + 3600,
         manifestVersion: session.manifestVersion,
         crossChain: false,
+        writeScope: { kind: 'verse', chainId, verseId },
       }
       void tx.executeSession(spec)
-    } catch {
+    } catch (error) {
+      // Dev-only: the UI collapses every prepare failure into one generic line.
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[remove-liquidity] prepare failed', error)
+      }
       setResolveFailed(true)
     } finally {
       setResolving(false)
@@ -245,7 +306,8 @@ export function PoolRemoveLiquidityDialog({
       : fmtUsd(quoteOut * quoteUsdPrice * uAssetUsd, locale)
 
   return (
-    <Dialog>
+    <>
+      <Dialog>
       {/* data-slot pinned back to button: same as PolMintDialog — the theme bridge matches skins
           on [data-slot='button'];
           .pool-card [data-slot='button'] pool card row styling keeps matching */}
@@ -277,7 +339,9 @@ export function PoolRemoveLiquidityDialog({
               <span>{lpSymbol}</span>
               <span className="swap-panel__balance">
                 {copy.balance}:{' '}
-                {lpBalance == null ? (
+                {lpExact != null ? (
+                  <span data-numeric>{fmtTokenAmountExact(lpExact.base, lpExact.decimals, locale)}</span>
+                ) : lpBalance == null ? (
                   '--'
                 ) : (
                   <span data-numeric>{formatAmount(lpBalance, locale)}</span>
@@ -409,9 +473,28 @@ export function PoolRemoveLiquidityDialog({
             }
           />
           {resolveFailed ? <FieldError>{common.degrade.errorBody}</FieldError> : null}
-          
-          {tx.active && !tx.reviewing ? <TxStatus locale={locale} state={tx.display} /> : null}
       </ActionDialogShell>
-    </Dialog>
+      </Dialog>
+      {/* Feedback pair (2026-10-26 弹窗序列纪律): progress = its own button-less dialog
+          (second-to-last), confirmed yields to the generic receipt dialog (last). */}
+      <TxProgressDialog
+        locale={locale}
+        title={copy.removeLiquidityDialogTitle}
+        state={tx.display}
+        open={tx.active && !successOpen}
+        onDismiss={tx.reset}
+      />
+      <TxSuccessDialog
+        locale={locale}
+        title={copy.removeLiquidityDoneTitle}
+        lead={copy.removeLiquidityDoneLead}
+        accent={copy.removeLiquidityDoneAccent}
+        rows={removeRows}
+        txHash={receipt?.hash}
+        txChainId={receipt?.chainId}
+        open={successOpen}
+        onOpenChange={setSuccessOpen}
+      />
+    </>
   )
 }

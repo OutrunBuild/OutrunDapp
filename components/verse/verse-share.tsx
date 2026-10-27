@@ -2,22 +2,17 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import { Check, Gift, Link2, X } from 'lucide-react'
+import { Check, Gift, Link2 } from 'lucide-react'
 
 import type { Verse, Locale } from '@/lib/data/fixture-repository'
 
 import { XIcon } from '../global/brand-icons'
 import { getCopy } from '../global/copy'
+import { ActionDialogShell } from '../global/action-dialogs'
 import { useCopy } from '../global/use-copy'
 
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
+import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 /**
@@ -67,32 +62,29 @@ export function VerseShare({ locale, verse }: { locale: Locale; verse: Verse }) 
           </TooltipTrigger>
           <TooltipContent side="top">{copy.shareHints[hintIndex]}</TooltipContent>
         </Tooltip>
-        <DialogContent className="verse-share-pop" data-stage={verse.stage}>
-          {/* Shell reuses .pol-mint (same as the DAO/Liquidity dialogs): surface/stroke glow/padding all live on this layer */}
-          <div className="pol-mint">
-            <header className="pol-mint__head">
-              <DialogTitle className="pol-mint__title verse-share-card__title">
-                {copy.shareTitle}
-                {/* The hint glyph=is the gift graphic itself: the gift icon doubles as the
-                    tooltip trigger, hover shows the referral note */}
-                <Tooltip>
-                  <TooltipTrigger
-                    className="verse-share-card__gift"
-                    aria-label={copy.shareReferralLabel}
-                  >
-                    <Gift size={18} aria-hidden="true" />
-                  </TooltipTrigger>
-                  <TooltipContent side="top">{copy.shareReferralNote}</TooltipContent>
-                </Tooltip>
-              </DialogTitle>
-              <div className="pol-mint__controls">
-                <DialogClose
-                  render={<button type="button" className="pol-mint__close" aria-label={common.close} />}
+        <ActionDialogShell
+          contentClass="verse-share-pop"
+          dataStage={verse.stage}
+          glow={false}
+          titleClassName="verse-share-card__title"
+          closeLabel={common.close}
+          title={
+            <>
+              {copy.shareTitle}
+              {/* The hint glyph=is the gift graphic itself: the gift icon doubles as the
+                  tooltip trigger, hover shows the referral note */}
+              <Tooltip>
+                <TooltipTrigger
+                  className="verse-share-card__gift"
+                  aria-label={copy.shareReferralLabel}
                 >
-                  <X aria-hidden="true" size={16} />
-                </DialogClose>
-              </div>
-            </header>
+                  <Gift size={18} aria-hidden="true" />
+                </TooltipTrigger>
+                <TooltipContent side="top">{copy.shareReferralNote}</TooltipContent>
+              </Tooltip>
+            </>
+          }
+        >
             <div className="verse-share-card">
               <span className="verse-share-card__thumb" aria-hidden="true">
                 {verse.symbol.slice(0, 2)}
@@ -142,8 +134,7 @@ export function VerseShare({ locale, verse }: { locale: Locale; verse: Verse }) 
                 <XIcon aria-hidden="true" />
               </Button>
             </div>
-          </div>
-        </DialogContent>
+      </ActionDialogShell>
       </Dialog>
     </div>
   )

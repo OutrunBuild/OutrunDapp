@@ -1,15 +1,18 @@
 'use client'
 
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { ArrowDown, ArrowLeftRight } from 'lucide-react'
 
 import type { Locale, PolPosition, VerseTrade } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
+import { useVerseBalances } from './trade-balances'
 import { useAccountCenter } from '../global/use-account-center'
 import { ActionDialogShell, DialogCta } from '../global/action-dialogs'
 import { useTxCenter, useClearOnConfirmed, type WriteSpec } from '../global/use-tx-center'
-import { TxStatus } from '../global/tx-status'
+import { TxProgressDialog } from '../global/tx-progress-dialog'
+import { TxSuccessDialog, type TxSuccessRow } from '../global/tx-success-dialog'
+import { useTxSuccessGate } from '../global/use-tx-success'
 import {
   readAllowances,
   resolvePoolTokens,
@@ -22,11 +25,12 @@ import {
   buildSessionWrite,
 } from '@/lib/web3/session-actions'
 import { useParams } from 'next/navigation'
-import { formatUnits, parseUnits, type Hex } from 'viem'
+import { formatUnits, type Hex } from 'viem'
+import { toBaseUnits } from '@/lib/web3/base-units'
 import { SwapSettings } from '../global/swap-settings'
 import { formatAmount } from '../global/signal-ui'
-import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
-import { fmtTokenAmount, fmtUsd } from '../global/amount-format'
+import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount, trimFractionZeros, typedAmountPositive } from '../global/amount-input'
+import { fmtTokenAmount, fmtTokenAmountExact, fmtUsd } from '../global/amount-format'
 import { getSlippageIssue, slippageToNumber } from '../global/slippage-input'
 import { parseVerseIdParam } from '../global/routes'
 import { useVerseExecChain } from '../global/switch-chain-cta'
@@ -84,6 +88,9 @@ export function PoolAddLiquidityDialog({
   const { connected, connectAction: toggle } = center
   const { execChain, wrongChain, switchChain } = useVerseExecChain(governanceChain)
   const tx = useTxCenter()
+  const { successOpen, setSuccessOpen, receipt } = useTxSuccessGate(tx)
+  // Receipt legs snapshotted at the click (both input fields clear on landing).
+  const [addRows, setAddRows] = useState<TxSuccessRow[]>([])
   const params = useParams()
   const rawVerseId = params?.verseId
   const verseId = parseVerseIdParam(rawVerseId)
@@ -105,16 +112,38 @@ export function PoolAddLiquidityDialog({
     setQuoteAmount('')
   })
 
+  // Wallet-provider supply-side balances (onchain builds); re-reads when an add confirms here.
+  const [settleTick, setSettleTick] = useState(0)
+  const prevDisplayRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (tx.display === 'confirmed' && prevDisplayRef.current !== 'confirmed') {
+      setSettleTick((tick) => tick + 1)
+    }
+    prevDisplayRef.current = tx.display
+  }, [tx.display])
+  const live = useVerseBalances({ verseId, governanceChain, refreshKey: settleTick })
+
   // Supply-side balances: main pool=memecoin/uAsset, POL/uAsset=POL/uAsset, PT pools=PT/+ (uAsset or POL)
   const baseBalance =
-    pol == null
-      ? null
-      : pool.pool === 'main'
-        ? pol.myMemecoin
-        : pool.pool === 'pol-uasset'
-          ? pol.myPol
-          : pol.myPt
-  const quoteBalance = pol == null ? null : pool.pool === 'pt-pol' ? pol.myPol : pol.myUAsset
+    pool.pool === 'main'
+      ? (live?.memecoin ?? pol?.myMemecoin ?? null)
+      : pool.pool === 'pol-uasset'
+        ? (live?.pol ?? pol?.myPol ?? null)
+        : (live?.pt ?? pol?.myPt ?? null)
+  const quoteBalance =
+    pool.pool === 'pt-pol'
+      ? (live?.pol ?? pol?.myPol ?? null)
+      : (live?.uAsset ?? pol?.myUAsset ?? null)
+  // Exact wallet reads win over the float aliases whenever the probe landed (float64 can
+  // round a real balance upward — a Max prefill re-parsed from it would trip the gate)
+  const baseExact =
+    pool.pool === 'main'
+      ? (live?.exact.memecoin ?? null)
+      : pool.pool === 'pol-uasset'
+        ? (live?.exact.pol ?? null)
+        : (live?.exact.pt ?? null)
+  const quoteExact =
+    pool.pool === 'pt-pol' ? (live?.exact.pol ?? null) : (live?.exact.uAsset ?? null)
   // POL/uAsset pool market price sample (shared by the POL side's ≈$ conversion and the PT/POL pool's quote side)
   const polPrice = pol?.marketPricePerPol ?? null
   // LP name = same pair scope as the pool card + LP suffix (the v4 position system has no ERC20
@@ -134,9 +163,15 @@ export function PoolAddLiquidityDialog({
     pool.pool === 'main' ? price : pool.pool === 'pol-uasset' ? polPrice : ptAnchorRatio
   const baseVal = Number(baseAmount)
   const quoteVal = Number(quoteAmount)
-  const valid = Number.isFinite(baseVal) && baseVal > 0 && Number.isFinite(quoteVal) && quoteVal > 0
-  const baseOver = baseBalance != null && baseVal > baseBalance
-  const quoteOver = quoteBalance != null && quoteVal > quoteBalance
+  const valid = typedAmountPositive(baseAmount, baseExact) && typedAmountPositive(quoteAmount, quoteExact)
+  const baseOver =
+    baseExact != null
+      ? Number.isFinite(baseVal) && toBaseUnits(baseAmount, baseExact.decimals) > baseExact.base
+      : baseBalance != null && baseVal > baseBalance
+  const quoteOver =
+    quoteExact != null
+      ? Number.isFinite(quoteVal) && toBaseUnits(quoteAmount, quoteExact.decimals) > quoteExact.base
+      : quoteBalance != null && quoteVal > quoteBalance
   // LP minted = quote side × lpPerQuote (mint rate fixture sample, linear derivation; production reads on-chain values)
   const lpOut = valid && pool.lpPerQuote != null && pool.lpPerQuote > 0 ? quoteVal * pool.lpPerQuote : null
   // Pool side → token resolution (main=[memecoin,uAsset], pol-uasset=[POL,uAsset],
@@ -152,6 +187,27 @@ export function PoolAddLiquidityDialog({
 
   async function startAddReview(): Promise<void> {
     if (!executionReady || !valid || baseOver || quoteOver || slippageIssue != null || resolving) return
+    setAddRows([
+      {
+        label: common.txYouSupplied,
+        value: formatAmount(Number(baseAmount), locale),
+        symbol: pool.baseSymbol,
+      },
+      {
+        label: common.txYouSupplied,
+        value: formatAmount(Number(quoteAmount), locale),
+        symbol: pool.quoteSymbol,
+      },
+      ...(lpOut != null
+        ? [
+            {
+              label: common.txReceived,
+              value: `≈ ${formatAmount(lpOut, locale)}`,
+              symbol: 'LP',
+            },
+          ]
+        : []),
+    ])
     const provider = getActiveEip1193Provider()
     const eoa = center.address as Hex | null
     const chainId = center.chainId
@@ -180,8 +236,8 @@ export function PoolAddLiquidityDialog({
         getTokenDecimals(reader, chainId, baseToken),
         getTokenDecimals(reader, chainId, quoteToken),
       ])
-      const baseDesired = parseUnits(baseAmount, baseDecimals)
-      const quoteDesired = parseUnits(quoteAmount, quoteDecimals)
+      const baseDesired = toBaseUnits(baseAmount, baseDecimals)
+      const quoteDesired = toBaseUnits(quoteAmount, quoteDecimals)
       const slippageBps = Math.round(slippage * 100)
       const baseMin = (baseDesired * BigInt(10000 - slippageBps)) / 10000n
       const quoteMin = (quoteDesired * BigInt(10000 - slippageBps)) / 10000n
@@ -244,9 +300,15 @@ export function PoolAddLiquidityDialog({
         deadline: Number(deadlineSecs),
         manifestVersion: session.manifestVersion,
         crossChain: false,
+        writeScope: { kind: 'verse', chainId, verseId },
       }
       void tx.executeSession(spec)
-    } catch {
+    } catch (error) {
+      // Every prepare failure (chain gate, token resolution, allowance read, encoding) renders
+      // as the same generic degrade line, so the raw error only exists on the console.
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[add-liquidity] prepare failed', error)
+      }
       setResolveFailed(true)
     } finally {
       setResolving(false)
@@ -292,7 +354,8 @@ export function PoolAddLiquidityDialog({
       : fmtUsd(quoteVal * quoteUsdPrice * uAssetUsd, locale)
 
   return (
-    <Dialog>
+    <>
+      <Dialog>
       {/* data-slot pinned back to button: same as PolMintDialog — the theme bridge matches skins
           on [data-slot='button'];
           .pool-card [data-slot='button'] pool card row styling keeps matching */}
@@ -323,22 +386,30 @@ export function PoolAddLiquidityDialog({
           <div className="swap-panel__field">
             <div className="swap-panel__field-head">
               <span>{pool.baseSymbol}</span>
-              <span className="swap-panel__balance">
-                {copy.balance}:{' '}
-                {baseBalance == null ? (
-                  '--'
-                ) : (
-                  <span data-numeric>{formatAmount(baseBalance, locale)}</span>
-                )}
-                <button
-                  type="button"
-                  className="swap-panel__max"
-                  disabled={baseBalance == null || baseBalance <= 0}
-                  onClick={() => onBaseInput(amountToInputString(baseBalance ?? 0))}
-                >
-                  {copy.max}
-                </button>
-              </span>
+                <span className="swap-panel__balance">
+                  {copy.balance}:{' '}
+                  {baseExact != null ? (
+                    <span data-numeric>{fmtTokenAmountExact(baseExact.base, baseExact.decimals, locale)}</span>
+                  ) : baseBalance == null ? (
+                    '--'
+                  ) : (
+                    <span data-numeric>{formatAmount(baseBalance, locale)}</span>
+                  )}
+                  <button
+                    type="button"
+                    className="swap-panel__max"
+                    disabled={baseExact != null ? baseExact.base === 0n : baseBalance == null || baseBalance <= 0}
+                    onClick={() =>
+                      onBaseInput(
+                        baseExact != null
+                          ? trimFractionZeros(formatUnits(baseExact.base, baseExact.decimals))
+                          : amountToInputString(baseBalance ?? 0),
+                      )
+                    }
+                  >
+                    {copy.max}
+                  </button>
+                </span>
             </div>
             <div className="swap-panel__field-row">
               <Input
@@ -366,7 +437,9 @@ export function PoolAddLiquidityDialog({
               <span>{pool.quoteSymbol}</span>
               <span className="swap-panel__balance">
                 {copy.balance}:{' '}
-                {quoteBalance == null ? (
+                {quoteExact != null ? (
+                  <span data-numeric>{fmtTokenAmountExact(quoteExact.base, quoteExact.decimals, locale)}</span>
+                ) : quoteBalance == null ? (
                   '--'
                 ) : (
                   <span data-numeric>{formatAmount(quoteBalance, locale)}</span>
@@ -374,8 +447,14 @@ export function PoolAddLiquidityDialog({
                 <button
                   type="button"
                   className="swap-panel__max"
-                  disabled={quoteBalance == null || quoteBalance <= 0}
-                  onClick={() => onQuoteInput(amountToInputString(quoteBalance ?? 0))}
+                  disabled={quoteExact != null ? quoteExact.base === 0n : quoteBalance == null || quoteBalance <= 0}
+                  onClick={() =>
+                    onQuoteInput(
+                      quoteExact != null
+                        ? trimFractionZeros(formatUnits(quoteExact.base, quoteExact.decimals))
+                        : amountToInputString(quoteBalance ?? 0),
+                    )
+                  }
                 >
                   {copy.max}
                 </button>
@@ -475,9 +554,28 @@ export function PoolAddLiquidityDialog({
             }
           />
           {resolveFailed ? <FieldError>{common.degrade.errorBody}</FieldError> : null}
-          
-          {tx.active && !tx.reviewing ? <TxStatus locale={locale} state={tx.display} /> : null}
       </ActionDialogShell>
-    </Dialog>
+      </Dialog>
+      {/* Feedback pair (2026-10-26 弹窗序列纪律): progress = its own button-less dialog
+          (second-to-last), confirmed yields to the generic receipt dialog (last). */}
+      <TxProgressDialog
+        locale={locale}
+        title={copy.addLiquidityDialogTitle}
+        state={tx.display}
+        open={tx.active && !successOpen}
+        onDismiss={tx.reset}
+      />
+      <TxSuccessDialog
+        locale={locale}
+        title={copy.addLiquidityDoneTitle}
+        lead={copy.addLiquidityDoneLead}
+        accent={copy.addLiquidityDoneAccent}
+        rows={addRows}
+        txHash={receipt?.hash}
+        txChainId={receipt?.chainId}
+        open={successOpen}
+        onOpenChange={setSuccessOpen}
+      />
+    </>
   )
 }

@@ -7,12 +7,13 @@ import type { Locale } from '@/lib/data/fixture-repository'
 import { getCopy } from '../global/copy'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
-export type VerseTabKey = 'liquidity' | 'pol' | 'vault' | 'dao'
+export type VerseTabKey = 'liquidity' | 'pol' | 'vault' | 'dao' | 'claim'
 
 /**
- * Four-tab container: Locked/Unlocked detail page = head card (=Overview) + trade desk +
- * Liquidity/POL/Yield Vault/DAO. Panels are passed in as RSC children; this component only
- * toggles visibility.
+ * Five-tab container: Locked/Unlocked detail page = head card (=Overview) + trade desk +
+ * Liquidity/POL/Yield Vault/DAO/Claim Center. Panels are passed in as RSC children; this
+ * component only toggles visibility. The claim tab carries a live count badge (rendered by
+ * the page inside the claim-center provider; absent when nothing is claimable).
  * initialTab=URL ?tab= deep link (passed in after server-side whitelist validation): used as
  * the controlled initial value, and on mount it scrolls
  * the tab area into view — otherwise the viewport stays at the page top and the tab switch
@@ -22,10 +23,13 @@ export function VerseTabs({
   locale,
   children,
   initialTab,
+  claimBadge,
 }: {
   locale: Locale
   children: Record<VerseTabKey, ReactNode>
   initialTab?: VerseTabKey
+  /** Claim-count badge node for the fifth tab item (null = plain tab) */
+  claimBadge?: ReactNode
 }) {
   const copy = getCopy(locale).verseDesk
   const [tab, setTab] = useState<VerseTabKey>(initialTab ?? 'liquidity')
@@ -65,6 +69,10 @@ export function VerseTabs({
         <ToggleGroupItem value="pol">{copy.tabPol}</ToggleGroupItem>
         <ToggleGroupItem value="vault">{copy.tabVault}</ToggleGroupItem>
         <ToggleGroupItem value="dao">{copy.tabDao}</ToggleGroupItem>
+        <ToggleGroupItem value="claim">
+          {copy.tabClaim}
+          {claimBadge}
+        </ToggleGroupItem>
       </ToggleGroup>
       <div className="verse-tabs__panel" data-tab={tab}>
         {children[tab]}

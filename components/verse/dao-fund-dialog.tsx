@@ -1,17 +1,10 @@
-import { X } from 'lucide-react'
-
 import type { Locale, GovernanceAsset } from '@/lib/data/fixture-repository'
 
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
+import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 
 import { getCopy } from '../global/copy'
+import { ActionDialogShell } from '../global/action-dialogs'
 import { formatAmount, formatPercent } from '../global/signal-ui'
 
 /** >>> animated glyph (cyan functional-signal badge; three-chevron flowing animation — marks
@@ -88,23 +81,12 @@ export function DaoFundDialog({
           {children}
         </DialogTrigger>
       )}
-      <DialogContent className="dao-fund-pop">
-        {/* Shell reuses .pol-mint (same as the POL/Liquidity/Swap dialogs): surface/stroke
-            glow/padding all live on this layer; without it the dialog is just a blurred mask
-            with content see-through */}
-        <div className="pol-mint">
-          <header className="pol-mint__head">
-            <DialogTitle className="pol-mint__title">{title}</DialogTitle>
-            <div className="pol-mint__controls">
-              <DialogClose
-                render={
-                  <button type="button" className="pol-mint__close" aria-label={common.close} />
-                }
-              >
-                <X aria-hidden="true" size={16} />
-              </DialogClose>
-            </div>
-          </header>
+      <ActionDialogShell
+        contentClass="dao-fund-pop"
+        glow={false}
+        title={title}
+        closeLabel={common.close}
+      >
           <div className="dao-fund-pop__hero" data-numeric>
             <div className="dao-fund-pop__hero-main">
               <span>{copy.totalValue}</span>
@@ -159,8 +141,7 @@ export function DaoFundDialog({
           {showRegisteredNote ? (
             <p className="dao-fund-pop__note">{copy.registeredAssetsNote}</p>
           ) : null}
-        </div>
-      </DialogContent>
+      </ActionDialogShell>
     </Dialog>
   )
 }

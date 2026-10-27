@@ -30,11 +30,13 @@ import { GenesisLiveMeters, VerseLiveProvider } from './genesis-live'
 import { ParticipationPanel } from './participation-panel'
 import { RefundSettlement } from './refund-settlement'
 import { DaoPanel, LiquidityPanel, PolPanel } from './verse-tab-panels'
+import { ClaimCenterPanel, ClaimCenterProvider, ClaimTabBadge } from './claim-center'
+import { sampleClaimEntitlements } from './claim-rows'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   formatAmount,
+  formatMarketCap,
   FastBadge,
-  formatStamp,
   LayoutNotes,
   SectionHeading,
   SourceRef,
@@ -55,18 +57,23 @@ function CurrentAction({
   verseIdParam: string
 }) {
   const copy = getCopy(locale)
-  // Genesis copy, four states: Fast threshold met=can advance now; Fast not met=triggers on
-  // reaching the threshold; non-Fast met=still waits for the deadline; standard=can advance after the deadline
+  // Genesis copy selection: threshold met × Fast × deadline passed (server render clock).
+  // Met is triggerable now both before the deadline (Fast) and after it — one wording;
+  // non-Fast before the deadline carries no met split (either way the deadline unlock
+  // advances the verse); missed deadline = the advance goes to Refund (lifecycle.md:51-55).
   const thresholdMet = verse.normalProgress >= 100 || verse.leverageProgress >= 100
+  const deadlinePassed = Date.now() >= Date.parse(verse.endsAt)
   const body =
     verse.stage === 'genesis'
-      ? verse.fastGenesis
+      ? deadlinePassed
         ? thresholdMet
-          ? copy.verse.genesisActionFastReady
-          : copy.verse.genesisActionFast
-        : thresholdMet
-          ? copy.verse.genesisActionMet
-          : copy.verse.genesisAction
+          ? copy.verse.genesisActionMetReady
+          : copy.verse.genesisActionMissed
+        : verse.fastGenesis && thresholdMet
+          ? copy.verse.genesisActionMetReady
+          : verse.fastGenesis
+            ? copy.verse.genesisActionFast
+            : copy.verse.genesisAction
       : verse.stage === 'locked'
         ? copy.verse.lockedAction
         : verse.stage === 'unlocked'
@@ -357,8 +364,13 @@ export async function VersePage({
             <SectionHeading title={copy.verse.metricsTitle} />
             <dl className="verse-stats">
               <div>
-                <dt>{copy.verse.genesisEnds}</dt>
-                <dd data-numeric>{formatStamp(verse.endsAt)}</dd>
+                <dt>{copy.verse.omniRaised}</dt>
+                {/* Cross-chain total in the same uAsset denomination on every chain (the
+                    discovery cards read the same field); per-chain genesis settles
+                    independently, so this total never feeds the threshold meters */}
+                <dd data-numeric>
+                  {formatAmount(verse.omniRaised, locale, true)} {verse.raiseAsset}
+                </dd>
               </div>
               <div>
                 <dt>{copy.verse.participantsLabel}</dt>
@@ -367,12 +379,14 @@ export async function VersePage({
                     not carry) */}
                 <dd data-numeric>{formatAmount(verse.omniParticipantCount, locale)}</dd>
               </div>
-              {verse.projectedMarketCap != null ? (
+              {verse.marketCapUsd != null ? (
                 <div>
                   <dt>{copy.verse.estMarketCap}</dt>
-                  <dd data-numeric>
-                    {formatAmount(verse.projectedMarketCap, locale, true)} {verse.raiseAsset}
-                  </dd>
+                  {/* Mechanism projection (user-ruled formula): primary-pool genesis
+                      funds × 2 (POL 1:1 match doubles the pool's uAsset side), derived
+                      in the data layer from the cross-chain raised total — registration
+                      never stores a cap */}
+                  <dd data-numeric>${formatMarketCap(verse.marketCapUsd)}</dd>
                 </div>
               ) : null}
               <div>
@@ -403,25 +417,46 @@ export async function VersePage({
       </div>
         </VerseLiveProvider>
       ) : (
-        /* locked / unlocked: persistent trade desk area + four tabs */
+        /* locked / unlocked: persistent trade desk area + five tabs */
         <>
           <VerseTradeDesk locale={locale} verse={verse} trade={trade} />
-          <VerseTabs locale={locale} initialTab={initialTab}>
-            {{
-              liquidity: <LiquidityPanel locale={locale} verse={verse} trade={trade} pol={polPosition} />,
-              pol: <PolPanel locale={locale} verse={verse} pol={polPosition} price={trade.tokenStats.price} />,
-              vault: (
-                <VaultPanel
-                  locale={locale}
-                  verse={verse}
-                  staking={staking}
-                  myMemecoin={polPosition?.myMemecoin ?? null}
-                  initialView={vaultInitialView}
-                />
-              ),
-              dao: <DaoPanel locale={locale} verse={verse} governance={governance} />,
-            }}
-          </VerseTabs>
+          {/* The claim-center provider wraps the tabs so the fifth tab's count badge and the
+              panel share one wallet-scoped entitlements read */}
+          <ClaimCenterProvider
+            verseIdParam={verseId}
+            governanceChain={verse.governanceChain}
+            deployedChainIds={verse.deployedChainIds}
+            memecoinSymbol={verse.symbol}
+            uAssetSymbol={verse.raiseAsset}
+          >
+            <VerseTabs locale={locale} initialTab={initialTab} claimBadge={<ClaimTabBadge locale={locale} />}>
+              {{
+                liquidity: <LiquidityPanel locale={locale} verse={verse} trade={trade} pol={polPosition} />,
+                pol: <PolPanel locale={locale} verse={verse} pol={polPosition} price={trade.tokenStats.price} />,
+                vault: (
+                  <VaultPanel
+                    locale={locale}
+                    verse={verse}
+                    staking={staking}
+                    myMemecoin={polPosition?.myMemecoin ?? null}
+                    initialView={vaultInitialView}
+                    price={trade.tokenStats.price}
+                  />
+                ),
+                dao: <DaoPanel locale={locale} verse={verse} governance={governance} />,
+                claim: (
+                  <ClaimCenterPanel
+                    locale={locale}
+                    verseIdParam={verseId}
+                    governanceChain={verse.governanceChain}
+                    governanceChainName={verse.governanceChainName}
+                    deployedChainIds={verse.deployedChainIds}
+                    sample={sampleClaimEntitlements(polPosition, verse.symbol, verse.raiseAsset)}
+                  />
+                ),
+              }}
+            </VerseTabs>
+          </ClaimCenterProvider>
         </>
       )}
 

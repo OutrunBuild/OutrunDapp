@@ -1,14 +1,17 @@
 'use client'
 
-import { useId, useState } from 'react'
-import { X } from 'lucide-react'
+import { useEffect, useId, useRef, useState } from 'react'
 
 import type { Locale, PolPosition, Verse } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
+import { ActionDialogShell } from '../global/action-dialogs'
+import { useVerseBalances } from './trade-balances'
 import { useAccountCenter } from '../global/use-account-center'
 import { useTxCenter, useClearOnConfirmed, type WriteSpec } from '../global/use-tx-center'
-import { TxStatus } from '../global/tx-status'
+import { TxProgressDialog } from '../global/tx-progress-dialog'
+import { TxSuccessDialog, type TxSuccessRow } from '../global/tx-success-dialog'
+import { useTxSuccessGate } from '../global/use-tx-success'
 import { readAllowances } from '../global/execution-reads'
 import { getTokenDecimals, getVerseSession } from '../global/write-session'
 import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
@@ -20,17 +23,13 @@ import {
 import { useParams } from 'next/navigation'
 import { parseVerseIdParam } from '../global/routes'
 import { SwitchChainCta, useVerseExecChain } from '../global/switch-chain-cta'
-import { formatUnits, parseUnits, type Hex } from 'viem'
-import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
+import { formatUnits, type Hex } from 'viem'
+import { toBaseUnits } from '@/lib/web3/base-units'
+import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount, trimFractionZeros, typedAmountPositive } from '../global/amount-input'
+import { fmtTokenAmountExact } from '../global/amount-format'
 import { formatAmount } from '../global/signal-ui'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
+import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { FieldError } from '@/components/ui/field'
 
@@ -66,6 +65,9 @@ export function PolRedeemLpDialog({
   const { connected, connectAction: toggle } = center
   const { execChain, wrongChain, switchChain } = useVerseExecChain(verse.governanceChain)
   const tx = useTxCenter()
+  const { successOpen, setSuccessOpen, receipt } = useTxSuccessGate(tx)
+  // Receipt legs snapshotted at the click (the amount clears on landing).
+  const [redeemRows, setRedeemRows] = useState<TxSuccessRow[]>([])
   const params = useParams()
   const rawVerseId = params?.verseId
   const verseId = parseVerseIdParam(rawVerseId)
@@ -76,14 +78,37 @@ export function PolRedeemLpDialog({
   const balanceErrorId = useId()
   useClearOnConfirmed(tx.display, () => setAmount(''))
 
+  // Wallet-provider POL balance (onchain builds); re-reads when a redeem confirms here.
+  const [settleTick, setSettleTick] = useState(0)
+  const prevDisplayRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (tx.display === 'confirmed' && prevDisplayRef.current !== 'confirmed') {
+      setSettleTick((tick) => tick + 1)
+    }
+    prevDisplayRef.current = tx.display
+  }, [tx.display])
+  const live = useVerseBalances({
+    verseId,
+    governanceChain: verse.governanceChain,
+    refreshKey: settleTick,
+  })
+  const myPolLive = live?.pol ?? pol.myPol
+  // Exact wallet read wins over the float alias whenever the probe landed (float64 can
+  // round a real balance upward — a Max prefill re-parsed from it would trip the gate)
+  const polExact = live?.exact.pol ?? null
+
   const polSymbol = `POL-${verse.symbol}`
   // Main-pool LP pair scope (repository main pool pair [verse.symbol, verse.raiseAsset])
   const lpSymbol = `${verse.symbol}/${verse.raiseAsset} LP`
   const clean = (raw: string) => setAmount(sanitizeAmount(raw))
 
   const parsed = Number(amount)
-  const valid = Number.isFinite(parsed) && parsed > 0
-  const overBalance = parsed > pol.myPol
+  const valid = typedAmountPositive(amount, polExact)
+  // A null balance (accountless slot) never blocks — the chain enforces real holdings at execution
+  const overBalance =
+    polExact != null
+      ? Number.isFinite(parsed) && toBaseUnits(amount, polExact.decimals) > polExact.base
+      : myPolLive != null && parsed > myPolLive
   // 1:1 identity by main-pool construction (amountInLP=amountInPOL), no sample/slot branch
   const lpOut = valid ? parsed : null
   // POL burn by the launcher proxy spends the holder's allowance (MemePol.burn third-party
@@ -99,6 +124,18 @@ export function PolRedeemLpDialog({
 
   async function startRedeemReview(): Promise<void> {
     if (!executionReady || !valid || overBalance || resolving) return
+    setRedeemRows([
+      {
+        label: common.txYouRedeemed,
+        value: formatAmount(Number(amount), locale),
+        symbol: polSymbol,
+      },
+      {
+        label: common.txReceived,
+        value: lpOut != null ? formatAmount(lpOut, locale) : '—',
+        symbol: 'LP',
+      },
+    ])
     const provider = getActiveEip1193Provider()
     const eoa = center.address as Hex | null
     const chainId = center.chainId
@@ -117,7 +154,8 @@ export function PolRedeemLpDialog({
       })
       const launcher = session.contracts.MemeverseLauncher as Hex
       const decimals = await getTokenDecimals(session.reader, chainId, session.verse.pol)
-      const amountBase = parseUnits(amount, decimals)
+      const amountBase = toBaseUnits(amount, decimals)
+      if (amountBase === 0n) throw new Error('typed amount below one base unit')
       const [allowance] = await readAllowances(session.reader, eoa, [
         { token: session.verse.pol, spender: launcher },
       ])
@@ -153,6 +191,7 @@ export function PolRedeemLpDialog({
         deadline: Math.floor(Date.now() / 1000) + 3600,
         manifestVersion: session.manifestVersion,
         crossChain: false,
+        writeScope: { kind: 'verse', chainId, verseId },
       }
       void tx.executeSession(spec)
     } catch {
@@ -163,32 +202,38 @@ export function PolRedeemLpDialog({
   }
 
   return (
-    <Dialog>
+    <>
+      <Dialog>
       {/* data-slot pinned back to button: same as PolMintDialog — the theme bridge matches skins on [data-slot='button'] */}
       <DialogTrigger data-slot="button" render={<Button variant="outline" size="sm" />}>
         {copy.redeemPol}
       </DialogTrigger>
-      <DialogContent className="pol-mint-pop">
-        <div className="pol-mint ax-glow-card">
-          <header className="pol-mint__head">
-            <DialogTitle className="pol-mint__title">{copy.redeemPolDialogTitle}</DialogTitle>
-            <div className="pol-mint__controls">
-              <DialogClose
-                render={
-                  <button type="button" className="pol-mint__close" aria-label={common.close} />
-                }
-              >
-                <X aria-hidden="true" size={16} />
-              </DialogClose>
-            </div>
-          </header>
+      <ActionDialogShell title={copy.redeemPolDialogTitle} closeLabel={common.close}>
 
           <div className="swap-panel__field">
             <div className="swap-panel__field-head">
               <span>POL</span>
               <span className="swap-panel__balance">
-                {copy.balance}: <span data-numeric>{formatAmount(pol.myPol, locale)}</span>
-                <button type="button" className="swap-panel__max" onClick={() => clean(amountToInputString(pol.myPol))}>
+                {copy.balance}:{' '}
+                {polExact != null ? (
+                  <span data-numeric>{fmtTokenAmountExact(polExact.base, polExact.decimals, locale)}</span>
+                ) : myPolLive != null ? (
+                  <span data-numeric>{formatAmount(myPolLive, locale)}</span>
+                ) : (
+                  '--'
+                )}
+                <button
+                  type="button"
+                  className="swap-panel__max"
+                  disabled={polExact != null ? polExact.base === 0n : myPolLive == null || myPolLive <= 0}
+                  onClick={() =>
+                    clean(
+                      polExact != null
+                        ? trimFractionZeros(formatUnits(polExact.base, polExact.decimals))
+                        : amountToInputString(myPolLive ?? 0),
+                    )
+                  }
+                >
                   {copy.max}
                 </button>
               </span>
@@ -247,10 +292,28 @@ export function PolRedeemLpDialog({
             </Button>
           )}
           {resolveFailed ? <FieldError>{common.degrade.errorBody}</FieldError> : null}
-          
-          {tx.active && !tx.reviewing ? <TxStatus locale={locale} state={tx.display} /> : null}
-        </div>
-      </DialogContent>
-    </Dialog>
+      </ActionDialogShell>
+      </Dialog>
+      {/* Feedback pair (2026-10-26 弹窗序列纪律): progress = its own button-less dialog
+          (second-to-last), confirmed yields to the generic receipt dialog (last). */}
+      <TxProgressDialog
+        locale={locale}
+        title={copy.redeemPolDialogTitle}
+        state={tx.display}
+        open={tx.active && !successOpen}
+        onDismiss={tx.reset}
+      />
+      <TxSuccessDialog
+        locale={locale}
+        title={copy.redeemPolDoneTitle}
+        lead={copy.redeemPolDoneLead}
+        accent={copy.redeemPolDoneAccent}
+        rows={redeemRows}
+        txHash={receipt?.hash}
+        txChainId={receipt?.chainId}
+        open={successOpen}
+        onOpenChange={setSuccessOpen}
+      />
+    </>
   )
 }

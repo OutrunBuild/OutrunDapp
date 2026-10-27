@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Info, Zap } from 'lucide-react'
 
 import type { Locale, Staking } from '@/lib/data/fixture-repository'
@@ -8,7 +8,10 @@ import type { Locale, Staking } from '@/lib/data/fixture-repository'
 import { getCopy } from '../global/copy'
 import { useAccountCenter } from '../global/use-account-center'
 import { useTxCenter, useClearOnConfirmed, type WriteSpec } from '../global/use-tx-center'
-import { TxStatus } from '../global/tx-status'
+import { TxProgressDialog } from '../global/tx-progress-dialog'
+import { TxSuccessDialog, type TxSuccessRow } from '../global/tx-success-dialog'
+import { useTxSuccessGate } from '../global/use-tx-success'
+import { useVerseBalances } from './trade-balances'
 import {
   readAllowances,
 } from '../global/execution-reads'
@@ -24,17 +27,18 @@ import {
 import { useParams } from 'next/navigation'
 import { parseVerseIdParam } from '../global/routes'
 import { SwitchChainCta } from '../global/switch-chain-cta'
-import { formatUnits, parseUnits, type Hex } from 'viem'
-import { formatAmount, formatDay } from '../global/signal-ui'
-import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
-import { fmtTokenAmount } from '../global/amount-format'
+import { formatUnits, type Hex } from 'viem'
+import { estimateBaseUnitsFloor, toBaseUnits } from '@/lib/web3/base-units'
+import { formatAmount, formatDay, formatMarketCap } from '../global/signal-ui'
+import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount, trimFractionZeros } from '../global/amount-input'
+import { fmtTokenAmount, fmtTokenAmountExact } from '../global/amount-format'
 import { Button } from '@/components/ui/button'
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
-type RedeemMode = 'redeem' | 'withdraw'
+type RedeemMode = 'redeem' | 'pending' | 'withdraw'
 
 /** Chain-environment mapping (testnet stand-in shim, not domain values): the fixture
  * governance chain=mainnet ids (1/8453/56),
@@ -73,7 +77,7 @@ function RedeemCountdown({ remainingMs, template }: { remainingMs: number; templ
 
 /**
  * Yield Vault action cards in two columns: a left column with
- * permanent Stake + a right column toggling Redeem/Withdraw
+ * permanent Stake + a right column toggling Redeem/Pending/Withdraw
  * (a full-width bar would stretch the swap narrow-card primitives to the tab card's
  * full ~1100px width, leaving the sparse content stretched;
  * column ratio/breakpoint 1.15:0.85 (same as the POL tab), collapsing to one column
@@ -91,11 +95,10 @@ function RedeemCountdown({ remainingMs, template }: { remainingMs: number; templ
  * cross-chain fee row + Cross-chain Stake CTA);
  * - Redeem/Withdraw with ≠governance chain → the CTA switches chain first (switchChainAction,
  * not an on-chain write).
- * Status lists live inside the tabs: the Redeem
- * tab's tail=Pending Redemptions
- * (waiting entries only: amount + Redeemed on {date} + seconds countdown); the Withdraw tab's
- * head=Ready to Withdraw
- * (matured entries only: amount + Ready since {maturity date} + ✓ Ready), empty state '--'.
+ * Status lists live inside the card's tabs: Pending (waiting entries only: amount +
+ * Redeemed on {date} + seconds countdown, capped at a compact scroll window) sits between
+ * Redeem and Withdraw; the Withdraw tab's head=Ready to Withdraw (matured entries only:
+ * amount + Ready since {maturity date} + ✓ Ready), empty state '--'.
  * Mock layer only demonstrates the ViewModel: write-action CTAs are always disabled, no
  * faked on-chain success.
  */
@@ -122,14 +125,15 @@ export function VaultActions({
   /** Share symbol = s + Memecoin symbol */
   shareSymbol: string
   assetsPerShare: number
-  claimableTotal: number
-  /** Sample account shares (source of Redeem's Balance/Max) */
-  myShares: number
-  /** Sample account's this-verse memecoin balance (pol-positions myMemecoin; source of Stake's Balance/Max, null=slot state) */
+  /** Matured withdrawable total; null=accountless (wallet probe overrides when connected) */
+  claimableTotal: number | null
+  /** Account shares (source of Redeem's Balance/Max); null=accountless (probe overrides) */
+  myShares: number | null
+  /** Sample account's this-verse memecoin balance (source of Stake's Balance/Max, null=slot state) */
   myMemecoin: number | null
-  /** Two-step async redemption entries (including the ready split and the remainingMs countdown start; the display layer filters by tab) */
+  /** Two-step async redemption entries (including the ready split and the remainingMs countdown start; the display layer filters by tab); null=accountless */
   pendingRedeems: Staking['pendingRedeems']
-  delegatee: string
+  delegatee: string | null
   /** Governance chain chainId (the chain hosting the vault) */
   governanceChain: number
   governanceChainName: string
@@ -140,6 +144,11 @@ export function VaultActions({
   const center = useAccountCenter()
   const { connected, chainId, connectAction: toggle, switchChainAction: switchChain } = center
   const tx = useTxCenter()
+  const { successOpen, setSuccessOpen, receipt } = useTxSuccessGate(tx)
+  // Receipt legs snapshotted at the click (the amount fields clear on landing).
+  const [vaultRows, setVaultRows] = useState<TxSuccessRow[]>([])
+  /** Which vault write the receipt belongs to: stake has its own done-title, redeem/withdraw keep the generic one. */
+  const [doneKind, setDoneKind] = useState<'stake' | 'redeem' | 'withdraw'>('stake')
   const params = useParams()
   const rawVerseId = params?.verseId
   const verseId = parseVerseIdParam(rawVerseId)
@@ -155,6 +164,30 @@ export function VaultActions({
     setStakeAmount('')
     setRedeemAmount('')
   })
+
+  // Wallet-provider account probe (onchain builds): fills the vault's account half — shares,
+  // redeem queue, delegate, stake-side memecoin balance. Re-reads when a vault write confirms
+  // here. Fixture builds keep the SSR samples (probe returns null).
+  const [settleTick, setSettleTick] = useState(0)
+  const prevDisplayRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (tx.display === 'confirmed' && prevDisplayRef.current !== 'confirmed') {
+      setSettleTick((tick) => tick + 1)
+    }
+    prevDisplayRef.current = tx.display
+  }, [tx.display])
+  const live = useVerseBalances({ verseId, governanceChain, refreshKey: settleTick })
+  const mySharesLive = live?.vault?.shares ?? myShares
+  const claimableLive = live?.vault?.claimableTotal ?? claimableTotal
+  const pendingLive = live?.vault?.pending ?? pendingRedeems
+  const myMemecoinLive = live?.memecoin ?? myMemecoin
+  // Exact wallet reads win over the float aliases whenever the probe landed: float64 can
+  // represent a real balance only approximately, and a Max prefill re-parsed from a rounded
+  // float can exceed the true balance — tripping the insufficient-balance gate on the very
+  // value it prefilled.
+  const stakeExact = live?.exact.memecoin ?? null
+  const redeemExact = live?.exact.vault?.shares ?? null
+  const withdrawExact = live?.exact.vault?.claimableTotal ?? null
 
   const governanceWalletChain = GOVERNANCE_TESTNET[governanceChain] ?? governanceChain
   const wrongChain = connected && chainId !== governanceWalletChain
@@ -177,7 +210,33 @@ export function VaultActions({
     if (!executionReady || resolving) return
     if (kind === 'stake' && (!stakeValid || stakeOver || customDelegate)) return
     if (kind === 'redeem' && (!redeemValid || redeemOver)) return
-    if (kind === 'withdraw' && claimableTotal <= 0) return
+    if (kind === 'withdraw' && (claimableLive == null || claimableLive <= 0)) return
+    setDoneKind(kind)
+    setVaultRows(
+      kind === 'stake'
+        ? [
+            {
+              label: getCopy(locale).common.txYouStaked,
+              value: formatAmount(Number(stakeAmount), locale),
+              symbol,
+            },
+          ]
+        : kind === 'redeem'
+          ? [
+              {
+                label: getCopy(locale).common.txYouRedeemed,
+                value: formatAmount(Number(redeemAmount), locale),
+                symbol: shareSymbol,
+              },
+            ]
+          : [
+              {
+                label: getCopy(locale).common.txYouWithdrew,
+                value: claimableLive != null ? formatAmount(claimableLive, locale) : '—',
+                symbol,
+              },
+            ],
+    )
     const provider = getActiveEip1193Provider()
     const eoa = center.address as Hex | null
     const chainId = center.chainId
@@ -205,7 +264,10 @@ export function VaultActions({
       let inputs: string
       let approval
       if (kind === 'stake') {
-        const assets = parseUnits(String(stakeParsed), memeDecimals)
+        // Parse the raw input string — never the float re-stringified (String(Number()));
+        // toBaseUnits truncates, matching the gate (viem parseUnits rounds over-precision
+        // input, which could send 1 wei past the gated amount)
+        const assets = toBaseUnits(stakeAmount, memeDecimals)
         const [allowance] = await readAllowances(reader, eoa, [
           { token: session.verse.memecoin, spender: vault },
         ])
@@ -217,13 +279,19 @@ export function VaultActions({
         functionName = 'deposit'
         inputs = `${formatUnits(assets, memeDecimals)} ${symbol}`
       } else if (kind === 'redeem') {
-        const shares = parseUnits(String(redeemParsed), shareDecimals)
+        const shares = toBaseUnits(redeemAmount, shareDecimals)
         action = vaultRequestRedeemCall(vault, { shares, controller: eoa, owner: eoa })
         functionName = 'requestRedeem'
         inputs = `${formatUnits(shares, shareDecimals)} ${shareSymbol}`
         approval = undefined
       } else {
-        const assets = parseUnits(String(claimableTotal), memeDecimals)
+        // The exact claimable base wins when the probe landed; the float alias is the
+        // fixture-fallback only, floored — a withdraw amount above the real claimable
+        // would revert on-chain
+        const assets =
+          withdrawExact != null
+            ? withdrawExact.base
+            : estimateBaseUnitsFloor(claimableLive ?? 0, memeDecimals)
         action = vaultWithdrawCall(vault, { assets, receiver: eoa, owner: eoa })
         functionName = 'withdraw'
         inputs = `${formatUnits(assets, memeDecimals)} ${symbol}`
@@ -257,6 +325,7 @@ export function VaultActions({
         deadline: Math.floor(Date.now() / 1000) + 3600,
         manifestVersion: session.manifestVersion,
         crossChain: false,
+        writeScope: { kind: 'verse', chainId, verseId },
       }
       void tx.executeSession(spec)
     } catch {
@@ -271,12 +340,22 @@ export function VaultActions({
   const redeemParsed = Number(redeemAmount)
   const redeemValid = Number.isFinite(redeemParsed) && redeemParsed > 0
   const redeemOut = redeemValid ? redeemParsed * assetsPerShare : null
-  const stakeOver = myMemecoin != null && stakeParsed > myMemecoin
-  const redeemOver = redeemParsed > myShares
+  const stakeOver =
+    stakeExact != null
+      ? stakeValid && toBaseUnits(stakeAmount, stakeExact.decimals) > stakeExact.base
+      : myMemecoinLive != null && stakeParsed > myMemecoinLive
+  const redeemOver =
+    redeemExact != null
+      ? redeemValid && toBaseUnits(redeemAmount, redeemExact.decimals) > redeemExact.base
+      : mySharesLive != null && redeemParsed > mySharesLive
   const delegateInvalid =
     !delegateSelf && delegateAddress !== '' && !EVM_ADDRESS_RE.test(delegateAddress)
-  const waitingRedeems = pendingRedeems.filter((entry) => !entry.ready)
-  const readyRedeems = pendingRedeems.filter((entry) => entry.ready)
+  const waitingRedeems = (pendingLive ?? []).filter((entry) => !entry.ready)
+  const readyRedeems = (pendingLive ?? []).filter((entry) => entry.ready)
+  /** Queue rows stay exact below one million; from there the panel's KPI compact convention
+   * (M/B, two decimals) keeps a long column from forcing the row wider than the card */
+  const formatPendingAmount = (value: number) =>
+    value >= 1_000_000 ? formatMarketCap(value) : formatAmount(value, locale)
 
   const connectCta = (
     <Button className="swap-panel__cta" onClick={toggle}>
@@ -300,6 +379,19 @@ export function VaultActions({
       {getCopy(locale).common.connect}
     </Button>
   )
+  const done = {
+    stake: { title: copy.stakeDoneTitle, lead: copy.stakeDoneLead, accent: copy.stakeDoneAccent },
+    redeem: {
+      title: copy.redeemDoneTitle,
+      lead: copy.redeemDoneLead,
+      accent: copy.redeemDoneAccent,
+    },
+    withdraw: {
+      title: copy.withdrawDoneTitle,
+      lead: copy.withdrawDoneLead,
+      accent: copy.withdrawDoneAccent,
+    },
+  }[doneKind]
 
   return (
     <div className="vault-actions">
@@ -324,16 +416,28 @@ export function VaultActions({
             <span>{copy.amount}</span>
             <span className="swap-panel__balance">
               {copy.balance}:{' '}
-              {myMemecoin == null ? (
+              {stakeExact != null ? (
+                <span data-numeric>{fmtTokenAmountExact(stakeExact.base, stakeExact.decimals, locale)}</span>
+              ) : myMemecoinLive == null ? (
                 '--'
               ) : (
-                <span data-numeric>{formatAmount(myMemecoin, locale)}</span>
+                <span data-numeric>{formatAmount(myMemecoinLive, locale)}</span>
               )}
               <button
                 type="button"
                 className="swap-panel__max"
-                disabled={myMemecoin == null || myMemecoin <= 0}
-                onClick={() => setStakeAmount(amountToInputString(myMemecoin ?? 0))}
+                disabled={
+                  stakeExact != null
+                    ? stakeExact.base === 0n
+                    : myMemecoinLive == null || myMemecoinLive <= 0
+                }
+                onClick={() =>
+                  setStakeAmount(
+                    stakeExact != null
+                      ? trimFractionZeros(formatUnits(stakeExact.base, stakeExact.decimals))
+                      : amountToInputString(myMemecoinLive ?? 0),
+                  )
+                }
               >
                 {copy.max}
               </button>
@@ -461,8 +565,6 @@ export function VaultActions({
         )}
         {wrongChain ? <p className="panel-note">{copy.crossNote}</p> : null}
         {resolveFailed ? <FieldError>{getCopy(locale).common.degrade.errorBody}</FieldError> : null}
-        
-        {tx.active && !tx.reviewing ? <TxStatus locale={locale} state={tx.display} /> : null}
       </div>
 
       <div className="vault-card">
@@ -475,6 +577,7 @@ export function VaultActions({
             }}
           >
             <ToggleGroupItem value="redeem">{copy.redeemTab}</ToggleGroupItem>
+            <ToggleGroupItem value="pending">{copy.pendingTab}</ToggleGroupItem>
             <ToggleGroupItem value="withdraw">{copy.withdrawTab}</ToggleGroupItem>
           </ToggleGroup>
         </div>
@@ -485,12 +588,29 @@ export function VaultActions({
               <div className="swap-panel__field-head">
                 <span>{copy.amount}</span>
                 <span className="swap-panel__balance">
-                  {copy.balance}: <span data-numeric>{formatAmount(myShares, locale)}</span>
+                  {copy.balance}:{' '}
+                  {redeemExact != null ? (
+                    <span data-numeric>{fmtTokenAmountExact(redeemExact.base, redeemExact.decimals, locale)}</span>
+                  ) : mySharesLive != null ? (
+                    <span data-numeric>{formatAmount(mySharesLive, locale)}</span>
+                  ) : (
+                    '--'
+                  )}
                   <button
                     type="button"
                     className="swap-panel__max"
-                    disabled={myShares <= 0}
-                    onClick={() => setRedeemAmount(amountToInputString(myShares))}
+                    disabled={
+                      redeemExact != null
+                        ? redeemExact.base === 0n
+                        : mySharesLive == null || mySharesLive <= 0
+                    }
+                    onClick={() =>
+                      setRedeemAmount(
+                        redeemExact != null
+                          ? trimFractionZeros(formatUnits(redeemExact.base, redeemExact.decimals))
+                          : amountToInputString(mySharesLive ?? 0),
+                      )
+                    }
                   >
                     {copy.max}
                   </button>
@@ -542,26 +662,33 @@ export function VaultActions({
                 {copy.redeemCta.replace('{share}', shareSymbol)}
               </Button>
             )}
-            <section>
-              <h4 className="panel-subtitle">{copy.pendingRedeems}</h4>              <ul className="vault-card__list">
-                {waitingRedeems.length === 0 ? (
-                  <li className="panel-note">--</li>
-                ) : (
-                  waitingRedeems.map((entry) => (
-                    <li key={entry.requestedAt}>
-                      <div className="vault-card__list-main">
-                        <strong data-numeric>
-                          {formatAmount(entry.lockedAssets, locale)} {symbol}
-                        </strong>
-                        <span>{copy.redeemedOn.replace('{date}', formatDay(entry.requestedAt, locale))}</span>
-                      </div>
-                      <RedeemCountdown remainingMs={entry.remainingMs} template={copy.remaining} />
-                    </li>
-                  ))
-                )}
-              </ul>
-            </section>
           </>
+        ) : redeemMode === 'pending' ? (
+          <section>
+            <div className="vault-card__status-head">
+              <h4 className="panel-subtitle">{copy.pendingRedeems}</h4>
+              <span className="vault-card__status-count" data-numeric>
+                {waitingRedeems.length}
+              </span>
+            </div>
+            <ul className="vault-card__list vault-card__list--scroll">
+              {waitingRedeems.length === 0 ? (
+                <li className="panel-note">--</li>
+              ) : (
+                waitingRedeems.map((entry) => (
+                  <li key={entry.requestedAt}>
+                    <div className="vault-card__list-main">
+                      <strong data-numeric>
+                        {formatPendingAmount(entry.lockedAssets)} {symbol}
+                      </strong>
+                      <span>{formatDay(entry.requestedAt, locale)}</span>
+                    </div>
+                    <RedeemCountdown remainingMs={entry.remainingMs} template={copy.remaining} />
+                  </li>
+                ))
+              )}
+            </ul>
+          </section>
         ) : (
           <>
             <section>
@@ -574,7 +701,7 @@ export function VaultActions({
                     <li key={entry.requestedAt}>
                       <div className="vault-card__list-main">
                         <strong data-numeric>
-                          {formatAmount(entry.lockedAssets, locale)} {symbol}
+                          {formatPendingAmount(entry.lockedAssets)} {symbol}
                         </strong>
                         <span>{copy.readySince.replace('{date}', formatDay(entry.maturesAt, locale))}</span>
                       </div>
@@ -590,7 +717,7 @@ export function VaultActions({
               <div>
                 <dt>{copy.totalAvailable}</dt>
                 <dd data-numeric>
-                  {formatAmount(claimableTotal, locale)} {symbol}
+                  {claimableLive != null ? `${formatAmount(claimableLive, locale)} ${symbol}` : '--'}
                 </dd>
               </div>
             </dl>
@@ -598,7 +725,7 @@ export function VaultActions({
               <Button
                 variant="outline"
                 className="swap-panel__cta"
-                disabled={claimableTotal <= 0 || !executionReady || resolving || tx.running}
+                disabled={(claimableLive ?? 0) <= 0 || !executionReady || resolving || tx.running}
                 onClick={() => void startVaultReview('withdraw')}
               >
                 {copy.withdrawAll.replace('{symbol}', symbol)}
@@ -607,6 +734,26 @@ export function VaultActions({
           </>
         )}
       </div>
+      {/* Feedback pair (2026-10-26 弹窗序列纪律): progress = its own button-less dialog
+          (second-to-last), confirmed yields to the generic receipt dialog (last). */}
+      <TxProgressDialog
+        locale={locale}
+        title={copy.vaultTitle.replace('{symbol}', symbol)}
+        state={tx.display}
+        open={tx.active && !successOpen}
+        onDismiss={tx.reset}
+      />
+      <TxSuccessDialog
+        locale={locale}
+        title={done.title}
+        lead={done.lead}
+        accent={done.accent}
+        rows={vaultRows}
+        txHash={receipt?.hash}
+        txChainId={receipt?.chainId}
+        open={successOpen}
+        onOpenChange={setSuccessOpen}
+      />
     </div>
   )
 }

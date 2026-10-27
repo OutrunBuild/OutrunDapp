@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import Link from 'next/link'
-import { Check, ExternalLink, Info, RotateCcw, WalletCards } from 'lucide-react'
+import { Info, RotateCcw, WalletCards } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
@@ -33,14 +32,15 @@ import { localePath, parseVerseIdParam } from '../global/routes'
 import { SwitchChainCta } from '../global/switch-chain-cta'
 import { formatAmount, formatPercent, ProgressMeter, SourceRef } from '../global/signal-ui'
 import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
-import { TxStatus } from '../global/tx-status'
+import { TxProgressDialog } from '../global/tx-progress-dialog'
+import { TxSuccessDialog, type TxSuccessRow } from '../global/tx-success-dialog'
+import { useTxSuccessGate } from '../global/use-tx-success'
 import { ChevronLeft } from 'lucide-react'
 import { GasEditor, GasSummaryRow } from '../global/gas-setting'
 import { useGasQuote } from '../global/use-gas-quote'
 import { useAccountCenter } from '../global/use-account-center'
 import { useTxCenter, type WriteSpec } from '../global/use-tx-center'
 import { ActionDialogShell } from '../global/action-dialogs'
-import { formatHex } from '../global/signal-ui'
 import {
   deriveVersePreorderUsed,
   readAllowances,
@@ -180,6 +180,11 @@ export function ParticipationPanel({
   const center = useAccountCenter()
   const { connected, connectAction, switchChainAction: switchChain } = center
   const tx = useTxCenter()
+  // Confirmed → receipt gate: the success dialog is the flow's last dialog, stacked over
+  // this review dialog (whose body stays in review form underneath).
+  const { successOpen, setSuccessOpen, receipt } = useTxSuccessGate(tx)
+  // Receipt legs snapshotted at the confirm click (the form clears on landing).
+  const [receiptRows, setReceiptRows] = useState<TxSuccessRow[]>([])
   const live = useVerseLive()
   const params = useParams()
   const router = useRouter()
@@ -1778,10 +1783,6 @@ export function ParticipationPanel({
       </div>
     </section>
   )
-  // Explorer for the success receipt link: the review chain's registry entry (client-safe).
-  const successChainId = tx.context.review?.chainId ?? pendingSpec?.review.chainId ?? null
-  const successChain = successChainId != null ? getClientChainConfig(successChainId) : null
-  const successExplorer = successChain?.status === 'ok' ? successChain.config.explorer : null
   // Unwired route: Confirm is omitted, so the action row must not keep a half-width column
   const singleAction = center.source === 'real' && wiredKind == null
 
@@ -2250,9 +2251,7 @@ export function ParticipationPanel({
               ) : (
               <>
               <p className="participation-review__meta">{reviewMetaParts.join(' · ')}</p>
-              {tx.display === 'idle' ? (
-                <>
-                  {genesisSection}
+              {genesisSection}
                   {paySection}
                   {gasQuote.ready ? (
                     <GasSummaryRow
@@ -2299,22 +2298,24 @@ export function ParticipationPanel({
                     ) : center.source === 'real' && wiredKind == null ? null : (
                       <Button
                         className="ax-ghost-cta"
-                        // `tx.running` is deliberately absent: while running this row is
-                        // replaced by the progress strip, so it can only ever be a stuck
-                        // session flag that freezes a fresh window.
+                        // The review body stays mounted under the progress dialog while the
+                        // write runs, so tx.running must lock the confirm against re-entry.
                         disabled={
                           resolving ||
+                          tx.running ||
                           pendingSpec == null ||
                           (gasQuote.ready && gasQuote.invalid)
                         }
                         data-blocked={
                           resolving
                             ? 'resolving'
-                            : pendingSpec == null
-                              ? 'unprepared'
-                              : gasQuote.ready && gasQuote.invalid
-                                ? 'gas-invalid'
-                                : undefined
+                            : tx.running
+                              ? 'running'
+                              : pendingSpec == null
+                                ? 'unprepared'
+                                : gasQuote.ready && gasQuote.invalid
+                                  ? 'gas-invalid'
+                                  : undefined
                         }
                         onClick={() => {
                           // The dialog opens before the allowance read returns, so Confirm can
@@ -2322,8 +2323,14 @@ export function ParticipationPanel({
                           // disabled and shows the degrade line instead).
                           if (!pendingSpec) return
                           const spec = gasOverride ? { ...pendingSpec, ...gasOverride } : pendingSpec
-                          // Keep the dialog mounted: its body switches to the three-step
-                          // status as soon as the flow starts.
+                          // Receipt legs snapshot: the form's amount fields clear on landing,
+                          // so the success dialog cannot re-derive them from live state.
+                          setReceiptRows(
+                            payRowsExact.map((row) => ({
+                              label: row.label,
+                              value: `${row.amountText} ${row.asset}`,
+                            })),
+                          )
                           void tx.executeSession(spec)
                         }}
                       >
@@ -2331,60 +2338,6 @@ export function ParticipationPanel({
                       </Button>
                     )}
                   </div>
-                </>
-              ) : tx.display === 'confirmed' ? (
-                <div className="tx-success">
-                  <div className="tx-success__head">
-                    <span className="review-check" aria-hidden="true">
-                      <Check />
-                    </span>
-                    <p className="tx-success__title">
-                      {copy.verse.participateDoneLead}
-                      {copy.verse.participateDoneAccent ? (
-                        <span className="create-success-pop__title-accent">
-                          {copy.verse.participateDoneAccent}
-                        </span>
-                      ) : null}
-                    </p>
-                  </div>
-                  <div className="tx-success__rows">
-                    {payRowsExact.map((row) => (
-                      <div
-                        key={row.label}
-                        className="participation-review__row participation-review__row--pay tx-success__paid"
-                      >
-                        <span>{row.label}</span>
-                        <span data-numeric>
-                          {row.amountText} {row.asset}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  {tx.context.txHash && successExplorer ? (
-                    <a
-                      className="tx-success__hash"
-                      href={`${successExplorer}/tx/${tx.context.txHash}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      <span className="tx-success__hash-label">{copy.verse.txHash}</span>
-                      <span className="tx-success__hash-value">
-                        <span data-numeric>{formatHex(tx.context.txHash)}</span>
-                        <ExternalLink aria-hidden="true" className="size-3.5" />
-                      </span>
-                    </a>
-                  ) : null}
-                  <Button
-                    className="ax-ghost-cta"
-                    nativeButton={false}
-                    render={<Link href={localePath(locale, '/portfolio')} />}
-                  >
-                    {copy.verse.viewPortfolio}
-                  </Button>
-                </div>
-              ) : (
-                <TxStatus locale={locale} state={tx.display} />
-              )}
               {resolveFailed ? <FieldError>{copy.common.degrade.errorBody}</FieldError> : null}
               </>
               )}
@@ -2392,6 +2345,39 @@ export function ParticipationPanel({
           </ActionDialogShell>
         </Dialog>
       ) : null}
+      {/* Feedback pair (2026-10-26 弹窗序列纪律): progress = its own button-less dialog
+          stacked on the review dialog (always second-to-last); confirmed yields to the
+          generic receipt dialog, the last one. */}
+      <TxProgressDialog
+        locale={locale}
+        title={copy.verse.reviewTitle}
+        state={tx.display}
+        open={tx.active && !successOpen}
+        onDismiss={tx.reset}
+      />
+      <TxSuccessDialog
+          locale={locale}
+          title={copy.verse.reviewTitleDone}
+          lead={copy.verse.participateDoneLead}
+          accent={copy.verse.participateDoneAccent}
+          rows={receiptRows}
+          txHash={receipt?.hash}
+          txChainId={receipt?.chainId}
+          open={successOpen}
+          onOpenChange={(next) => {
+            setSuccessOpen(next)
+            if (!next) {
+              // Closing the receipt = the verse aggregates changed (resetReview's confirmed
+              // branch rehomed here: the gate has already reset the tx flow by now).
+              router.refresh()
+              setBalanceNonce((nonce) => nonce + 1)
+              setAmount('')
+              setPreorderAmount('')
+              resetReview()
+            }
+          }}
+          cta={{ label: copy.verse.viewPortfolio, href: localePath(locale, '/portfolio') }}
+        />
     </form>
   )
 }

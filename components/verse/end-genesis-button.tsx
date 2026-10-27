@@ -25,15 +25,16 @@ import {
 import { getActiveEip1193Provider, useActiveEip1193Provider } from '@/lib/web3/active-provider'
 import { changeStageCall } from '@/lib/web3/session-actions'
 
-import { ActionDialogShell } from '../global/action-dialogs'
 import { getCopy } from '../global/copy'
+import { formatCountdown } from '../global/signal-ui'
 import { SwitchChainCta } from '../global/switch-chain-cta'
 import { useAccountCenter } from '../global/use-account-center'
 import { probeVerseChain } from '../global/write-session'
 import { useTxCenter, type WriteSpec } from '../global/use-tx-center'
-import { TxStatus } from '../global/tx-status'
+import { TxProgressDialog } from '../global/tx-progress-dialog'
+import { TxSuccessDialog } from '../global/tx-success-dialog'
+import { useTxSuccessGate } from '../global/use-tx-success'
 import { Button } from '@/components/ui/button'
-import { Dialog } from '@/components/ui/dialog'
 import { FieldError } from '@/components/ui/field'
 
 export function EndGenesisButton({
@@ -63,6 +64,7 @@ export function EndGenesisButton({
   const center = useAccountCenter()
   const { connected, connectAction: toggle } = center
   const tx = useTxCenter()
+  const { successOpen, setSuccessOpen, receipt } = useTxSuccessGate(tx)
   const activeProvider = useActiveEip1193Provider()
   const [resolving, setResolving] = useState(false)
   const [resolveFailed, setResolveFailed] = useState(false)
@@ -81,6 +83,22 @@ export function EndGenesisButton({
     const id = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(id)
   }, [canTrigger])
+  // Countdown label runs only while the button is actually GATED — a Fast verse that met
+  // a threshold is triggerable before the deadline and shows the action text, not a
+  // countdown. The date just left the stats card, so the gated button is the only place
+  // the deadline still surfaces. Urgency follows the shared <72h warning / <24h danger
+  // bands; tone is data (the date is near), never glow.
+  const remainingMs = canTrigger ? null : endsAtMs - now
+  const deadlineTone =
+    remainingMs == null ? null : remainingMs < 24 * 3_600_000 ? 'danger' : remainingMs < 72 * 3_600_000 ? 'warning' : null
+  // Whenever the button is triggerable the outcome is determined (met→Locked, missed→
+  // Refund), so the plain label — and the dialog title — name the stage being entered;
+  // while gated the outcome is still open, so the hover title stays generic.
+  const actionLabel = !canTrigger
+    ? copy.verse.advanceGatedTitle
+    : thresholdMet
+      ? copy.verse.advanceToLocked
+      : copy.verse.advanceToRefund
 
   // Participation gate: every landed chain runs genesis locally (per-chain settlement), so
   // the executable set is the landed set; a wallet outside it gets the switch CTA.
@@ -175,43 +193,61 @@ export function EndGenesisButton({
         ) : (
           <Button
             variant="outline"
+            className="advance-countdown"
+            data-tone={deadlineTone ?? undefined}
             disabled={!canTrigger || resolving || tx.running}
             onClick={() => void startAdvance()}
+            title={actionLabel}
           >
-            {copy.verse.advance}
+            {remainingMs != null ? (
+              <span data-numeric>
+                {copy.verse.advanceCountdown.replace('{t}', formatCountdown(remainingMs, locale))}
+              </span>
+            ) : (
+              actionLabel
+            )}
           </Button>
         )
       ) : (
         <Button
           variant="outline"
+          className="advance-countdown"
+          data-tone={deadlineTone ?? undefined}
           disabled={center.source !== 'real'}
           onClick={center.source === 'real' ? toggle : undefined}
+          title={actionLabel}
         >
-          {copy.verse.advance}
+          {remainingMs != null ? (
+            <span data-numeric>
+              {copy.verse.advanceCountdown.replace('{t}', formatCountdown(remainingMs, locale))}
+            </span>
+          ) : (
+            actionLabel
+          )}
         </Button>
       )}
       {resolveFailed ? <FieldError>{common.degrade.errorBody}</FieldError> : null}
-      {/* Advance progress: the three-step strip is the only feedback (embedded signing is
-          silent); it also carries the cancelled/reverted outcome. */}
-      <Dialog
-        open={tx.active}
-        onOpenChange={(open) => {
-          if (!open) tx.reset()
-        }}
-      >
-        <ActionDialogShell title={copy.verse.advance} closeLabel={common.close}>
-          <div className="fc-claim-status">
-            <TxStatus locale={locale} state={tx.display} />
-            {tx.display === 'confirmed' ||
-            tx.display === 'cancelled' ||
-            tx.display === 'reverted' ? (
-              <Button className="ax-ghost-cta" size="lg" onClick={() => tx.reset()}>
-                {common.close}
-              </Button>
-            ) : null}
-          </div>
-        </ActionDialogShell>
-      </Dialog>
+      {/* Feedback pair (2026-10-26 弹窗序列纪律): progress = its own button-less dialog
+          (always second-to-last); confirmed yields to the generic receipt dialog, the last
+          one. A stage advance has no receipt legs — the receipt carries the ✓ and hash. */}
+      <TxProgressDialog
+        locale={locale}
+        title={actionLabel}
+        state={tx.display}
+        open={tx.active && !successOpen}
+        onDismiss={tx.reset}
+      />
+      <TxSuccessDialog
+        locale={locale}
+        title={copy.verse.advanceDoneTitle}
+        lead={copy.verse.advanceDoneLead}
+        accent={copy.verse.advanceDoneAccent}
+        rows={[]}
+        txHash={receipt?.hash}
+        txChainId={receipt?.chainId}
+        open={successOpen}
+        onOpenChange={setSuccessOpen}
+      />
     </>
   )
 }

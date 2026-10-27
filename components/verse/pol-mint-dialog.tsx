@@ -1,16 +1,19 @@
 'use client'
 
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { ArrowDown, ArrowLeftRight } from 'lucide-react'
 
 import type { Locale, PolPosition, Verse } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
+import { useVerseBalances } from './trade-balances'
 import { useAccountCenter } from '../global/use-account-center'
 import { ActionDialogShell, DialogCta } from '../global/action-dialogs'
 import { useTxCenter, useClearOnConfirmed, type WriteSpec } from '../global/use-tx-center'
-import { TxStatus } from '../global/tx-status'
-import { readAllowances } from '../global/execution-reads'
+import { TxProgressDialog } from '../global/tx-progress-dialog'
+import { TxSuccessDialog, type TxSuccessRow } from '../global/tx-success-dialog'
+import { useTxSuccessGate } from '../global/use-tx-success'
+import { readAllowances, readLiquidityQuote } from '../global/execution-reads'
 import { getTokenDecimals, getVerseSession } from '../global/write-session'
 import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
 import {
@@ -19,11 +22,13 @@ import {
   mintPolCall,
 } from '@/lib/web3/session-actions'
 import { useParams } from 'next/navigation'
-import { formatUnits, parseUnits, type Hex } from 'viem'
+import { formatUnits, type Hex } from 'viem'
+import { toBaseUnits } from '@/lib/web3/base-units'
+import { mintPolEstimateFromPrice, mintPolTargetFromQuote } from '@/lib/web3/mint-pol'
 import { SwapSettings } from '../global/swap-settings'
 import { formatAmount } from '../global/signal-ui'
-import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
-import { fmtTokenAmount, fmtUsd } from '../global/amount-format'
+import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount, trimFractionZeros, typedAmountPositive } from '../global/amount-input'
+import { fmtTokenAmount, fmtTokenAmountExact, fmtUsd } from '../global/amount-format'
 import { getSlippageIssue, slippageToNumber } from '../global/slippage-input'
 import { parseVerseIdParam } from '../global/routes'
 import { useVerseExecChain } from '../global/switch-chain-cta'
@@ -38,11 +43,14 @@ import { Input } from '@/components/ui/input'
  * main-pool ratio, POL minted 1:1 against the amount actually added to the pool
  * (mintPOLToken carries both sides' desired/min +
  * deadline; POL:main-pool LP=1:1).
- * Simulated quote: ratio and output are linear-derivation samples (price=main-pool candle close,
- * uAssetPerPol=fixture); meta copy such as "illustrative" or "reads on-chain values" never
- * enters the UI — no disclaimers needed;
- * the CTA does not fake on-chain execution (disconnected=Connect
- * Wallet clickable to toggle connection; connected=Mint disabled).
+ * Output estimate: the uAsset leg per POL at the main-pool price (sqrt(price) at 18 decimals),
+ * not `uAssetPerPol` — that field is the PT backing ratio recorded once at settlement and only
+ * equals the current conversion at the settlement price.
+ * Submitted target: the router's quote at click time (`quoteExactAmountsForLiquidity`), so the
+ * exact-mode mint can never ask for more than the typed budgets after the pool moves; meta copy
+ * such as "illustrative" or "reads on-chain values" never enters the UI — no disclaimers needed.
+ * The CTA arms the real pipeline (disconnected=Connect Wallet clickable to toggle connection;
+ * connected=Mint runs prepare → review → Type-4 / wallet_sendCalls).
  */
 export function PolMintDialog({
   locale,
@@ -65,6 +73,9 @@ export function PolMintDialog({
   const { connected, connectAction: toggle } = center
   const { execChain, wrongChain, switchChain } = useVerseExecChain(verse.governanceChain)
   const tx = useTxCenter()
+  const { successOpen, setSuccessOpen, receipt } = useTxSuccessGate(tx)
+  // Receipt legs snapshotted at the click (both input fields clear on landing).
+  const [mintRows, setMintRows] = useState<TxSuccessRow[]>([])
   const params = useParams()
   const rawVerseId = params?.verseId
   const verseId = parseVerseIdParam(rawVerseId)
@@ -86,14 +97,51 @@ export function PolMintDialog({
     setUAmount('')
   })
 
+  // Wallet-provider balances (onchain builds): fills the supply-side Balance rows the SSR leaves
+  // slotted; re-reads when a mint confirms here. Fixture builds keep the SSR samples.
+  const [settleTick, setSettleTick] = useState(0)
+  const prevDisplayRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (tx.display === 'confirmed' && prevDisplayRef.current !== 'confirmed') {
+      setSettleTick((tick) => tick + 1)
+    }
+    prevDisplayRef.current = tx.display
+  }, [tx.display])
+  const live = useVerseBalances({
+    verseId,
+    uAssetSymbol: verse.raiseAsset,
+    governanceChain: verse.governanceChain,
+    refreshKey: settleTick,
+  })
+  const myMemecoinLive = live?.memecoin ?? pol.myMemecoin
+  const myUAssetLive = live?.uAsset ?? pol.myUAsset
+  const myPolLive = live?.pol ?? pol.myPol
+  // Exact wallet reads win over the float aliases whenever the probe landed (float64 can
+  // round a real balance upward — a Max prefill re-parsed from it would trip the gate)
+  const memeExact = live?.exact.memecoin ?? null
+  const uExact = live?.exact.uAsset ?? null
+
   const polSymbol = `POL-${verse.symbol}`
   const memeVal = Number(memeAmount)
   const uVal = Number(uAmount)
-  const valid = Number.isFinite(memeVal) && memeVal > 0 && Number.isFinite(uVal) && uVal > 0
-  const memeOver = memeVal > pol.myMemecoin
-  const uOver = uVal > pol.myUAsset
-  // POL output = uAsset side ÷ uAsset-per-POL (linear-derivation sample; production reads on-chain values)
-  const polOut = valid && pol.uAssetPerPol > 0 ? uVal / pol.uAssetPerPol : null
+  const valid = typedAmountPositive(memeAmount, memeExact) && typedAmountPositive(uAmount, uExact)
+  // A null balance (accountless slot) never blocks — the chain enforces real holdings at execution
+  const memeOver =
+    memeExact != null
+      ? Number.isFinite(memeVal) && toBaseUnits(memeAmount, memeExact.decimals) > memeExact.base
+      : myMemecoinLive != null && memeVal > myMemecoinLive
+  const uOver =
+    uExact != null
+      ? Number.isFinite(uVal) && toBaseUnits(uAmount, uExact.decimals) > uExact.base
+      : myUAssetLive != null && uVal > myUAssetLive
+  // POL output = the uAsset side ÷ the uAsset leg per POL at the current main-pool price.
+  // uAssetPerPol would only hold at the settlement price and overstates the mint afterwards.
+  const uAssetDecimals = uExact?.decimals ?? 18
+  const memecoinDecimals = memeExact?.decimals ?? 18
+  const polOut =
+    valid && price != null && price > 0
+      ? mintPolEstimateFromPrice({ uAssetAmount: uVal, price, uAssetDecimals, memecoinDecimals })
+      : null
   // Slippage validation (see getSlippageIssue/slippageToNumber in global/slippage-input):
   // while out of bounds, protected-value derivation falls back to the '--' slot
   const slippage = slippageToNumber(slippageText)
@@ -132,17 +180,40 @@ export function PolMintDialog({
         getTokenDecimals(session.reader, chainId, session.verse.uAsset),
         getTokenDecimals(session.reader, chainId, session.verse.pol),
       ])
-      const memeDesired = parseUnits(memeAmount, memeDecimals)
-      const uDesired = parseUnits(uAmount, uDecimals)
+      const memeDesired = toBaseUnits(memeAmount, memeDecimals)
+      const uDesired = toBaseUnits(uAmount, uDecimals)
+      if (memeDesired === 0n || uDesired === 0n) throw new Error('typed amount below one base unit')
       const slippageBps = Math.round(slippage * 100)
       const memeMin = (memeDesired * BigInt(10000 - slippageBps)) / 10000n
       const uMin = (uDesired * BigInt(10000 - slippageBps)) / 10000n
-      const outDesired = polOut != null ? parseUnits(String(polOut), polDecimals) : 0n
-      const deadlineSecs = BigInt(Math.floor(Date.now() / 1000) + (Number(deadlineText) || 10) * 60)
-      const [memeAllow, uAllow] = await readAllowances(session.reader, eoa, [
-        { token: session.verse.memecoin, spender: launcher },
-        { token: session.verse.uAsset, spender: launcher },
+      // Exact-mode target from the pool's current composition (the launcher re-quotes it and
+      // rejects any budget shortfall); 1 POL of reference liquidity keeps the quote precise.
+      // Runs alongside the allowance legs: both must be fresh at the click.
+      const router = session.contracts.MemeverseSwapRouter as Hex | undefined
+      if (!router) throw new Error('outrun: mint POL router missing')
+      const referenceLiquidity = 10n ** BigInt(polDecimals)
+      const [quote, [memeAllow, uAllow]] = await Promise.all([
+        readLiquidityQuote(
+          session.reader,
+          router,
+          session.verse.uAsset,
+          session.verse.memecoin,
+          referenceLiquidity,
+        ),
+        readAllowances(session.reader, eoa, [
+          { token: session.verse.memecoin, spender: launcher },
+          { token: session.verse.uAsset, spender: launcher },
+        ]),
       ])
+      const outDesired = mintPolTargetFromQuote({
+        uAssetDesired: uDesired,
+        memecoinDesired: memeDesired,
+        referenceLiquidity,
+        quotedUAsset: quote.amountA,
+        quotedMemecoin: quote.amountB,
+        slippageBps,
+      })
+      const deadlineSecs = BigInt(Math.floor(Date.now() / 1000) + (Number(deadlineText) || 10) * 60)
       const approvals = [
         ...(memeAllow < memeDesired
           ? [approvalCall(session.verse.memecoin, launcher, memeDesired)]
@@ -172,7 +243,7 @@ export function PolMintDialog({
           targetContract: launcher,
           functionName: 'mintPOLToken',
           inputs: `${formatUnits(memeDesired, memeDecimals)} ${verse.symbol} + ${formatUnits(uDesired, uDecimals)} ${verse.raiseAsset}`,
-          minOutput: polOut != null ? `${formatUnits(outDesired, polDecimals)} ${polSymbol}` : '—',
+          minOutput: outDesired > 0n ? `${formatUnits(outDesired, polDecimals)} ${polSymbol}` : '—',
           fee: '—',
           gasPayer: eoa,
           authorizationChange:
@@ -193,9 +264,38 @@ export function PolMintDialog({
         deadline: Number(deadlineSecs),
         manifestVersion: session.manifestVersion,
         crossChain: false,
+        writeScope: { kind: 'verse', chainId, verseId },
       }
+      // Receipt legs snapshotted at the click (both input fields clear on landing); the
+      // received leg is the quoted exact-mode target, not the form's price-derived estimate.
+      const quotedOut = outDesired > 0n ? Number(formatUnits(outDesired, polDecimals)) : null
+      setMintRows([
+        {
+          label: common.txYouSupplied,
+          value: fmtTokenAmount(Number(memeAmount), locale),
+          symbol: verse.symbol,
+        },
+        {
+          label: common.txYouSupplied,
+          value: fmtTokenAmount(Number(uAmount), locale),
+          symbol: verse.raiseAsset,
+        },
+        ...(quotedOut != null
+          ? [
+              {
+                label: common.txReceived,
+                value: `≈ ${fmtTokenAmount(quotedOut, locale)}`,
+                symbol: polSymbol,
+              },
+            ]
+          : []),
+      ])
       void tx.executeSession(spec)
-    } catch {
+    } catch (error) {
+      // Dev-only: the UI collapses every prepare failure into one generic line.
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[pol-mint] prepare failed', error)
+      }
       setResolveFailed(true)
     } finally {
       setResolving(false)
@@ -224,7 +324,8 @@ export function PolMintDialog({
   const uUsd = uAssetUsd == null || !valid ? null : fmtUsd(uVal * uAssetUsd, locale)
 
   return (
-    <Dialog>
+    <>
+      <Dialog>
       {/* data-slot pinned back to button: base-ui Trigger's render merge overwrites the rendered
           element's data-slot, while the theme bridge (skins like the tab area's "cyan console")
           matches on [data-slot='button'] — without pinning it back the skin diverges from the
@@ -252,8 +353,26 @@ export function PolMintDialog({
             <div className="swap-panel__field-head">
               <span>{copy.mintSideMeme}</span>
               <span className="swap-panel__balance">
-                {copy.balance}: <span data-numeric>{formatAmount(pol.myMemecoin, locale)}</span>
-                <button type="button" className="swap-panel__max" onClick={() => onMemeInput(amountToInputString(pol.myMemecoin))}>
+                {copy.balance}:{' '}
+                {memeExact != null ? (
+                  <span data-numeric>{fmtTokenAmountExact(memeExact.base, memeExact.decimals, locale)}</span>
+                ) : myMemecoinLive != null ? (
+                  <span data-numeric>{formatAmount(myMemecoinLive, locale)}</span>
+                ) : (
+                  '--'
+                )}
+                <button
+                  type="button"
+                  className="swap-panel__max"
+                  disabled={memeExact != null ? memeExact.base === 0n : myMemecoinLive == null || myMemecoinLive <= 0}
+                  onClick={() =>
+                    onMemeInput(
+                      memeExact != null
+                        ? trimFractionZeros(formatUnits(memeExact.base, memeExact.decimals))
+                        : amountToInputString(myMemecoinLive ?? 0),
+                    )
+                  }
+                >
                   {copy.max}
                 </button>
               </span>
@@ -283,8 +402,26 @@ export function PolMintDialog({
             <div className="swap-panel__field-head">
               <span>{copy.mintSideUasset}</span>
               <span className="swap-panel__balance">
-                {copy.balance}: <span data-numeric>{formatAmount(pol.myUAsset, locale)}</span>
-                <button type="button" className="swap-panel__max" onClick={() => onUInput(amountToInputString(pol.myUAsset))}>
+                {copy.balance}:{' '}
+                {uExact != null ? (
+                  <span data-numeric>{fmtTokenAmountExact(uExact.base, uExact.decimals, locale)}</span>
+                ) : myUAssetLive != null ? (
+                  <span data-numeric>{formatAmount(myUAssetLive, locale)}</span>
+                ) : (
+                  '--'
+                )}
+                <button
+                  type="button"
+                  className="swap-panel__max"
+                  disabled={uExact != null ? uExact.base === 0n : myUAssetLive == null || myUAssetLive <= 0}
+                  onClick={() =>
+                    onUInput(
+                      uExact != null
+                        ? trimFractionZeros(formatUnits(uExact.base, uExact.decimals))
+                        : amountToInputString(myUAssetLive ?? 0),
+                    )
+                  }
+                >
                   {copy.max}
                 </button>
               </span>
@@ -319,7 +456,14 @@ export function PolMintDialog({
             <div className="swap-panel__field-head">
               <span id={receiveLabelId}>{copy.mintYouReceive}</span>
               <span>
-                {copy.balance}: <span data-numeric>{formatAmount(pol.myPol, locale)}</span> {polSymbol}
+                {copy.balance}:{' '}
+                {myPolLive != null ? (
+                  <>
+                    <span data-numeric>{formatAmount(myPolLive, locale)}</span> {polSymbol}
+                  </>
+                ) : (
+                  '--'
+                )}
               </span>
             </div>
             <div className="swap-panel__field-row">
@@ -386,9 +530,28 @@ export function PolMintDialog({
             }
           />
           {resolveFailed ? <FieldError>{common.degrade.errorBody}</FieldError> : null}
-          
-          {tx.active && !tx.reviewing ? <TxStatus locale={locale} state={tx.display} /> : null}
       </ActionDialogShell>
-    </Dialog>
+      </Dialog>
+      {/* Feedback pair (2026-10-26 弹窗序列纪律): progress = its own button-less dialog
+          (second-to-last), confirmed yields to the generic receipt dialog (last). */}
+      <TxProgressDialog
+        locale={locale}
+        title={copy.mintDialogTitle}
+        state={tx.display}
+        open={tx.active && !successOpen}
+        onDismiss={tx.reset}
+      />
+      <TxSuccessDialog
+        locale={locale}
+        title={copy.mintDoneTitle}
+        lead={copy.mintDoneLead}
+        accent={copy.mintDoneAccent}
+        rows={mintRows}
+        txHash={receipt?.hash}
+        txChainId={receipt?.chainId}
+        open={successOpen}
+        onOpenChange={setSuccessOpen}
+      />
+    </>
   )
 }

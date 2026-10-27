@@ -1,9 +1,15 @@
-import type { Locale, Staking, Verse } from '@/lib/data/fixture-repository'
+import {
+  getAssetUsdPrice,
+  type Locale,
+  type Staking,
+  type Verse,
+} from '@/lib/data/fixture-repository'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 import { CopyAddress } from '../global/copy-address'
 import { getCopy } from '../global/copy'
 import { formatMarketCap, formatPercent, SourceRef } from '../global/signal-ui'
-import { fmtTokenAmount } from '../global/amount-format'
+import { fmtTokenAmount, fmtUsd } from '../global/amount-format'
 import { VaultActions } from './vault-actions'
 
 /**
@@ -16,12 +22,13 @@ import { VaultActions } from './vault-actions'
  * head+stats tucked into .vault-overview (gap-3) + panel row gap space-4,
  * consistent with the DAO panel's head row.
  */
-export function VaultPanel({
+export async function VaultPanel({
   locale,
   verse,
   staking,
   myMemecoin,
   initialView,
+  price,
 }: {
   locale: Locale
   verse: Verse
@@ -30,9 +37,18 @@ export function VaultPanel({
   myMemecoin: number | null
   /** ?action=withdraw deep link: the action card lands directly on the Withdraw sub-tab (redeem is the default state, no prop preset needed) */
   initialView?: 'withdraw'
+  /** Main-pool memecoin price quoted in the raise asset (Total staked USD hint); null=no price read */
+  price: number | null
 }) {
   const copy = getCopy(locale).verseDesk
   const shareSymbol = `s${verse.symbol}`
+  // Total staked USD: the price is quoted in uAsset, so the fiat leg is stake × price × uAssetUsd
+  // (same conversion as the Tokenization panel); any missing leg hides the hint.
+  const uAssetUsd = await getAssetUsdPrice(verse.raiseAsset)
+  const totalStakedUsd =
+    staking != null && price != null && uAssetUsd != null
+      ? staking.totalStaked * price * uAssetUsd
+      : null
 
   return (
     <div className="vault-panel">
@@ -56,7 +72,21 @@ export function VaultPanel({
             <div>
               <dt>{copy.totalStaked}</dt>
               <dd>
-                {formatMarketCap(staking.totalStaked)} {verse.symbol}
+                {totalStakedUsd != null ? (
+                  <Tooltip>
+                    <TooltipTrigger className="vault-panel__stat-trigger">
+                      {formatMarketCap(staking.totalStaked)} {verse.symbol}
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {copy.totalStakedUsd} ·{' '}
+                      <span data-numeric>{`$${fmtUsd(totalStakedUsd, locale)}`}</span>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <>
+                    {formatMarketCap(staking.totalStaked)} {verse.symbol}
+                  </>
+                )}
               </dd>
             </div>
             <div>
@@ -68,7 +98,9 @@ export function VaultPanel({
             <div>
               <dt>{copy.apyLabel}</dt>
               <dd>
-                {formatPercent(staking.apy7d * 100, locale)}%
+                {staking.apy7d != null
+                  ? `${formatPercent(staking.apy7d * 100, locale)}%`
+                  : '--'}
               </dd>
             </div>
           </dl>

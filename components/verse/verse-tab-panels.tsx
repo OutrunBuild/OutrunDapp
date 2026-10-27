@@ -14,6 +14,7 @@ import { Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { CactusLogo } from './cactus-logo'
+import { PolBalanceLive } from './pol-balance-live'
 import { CopyAddress } from '../global/copy-address'
 import { DaoDots, DaoFundDialog } from './dao-fund-dialog'
 import { getCopy } from '../global/copy'
@@ -186,8 +187,6 @@ export async function PolPanel({
   const uAssetUsd = await getAssetUsdPrice(verse.raiseAsset)
   const marketUsd = uAssetUsd != null && pol ? `$${formatAmount(market * uAssetUsd, locale)}` : null
   const nominalUsd = uAssetUsd != null && pol ? `$${formatAmount(nominal * uAssetUsd, locale)}` : null
-  const estUsd =
-    uAssetUsd != null && pol ? `$${formatMarketCap(pol.myPol * market * uAssetUsd)}` : null
   // Per-unit mechanism values of PT/YT (well readout):
   // PT leg=fixed redemption rate uAssetPerPol (registered once at genesis lock, determined in
   // both locked/unlocked, not 1:1),
@@ -230,18 +229,16 @@ export async function PolPanel({
             </header>
             <div className="pol-card__balance">
               <span className="pol-label">{copy.polBalance}</span>
-              {/* symbol already shown in the card head, not repeated on the balance row; valuation trails inline */}
-              <strong className="pol-card__amount" data-numeric>
-                {formatAmount(pol.myPol, locale)}
-                {estUsd != null ? (
-                  <span className="pol-card__est">
-                    {/* ≈ is the separator (same as the pol-twin USD echo row); a "· ≈"
-                        double punctuation would leave a stranded · at line start after
-                        wrapping on mobile */}
-                    ≈ {estUsd}
-                  </span>
-                ) : null}
-              </strong>
+              {/* symbol already shown in the card head, not repeated on the balance row; valuation
+                  trails inline — client half: the wallet probe fills the accountless slot */}
+              <PolBalanceLive
+                locale={locale}
+                verseId={verse.id}
+                governanceChain={verse.governanceChain}
+                fallback={pol.myPol}
+                market={market}
+                uAssetUsd={uAssetUsd}
+              />
             </div>
             <div
               className="pol-gauge"
@@ -464,10 +461,10 @@ export async function PolPanel({
             {/* Full-width action area (well bottoms cleared to pure read; actions
                 unified in a full-width bar under the well group — position consistent across
                 stages;
-                locked=Flash Swap/Split/Merge three equal-width (Flash Swap belongs to the YT
-                single channel),
+                locked=Flash Swap/Split/Merge, Flash Swap slightly wider (YT single channel,
+                longest label; flex-grow skew see globals.css),
                 unlocked=Redeem PT/YT two equal-width; balances shown in each dialog's Balance/Max) */}
-            <div className="pol-card__btns">
+            <div className="pol-card__btns" data-stage={unlocked ? 'unlocked' : 'locked'}>
               {unlocked ? (
                 <>
                   <PolRedeemPtYtDialog
@@ -683,7 +680,9 @@ export function DaoPanel({
                 <div>
                   <dt>{copy.cycleYourVotes}</dt>
                   <dd>
-                    {formatAmount(governance.currentCycleVotes.mine, locale)}{' '}
+                    {governance.currentCycleVotes.mine != null
+                      ? formatAmount(governance.currentCycleVotes.mine, locale)
+                      : '--'}{' '}
                     <span className="stat-unit">{copy.votesUnit}</span>
                   </dd>
                 </div>
@@ -767,7 +766,9 @@ export function DaoPanel({
               <div>
                 <dt>{copy.cycleYourVotes}</dt>
                 <dd>
-                  {formatAmount(governance.lastCycle.myVotes, locale)}{' '}
+                  {governance.lastCycle.myVotes != null
+                    ? formatAmount(governance.lastCycle.myVotes, locale)
+                    : '--'}{' '}
                   <span className="stat-unit">{copy.votesUnit}</span>
                 </dd>
               </div>
@@ -787,12 +788,14 @@ export function DaoPanel({
                   </Tooltip>
                 </dt>
                 <dd className="stat-action">
-                  ${formatAmount(governance.lastCycle.myClaimable, locale)}
+                  {governance.lastCycle.myClaimable != null
+                    ? `$${formatAmount(governance.lastCycle.myClaimable, locale)}`
+                    : '--'}
                   {governance.lastCycle.claimableAssets ? (
                     <DaoFundDialog
                       locale={locale}
                       title={copy.claimableDetailsTitle}
-                      totalUsd={governance.lastCycle.myClaimable}
+                      totalUsd={governance.lastCycle.myClaimable ?? 0}
                       assets={governance.lastCycle.claimableAssets}
                       actionLabel={copy.claimRewards}
                       triggerButton={copy.claimRewards}

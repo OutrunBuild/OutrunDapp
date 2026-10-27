@@ -1,15 +1,18 @@
 'use client'
 
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { ArrowDown, ArrowLeftRight } from 'lucide-react'
 
 import type { Locale, PolPosition, Verse } from '@/lib/data/fixture-repository'
 
 import { getCopy } from '../global/copy'
+import { useVerseBalances } from './trade-balances'
 import { useAccountCenter } from '../global/use-account-center'
 import { ActionDialogShell, DialogCta } from '../global/action-dialogs'
 import { useTxCenter, useClearOnConfirmed, type WriteSpec } from '../global/use-tx-center'
-import { TxStatus } from '../global/tx-status'
+import { TxProgressDialog } from '../global/tx-progress-dialog'
+import { TxSuccessDialog, type TxSuccessRow } from '../global/tx-success-dialog'
+import { useTxSuccessGate } from '../global/use-tx-success'
 import {
   readAllowances,
   type ContractReader,
@@ -28,11 +31,12 @@ import {
 import { useParams } from 'next/navigation'
 import { parseVerseIdParam } from '../global/routes'
 import { useVerseExecChain } from '../global/switch-chain-cta'
-import { formatUnits, parseUnits, type Hex } from 'viem'
+import { formatUnits, type Hex } from 'viem'
+import { estimateBaseUnitsCeil, estimateBaseUnitsFloor, toBaseUnits } from '@/lib/web3/base-units'
 import { SettingsTip, SwapSettings } from '../global/swap-settings'
 import { formatAmount, formatPercent } from '../global/signal-ui'
-import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount } from '../global/amount-input'
-import { fmtTokenAmount, fmtUsd } from '../global/amount-format'
+import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount, trimFractionZeros, typedAmountPositive } from '../global/amount-input'
+import { fmtTokenAmount, fmtTokenAmountExact, fmtUsd } from '../global/amount-format'
 import { getSlippageIssue, slippageToNumber } from '../global/slippage-input'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogTrigger } from '@/components/ui/dialog'
@@ -80,6 +84,9 @@ export function PolFlashSwapDialog({
   const { connected, connectAction: toggle } = center
   const { execChain, wrongChain, switchChain } = useVerseExecChain(verse.governanceChain)
   const tx = useTxCenter()
+  const { successOpen, setSuccessOpen, receipt } = useTxSuccessGate(tx)
+  // Receipt legs snapshotted at the click (the amount clears on landing).
+  const [flashRows, setFlashRows] = useState<TxSuccessRow[]>([])
   const params = useParams()
   const rawVerseId = params?.verseId
   const verseId = parseVerseIdParam(rawVerseId)
@@ -97,6 +104,28 @@ export function PolFlashSwapDialog({
   const [rateInverted, setRateInverted] = useState(false)
   useClearOnConfirmed(tx.display, () => setAmount(''))
 
+  // Wallet-provider YT/uAsset balances (onchain builds); re-reads when a flash swap confirms.
+  const [settleTick, setSettleTick] = useState(0)
+  const prevDisplayRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (tx.display === 'confirmed' && prevDisplayRef.current !== 'confirmed') {
+      setSettleTick((tick) => tick + 1)
+    }
+    prevDisplayRef.current = tx.display
+  }, [tx.display])
+  const live = useVerseBalances({
+    verseId,
+    uAssetSymbol: verse.raiseAsset,
+    governanceChain: verse.governanceChain,
+    refreshKey: settleTick,
+  })
+  const myYtLive = live?.yt ?? pol.myYt
+  const myUAssetLive = live?.uAsset ?? pol.myUAsset
+  // Exact wallet reads win over the float aliases whenever the probe landed (float64 can
+  // round a real balance upward — a Max prefill re-parsed from it would trip the gate)
+  const ytExact = live?.exact.yt ?? null
+  const uExactDisplay = live?.exact.uAsset ?? null
+
   const ytSymbol = `YT-${verse.symbol}`
   const clean = (raw: string) => setAmount(sanitizeAmount(raw))
 
@@ -107,14 +136,22 @@ export function PolFlashSwapDialog({
   // on-chain it still settles in POL via Flash Swap, the frontend composes the POL/uAsset pool legs)
   const ytPerUAsset = (1 - pol.ptPricePerPol) * pol.marketPricePerPol
   const parsed = Number(amount)
-  const valid = Number.isFinite(parsed) && parsed > 0 && ytPerUAsset > 0
+  const valid = typedAmountPositive(amount, ytExact) && ytPerUAsset > 0
   // Buy and sell both use the linear reference price: paid/received uAsset = YT amount × implied
   // price (execution price is decided by pool state, see the leverage warning)
   const uAssetLeg = valid ? parsed * ytPerUAsset : null
-  // Insufficient balance: sell=exceeds YT holdings; buy=derived pay leg exceeds the uAsset balance
-  // (lower block is read-only, the error belongs to the driving input)
+  // Insufficient balance: sell=exceeds YT holdings; buy=derived pay leg exceeds the uAsset
+  // balance (lower block is read-only, the error belongs to the driving input). A null balance
+  // (accountless slot) never blocks — the chain enforces real holdings at execution.
+  // Sell compares exact base units when the probe landed (the Max prefill round-trips through
+  // the input string); the buy leg is a reference-price float estimate (execution re-quotes
+  // on-chain with the real balance enforced), so it keeps the float comparison.
   const overBalance =
-    mode === 'sell' ? parsed > pol.myYt : uAssetLeg != null && uAssetLeg > pol.myUAsset
+    mode === 'sell'
+      ? ytExact != null
+        ? Number.isFinite(parsed) && toBaseUnits(amount, ytExact.decimals) > ytExact.base
+        : myYtLive != null && parsed > myYtLive
+      : uAssetLeg != null && myUAssetLive != null && uAssetLeg > myUAssetLive
   // Slippage validation (see getSlippageIssue/slippageToNumber in global/slippage-input):
   // while out of bounds, protected-value derivation falls back to the '--' slot
   const slippage = slippageToNumber(slippageText)
@@ -136,6 +173,33 @@ export function PolFlashSwapDialog({
     pol.marketPricePerPol > 0
 
   async function startFlashReview(): Promise<void> {
+    setFlashRows(
+      mode === 'buy'
+        ? [
+            ...(uAssetLeg != null
+              ? [
+                  {
+                    label: common.txYouPaid,
+                    value: `≈ ${fmtTokenAmount(uAssetLeg, locale)}`,
+                    symbol: verse.raiseAsset,
+                  },
+                ]
+              : []),
+            { label: common.txReceived, value: fmtTokenAmount(parsed, locale), symbol: ytSymbol },
+          ]
+        : [
+            { label: common.txYouPaid, value: fmtTokenAmount(parsed, locale), symbol: ytSymbol },
+            ...(uAssetLeg != null
+              ? [
+                  {
+                    label: common.txReceived,
+                    value: `≈ ${fmtTokenAmount(uAssetLeg, locale)}`,
+                    symbol: verse.raiseAsset,
+                  },
+                ]
+              : []),
+          ],
+    )
     if (!executionReady || !valid || overBalance || slippageIssue != null || resolving) return
     const provider = getActiveEip1193Provider()
     const eoa = center.address as Hex | null
@@ -167,7 +231,8 @@ export function PolFlashSwapDialog({
         getTokenDecimals(reader, chainId, yt),
         getTokenDecimals(reader, chainId, session.verse.pol),
       ])
-      const ytAmount = parseUnits(amount, ytDecimals)
+      const ytAmount = toBaseUnits(amount, ytDecimals)
+      if (ytAmount === 0n) throw new Error('typed amount below one base unit')
       const protectedPol =
         protectedLeg != null && pol.marketPricePerPol > 0
           ? protectedLeg / pol.marketPricePerPol
@@ -184,7 +249,10 @@ export function PolFlashSwapDialog({
       let inputs: string
       let minOutput: string
       if (mode === 'buy') {
-        const maxPolIn = parseUnits(String(protectedPol), polDecimals)
+        // max-in bound ceils / min-out bound floors (Uniswap rounding convention); the
+        // estimate converts in one total hop (String() would emit scientific notation in
+        // the dust range and viem's parseUnits rejects it outright)
+        const maxPolIn = estimateBaseUnitsCeil(protectedPol, polDecimals)
         action = flashPolToYtCall(router, {
           verseId: BigInt(verseId),
           exactYTOut: ytAmount,
@@ -199,7 +267,7 @@ export function PolFlashSwapDialog({
         inputs = `${formatUnits(ytAmount, ytDecimals)} ${ytSymbol}`
         minOutput = `${formatUnits(ytAmount, ytDecimals)} ${ytSymbol}`
       } else {
-        const minPolOut = parseUnits(String(protectedPol), polDecimals)
+        const minPolOut = estimateBaseUnitsFloor(protectedPol, polDecimals)
         action = flashYtToPolCall(router, {
           verseId: BigInt(verseId),
           exactYTIn: ytAmount,
@@ -248,6 +316,7 @@ export function PolFlashSwapDialog({
         deadline: Number(deadlineSecs),
         manifestVersion: session.manifestVersion,
         crossChain: false,
+        writeScope: { kind: 'verse', chainId, verseId },
       }
       void tx.executeSession(spec)
     } catch {
@@ -268,7 +337,8 @@ export function PolFlashSwapDialog({
     uAssetUsd == null || !valid ? null : fmtUsd(parsed * ytPerUAsset * uAssetUsd, locale)
 
   return (
-    <Dialog>
+    <>
+      <Dialog>
       <DialogTrigger data-slot="button" render={<Button variant="outline" size="sm" />}>
         {copy.flashSwap}
       </DialogTrigger>
@@ -309,12 +379,26 @@ export function PolFlashSwapDialog({
             <div className="swap-panel__field-head">
               <span>YT</span>
               <span className="swap-panel__balance">
-                {copy.balance}: <span data-numeric>{formatAmount(pol.myYt, locale)}</span>
+                {copy.balance}:{' '}
+                {ytExact != null ? (
+                  <span data-numeric>{fmtTokenAmountExact(ytExact.base, ytExact.decimals, locale)}</span>
+                ) : myYtLive != null ? (
+                  <span data-numeric>{formatAmount(myYtLive, locale)}</span>
+                ) : (
+                  '--'
+                )}
                 {mode === 'sell' ? (
                   <button
                     type="button"
                     className="swap-panel__max"
-                    onClick={() => clean(amountToInputString(pol.myYt))}
+                    disabled={ytExact != null ? ytExact.base === 0n : myYtLive == null || myYtLive <= 0}
+                    onClick={() =>
+                      clean(
+                        ytExact != null
+                          ? trimFractionZeros(formatUnits(ytExact.base, ytExact.decimals))
+                          : amountToInputString(myYtLive ?? 0),
+                      )
+                    }
                   >
                     {copy.max}
                   </button>
@@ -354,7 +438,14 @@ export function PolFlashSwapDialog({
             <div className="swap-panel__field-head">
               <span id={legLabelId}>{mode === 'buy' ? copy.flashYouPay : copy.youReceive}</span>
               <span className="swap-panel__balance">
-                {copy.balance}: <span data-numeric>{formatAmount(pol.myUAsset, locale)}</span>
+                {copy.balance}:{' '}
+                {uExactDisplay != null ? (
+                  <span data-numeric>{fmtTokenAmountExact(uExactDisplay.base, uExactDisplay.decimals, locale)}</span>
+                ) : myUAssetLive != null ? (
+                  <span data-numeric>{formatAmount(myUAssetLive, locale)}</span>
+                ) : (
+                  '--'
+                )}
               </span>
             </div>
             <div className="swap-panel__field-row">
@@ -411,7 +502,9 @@ export function PolFlashSwapDialog({
                 <SettingsTip text={copy.flashFeeNote} />
               </dt>
               <dd data-numeric>
-                {formatPercent(pol.flashUserFeeRate * 100, locale)}%
+                {pol.flashUserFeeRate != null
+                  ? `${formatPercent(pol.flashUserFeeRate * 100, locale)}%`
+                  : '--'}
               </dd>
             </div>
           </dl>
@@ -431,9 +524,28 @@ export function PolFlashSwapDialog({
             }
           />
           {resolveFailed ? <FieldError>{common.degrade.errorBody}</FieldError> : null}
-          
-          {tx.active && !tx.reviewing ? <TxStatus locale={locale} state={tx.display} /> : null}
       </ActionDialogShell>
-    </Dialog>
+      </Dialog>
+      {/* Feedback pair (2026-10-26 弹窗序列纪律): progress = its own button-less dialog
+          (second-to-last), confirmed yields to the generic receipt dialog (last). */}
+      <TxProgressDialog
+        locale={locale}
+        title={copy.flashSwap}
+        state={tx.display}
+        open={tx.active && !successOpen}
+        onDismiss={tx.reset}
+      />
+      <TxSuccessDialog
+        locale={locale}
+        title={copy.flashSwapDoneTitle}
+        lead={copy.flashSwapDoneLead}
+        accent={copy.flashSwapDoneAccent}
+        rows={flashRows}
+        txHash={receipt?.hash}
+        txChainId={receipt?.chainId}
+        open={successOpen}
+        onOpenChange={setSuccessOpen}
+      />
+    </>
   )
 }
