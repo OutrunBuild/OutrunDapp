@@ -31,8 +31,9 @@ test('swap card settings layer: per-keystroke 0.25 keeps the dot, preset writes 
   await slippage.press('2');
   await slippage.press('5');
   await expect(slippage).toHaveValue('0.25');
-  // Derived row stays in sync (slippageToNumber chain): max slippage row reads 0.25%
-  await expect(page.locator('.swap-panel__details')).toContainText('0.25%');
+  // The derived Max-slippage detail row moved out with the live-quote rework
+  // (settings→details sync now rides Min. received, which stays '--' without a typed
+  // amount); the per-keystroke input contract above is the regression under test.
 
   // Preset click writes back String(preset)
   await page.getByRole('button', { name: '0.5%', exact: true }).click();

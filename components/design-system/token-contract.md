@@ -44,6 +44,7 @@
 - `--inset-light-{cyan,yellow}`：KPI 顶缘内衬光（青/黄两变体，同 alpha 档）
 - `--font-weight-semibold`：强调字重 600
 - `--display-title` 展示档字号（h1/营销大标题唯一字号源，`clamp(30px, 1em+22px, 44px)`，1em 随使用点继承解析、16px 上下文≈38px；DESIGN.md §3 + foundations.md §2 钉死口径）。角色专用尺寸 token，**不在 `--text-*` 字阶梯内**——展示档不得以 `--text-xl` 等档位 token 替代（2026-10-04 showcase 样张失真裁决后补登）
+- `--text-title` 弹窗/卡片头题字号 17px（`--text-base` 16 与 `--text-md` 18 之间的半档，用户裁定 2026-10-27）。角色专用尺寸 token，与 `--display-title` 同理在字阶梯外补位；消费位=`.pol-mint__title` 弹窗头题与 `.swap-panel__head h2` 交易卡头题（两者同规格基则）
 - 组件只引用上述 token；新需求先扩 token 再用（阶段 2 起 PR 审查项）
 
 ## 4. 字族（010 终选，r10 部署实证）

@@ -70,6 +70,7 @@
   --text-lg: 20px;
   --text-xl: 28px;
   --text-num-lg: 22px;    /* KPI readouts */
+  --text-title: 17px;     /* dialog & card head titles (half-step between base and md; user ruling) */
 
   /* ---------- Density (balanced) ---------- */
   --row-height: 44px;     /* table row height */

@@ -1278,9 +1278,9 @@ div > .wallet-select__note:last-child {
 
 .brand-wordmark {
   display: block;
-  /* Wordmark sized 2.2 × space-8 (140.8px wide, above the 96px wordmark floor); this base class is
+  /* Wordmark sized 2 × space-8 (128px wide, above the 96px wordmark floor); this base class is
     consumed only by the product shell sidebar */
-  inline-size: calc(var(--space-8) * 2.2);
+  inline-size: calc(var(--space-8) * 2);
   block-size: auto;
 }
 
@@ -2740,7 +2740,7 @@ div > .wallet-select__note:last-child {
 
 .product-shell {
   display: grid;
-  grid-template-columns: calc(var(--space-8) * 3.35) minmax(0, 1fr);
+  grid-template-columns: calc(var(--space-8) * 3) minmax(0, 1fr);
 }
 
 .product-sidebar {
@@ -4431,7 +4431,7 @@ div > .wallet-select__note:last-child {
 }
 
 .stats-panel .section-heading h2 {
-  font-size: var(--text-lg);
+  font-size: var(--text-md);
 }
 
 .stats-panel .verse-stats {
@@ -4442,16 +4442,17 @@ div > .wallet-select__note:last-child {
 }
 
 .stats-panel .verse-stats dt {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 
-/* Hint bubble trigger beside the xs-size stat labels shrinks to the label's own size
-   (.swap-panel__details dt .create-info precedent) */
+/* Hint bubble trigger beside the sm-size stat labels matches the label's 14px size
+   (restores the original icon = label-size proportion); sink keeps the icon ink center
+   on the CJK label ink center, retune if the size changes again */
 .stats-panel .verse-stats dt .create-info {
-  inline-size: var(--text-xs);
-  block-size: var(--text-xs);
+  inline-size: var(--text-sm);
+  block-size: var(--text-sm);
   margin-inline-start: var(--space-1);
-  vertical-align: -2px;
+  vertical-align: -1.5px;
 }
 
 .stats-panel .verse-stats dd {
@@ -4519,6 +4520,205 @@ div > .wallet-select__note:last-child {
   color: var(--color-text-secondary);
 }
 
+/* ── Claim Center (fifth tab: per-user claim surface). Cards ride the pool-card shell
+      (border + inset + chamfer + hover lift) with the POL twin-well readout anatomy —
+      one micro label, a hero number, equal-basis extra legs stacked below; outline CTA
+      only, yellow stays with the trade desk ── */
+.claim-center {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.claim-center__gate {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  color: var(--color-text-secondary);
+}
+
+.claim-center__empty {
+  margin: 0;
+  color: var(--color-text-tertiary);
+}
+
+.claim-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.claim-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface-inset);
+  clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100% 100%, 0 100%);
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
+}
+
+.claim-card:hover {
+  border-color: var(--color-border-signal);
+  background-color: var(--color-surface-raised);
+}
+
+.claim-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.claim-card__title {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.claim-card__readout {
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+}
+
+.claim-card__amount {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-num-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Unit rides a tier down from the hero number (the number is the readout, the symbol its
+   qualifier — same pairing as the POL balance hero) */
+.claim-card__unit {
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: var(--color-text-secondary);
+}
+
+/* Extra legs: same tier and color as the hero leg (equal redemption basis, pol-twin
+   `__leg-extra` language) — smaller only by being the second line, never a color demotion */
+.claim-card__leg {
+  margin: 0;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-sm);
+}
+
+/* Preorder vesting block: full-width progress datum + claimed-to-date subline */
+.claim-card__vest {
+  display: grid;
+  gap: var(--space-1);
+  align-content: start;
+}
+
+.claim-card__meter-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.claim-card__meter {
+  flex: 1;
+  block-size: 3px;
+  background: var(--color-border-strong);
+  overflow: hidden;
+}
+
+.claim-card__meter-fill {
+  display: block;
+  block-size: 100%;
+  background: var(--or-cyan);
+}
+
+.claim-card__meter-pct {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.claim-card__sub {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+/* Pin-to-bottom across equal-height cards regardless of optional blocks (vesting block
+   only exists on the preorder card) */
+.claim-card__actions {
+  margin-block-start: auto;
+  display: grid;
+}
+
+.claim-card__cta {
+  justify-self: stretch;
+}
+
+/* Tab count badge (cyan functional signal; FastBadge border family, count-sized) */
+.claim-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-inline-start: var(--space-2);
+  min-inline-size: calc(var(--space-4) + var(--space-2));
+  padding-inline: var(--space-1);
+  border: 1px solid var(--color-border-strong);
+  clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100% 100%, 0 100%);
+  background: var(--color-surface-inset);
+  color: var(--or-cyan);
+  font-size: var(--text-xs);
+}
+
+/* Claim confirm dialog body (dialog IS the review: identity + legs + one CTA) */
+.claim-confirm {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.claim-confirm__title {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.claim-confirm__legs {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.claim-confirm__legs > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-block-end: var(--space-2);
+  border-block-end: 1px solid var(--color-border);
+}
+
+.claim-confirm__legs dt {
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+}
+
+.claim-confirm__legs dd {
+  margin: 0;
+}
+
 /* ==========================================================================
    Four-tab trade desk (locked/unlocked detail page = header card + stats
    bar/K-line/Swap
@@ -4529,7 +4729,16 @@ div > .wallet-select__note:last-child {
 /* Trade desk persistent area: chart/table left (large) + Swap right */
 .verse-desk {
   display: grid;
-  grid-template-columns: minmax(0, 2.2fr) minmax(calc(var(--space-8) * 3.2), 0.9fr);
+  /* Side column tracks 29% of the desk width (the 0.9/3.1 split this layout always used),
+    clamped between a 320px floor (amount input + token chip stay usable; the original 204px
+    floor crushed the field rows) and a 480px cap (ultrawide gives the extra width to the
+    chart, not the swap card). fr cannot mix with lengths inside min()/max(), so the clamp
+    carries the elasticity */
+  grid-template-columns: minmax(0, 1fr) clamp(
+      calc(var(--space-8) * 5),
+      29%,
+      calc(var(--space-8) * 7.5)
+    );
   gap: var(--space-4);
   margin-block-start: var(--space-4);
   align-items: stretch;
@@ -4667,8 +4876,10 @@ div > .wallet-select__note:last-child {
   font-variant-numeric: tabular-nums;
 }
 
+/* Price reads at the shared numeric-readout tier (same token as the balance/KPI large
+   numbers), not the page-display tier */
 .token-strip__price strong {
-  font-size: var(--text-xl, 1.25rem);
+  font-size: var(--text-num-lg);
   font-weight: 600;
 }
 
@@ -4722,16 +4933,11 @@ div > .wallet-select__note:last-child {
   align-items: center;
   gap: var(--space-2) var(--space-3);
   flex-wrap: wrap;
-  /* Fills the remaining card width before the granularity buttons so the CA pill can center
-    instead of hugging the price left-leaning */
-  flex: 1;
 }
 
-/* CA pill centered between price and granularity buttons (1-2-1 flex centering) */
-.candle-chart__row .token-strip__copy {
-  margin-inline: auto;
-}
-
+/* Ruled arrangement (style round 38a9120): CA sits right after the price on the left, the
+   granularity group rides flush right via its own auto margin; no auto-centering — a centered
+   CA orphans onto its own wrapped line when the bar runs out of width */
 .candle-chart__granularity {
   margin-inline-start: auto;
 }
@@ -4885,7 +5091,7 @@ div > .wallet-select__note:last-child {
 .swap-panel__head h2 {
   margin: 0;
   font-family: var(--font-body);
-  font-size: var(--text-base);
+  font-size: var(--text-title);
   font-weight: 500;
   color: var(--color-text-secondary);
   letter-spacing: 0.015em;
@@ -5007,8 +5213,15 @@ div > .wallet-select__note:last-child {
   position: relative;
   isolation: isolate;
   display: grid;
+  /* Shrinkable single track: an implicit auto track floors at the children's min-content
+     (the amount input keeps its ~210px intrinsic width there even under flex:1/min-width:0),
+     so a squeezed side column or a long derived string bursts the card face; minmax(0,1fr)
+     deflates the track and the value slots ellipsize instead */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
-  padding: var(--space-5);
+  /* Header edge tighter than the other three; the difference funds the flip
+     button's breathing room below */
+  padding: var(--space-4) var(--space-5) var(--space-5);
   box-shadow:
     0 24px 48px rgba(0, 0, 0, 0.45),
     0 2px 8px rgba(0, 0, 0, 0.3);
@@ -5016,6 +5229,7 @@ div > .wallet-select__note:last-child {
 
 .swap-panel__field {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-1);
   padding: var(--space-3);
   border: 1px solid var(--color-border);
@@ -5063,6 +5277,22 @@ div > .wallet-select__note:last-child {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* Quote-pending marker: while the executable quote for the current input is in flight the
+   live pipeline shows this ring instead of a locally computed estimate (the value slot stays
+   at its dim placeholder). Same cyan-ring anatomy as .degrade-banner__spinner, sized to the
+   value line */
+.swap-panel__pending-spinner {
+  display: inline-block;
+  inline-size: var(--space-3);
+  block-size: var(--space-3);
+  margin-inline-start: var(--space-2);
+  border: 2px solid var(--or-cyan);
+  border-inline-end-color: transparent;
+  border-radius: 50%;
+  animation: scenario-spin 0.8s linear infinite;
+  vertical-align: -2px;
 }
 
 .swap-panel__token {
@@ -5128,7 +5358,9 @@ div > .wallet-select__note:last-child {
   font-family: var(--font-data);
   font-variant-numeric: tabular-nums;
   font-size: 12px;
-  /* Large-number defense fallback: same as .swap-panel__output */
+  /* Large-number defense fallback: same as .swap-panel__output; the min-width:0 matters
+     as a grid item — the auto minimum would feed the long string back into the track */
+  min-inline-size: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -5138,7 +5370,7 @@ div > .wallet-select__note:last-child {
    gray (avoiding an all-cyan screen), turns cyan + 180° only on hover/focus */
 .swap-panel__flip {
   justify-self: center;
-  margin-block: calc(-1 * var(--space-2));
+  margin-block: calc(-1 * var(--space-1));
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -5161,6 +5393,7 @@ div > .wallet-select__note:last-child {
 
 .swap-panel__details {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-1);
   /* Details five rows one tier down base→sm (rows too cramped otherwise; hierarchy
     still above the 12px label row) */
@@ -5189,11 +5422,27 @@ div > .wallet-select__note:last-child {
 }
 
 /* Rate row inversion: value + flip button on one row (shared by Swap/Mint POL); button = cyan
-   functional-signal ghost icon */
+   functional-signal ghost icon. The rate row never folds: label + rate + flip stay on one
+   line (the ≤640px wrap fallback is lifted for this row) — the value ellipsizes at the tail
+   instead of wrapping to a second line */
 .swap-panel__rate {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
+  flex: 1;
+  min-inline-size: 0;
+  justify-content: flex-end;
+}
+
+.swap-panel__rate [data-numeric] {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.swap-panel__details div:has(> .swap-panel__rate) {
+  flex-wrap: nowrap;
 }
 
 .swap-panel__rate-flip {
@@ -5215,6 +5464,139 @@ div > .wallet-select__note:last-child {
   font-family: var(--font-data);
   font-variant-numeric: tabular-nums;
   text-align: end;
+  /* Value-slot clamp (same defense as .swap-panel__output): min-received carries raw
+     toFixed(6) strings up to ~24 chars before the compact tier collapses them; without
+     min-width:0 + ellipsis the row's min-content bursts the card */
+  min-inline-size: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Price-impact tiers on the details rows (live-quote derived): ≥5% warning / ≥15% danger —
+   the value itself carries the state, the row layout does not change */
+.swap-panel__details dd [data-tone='warning'] {
+  color: var(--color-warning);
+}
+
+.swap-panel__details dd [data-tone='danger'] {
+  color: var(--color-danger);
+}
+
+/* Swap confirm dialog (review → three-step → complete; participation-review shaped): the
+   you-pay row's value rides the yellow key-readout tier, the action pair splits the row */
+.swap-review__pay {
+  color: var(--accent-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Confirm dialog body (2026-10-27 ruling: five uniform ledger rows read as a table): the
+   review paints as a two-leg exchange — pay leg → conversion arrow → receive leg with min
+   received as its protective sub-line — over a quiet meta band (fee / network cost behind
+   one top hairline) */
+.swap-review {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* Leg row = label left / money column right-anchored: the review's values share one right
+   rail with the fee band and CTA edge; a leg too long for the card wraps as one unit and
+   stays right-anchored */
+.swap-review__leg {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+}
+
+.swap-review__label {
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--color-text-secondary);
+}
+
+/* Leg amount: data-face key readout at the lg tier; number + ticker ride as one unit */
+.swap-review__amount {
+  display: inline-flex;
+  align-items: baseline;
+  column-gap: var(--space-2);
+  margin-inline-start: auto;
+  white-space: nowrap;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  min-inline-size: 0;
+}
+
+/* Pay → receive conversion mark: the mint dialog's arrow divider riding the review grid's
+   own gap (no negative pull — the legs breathe around it) */
+.swap-review .pol-mint__arrow {
+  margin-block: 0;
+}
+
+/* Min received = the receive leg's protective sub-line on the same right rail, one tier
+   down and pulled one step toward its anchor amount */
+.swap-review__min {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--space-2);
+  row-gap: var(--space-1);
+  margin-block-start: calc(-1 * var(--space-1));
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--color-text-tertiary);
+}
+
+/* Receive amount rides the functional cyan — the participation review's genesis-amount
+   tier (accent-link alias, same 品牌青); pay keeps the yellow key readout */
+.swap-review__receive {
+  color: var(--accent-link);
+}
+
+.swap-review__min-value {
+  margin-inline-start: auto;
+  white-space: nowrap;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+.swap-review__meta {
+  display: grid;
+  margin-block-start: var(--space-2);
+  padding-block-start: var(--space-1);
+  border-block-start: 1px solid var(--color-border);
+}
+
+.swap-review__meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-block-size: var(--row-height);
+}
+
+.swap-review__meta-row dt {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.swap-review__meta-row dd {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-sm);
+}
+
+/* The gas row sheds its ledger bottom border inside the band — the band's top hairline is
+   the only rule */
+.swap-review__meta .gas-row {
+  border-block-end: 0;
+}
+
+.swap-review__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-block-start: var(--space-4);
 }
 
 /* CTA full-width slot (.swap-panel__cta is full width within the card;
@@ -5494,7 +5876,9 @@ div > .wallet-select__note:last-child {
   isolation: isolate;
   display: grid;
   gap: var(--space-3);
-  padding: var(--space-5);
+  /* Title head one step closer to the top edge than the sides/bottom (user ruling on the
+     unified dialog shell) */
+  padding: var(--space-4) var(--space-5) var(--space-5);
   box-shadow:
     0 24px 48px rgba(0, 0, 0, 0.45),
     0 2px 8px rgba(0, 0, 0, 0.3);
@@ -5507,12 +5891,18 @@ div > .wallet-select__note:last-child {
   padding-block-end: var(--space-1);
 }
 
-/* Title = same spec as the swap card title (text-base + secondary color): unified across all site
-   dialogs (the modifier-class-scoped variants converged to this baseline rule) */
+/* Receipt dialogs (TxSuccessDialog): the title sits one more spacing step closer to the
+   top edge than the action dialogs' review head */
+.pol-mint--compact-top {
+  padding-block-start: var(--space-3);
+}
+
+/* Title = same spec as the swap card head title (--text-title 17px + secondary color),
+   unified across all site dialogs (user ruling: half-step size) */
 .pol-mint__title {
   margin: 0;
   font-family: var(--font-body);
-  font-size: var(--text-base);
+  font-size: var(--text-title);
   font-weight: 500;
   color: var(--color-text-secondary);
   letter-spacing: 0.015em;
@@ -5619,6 +6009,56 @@ div > .wallet-select__note:last-child {
 .token-select__row:hover,
 .token-select__row:focus-visible {
   border-color: var(--or-cyan);
+}
+
+/* The selected row carries the hover treatment the moment the dialog opens (the current pick
+   reads at a glance) and yields it only when the pointer/keyboard focus lands on ANOTHER row
+   — hovering the selected row itself changes nothing (its own hover paints the same cyan) */
+.token-select__row[data-selected='true'] {
+  border-color: var(--or-cyan);
+}
+
+.token-select__list:has(
+    .token-select__row:hover:not([data-selected='true']),
+    .token-select__row:focus-visible:not([data-selected='true'])
+  )
+  .token-select__row[data-selected='true'] {
+  border-color: transparent;
+}
+
+/* Unwired pair rows (onchain builds): listed but not pickable — muted, no hover invitation */
+.token-select__row[data-unavailable='true'],
+.token-select__row[data-unavailable='true']:hover,
+.token-select__row[data-unavailable='true']:focus-visible {
+  border-color: var(--color-border);
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Token symbols wear the display face: the swap-family chips and select rows render tickers
+   in Saira Condensed semibold with a touch of tracking — the card title's display voice, a
+   deliberate step away from body sans (the [data-numeric] mono rule governs numbers, not
+   symbols); `font: inherit` on the select chip resets the family, so its strong re-declares.
+   Single-cyan misregistration echo = the hero ticker's treatment at chip scale — magenta
+   stays off small text (ruling 015); hard 1px offset, no blur, so it reads as a registration
+   fault, not glow */
+.swap-panel__token,
+.swap-panel__token--select strong,
+.token-select__id strong,
+.ax-ticker {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
+  text-shadow: -1px -1px 0 var(--or-cyan);
+}
+
+/* Swap-family chip symbols step one tier above the row's amount text (input 16px, mobile 18px):
+   the condensed display face reads small at a matched size, so the ticker takes --text-md to hold
+   its own as the row's co-primary; scoped to the chips so .token-select rows and .ax-ticker keep
+   their own scales */
+.swap-panel__token strong,
+.swap-panel__token--select strong {
+  font-size: var(--text-md);
 }
 
 .token-select__row[data-selected='true'] strong {
@@ -6574,6 +7014,13 @@ div > .wallet-select__note:last-child {
   min-inline-size: 0;
 }
 
+/* locked bar: Flash Swap slightly wider than Split/Merge — equal thirds leave the longest label
+   visually cramped while the short labels float in padding; a mild flex-grow skew re-balances
+   without going full label-proportional; the unlocked bar (Redeem PT/YT) stays equal-width */
+.pol-card[data-token='pt-yt'] .pol-card__btns[data-stage='locked'] > button:first-child {
+  flex-grow: 1.6;
+}
+
 /* Well top-edge identity tick: PT = cyan / YT = magenta (magenta within the 1px echo control) —
    badge color runs through for scannability;
    the open-corner double chamfer naturally truncates the top line's left starting segment, forming
@@ -6760,6 +7207,48 @@ div > .wallet-select__note:last-child {
   font-size: 15px;
 }
 
+/* Total staked value = hoverable USD hint (dashed underline, same hint language as
+   .term-gloss): button semantics keep keyboard reach, the bubble uses the global
+   [data-slot='tooltip-content'] skin; hover/focus/open turns cyan.
+   The dash is a pseudo-element gradient, not text-decoration: the UA dash pattern restarts
+   per glyph run and reads as uneven; the gradient keeps one 4/4 rhythm across the value. */
+.vault-panel__stat-trigger {
+  --stat-hint-line: var(--color-text-tertiary);
+  position: relative;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: inherit;
+}
+
+.vault-panel__stat-trigger::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: -2px;
+  block-size: 1px;
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--stat-hint-line) 0 4px,
+    transparent 4px 8px
+  );
+}
+
+/* The site-wide button:enabled pointer rule outranks the class selector; the hint gesture
+   needs the trigger-specific selector (same fix as .fast-badge) */
+.vault-panel__stat-trigger[data-slot='tooltip-trigger'] {
+  cursor: help;
+}
+
+.vault-panel__stat-trigger:hover,
+.vault-panel__stat-trigger:focus-visible,
+.vault-panel__stat-trigger[data-popup-open] {
+  --stat-hint-line: var(--or-cyan);
+  color: var(--or-cyan);
+}
+
 /* <30rem mobile: the head row no longer stacks fully — contract address joins the title row
    right-aligned,
    LIVE ON takes the next line alone, left-start; the rest of the three-column paradigm unchanged,
@@ -6785,15 +7274,17 @@ div > .wallet-select__note:last-child {
   }
 }
 
-/* Two-step async redemption status list: two columns under the action card, falling back to
-   one column on narrow screens */
-/* Redemption status list (folded into the action card's tabs —
-   Redeem tail = Pending Redemptions with a per-second countdown, Withdraw head = Ready to Withdraw
+/* Redemption status lists (folded into the action card's tabs —
+   Pending tab = waiting entries with a per-second countdown, Withdraw head = Ready to Withdraw
    badge).
-   Row = left block (amount mono +
-   date secondary) and right block status:
-   waiting = yellow plain-text countdown (borderless per the demo); matured = success-bordered badge */
+   Row = left block (amount mono + date secondary) and right block status:
+   waiting = yellow plain-text countdown (borderless per the demo); matured = success-bordered badge.
+   The Pending list caps at four rows and scrolls in place (site scrollbars are hidden by design,
+   so the status head's count is the overflow affordance) */
 .vault-card__list {
+  /* Status rows sit one 8px-grid step above the table grade: the two-line block + status
+     line need the extra breathing room */
+  --status-row-height: calc(var(--row-height) + var(--space-1));
   display: grid;
   gap: var(--space-1);
   list-style: none;
@@ -6801,13 +7292,39 @@ div > .wallet-select__note:last-child {
   margin: 0;
 }
 
+.vault-card__list--scroll {
+  max-block-size: calc(var(--status-row-height) * 4 + var(--space-1) * 3);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.vault-card__status-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-block-end: var(--space-2);
+}
+
+/* panel-subtitle ships an 8px bottom margin; the head row owns the spacing */
+.vault-card__status-head .panel-subtitle {
+  margin: 0;
+}
+
+.vault-card__status-count {
+  color: var(--color-text-secondary);
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
 .vault-card__list li {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  min-block-size: var(--row-height);
-  padding: var(--space-2) var(--space-3);
+  min-block-size: var(--status-row-height);
+  padding: var(--space-1) var(--space-3);
   border: 1px solid var(--color-border);
   background: var(--color-surface-inset);
   transition:
@@ -6823,26 +7340,49 @@ div > .wallet-select__note:last-child {
 .vault-card__list-main {
   display: grid;
   gap: 2px;
+  min-inline-size: 0;
+  /* Two-line block; the 48px row floor absorbs the slack, so the scroll cap shows whole rows */
+  line-height: 1.35;
+}
+
+/* Amount = the row's primary readout, one tier below body (mono per the numeric rule) */
+.vault-card__list-main strong,
+.vault-card__list [data-numeric] {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+.vault-card__list-main strong {
+  /* One step under the body tier keeps the amount from dominating the two-line row */
+  font-size: calc(var(--text-sm) - 1px);
+  font-weight: var(--font-weight-semibold);
 }
 
 .vault-card__list-main span {
   color: var(--color-text-secondary);
-  font-size: 11px;
+  font-size: var(--text-xs);
 }
 
 .vault-card__list [data-state='waiting'] {
+  /* Status keeps its own line on the right: wrapping "remaining" onto a second line squeezes
+     the amount/date block instead of the countdown */
+  flex: none;
   color: var(--color-warning);
-  font-size: 11px;
+  font-size: var(--text-xs);
   letter-spacing: 0.05em;
+  text-align: end;
+  white-space: nowrap;
 }
 
 .vault-card__list [data-state='ready'] {
+  flex: none;
   padding: 1px var(--space-2);
   border: 1px solid color-mix(in srgb, var(--color-success) 40%, transparent);
   color: var(--color-success);
   font-size: 11px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 /* Yield Vault action card (demo.outrun.build/memeverse layout):
@@ -7602,9 +8142,8 @@ div > .wallet-select__note:last-child {
 }
 
 @media (max-width: 1024px) {
-  .verse-desk {
-    grid-template-columns: minmax(0, 1fr);
-  }
+  /* .verse-desk deliberately absent: the desk keeps its two columns down to 54rem (wallet
+    side-panel squeeze; stacking at 1024px read as a breakage — see the 54rem block) */
 
   .liquidity-panel__pools {
     grid-template-columns: minmax(0, 1fr);
@@ -7905,11 +8444,25 @@ div > .wallet-select__note:last-child {
     white-space: nowrap;
   }
 
-  .verse-tabs__bar [data-slot='toggle-group-item']:nth-child(-n + 2) {
+  .verse-tabs__bar [data-slot='toggle-group-item']:nth-child(-n + 4) {
     /* !important counters the desktop tier's border:0 !important (the desktop
       `.verse-tabs__bar [data-slot='toggle-group-item']` block; higher
-      specificity plus later file order as double insurance) */
+      specificity plus later file order as double insurance). With five tabs the grid is
+      2+2+1, so the hairline seam runs under rows one and two */
     border-block-end: 1px solid var(--color-border-strong) !important;
+  }
+
+  /* Fifth tab (Claim Center) spans the last row full-width — the odd cell stays
+     intentional (the portfolio vault card's grid-column 1/-1 precedent), never a lone
+     half-width leftover */
+  .verse-tabs__bar [data-slot='toggle-group-item']:nth-child(5) {
+    grid-column: 1 / -1;
+  }
+
+  /* Claim cards drop to a single column on phones (the pool-card grid does the same —
+     a half-width card cannot host the hero number + vesting block) */
+  .claim-cards {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .verse-tabs__panel {
@@ -8635,6 +9188,38 @@ div > .wallet-select__note:last-child {
   display: grid;
 }
 
+/* Generic receipt row (TxSuccessDialog): the participation confirm ledger-row anatomy —
+   44px rhythm, hairline, secondary label, --pay yellow hero-numeral value */
+.tx-success__row {
+  display: flex;
+  min-block-size: var(--row-height);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  border-block-end: 1px solid var(--color-border);
+}
+
+.tx-success__row > span:first-child {
+  color: var(--color-text-secondary);
+}
+
+.tx-success__row > span:last-child {
+  color: var(--accent-primary);
+  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-data);
+  font-size: var(--text-base);
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Receipt value anatomy: the amount wears the data face, the token symbol the site's
+   display ticker face (swap-family chip voice) — the mono numeral block stops reading as
+   one chunky slab */
+.tx-success__row .ax-ticker {
+  margin-inline-start: var(--space-2);
+  white-space: nowrap;
+}
+
 .tx-success__head {
   display: flex;
   align-items: center;
@@ -9290,6 +9875,18 @@ div > .wallet-select__note:last-child {
   color: var(--color-text-secondary);
 }
 
+/* Stage-advance CTA pending label: the deadline countdown lives in the button (the stats
+   card no longer carries a deadline row), urgency bands shared with the rest of the site
+   (<72h warning / <24h danger). The outline bridge pins text color with !important, so the
+   tone selectors repeat that weight; border and fill stay the outline language. */
+.advance-countdown[data-tone='warning'] {
+  color: var(--color-warning) !important;
+}
+
+.advance-countdown[data-tone='danger'] {
+  color: var(--color-danger) !important;
+}
+
 .distribution-action {
   padding-block-start: var(--space-3);
   border-block-start: 1px solid var(--color-border);
@@ -9343,6 +9940,13 @@ div > .wallet-select__note:last-child {
 }
 
 @media (max-width: 54rem) {
+  /* Trade desk stacks only here — the shell sidebar collapses at this same boundary, so the
+    two-column desk keeps working through the wallet side-panel squeeze (MetaMask side panel
+    costs ~20rem of viewport and is toggled constantly; stacking at 68rem read as a breakage) */
+  .verse-desk {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .marketing-main {
     padding: var(--space-5) var(--space-4);
   }
@@ -9914,6 +10518,10 @@ div > .wallet-select__note:last-child {
   }
 
   .participation-review__actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .swap-review__actions {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -11724,7 +12332,11 @@ button.pf-action__link {
      full bleed (the stage-tabs negative-margin precedent) + surface-header/blur; active grammar =
      verse-tabs__bar's
      same (yellow text + 3px bottom indicator welded to the strip's lower edge) —— */
-  .pf-zone-tabs {
+  /* Two-class specificity (0,2,0): lightningcss merges the empty-wrapper display:none rules
+     into one :is(.pf-zone-group:not(:has(*)), …, .pf-zone-tabs) whose specificity is its
+     highest argument (0,2,0) — a bare (0,1,0) block here loses the cascade and the mobile
+     tab strip silently disappears. The deck ancestor re-levels the override. */
+  .pf-deck .pf-zone-tabs {
     position: sticky;
     inset-block-start: calc(var(--space-8) + 1px);
     z-index: calc(var(--z-sticky) - 1);
@@ -13961,9 +14573,8 @@ button.pf-action__link {
   margin-block-start: var(--space-2);
 }
 
-/* Faucet claim progress dialog body: the three-step strip is the only
-   feedback while the embedded wallet signs silently. */
-.fc-claim-status {
+/* Generic write-progress dialog body: the three-step strip stands alone (no buttons). */
+.tx-progress-body {
   display: grid;
   gap: var(--space-4);
 }

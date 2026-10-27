@@ -28,7 +28,7 @@
 | 百分比 | `formatPercent(v, locale)` + `%` | `64.2%` |
 | 日期时间 | `formatDate(iso, locale)` | `Sep 18, 2026, 14:00` / `2026年9月18日 14:00` |
 | 时长 | 待办区倒计时徽章内联 `staticDuration(remainingMs, locale)`（`action-zone.tsx`，非共享导出） | `2d 4h` / `2 天 4 小时` |
-| 交易台派生金额（到账/保护价/汇率） | `fmtUsd(v, locale)` / `fmtTokenAmount(v, locale)`（`components/global/amount-format.ts`，大数分层降级；规格与射程真相源=`component-contract.md` §1 大数边界行） | `fmtUsd` 常态 `1,234.56`、`fmtTokenAmount` 常态 `1234.560000`；大数 `39,226T` / `39,226万亿`、`4.3585E40` |
+| 交易台派生金额（到账/保护价/汇率） | `fmtUsd(v, locale)` / `fmtTokenAmount(v, locale)`（`components/global/amount-format.ts`，大数分层降级；规格与射程真相源=`component-contract.md` §1 大数边界行） | `fmtUsd` 常态 `1,234.57`、`fmtTokenAmount` 常态 `1,234.57`（<1e4 六位有效数字裁尾零）、小值 `<0.00001`、大数 `83,079,910.22T`（国际 K/M/B/T 符号，zh 不再出万亿）、`4.36E40` |
 | 代币单价（token-strip / 蜡烛图图例） | `fmtPrice(v)`（同文件，决议 019 市场口径，中英同形） | `$1.20`、`$0.0042`；极小价 `0.0₄42` |
 
 - 输出一律放在 `data-numeric` 容器里。
