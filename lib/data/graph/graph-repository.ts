@@ -307,6 +307,19 @@ export interface GraphOnchainRepository {
     address: string,
   ): Promise<DataResult<ParticipationHistoryView>>;
   getReferralHistory(chainId: number, referrer: string): Promise<DataResult<ReferralHistoryView>>;
+  /** DAO tab sidecar: one cycle's finalized status (RPC has no view for it) and the governor's
+   *  proposal counts. Cycle not yet indexed → finalized=false (the tab's own timing hides the
+   *  finalize button until endTime anyway). */
+  getGovernanceStatus(
+    chainId: number,
+    governor: string,
+    incentivizer: string,
+    cycleId: bigint,
+  ): Promise<DataResult<{ finalized: boolean; proposalTotal: number; proposalActive: number }>>;
+  /** Authoritative locked-at (settlement) timestamp for one verse, from the stage-change log.
+   *  Null = not locked yet, chain not configured, or graph failure — the caller degrades,
+   *  never fabricates. */
+  getVerseLockedAt(chainId: number, verseId: bigint): Promise<number | null>;
   /** Live index head of one chain's subgraph (uncached `_meta` read) — the freshness gate
    * for post-write refreshes: the caller waits until this reaches the write's block. */
   getIndexedBlock(chainId: number): Promise<number | null>;
@@ -792,6 +805,47 @@ class GraphRepository implements GraphOnchainRepository {
       accrued: map('accrued'),
       claimed: map('claimed'),
     });
+  }
+
+  async getGovernanceStatus(
+    chainId: number,
+    governor: string,
+    incentivizer: string,
+    cycleId: bigint,
+  ): Promise<DataResult<{ finalized: boolean; proposalTotal: number; proposalActive: number }>> {
+    const r = await this.querySilently<{
+      governanceCycles: Array<{ status: string }>;
+      governanceProposals: Array<{ status: string }>;
+    }>(
+      chainId,
+      `query GovernanceStatus($incentivizer: Bytes!, $cycleId: BigInt!, $governor: Bytes!) {
+        governanceCycles(first: 1, where: { incentivizer: $incentivizer, cycleId: $cycleId }) { status }
+        governanceProposals(first: 1000, where: { governor: $governor }) { status }
+        ${META_FRAGMENT}
+      }`,
+      { incentivizer, cycleId: String(cycleId), governor },
+    );
+    if (r.status !== 'ok') return r;
+    return ok({
+      finalized: r.data.governanceCycles[0]?.status === 'finalized',
+      proposalTotal: r.data.governanceProposals.length,
+      proposalActive: r.data.governanceProposals.filter((row) => row.status === 'active').length,
+    });
+  }
+
+  async getVerseLockedAt(chainId: number, verseId: bigint): Promise<number | null> {
+    try {
+      const r = await this.querySilently<{ verseStageChanges: Array<{ blockTimestamp: string }> }>(
+        chainId,
+        'query VerseLockedAt($id: BigInt!) { verseStageChanges(where: { verseId: $id, stage: "locked" }, orderBy: blockTimestamp, orderDirection: desc, first: 1) { blockTimestamp } }',
+        { id: verseId.toString() },
+      );
+      if (r.status !== 'ok') return null;
+      const ts = Number(r.data.verseStageChanges[0]?.blockTimestamp);
+      return Number.isFinite(ts) && ts > 0 ? ts : null;
+    } catch {
+      return null;
+    }
   }
 
   async getIndexedBlock(chainId: number): Promise<number | null> {

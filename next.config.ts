@@ -3,15 +3,17 @@ import type { NextConfig } from 'next';
 // Build-time data-source swap (fixture-boundary-contract OUTRUN_DATA_SOURCE section): onchain
 // builds redirect the fixture repository module to the onchain adapter, so fixtures/** is
 // statically unreachable in the compiled graph (two-build rule; runtime env flips cannot change
-// an already-built artifact). The default (fixture) build resolves the real module untouched.
-// Client projection of the build-mode switch: non-NEXT_PUBLIC_ vars never inline into the
-// browser bundle, so mirror the switch into NEXT_PUBLIC_OUTRUN_DATA_SOURCE (same value,
-// build-time pin, no operator action). Client code reads the mirror; the server var stays
+// an already-built artifact). ONCHAIN IS THE DEFAULT (2026-10-26 user ruling): the bare
+// `pnpm dev` / `pnpm build` serve on-chain data; fixture is the explicit opt-out via
+// OUTRUN_DATA_SOURCE=fixture (pnpm dev:fixture / build:fixture), which resolves the real
+// module untouched. Client projection of the build-mode switch: non-NEXT_PUBLIC_ vars never
+// inline into the browser bundle, so mirror the resolved mode into NEXT_PUBLIC_OUTRUN_DATA_SOURCE
+// (build-time pin, no operator action). Client code reads the mirror; the server var stays
 // the source of truth for SSR and the resolveAlias switch below.
-if (process.env.OUTRUN_DATA_SOURCE === 'onchain' && !process.env.NEXT_PUBLIC_OUTRUN_DATA_SOURCE) {
-  process.env.NEXT_PUBLIC_OUTRUN_DATA_SOURCE = process.env.OUTRUN_DATA_SOURCE;
+const FIXTURE_MODE = process.env.OUTRUN_DATA_SOURCE === 'fixture';
+if (!process.env.NEXT_PUBLIC_OUTRUN_DATA_SOURCE) {
+  process.env.NEXT_PUBLIC_OUTRUN_DATA_SOURCE = FIXTURE_MODE ? 'fixture' : 'onchain';
 }
-const ONCHAIN_MODE = process.env.OUTRUN_DATA_SOURCE === 'onchain';
 const FIXTURE_MODULE = '@/lib/data/fixture-repository';
 const ONCHAIN_ADAPTER = './lib/data/onchain-source';
 
@@ -20,7 +22,7 @@ const nextConfig: NextConfig = {
   // fully isolated from the running .next (dev / production preview) — rebuilding .next while a server serves
   // from it mixes old and new chunks
   ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
-  ...(ONCHAIN_MODE
+  ...(!FIXTURE_MODE
     ? {
         turbopack: { resolveAlias: { [FIXTURE_MODULE]: ONCHAIN_ADAPTER } },
         webpack: (config: { resolve: { alias: Record<string, string> } }) => {

@@ -28,9 +28,13 @@ import {
   polendAbi,
   psmAbi,
   registrationCenterAbi,
+  splitterAbi,
   stakingPositionAbi,
+  swapRouterAbi,
   syReadAbi,
   usrVaultAbi,
+  yieldVaultAbi,
+  incentivizerAbi,
 } from '../web3/abis';
 
 export type DataUnavailable =
@@ -225,6 +229,22 @@ export type SwapQuotePool = {
   hooks: string;
 };
 
+/** POLSplitter.splitInfos row: the verse's PT/YT wiring, bootstrap backing ratio and
+ *  settlement pools (uAsset/memecoin legs are populated at settlement). */
+export type SplitInfoView = {
+  pt: string;
+  yt: string;
+  pol: string;
+  memecoin: string;
+  uAsset: string;
+  totalPOLCollateral: bigint;
+  settlementUAsset: bigint;
+  settlementMemecoin: bigint;
+  ptBackingNumerator: bigint;
+  ptBackingDenominator: bigint;
+  settled: boolean;
+};
+
 export type SwapQuoteView = {
   feeBps: bigint;
   estimatedUserInputAmount: bigint;
@@ -303,6 +323,62 @@ export interface OnchainRepository {
     amountSpecified: bigint,
     trader: string,
   ): Promise<DataResult<SwapQuoteView>>;
+  /** Trade-desk pool composition (Router.quoteAmountsForLiquidity): the (tokenA, tokenB)
+   *  full-range reserve amounts backing `liquidity` at the pool's current price. */
+  getPoolReserveAmounts(
+    chainId: number,
+    router: string,
+    tokenA: string,
+    tokenB: string,
+    liquidity: bigint,
+  ): Promise<DataResult<[bigint, bigint]>>;
+  /** Hook LP-supply cache for one pool id — equals the full-range liquidity once any LP has
+   *  been minted; 0 = the pool holds no LP (price/TVL slots degrade, never fabricated). */
+  getPoolLpSupply(chainId: number, hook: string, poolId: string): Promise<DataResult<bigint>>;
+  /** POLSplitter PT address for a verse (the PT pools' base token). */
+  getVersePtAddress(
+    chainId: number,
+    splitter: string,
+    verseId: bigint,
+  ): Promise<DataResult<string>>;
+  /** ERC20 totalSupply (memecoin supply for the market-cap stat, POL supply for positions). */
+  getTokenTotalSupply(chainId: number, token: string): Promise<DataResult<bigint>>;
+  /** POLSplitter.splitInfos: PT/YT addresses, backing ratio and settlement pools in one read. */
+  getVerseSplitInfo(
+    chainId: number,
+    splitter: string,
+    verseId: bigint,
+  ): Promise<DataResult<SplitInfoView>>;
+  /** POLSplitter.previewRedeemYTUAsset for one whole YT (18-dec base): the uAsset leg per unit;
+   *  reverts pre-settlement — callers treat that as "no leg value". */
+  getPreviewRedeemYtUAsset(
+    chainId: number,
+    splitter: string,
+    verseId: bigint,
+    ytAmount: bigint,
+  ): Promise<DataResult<bigint>>;
+  /** Memecoin yield vault protocol half: total staked assets + the per-share conversion at one
+   *  whole share (account state is client-side through the wallet provider). */
+  getVaultState(
+    chainId: number,
+    vault: string,
+  ): Promise<DataResult<{ totalAssets: bigint; assetsPerShareBase: bigint }>>;
+  /** Governance cycle snapshot off the incentivizer: current + previous cycle timing/votes,
+   *  treasury balances and the remaining reward pool in two dependent rounds. */
+  getGovernanceSnapshot(
+    chainId: number,
+    incentivizer: string,
+  ): Promise<
+    DataResult<{
+      currentCycleId: bigint;
+      cycleDurationSecs: bigint;
+      current: { startTime: bigint; endTime: bigint; totalVotes: bigint };
+      previous: { startTime: bigint; endTime: bigint; totalVotes: bigint } | null;
+      treasury: { tokens: string[]; balances: bigint[] };
+      previousTreasury: { tokens: string[]; balances: bigint[] } | null;
+      rewards: { tokens: string[]; amounts: bigint[] };
+    }>
+  >;
 }
 
 type PortResolver = (chainId: number) => RpcPort | null;
@@ -312,6 +388,14 @@ const STAGE_NAMES = ['genesis', 'refund', 'locked', 'unlocked'] as const;
 const FIXED_LOCKUP_DAYS = 365;
 /** Faucet-served mock tokens (deployment contract key convention); SY mocks are not served */
 const FAUCET_TOKEN_KEY_RE = /^Mock(USDC|SUSDS|AUSDC)$/;
+
+/** viem decodes all-named struct outputs into an object keyed by field name (inserted in ABI
+ *  order) and unnamed ones into an array — normalize both to the positional tuple. */
+function asTupleArray(value: unknown): readonly unknown[] {
+  if (Array.isArray(value)) return value;
+  if (value !== null && typeof value === 'object') return Object.values(value);
+  throw new Error('unexpected tuple shape from contract read');
+}
 
 function contractAddress(config: OutrunChainConfig, name: string): string | undefined {
   return config.contracts.status === 'deployed' ? config.contracts.addresses[name] : undefined;
@@ -917,6 +1001,188 @@ class RpcOnchainRepository implements OnchainRepository {
       estimatedProtocolFeeAmount: protocolFee,
       estimatedLpFeeAmount: lpFee,
       protocolFeeOnInput,
+    });
+  }
+
+  async getPoolReserveAmounts(
+    chainId: number,
+    router: string,
+    tokenA: string,
+    tokenB: string,
+    liquidity: bigint,
+  ): Promise<DataResult<[bigint, bigint]>> {
+    const c = this.chain(chainId);
+    if (c.status !== 'ok') return c;
+    const raw = await this.guard(() =>
+      c.data.port.call(
+        spec(router, swapRouterAbi, 'quoteAmountsForLiquidity', [tokenA, tokenB, liquidity]),
+      ),
+    );
+    if (raw.status !== 'ok') return raw;
+    const [amountA, amountB] = raw.data as [bigint, bigint];
+    return ok([BigInt(String(amountA)), BigInt(String(amountB))]);
+  }
+
+  async getPoolLpSupply(
+    chainId: number,
+    hook: string,
+    poolId: string,
+  ): Promise<DataResult<bigint>> {
+    const c = this.chain(chainId);
+    if (c.status !== 'ok') return c;
+    const raw = await this.guard(() =>
+      c.data.port.call(spec(hook, hookAbi, 'cachedLpTotalSupply', [poolId])),
+    );
+    if (raw.status !== 'ok') return raw;
+    return ok(BigInt(String(raw.data)));
+  }
+
+  async getVersePtAddress(
+    chainId: number,
+    splitter: string,
+    verseId: bigint,
+  ): Promise<DataResult<string>> {
+    const c = this.chain(chainId);
+    if (c.status !== 'ok') return c;
+    const raw = await this.guard(() =>
+      c.data.port.call(spec(splitter, splitterAbi, 'getPT', [verseId])),
+    );
+    if (raw.status !== 'ok') return raw;
+    return ok(String(raw.data));
+  }
+
+  async getTokenTotalSupply(chainId: number, token: string): Promise<DataResult<bigint>> {
+    const c = this.chain(chainId);
+    if (c.status !== 'ok') return c;
+    const raw = await this.guard(() => c.data.port.call(spec(token, erc20ReadAbi, 'totalSupply')));
+    if (raw.status !== 'ok') return raw;
+    return ok(BigInt(String(raw.data)));
+  }
+
+  async getVerseSplitInfo(
+    chainId: number,
+    splitter: string,
+    verseId: bigint,
+  ): Promise<DataResult<SplitInfoView>> {
+    const c = this.chain(chainId);
+    if (c.status !== 'ok') return c;
+    const raw = await this.guard(() =>
+      c.data.port.call(spec(splitter, splitterAbi, 'splitInfos', [verseId])),
+    );
+    if (raw.status !== 'ok') return raw;
+    const t = asTupleArray(raw.data);
+    return ok({
+      pt: String(t[0]),
+      yt: String(t[1]),
+      pol: String(t[2]),
+      memecoin: String(t[3]),
+      uAsset: String(t[4]),
+      totalPOLCollateral: BigInt(String(t[5])),
+      settlementUAsset: BigInt(String(t[6])),
+      settlementMemecoin: BigInt(String(t[7])),
+      ptBackingNumerator: BigInt(String(t[8])),
+      ptBackingDenominator: BigInt(String(t[9])),
+      settled: Boolean(t[10]),
+    });
+  }
+
+  async getPreviewRedeemYtUAsset(
+    chainId: number,
+    splitter: string,
+    verseId: bigint,
+    ytAmount: bigint,
+  ): Promise<DataResult<bigint>> {
+    const c = this.chain(chainId);
+    if (c.status !== 'ok') return c;
+    const raw = await this.guard(() =>
+      c.data.port.call(spec(splitter, splitterAbi, 'previewRedeemYTUAsset', [verseId, ytAmount])),
+    );
+    if (raw.status !== 'ok') return raw;
+    return ok(BigInt(String(raw.data)));
+  }
+
+  async getVaultState(
+    chainId: number,
+    vault: string,
+  ): Promise<DataResult<{ totalAssets: bigint; assetsPerShareBase: bigint }>> {
+    const c = this.chain(chainId);
+    if (c.status !== 'ok') return c;
+    const raw = await this.guard(() =>
+      c.data.port.multicall([
+        spec(vault, yieldVaultAbi, 'totalAssets'),
+        spec(vault, yieldVaultAbi, 'convertToAssets', [10n ** 18n]),
+      ]),
+    );
+    if (raw.status !== 'ok') return raw;
+    const [totalAssets, perShare] = raw.data as [bigint, bigint];
+    return ok({ totalAssets, assetsPerShareBase: perShare });
+  }
+
+  async getGovernanceSnapshot(
+    chainId: number,
+    incentivizer: string,
+  ): Promise<
+    DataResult<{
+      currentCycleId: bigint;
+      cycleDurationSecs: bigint;
+      current: { startTime: bigint; endTime: bigint; totalVotes: bigint };
+      previous: { startTime: bigint; endTime: bigint; totalVotes: bigint } | null;
+      treasury: { tokens: string[]; balances: bigint[] };
+      previousTreasury: { tokens: string[]; balances: bigint[] } | null;
+      rewards: { tokens: string[]; amounts: bigint[] };
+    }>
+  > {
+    const c = this.chain(chainId);
+    if (c.status !== 'ok') return c;
+    const head = await this.guard(() =>
+      c.data.port.multicall([
+        spec(incentivizer, incentivizerAbi, 'currentCycleId'),
+        spec(incentivizer, incentivizerAbi, 'CYCLE_DURATION'),
+      ]),
+    );
+    if (head.status !== 'ok') return head;
+    const [cycleId, duration] = head.data as [bigint, bigint];
+    const cycle = (id: bigint) => spec(incentivizer, incentivizerAbi, 'cycleInfo', [id]);
+    const body = await this.guard(() =>
+      c.data.port.multicall([
+        cycle(cycleId),
+        ...(cycleId > 0n ? [cycle(cycleId - 1n)] : []),
+        spec(incentivizer, incentivizerAbi, 'getTreasuryBalances', [cycleId]),
+        ...(cycleId > 0n
+          ? [spec(incentivizer, incentivizerAbi, 'getTreasuryBalances', [cycleId - 1n])]
+          : []),
+        spec(incentivizer, incentivizerAbi, 'getRemainingClaimableRewards'),
+      ]),
+    );
+    if (body.status !== 'ok') return body;
+    const rows = body.data as unknown[];
+    // cycleInfo returns named outputs (startTime/endTime/totalVotes + token lists); keep the
+    // timing triple and drop the lists (balances come from getTreasuryBalances instead)
+    const timingOf = (value: unknown) => {
+      const t = asTupleArray(value);
+      return {
+        startTime: BigInt(String(t[0])),
+        endTime: BigInt(String(t[1])),
+        totalVotes: BigInt(String(t[2])),
+      };
+    };
+    const listPair = (value: unknown) => {
+      const t = asTupleArray(value);
+      return { tokens: t[0] as string[], balances: t[1] as bigint[] };
+    };
+    const hasPrevious = cycleId > 0n;
+    const rewardPair = (value: unknown) => {
+      const t = asTupleArray(value);
+      return { tokens: t[0] as string[], amounts: t[1] as bigint[] };
+    };
+    return ok({
+      currentCycleId: cycleId,
+      cycleDurationSecs: duration,
+      current: timingOf(rows[0]),
+      previous: hasPrevious ? timingOf(rows[1]) : null,
+      treasury: listPair(rows[hasPrevious ? 2 : 1]),
+      previousTreasury: hasPrevious ? listPair(rows[3]) : null,
+      rewards: rewardPair(rows[hasPrevious ? 4 : 2]),
     });
   }
 }

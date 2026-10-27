@@ -26,10 +26,6 @@
           "url": "https://x.com/moonverse"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "24000000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "1000000",
@@ -96,10 +92,6 @@
           "url": "https://discord.gg/pepeii"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "15000000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "500000",
@@ -172,10 +164,6 @@
           "url": "https://t.me/wojakfund"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "10800000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "300000",
@@ -251,10 +239,6 @@
           "url": "https://discord.gg/failedlaunch"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "22400000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "800000",
@@ -311,10 +295,6 @@
           "url": "https://t.me/circuitdoge"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "12000000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "500000",
@@ -380,10 +360,6 @@
           "url": "https://discord.gg/neonkoi"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "60000000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "2000000",
@@ -441,10 +417,6 @@
           "url": "https://x.com/retrowolf"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "28800000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "800000",
@@ -510,10 +482,6 @@
           "url": "https://discord.gg/voltbunny"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "42000000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "1500000",
@@ -575,10 +543,6 @@
           "url": "https://t.me/mechaape"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "24000000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "1000000",
@@ -650,10 +614,6 @@
           "url": "https://discord.gg/ghostpixel"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "18000000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "600000",
@@ -725,10 +685,6 @@
           "url": "https://t.me/sudokushib"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "14400000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "400000",
@@ -804,10 +760,6 @@
           "url": "https://discord.gg/lasercat"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "25200000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "900000",
@@ -878,10 +830,6 @@
           "url": "https://x.com/cyberfrog"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "16800000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "700000",
@@ -960,10 +908,6 @@
           "url": "https://discord.gg/astropigeon"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "9000000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "300000",
@@ -1038,10 +982,6 @@
           "url": "https://t.me/rugradar"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "27000000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "750000",
@@ -1098,10 +1038,6 @@
           "url": "https://discord.gg/dustpony"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "14000000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "500000",
@@ -1158,10 +1094,6 @@
           "url": "https://t.me/magmatoad"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "15600000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "650000",
@@ -1227,10 +1159,6 @@
           "url": "https://discord.gg/staticape"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "36000000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "1200000",
@@ -1288,10 +1216,6 @@
           "url": "https://x.com/pixelfalcon"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "32400000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "900000",
@@ -1357,10 +1281,6 @@
           "url": "https://discord.gg/chromebull"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "50400000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "1800000",
@@ -1423,10 +1343,6 @@
           "url": "https://t.me/vaporfox"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "10800000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "450000",
@@ -1488,10 +1404,6 @@
           "url": "https://discord.gg/bitwaveotter"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "16500000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "550000",
@@ -1549,10 +1461,6 @@
           "url": "https://t.me/turbotoad"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "18720000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "520000",
@@ -1628,10 +1536,6 @@
           "url": "https://discord.gg/ghostrunner"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "22400000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "800000",
@@ -1699,10 +1603,6 @@
           "url": "https://x.com/memecannon"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "10800000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "450000",
@@ -1778,10 +1678,6 @@
           "url": "https://discord.gg/pixelpirate"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "27000000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "900000",
@@ -1853,10 +1749,6 @@
           "url": "https://t.me/nightrider"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "39600000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "1100000",
@@ -1928,10 +1820,6 @@
           "url": "https://discord.gg/chromecrab"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "10640000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "380000",
@@ -2003,10 +1891,6 @@
           "url": "https://t.me/solarhamster"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "16800000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "700000",
@@ -2085,10 +1969,6 @@
           "url": "https://discord.gg/discodino"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "18000000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "600000",
@@ -2159,10 +2039,6 @@
           "url": "https://x.com/retroracer"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "12600000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "350000",
@@ -2241,10 +2117,6 @@
           "url": "https://discord.gg/novanewt"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "14000000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "500000",
@@ -2319,10 +2191,6 @@
           "url": "https://t.me/laserllama"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "24000000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "1000000",
@@ -2397,10 +2265,6 @@
           "url": "https://discord.gg/bassboost"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "8400000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "280000",
@@ -2475,10 +2339,6 @@
           "url": "https://t.me/sadwhale"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "32400000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "900000",
@@ -2539,10 +2399,6 @@
           "url": "https://discord.gg/flatfrog"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "16800000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "600000",
@@ -2595,10 +2451,6 @@
           "url": "https://x.com/coldfusion"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "10800000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "450000",
@@ -2659,10 +2511,6 @@
           "url": "https://discord.gg/deadpixel"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "9000000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "300000",
@@ -2719,10 +2567,6 @@
           "url": "https://t.me/lowtide"
         }
       ],
-      "projectedMarketCap": {
-        "raw": "14400000",
-        "decimals": 18
-      },
       "genesis": {
         "minSuccessThreshold": {
           "raw": "400000",

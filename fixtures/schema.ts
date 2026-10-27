@@ -117,7 +117,6 @@ export const verseSchema = recordSchema.extend({
   participants: z.number().int().positive(), // Participating-address count snapshot (used for Explore sorting/detail page display)
   description: z.string().optional(), // One-line description (registration-phase metadata; missing=UI does not render)
   socials: z.array(verseSocialSchema).optional(), // Social links (registration-phase metadata; missing=UI does not render)
-  projectedMarketCap: amountSchema.optional(), // Projected market cap snapshot (in uAsset; registration parameter -- on-chain read parameter, missing=UI does not render)
   genesis: z.object({
     minSuccessThreshold: amountSchema,
     normalRaised: amountSchema,
@@ -325,6 +324,15 @@ export const polPositionSchema = recordSchema.extend({
     'pt-pol': amountSchema,
   }),
   claimableYt: amountSchema, // YT claimable after genesis ends (claimNormalYT: one-time pro rata by genesis contribution once the verse stage ≥ Locked)
+  // ── Claim-center samples (claim tab; onchain builds read the wallet's own entitlements client-side —
+  // fields with no public on-chain view simply render no slot in live mode) ──
+  claimablePreorder: amountSchema.optional(), // Preorder memecoin claimable now (claimablePreorderMemecoin, msg.sender-scoped)
+  claimedPreorder: amountSchema.optional(), // Cumulative preorder memecoin already claimed (userPreorderData.claimedMemecoin)
+  preorderProgress: rateSchema.optional(), // Linear-unlock progress sample; preorderStates/vesting duration have no public view → live mode renders no progress
+  claimableUAssetFee: amountSchema.optional(), // Auxiliary-pool fee share claimable, uAsset leg (claimNormalFees = acc×fund÷totalFunds − claimed)
+  claimablePtFee: amountSchema.optional(), // Auxiliary-pool fee share claimable, PT leg (same formula)
+  claimableLpMeme: amountSchema.optional(), // Main-pool LP fee claimable, memecoin leg (previewClaimableFees fee0/fee1)
+  claimableLpUAsset: amountSchema.optional(), // Main-pool LP fee claimable, uAsset leg
   ytRedeemUAssetPerUnit: rateSchema.optional(), // uAsset redeemed per 1 YT (derived from the remaining pool recovered at settlement; locked records=pre-settlement estimate sample anchored to the unlocked magnitude ≈3-5% of uAssetPerPol, unlocked=derived sample from the remaining pool after settlement; missing -> UI does not render)
   ytRedeemMemecoinPerUnit: rateSchema.optional(), // Memecoin redeemed per 1 YT (redeemYT: settlementMemecoin × share / circulating YT; same as above)
 });

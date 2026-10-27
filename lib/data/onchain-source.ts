@@ -36,6 +36,10 @@ import { getGraphRepository } from '@/lib/data/graph/graph-repository';
 import type { VerseSummaryView } from '@/lib/data/graph/graph-repository';
 import { readSeed, writeSeed, deleteSeed } from '@/lib/data/persisted-swr';
 import { CHAIN_IDS, MAINNET_CHAIN_IDS, resolveOutrunChain } from '@/lib/web3/chains';
+import { getPublicClient } from '@/lib/web3/public-client';
+import { readNativeUsdPrice } from '@/lib/web3/native-price';
+import { hookPoolKey, lpPerQuoteUnit, poolIdOf, priceQuotePerBase } from '@/lib/web3/pool-quote';
+import type { Hex } from 'viem';
 import type { ChainInfo } from '@/lib/data/types';
 
 // 24h liquidity protection window — single source in lib/data/types (client-safe)
@@ -84,10 +88,15 @@ const configCache = new Map<string, ConfigEntry>();
  *  verse across every chain, in memory and on the seed disk. Paired with the graph-tier
  *  `invalidateVerse` — together they force the next detail render onto fresh blocking reads. */
 export function invalidateVerseConfig(verseId: string): void {
-  const prefixRe = /^verse-fin-\d+-/;
-  const suffix = `-${verseId}`;
+  // verse-fin-<chain>-<id> overlays + the per-verse omnichain supply sum (both rerun after
+  // a confirmed verse write; the supply moves at settlement and on cross-chain bridges)
+  dropConfigKeys((key) => /^verse-fin-\d+-/.test(key) && key.endsWith(`-${verseId}`));
+  dropConfigKeys((key) => key === `verse-meme-supply-${verseId}`);
+}
+
+function dropConfigKeys(matches: (key: string) => boolean): void {
   for (const key of configCache.keys()) {
-    if (!prefixRe.test(key) || !key.endsWith(suffix)) continue;
+    if (!matches(key)) continue;
     configCache.delete(key);
     deleteSeed('adapter-config', key);
   }
@@ -170,6 +179,22 @@ function chainNameOf(chainId: number): string {
   );
 }
 
+/** Market cap in USD, stage-aware: genesis = cross-chain raised × 2 (POL match doubles
+ *  the primary pool's uAsset side) × uAsset USD sample; deployed stages (locked/unlocked)
+ *  carry no price/supply in the subgraph summary views — the trade-desk MC (price ×
+ *  supply) is the real number there — and refund never deployed a memecoin, so both
+ *  return null (cap slots do not render). The price read is cached per symbol, so
+ *  per-row calls in the row builders are cheap. */
+async function verseMarketCapUsd(
+  stage: string,
+  raiseAsset: string,
+  omniRaised: number,
+): Promise<number | null> {
+  if (stage !== 'genesis') return null;
+  const usd = await getAssetUsdPrice(raiseAsset);
+  return usd != null ? omniRaised * 2 * usd : null;
+}
+
 /** Build one chain-scoped row from a single chain's subgraph view. Raised/progress/participants
  * are that chain's own local genesis state — each chain settles its own genesis independently,
  * so these are never summed across chains. */
@@ -202,7 +227,8 @@ function toVerse(view: VerseSummaryView): Verse {
     participantCount: view.participantCount,
     description: null,
     socials: [],
-    projectedMarketCap: null,
+    // Filled by the callers that know the cross-chain group (derived: raised × 2 × USD sample)
+    marketCapUsd: null,
     raiseAsset,
     minSuccessThreshold: 0,
     normalRaised,
@@ -288,6 +314,28 @@ function withListProgress(row: Verse, threshold: number | undefined): Verse {
 // raw view (chainId/uAsset/verseId) to run the RPC financial overlay below
 let snapshotViews = new Map<string, VerseSummaryView>();
 
+// Per-verse landed memecoin OFT addresses, filled by getVerse's fan-out — the omnichain
+// supply sum reads each landed chain's own token contract (same-lifecycle map as snapshotViews)
+const landedMemecoins = new Map<string, Array<{ chainId: number; memecoin: Hex }>>();
+
+/** Omnichain memecoin supply: the OFT burns on the source chain and mints on the
+ *  destination, so each chain's totalSupply() is that chain's local circulation — the
+ *  global total is the sum over the landed set. Any leg unread → null (never a partial
+ *  sum); cached per verse, invalidated with the verse config tier. */
+async function omniMemecoinSupply(
+  verseId: string,
+  legs: ReadonlyArray<{ chainId: number; memecoin: Hex }>,
+): Promise<bigint | null> {
+  if (legs.length === 0) return null;
+  return cachedConfig(`verse-meme-supply-${verseId}`, async () => {
+    const rows = await Promise.all(
+      legs.map((leg) => rpc().getTokenTotalSupply(leg.chainId, leg.memecoin).then(unwrap)),
+    );
+    if (!rows.every((row): row is bigint => row != null)) return null;
+    return rows.reduce((sum, row) => sum + row, 0n);
+  });
+}
+
 /** Canonical view of one verse: the governance chain's (omnichainIds[0]) copy carries the
  * registration truth (stage/endtime/omnichain ids). Falls back to the first copy when the
  * governance chain's subgraph has no record of the verse. */
@@ -347,16 +395,32 @@ async function buildChainRows(): Promise<{
     // The group is exactly the set of chains whose subgraph holds this verse — the landed set.
     // The requested omnichainIds can name chains that never received the registration message.
     const deployedChainIds = group.map((view) => view.chainId);
+    const marketCapUsd = await verseMarketCapUsd(
+      canonicalView.stage,
+      uAssetSymbol(canonicalView.uAsset),
+      omniRaised,
+    );
     let canonicalRow: Verse | null = null;
     for (const view of group) {
       const row = withListProgress(
-        { ...toVerse(view), omniRaised, omniParticipantCount, deployedChainIds },
+        { ...toVerse(view), omniRaised, omniParticipantCount, deployedChainIds, marketCapUsd },
         thresholds.get(`${view.chainId}:${view.uAsset.toLowerCase()}`),
       );
       rows.push(row);
       if (view === canonicalView) canonicalRow = row;
     }
-    canonical.push(canonicalRow ?? { ...toVerse(canonicalView), deployedChainIds });
+    const fallbackRow = toVerse(canonicalView);
+    canonical.push(
+      canonicalRow ?? {
+        ...fallbackRow,
+        deployedChainIds,
+        marketCapUsd: await verseMarketCapUsd(
+          fallbackRow.stage,
+          fallbackRow.raiseAsset,
+          fallbackRow.omniRaised,
+        ),
+      },
+    );
   }
   snapshotViews = views;
   return {
@@ -435,35 +499,38 @@ export async function getChainVersePage(
     })),
   );
   const thresholds = await thresholdByAsset(list.verses);
-  const rows = list.verses.map((view) => {
-    const own = Number(view.raised.genesis + view.raised.leveraged + view.raised.preorder) / E18;
-    const omniRaised =
-      own +
-      siblings.reduce((sum, { sidecar }) => {
-        const raised = sidecar?.sums.get(String(view.verseId));
-        return (
-          sum + (raised ? Number(raised.genesis + raised.leveraged + raised.preorder) / E18 : 0)
-        );
-      }, 0);
-    // Landed set = this chain plus every sibling whose subgraph returned a Verse row for the id.
-    const deployedChainIds = TESTNETS.filter(
-      (id) =>
-        id === chainId ||
-        siblings.some(
-          (sibling) =>
-            sibling.chainId === id && sibling.sidecar?.present.has(String(view.verseId)) === true,
-        ),
-    );
-    return withListProgress(
-      {
-        ...toVerse(view),
-        omniRaised,
-        omniParticipantCount: view.participantCount,
-        deployedChainIds,
-      },
-      thresholds.get(`${view.chainId}:${view.uAsset.toLowerCase()}`),
-    );
-  });
+  const rows = await Promise.all(
+    list.verses.map(async (view) => {
+      const own = Number(view.raised.genesis + view.raised.leveraged + view.raised.preorder) / E18;
+      const omniRaised =
+        own +
+        siblings.reduce((sum, { sidecar }) => {
+          const raised = sidecar?.sums.get(String(view.verseId));
+          return (
+            sum + (raised ? Number(raised.genesis + raised.leveraged + raised.preorder) / E18 : 0)
+          );
+        }, 0);
+      // Landed set = this chain plus every sibling whose subgraph returned a Verse row for the id.
+      const deployedChainIds = TESTNETS.filter(
+        (id) =>
+          id === chainId ||
+          siblings.some(
+            (sibling) =>
+              sibling.chainId === id && sibling.sidecar?.present.has(String(view.verseId)) === true,
+          ),
+      );
+      return withListProgress(
+        {
+          ...toVerse(view),
+          omniRaised,
+          omniParticipantCount: view.participantCount,
+          deployedChainIds,
+          marketCapUsd: await verseMarketCapUsd(view.stage, uAssetSymbol(view.uAsset), omniRaised),
+        },
+        thresholds.get(`${view.chainId}:${view.uAsset.toLowerCase()}`),
+      );
+    }),
+  );
   // TESTNETS membership is static config: the option set is the deployed testnets, not a second
   // subgraph pull. A verse-less chain still offers its filter (empty page, not a missing option).
   return {
@@ -527,8 +594,15 @@ export async function getVerse(verseId: string): Promise<Verse | null> {
     omniParticipantCount: found.reduce((sum, entry) => sum + entry.view.participantCount, 0),
     deployedChainIds: found.map((entry) => entry.chainId).sort((a, b) => a - b),
     chainAggregates,
+    marketCapUsd: await verseMarketCapUsd(view.stage, uAssetSymbol(view.uAsset), omniRaised),
   };
   snapshotViews.set(verse.id, view);
+  landedMemecoins.set(
+    verse.id,
+    found.flatMap((entry) =>
+      entry.view.memecoin ? [{ chainId: entry.chainId, memecoin: entry.view.memecoin as Hex }] : [],
+    ),
+  );
   // Genesis financial params (preorder ratio / leverage rate+cap / min success) have on-chain
   // getters but no subgraph field — detail-only RPC overlay so the fixture-mode constraint UI
   // (preorder capacity meter, real-time preorder cap, leverage preview, success threshold)
@@ -824,9 +898,23 @@ export async function getReferral(): Promise<Referral | null> {
 
 // --- verse detail sections ----------------------------------------------------------------
 
-export async function getVerseTrade(verseId: string): Promise<VerseTrade | null> {
-  const verse = await getVerse(verseId);
-  if (!verse) return null;
+type PoolKind = 'main' | 'pol-uasset' | 'pt-uasset' | 'pt-pol';
+type VerseTokenKind = 'memecoin' | 'pol' | 'pt' | 'uAsset';
+
+/** (base, quote) token kinds per pool — the pairing bootstrap liquidity deploys at settlement:
+ *  main=memecoin/uAsset, POL pool=POL/uAsset, PT pools=PT/uAsset and PT/POL. */
+const POOL_SIDES: Record<PoolKind, [VerseTokenKind, VerseTokenKind]> = {
+  main: ['memecoin', 'uAsset'],
+  'pol-uasset': ['pol', 'uAsset'],
+  'pt-uasset': ['pt', 'uAsset'],
+  'pt-pol': ['pt', 'pol'],
+};
+
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+/** Trade desk with no pool data yet (genesis/refund verse, or every composition read failed):
+ *  pools empty, stats slotted — never fabricated values. */
+function emptyVerseTrade(verse: Verse): VerseTrade {
   return {
     candles: [],
     fineCandles: null,
@@ -844,20 +932,427 @@ export async function getVerseTrade(verseId: string): Promise<VerseTrade | null>
   };
 }
 
-export async function getStaking(_verseId: string): Promise<Staking | null> {
-  return null;
+type VersePoolComposition = {
+  chainId: number;
+  tokens: Record<VerseTokenKind, Hex>;
+  /** lowercased token address -> decimals (plain record: the composition rides the JSON seed) */
+  decimals: Record<string, number>;
+  polSupply: bigint | null;
+  legs: Array<{ kind: PoolKind; supply: bigint; amountBase: bigint; amountQuote: bigint }>;
+};
+
+/** Governance contracts (vault/governor/incentivizer) off the Verse row. The row is rewritten
+ *  by the proxy deployer's settlement events (subgraph/src/governance-deploy.ts), so a
+ *  zero/absent field = settlement genuinely deployed none (or a spoke-chain row, which never
+ *  carries them — the DApp reads the governance-chain copy). */
+function governanceContractsOf(view: VerseSummaryView): {
+  vault: string | null;
+  governor: string | null;
+  incentivizer: string | null;
+} {
+  return {
+    vault: view.yieldVault && view.yieldVault !== ZERO_ADDRESS ? view.yieldVault : null,
+    governor: view.governor && view.governor !== ZERO_ADDRESS ? view.governor : null,
+    incentivizer:
+      view.incentivizer && view.incentivizer !== ZERO_ADDRESS ? view.incentivizer : null,
+  };
 }
 
-export async function getPolPosition(_verseId: string): Promise<PolPosition | null> {
-  return null;
+/** One verse's four pool legs off the canonical chain: LP supply (hook cache) per locally
+ *  computed pool id, then the full-range reserve amounts through the router quote. A pool
+ *  without LP settles at zero reserves — its price/TVL slots degrade, never block the others. */
+async function readVersePoolComposition(
+  chainId: number,
+  view: VerseSummaryView,
+): Promise<VersePoolComposition | null> {
+  const contracts = deployedContracts(chainId);
+  const router = contracts.MemeverseSwapRouter;
+  const hook = contracts.MemeverseUniswapHook;
+  const splitter = contracts.POLSplitter;
+  if (!router || !hook || !splitter || !view.memecoin || !view.pol) return null;
+  const pt = unwrap(await rpc().getVersePtAddress(chainId, splitter, view.verseId));
+  if (!pt || pt === ZERO_ADDRESS) return null;
+  const tokens: Record<VerseTokenKind, Hex> = {
+    memecoin: view.memecoin as Hex,
+    pol: view.pol as Hex,
+    pt: pt as Hex,
+    uAsset: view.uAsset as Hex,
+  };
+  // decimals ride the batched metadata read (zero-address owner: symbol/decimals only)
+  const meta = unwrap(
+    await rpc().getTokenBalances(chainId, ZERO_ADDRESS, [
+      tokens.memecoin,
+      tokens.pol,
+      tokens.pt,
+      tokens.uAsset,
+    ]),
+  );
+  if (!meta) return null;
+  const decimals = Object.fromEntries(
+    meta.map((row) => [row.address.toLowerCase(), row.decimals] as const),
+  );
+  // Memecoin totalSupply is NOT read here: the OFT splits circulation across chains, so
+  // the market cap sums every landed chain's local supply (omniMemecoinSupply) instead
+  const polSupply = unwrap(await rpc().getTokenTotalSupply(chainId, tokens.pol));
+  const legs = await Promise.all(
+    (Object.keys(POOL_SIDES) as PoolKind[]).map(async (kind) => {
+      const [baseKind, quoteKind] = POOL_SIDES[kind];
+      const base = tokens[baseKind];
+      const quote = tokens[quoteKind];
+      const poolId = poolIdOf(hookPoolKey(base, quote, hook as Hex));
+      const supply = unwrap(await rpc().getPoolLpSupply(chainId, hook, poolId));
+      if (supply == null || supply <= 0n)
+        return { kind, supply: 0n, amountBase: 0n, amountQuote: 0n };
+      const amounts = unwrap(
+        await rpc().getPoolReserveAmounts(chainId, router, base, quote, supply),
+      );
+      if (!amounts) return { kind, supply, amountBase: 0n, amountQuote: 0n };
+      return { kind, supply, amountBase: amounts[0], amountQuote: amounts[1] };
+    }),
+  );
+  return { chainId, tokens, decimals, polSupply, legs };
 }
 
-export async function getGovernanceState(_verseId: string): Promise<GovernanceState | null> {
-  return null;
+/** Display price of one pool from the composition legs (quote per base). Shared by the trade
+ *  desk and the POL position — the reserve ratio is the pool's live price, no extra read. */
+function poolPriceOf(comp: VersePoolComposition, kind: PoolKind): number | null {
+  const leg = comp.legs.find((entry) => entry.kind === kind);
+  if (!leg) return null;
+  const [baseKind, quoteKind] = POOL_SIDES[kind];
+  const dec = (tokenKind: VerseTokenKind) =>
+    comp.decimals[comp.tokens[tokenKind].toLowerCase()] ?? 18;
+  return priceQuotePerBase(leg.amountBase, dec(baseKind), leg.amountQuote, dec(quoteKind));
 }
 
-export async function getAssetUsdPrice(_symbol: string): Promise<number | null> {
-  return null;
+/** Price/TVL mapping over the raw composition. Every display value derives from the pool
+ *  reserves: pool price = quote/base reserve ratio; TVL = uAsset leg at face + other leg
+ *  converted through its own pool's price (PT/POL pool legs convert via the PT and POL
+ *  uAsset pools). USD scale multiplies by the uAsset USD sample — absent sample keeps uAsset
+ *  units (the fixture convention for $-prefixed TVL/market-cap slots). */
+function buildVerseTrade(
+  verse: Verse,
+  comp: VersePoolComposition,
+  uAssetUsd: number | null,
+  omniSupply: bigint | null,
+): VerseTrade {
+  const legOf = (kind: PoolKind) => comp.legs.find((leg) => leg.kind === kind)!;
+  const dec = (kind: VerseTokenKind) => comp.decimals[comp.tokens[kind].toLowerCase()] ?? 18;
+  const priceMeme = poolPriceOf(comp, 'main');
+  const pricePol = poolPriceOf(comp, 'pol-uasset');
+  const pricePt = poolPriceOf(comp, 'pt-uasset');
+  const uAssetEq = (kind: PoolKind): number => {
+    const [baseKind, quoteKind] = POOL_SIDES[kind];
+    const leg = legOf(kind);
+    const base = Number(leg.amountBase) / 10 ** dec(baseKind);
+    const quote = Number(leg.amountQuote) / 10 ** dec(quoteKind);
+    if (kind === 'main') return quote + base * (priceMeme ?? 0);
+    if (kind === 'pol-uasset') return quote + base * (pricePol ?? 0);
+    if (kind === 'pt-uasset') return quote + base * (pricePt ?? 0);
+    // pt-pol: base=PT via the PT/uAsset price, quote=POL via the POL/uAsset price
+    return base * (pricePt ?? 0) + quote * (pricePol ?? 0);
+  };
+  const usdFactor = uAssetUsd ?? 1;
+  // Market cap rides the OMNICHAIN supply (per-chain totalSupply summed by the caller) —
+  // the OFT model splits circulation across chains, so any single chain's read understates
+  const totalSupply = omniSupply != null ? Number(omniSupply) / 10 ** dec('memecoin') : null;
+  const symbolOf = (kind: VerseTokenKind) =>
+    kind === 'memecoin'
+      ? verse.symbol
+      : kind === 'pol'
+        ? `POL-${verse.symbol}`
+        : kind === 'pt'
+          ? `PT-${verse.symbol}`
+          : verse.raiseAsset;
+  const pools: VerseTrade['pools'] = comp.legs.map((leg) => {
+    const [baseKind, quoteKind] = POOL_SIDES[leg.kind];
+    return {
+      id: `${verse.id}-${leg.kind}`,
+      sourceRef: `rpc:${comp.chainId}:${leg.kind}`,
+      verseId: verse.id,
+      pool: leg.kind,
+      tvl: uAssetEq(leg.kind) * usdFactor,
+      // dynamic fee is swap-context dependent; 24h volume and APR need the indexed PoolSwap
+      // history — all three stay slotted until those reads land
+      feeState: 'normal',
+      feeRate: null,
+      volume24h: null,
+      apr7d: null,
+      lpPerQuote: lpPerQuoteUnit(leg.supply, leg.amountQuote),
+      baseSymbol: symbolOf(baseKind),
+      quoteSymbol: symbolOf(quoteKind),
+    };
+  });
+  return {
+    candles: [],
+    fineCandles: null,
+    tokenStats: {
+      price: priceMeme,
+      change24h: null,
+      marketCap:
+        priceMeme != null && totalSupply != null ? priceMeme * totalSupply * usdFactor : null,
+      liquidity: uAssetEq('main') * usdFactor,
+      volume24h: null,
+      holders: null,
+      totalSupply,
+      tokenAddress: verse.memecoinAddress,
+    },
+    pools,
+  };
+}
+
+export async function getVerseTrade(verseId: string): Promise<VerseTrade | null> {
+  const verse = await getVerse(verseId);
+  if (!verse) return null;
+  // Pools exist only after settlement (memecoin + POL deploy at launch) — the trade desk is
+  // not rendered on these stages; keep the empty shape for the four-tab guard.
+  if (verse.stage === 'genesis' || verse.stage === 'refund') return emptyVerseTrade(verse);
+  const view = snapshotViews.get(verse.id);
+  if (!view?.memecoin || !view.pol) return emptyVerseTrade(verse);
+  const comp = await cachedConfig(`verse-trade-${view.chainId}-${verse.id}`, () =>
+    readVersePoolComposition(view.chainId, view),
+  );
+  if (!comp) return emptyVerseTrade(verse);
+  const [uAssetUsd, omniSupply] = await Promise.all([
+    getAssetUsdPrice(verse.raiseAsset),
+    omniMemecoinSupply(verse.id, landedMemecoins.get(verse.id) ?? []),
+  ]);
+  return buildVerseTrade(verse, comp, uAssetUsd, omniSupply);
+}
+
+export async function getStaking(verseId: string): Promise<Staking | null> {
+  const verse = await getVerse(verseId);
+  if (!verse) return null;
+  // The vault deploys at settlement — no staking exists on genesis/refund verses
+  if (verse.stage === 'genesis' || verse.stage === 'refund') return null;
+  const view = snapshotViews.get(verse.id);
+  if (!view) return null;
+  // Zero vault after the launcher fallback = settlement deployed no staking
+  const { vault } = governanceContractsOf(view);
+  if (!vault) return null;
+  const state = await cachedConfig(`verse-vault-${view.chainId}-${verse.id}`, async () =>
+    unwrap(await rpc().getVaultState(view.chainId, vault)),
+  );
+  if (!state) return null;
+  return {
+    vaultAddress: vault,
+    totalStaked: Number(state.totalAssets) / 1e18,
+    assetsPerShare: Number(state.assetsPerShareBase) / 1e18,
+    // Realized APY needs yield history (checkpoint series) — no static view; the row slots
+    apy7d: null,
+    // Account half (shares/queue/delegate) reads through the wallet provider client-side
+    myShares: null,
+    myShareValue: null,
+    delegatee: null,
+    pendingRedeems: null,
+    claimableTotal: null,
+  };
+}
+
+export async function getPolPosition(verseId: string): Promise<PolPosition | null> {
+  const verse = await getVerse(verseId);
+  if (!verse) return null;
+  // POL/PT/YT exist only after settlement — the Tokenization panel is not rendered earlier
+  if (verse.stage === 'genesis' || verse.stage === 'refund') return null;
+  const view = snapshotViews.get(verse.id);
+  if (!view?.memecoin || !view.pol) return null;
+  const comp = await cachedConfig(`verse-trade-${view.chainId}-${verse.id}`, () =>
+    readVersePoolComposition(view.chainId, view),
+  );
+  if (!comp) return null;
+  // Splitter wiring in one cached round: PT backing ratio (= uAsset per POL, registered once at
+  // settlement) plus the YT redemption leg preview (reverts pre-settlement → null leg, retried
+  // rather than cached as a hard failure).
+  const split = await cachedConfig(`verse-split-${view.chainId}-${verse.id}`, async () => {
+    const splitter = deployedContracts(view.chainId).POLSplitter;
+    if (!splitter) return null;
+    const info = unwrap(await rpc().getVerseSplitInfo(view.chainId, splitter, view.verseId));
+    if (!info) return null;
+    const ytLeg = unwrap(
+      await rpc().getPreviewRedeemYtUAsset(view.chainId, splitter, view.verseId, 10n ** 18n),
+    );
+    // Memecoin leg is a settlement truth: settlementMemecoin split over the circulating YT
+    // supply — only meaningful once settled; pre-settlement there is no memecoin leg at all
+    const ytSupply =
+      info.settled && info.settlementMemecoin > 0n && info.yt !== ZERO_ADDRESS
+        ? unwrap(await rpc().getTokenTotalSupply(view.chainId, info.yt))
+        : null;
+    const memeLegPerUnit =
+      ytSupply != null && ytSupply > 0n ? Number(info.settlementMemecoin) / Number(ytSupply) : null;
+    return { info, ytLeg, memeLegPerUnit };
+  });
+  if (!split || split.info.ptBackingDenominator <= 0n) return null;
+  const uAssetPerPol =
+    Number(split.info.ptBackingNumerator) / Number(split.info.ptBackingDenominator);
+  const polDecimals = comp.decimals[comp.tokens.pol.toLowerCase()] ?? 18;
+  return {
+    polAddress: view.pol,
+    polSupply: comp.polSupply != null ? Number(comp.polSupply) / 10 ** polDecimals : 0,
+    uAssetPerPol,
+    nominalValuePerPol: uAssetPerPol * 2,
+    // Empty-pool edge (no LP) reads as 0 — the gauge shows full deviation rather than a fake mid
+    marketPricePerPol: poolPriceOf(comp, 'pol-uasset') ?? 0,
+    ptPricePerPol: poolPriceOf(comp, 'pt-pol') ?? 0,
+    // The flash fee is swap-context dependent (dynamic fee on the PT full-leg notional) — no
+    // static view exists; the dialog's fee row slots until an execution-time quote lands
+    flashUserFeeRate: null,
+    // Account-scoped values never ride the accountless SSR path — dialogs render '--' and the
+    // chain enforces real holdings at execution; the faucet my-balance probe pattern fills them
+    // client-side where a display needs them
+    myPol: null,
+    myPt: null,
+    myYt: null,
+    myMemecoin: null,
+    myUAsset: null,
+    myReserve: null,
+    myLp: { main: null, 'pol-uasset': null, 'pt-uasset': null, 'pt-pol': null },
+    claimableYt: null,
+    // Claim-center legs are wallet-scoped (the fifth tab reads them client-side through the
+    // wallet provider); the accountless SSR path never carries them
+    claimablePreorder: null,
+    claimedPreorder: null,
+    preorderProgress: null,
+    claimableUAssetFee: null,
+    claimablePtFee: null,
+    claimableLpMeme: null,
+    claimableLpUAsset: null,
+    ytRedeemUAssetPerUnit: split.ytLeg != null ? Number(split.ytLeg) / 1e18 : null,
+    ytRedeemMemecoinPerUnit: split.memeLegPerUnit,
+  };
+}
+
+export async function getGovernanceState(verseId: string): Promise<GovernanceState | null> {
+  const verse = await getVerse(verseId);
+  if (!verse) return null;
+  // Governance contracts deploy at settlement — no DAO state on genesis/refund verses
+  if (verse.stage === 'genesis' || verse.stage === 'refund') return null;
+  const view = snapshotViews.get(verse.id);
+  if (!view) return null;
+  // Zero contracts after the launcher fallback = governance never deployed — absent, not errored
+  const { vault, governor, incentivizer } = governanceContractsOf(view);
+  if (!vault || !governor || !incentivizer) return null;
+  const chainId = view.chainId;
+  const gov = await cachedConfig(`verse-gov-${chainId}-${verse.id}`, async () => {
+    const snapshot = unwrap(await rpc().getGovernanceSnapshot(chainId, incentivizer));
+    if (!snapshot) return null;
+    const [votingShares] = await Promise.all([
+      rpc().getTokenTotalSupply(chainId, vault).then(unwrap),
+    ]);
+    // Token metadata for treasury/reward rows (batched symbol+decimals via the zero-address read)
+    const pricedTokens = new Set([view.uAsset.toLowerCase(), (view.memecoin ?? '').toLowerCase()]);
+    const listTokens = [
+      ...new Set(
+        [
+          ...snapshot.treasury.tokens,
+          ...snapshot.rewards.tokens,
+          ...(snapshot.previousTreasury?.tokens ?? []),
+        ].map((token) => token.toLowerCase()),
+      ),
+    ].filter((token) => pricedTokens.has(token));
+    const meta = listTokens.length
+      ? unwrap(await rpc().getTokenBalances(chainId, ZERO_ADDRESS, [...listTokens]))
+      : [];
+    return { snapshot, votingShares, meta };
+  });
+  if (!gov) return null;
+  const status = unwrap(
+    await graph().getGovernanceStatus(chainId, governor, incentivizer, gov.snapshot.currentCycleId),
+  );
+  // Priced composition: only uAsset (at the USD sample) and the memecoin (through the main-pool
+  // price) carry a USD value on-chain — other treasury tokens render no row rather than a fake 0
+  const uAssetUsd = await getAssetUsdPrice(verse.raiseAsset);
+  const comp = await cachedConfig(`verse-trade-${chainId}-${verse.id}`, () =>
+    readVersePoolComposition(chainId, view),
+  );
+  const priceMeme = comp ? poolPriceOf(comp, 'main') : null;
+  const metaOf = new Map((gov.meta ?? []).map((row) => [row.address.toLowerCase(), row]));
+  const toPricedAssets = (
+    tokens: readonly string[],
+    balances: readonly bigint[],
+  ): {
+    rows: Array<{ symbol: string; name: string; amount: number; usdValue: number }> | null;
+    usdTotal: number | null;
+  } => {
+    if (tokens.length === 0) return { rows: null, usdTotal: null };
+    const rows: Array<{ symbol: string; name: string; amount: number; usdValue: number }> = [];
+    let usdTotal: number | null = null;
+    tokens.forEach((token, index) => {
+      const meta = metaOf.get(token.toLowerCase());
+      const balance = balances[index];
+      if (!meta || balance == null || balance <= 0n) return;
+      const amount = Number(balance) / 10 ** meta.decimals;
+      const usdEach =
+        token.toLowerCase() === view.uAsset.toLowerCase()
+          ? uAssetUsd
+          : priceMeme != null && uAssetUsd != null
+            ? priceMeme * uAssetUsd
+            : null;
+      if (usdEach == null) return;
+      rows.push({ symbol: meta.symbol, name: meta.symbol, amount, usdValue: amount * usdEach });
+      usdTotal = (usdTotal ?? 0) + amount * usdEach;
+    });
+    return { rows: rows.length > 0 ? rows : null, usdTotal };
+  };
+  const treasury = toPricedAssets(gov.snapshot.treasury.tokens, gov.snapshot.treasury.balances);
+  const rewards = toPricedAssets(gov.snapshot.rewards.tokens, gov.snapshot.rewards.amounts);
+  const previousTreasury = gov.snapshot.previousTreasury
+    ? toPricedAssets(gov.snapshot.previousTreasury.tokens, gov.snapshot.previousTreasury.balances)
+    : { rows: null, usdTotal: null };
+  const totalVotes = Number(gov.snapshot.current.totalVotes) / 1e18;
+  return {
+    cycleNumber: String(gov.snapshot.currentCycleId),
+    cycleDurationDays: Number(gov.snapshot.cycleDurationSecs) / 86_400,
+    cycleEndsAt: iso(gov.snapshot.current.endTime),
+    finalized: status?.finalized ?? false,
+    claimWindowEndsAt: null,
+    governorAddress: governor,
+    incentivizerAddress: incentivizer,
+    delegates: null,
+    totalVotingPower: gov.votingShares != null ? Number(gov.votingShares) / 1e18 : null,
+    myVotes: null,
+    treasuryUAsset: treasury.usdTotal,
+    rewardRatioBps: null,
+    cumulativeIncentivePool: rewards.usdTotal,
+    treasuryAssets: treasury.rows,
+    currentCycleVotes: { total: totalVotes, mine: null },
+    estimatedClaimable: null,
+    lastCycle: gov.snapshot.previous
+      ? {
+          number: String(gov.snapshot.currentCycleId - 1n),
+          treasuryUAsset: previousTreasury.usdTotal ?? 0,
+          treasuryAssets: previousTreasury.rows,
+          remainingRewards: rewards.usdTotal ?? 0,
+          totalVotes: Number(gov.snapshot.previous.totalVotes) / 1e18,
+          myVotes: null,
+          myClaimable: null,
+          claimableAssets: null,
+          unclaimedAssets: null,
+        }
+      : null,
+    proposalCount: {
+      total: status?.proposalTotal ?? 0,
+      active: status?.proposalActive ?? 0,
+    },
+  };
+}
+
+/** uAsset → USD sample for the ≈$ rows. UUSD is PSM face-value par against its USD reserve
+ *  (1:1 — the same contract fact the faucet swap UI shows); UETH/UBNB ride the underlying's
+ *  native Chainlink feed on the chain whose NATIVE asset is that family's underlying
+ *  (ETH→Arbitrum Sepolia, BNB→BSC Testnet; each manifest carries exactly one native feed).
+ *  A stale or failed feed reads as null → the USD rows simply hide. */
+const NATIVE_USD_FEED_CHAIN: Record<string, number> = { UETH: 421614, UBNB: 97 };
+
+export async function getAssetUsdPrice(symbol: string): Promise<number | null> {
+  if (symbol === 'UUSD') return 1;
+  const feedChain = NATIVE_USD_FEED_CHAIN[symbol];
+  if (!feedChain) return null;
+  return cachedConfig(`asset-usd-${symbol}`, async () => {
+    const resolved = resolveOutrunChain(feedChain);
+    const feed = resolved.status === 'ok' ? resolved.config.nativeUsdFeed : null;
+    const client = getPublicClient(feedChain);
+    if (!feed || !client) return null;
+    return readNativeUsdPrice(client, feed as Hex);
+  });
 }
 
 // --- portfolio sections (aggregates; empty until per-account wiring in stage 6+) ------------
@@ -937,10 +1432,11 @@ export async function getBridgeMessages(): Promise<never[]> {
 }
 
 // Warm the cold caches at server boot so the first navigation doesn't pay the network round
-// trips (fire-and-forget; failures degrade silently per §9/§24). Only in the onchain runtime —
-// never during `next build` (NEXT_PHASE) and never in fixture-mode test processes.
+// trips (fire-and-forget; failures degrade silently per §9/§24). Only in the onchain runtime
+// (the default — fixture test processes set OUTRUN_DATA_SOURCE=fixture) and never during
+// `next build` (NEXT_PHASE).
 if (
-  process.env.OUTRUN_DATA_SOURCE === 'onchain' &&
+  process.env.OUTRUN_DATA_SOURCE !== 'fixture' &&
   process.env.NEXT_PHASE !== 'phase-production-build'
 ) {
   void Promise.allSettled([getSnapshot(), getFaucet(), getReferral(), getCreateConfig()]);

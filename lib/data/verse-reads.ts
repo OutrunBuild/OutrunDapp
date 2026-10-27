@@ -7,6 +7,7 @@
 // verse's landed chains, nothing else.
 
 import { getOnchainRepository } from '@/lib/data/repository';
+import { getGraphRepository } from '@/lib/data/graph/graph-repository';
 
 /** Per-chain equivalent genesis funds (uAsset 18-dec base units, string-serialized) for one
  *  account across the verse's landed chains. A chain whose read fails is absent from the map —
@@ -29,4 +30,16 @@ export async function readGenesisFundsByChain(input: {
     if (result.status === 'ok') out[String(chainId)] = result.data.toString();
   }
   return out;
+}
+
+/** Authoritative locked-at (settlement) timestamp from the subgraph's stage-change log — the
+ *  second source the claim center's storage-slot vesting clock must agree with before its
+ *  progress slot renders. Null = not locked / not configured / graph failure (caller degrades
+ *  the progress slot, never fabricates). */
+export async function readVerseLockedAt(input: {
+  chainId: number;
+  verseId: string;
+}): Promise<number | null> {
+  if (!/^\d+$/.test(input.verseId)) return null;
+  return getGraphRepository().getVerseLockedAt(input.chainId, BigInt(input.verseId));
 }

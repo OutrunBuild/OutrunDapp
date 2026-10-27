@@ -141,8 +141,11 @@ export type Verse = SourceRecord & {
   description: string | null;
   /** Social links (registration-phase metadata); fixture missing=empty array -> UI does not render */
   socials: Social[];
-  /** Projected market cap snapshot (in uAsset, registration parameter); fixture missing=null -> UI does not render */
-  projectedMarketCap: number | null;
+  /** Market cap in USD, per stage: genesis = cross-chain raised × 2 (POL match doubles
+   *  the primary pool's uAsset side) × uAsset USD sample; deployed (locked/unlocked) =
+   *  current price × memecoin total supply (the trade-desk MC convention); refund = null
+   *  (no memecoin was ever deployed). Any missing input → null -> cap slots do not render */
+  marketCapUsd: number | null;
   minSuccessThreshold: number;
   normalRaised: number;
   leverageInterest: number;
@@ -294,6 +297,27 @@ function buildSnapshot(): Snapshot {
       windowStart && lastCandle
         ? ((Number(lastCandle.c) - Number(windowStart.o)) / Number(windowStart.o)) * 100
         : null;
+    // Raise denomination: governance chain native symbol -> uAsset family (ETH->UETH, BNB->UBNB, both in the assets whitelist;
+    // mainnet native symbols -- the testnet tBNB has no whitelist entry)
+    const raiseAsset = `U${chainMeta.get(verse.governanceChain)?.nativeSymbol ?? 'Asset'}`;
+    const raiseAssetUsd =
+      fixtureData.assets.items.find((asset) => asset.symbol === raiseAsset)?.usdPrice ?? null;
+    // Market cap per stage: genesis = raised × 2 × uAsset USD sample (user-ruled formula);
+    // deployed = candle close × tokenStats total supply (the trade-desk MC convention);
+    // refund never deployed a memecoin → null
+    const deployedSupply = mainMarket?.tokenStats
+      ? amount(mainMarket.tokenStats.totalSupply.raw)
+      : null;
+    const marketCapUsd =
+      verse.stage === 'genesis'
+        ? raiseAssetUsd != null
+          ? (normalRaised + leverageInterest + preorderRaised) * 2 * raiseAssetUsd
+          : null
+        : verse.stage === 'locked' || verse.stage === 'unlocked'
+          ? currentPrice != null && deployedSupply != null
+            ? currentPrice * deployedSupply
+            : null
+          : null;
 
     return {
       id: verse.id,
@@ -321,10 +345,8 @@ function buildSnapshot(): Snapshot {
           url: social.url,
         }))
         .sort((a, b) => SOCIAL_ORDER.indexOf(a.kind) - SOCIAL_ORDER.indexOf(b.kind)),
-      projectedMarketCap: verse.projectedMarketCap ? amount(verse.projectedMarketCap.raw) : null,
-      // Raise denomination: governance chain native symbol -> uAsset family (ETH->UETH, BNB->UBNB, both in the assets whitelist;
-      // mainnet native symbols -- the testnet tBNB has no whitelist entry)
-      raiseAsset: `U${chainMeta.get(verse.governanceChain)?.nativeSymbol ?? 'Asset'}`,
+      raiseAsset,
+      marketCapUsd,
       minSuccessThreshold: threshold,
       normalRaised,
       leverageInterest,
@@ -832,12 +854,15 @@ export type Staking = {
   totalStaked: number;
   /** 1 share ≈ N Memecoin (including the virtualAssets buffer) */
   assetsPerShare: number;
-  /** Trailing 7-day realized APY (off-chain derived display value) */
-  apy7d: number;
-  myShares: number;
-  /** Share value = myShares × assetsPerShare (derived) */
-  myShareValue: number;
-  delegatee: string;
+  /** Trailing 7-day realized APY (off-chain derived display value); null=no source → the APY row slots */
+  apy7d: number | null;
+  /** Connected-account shares; null=accountless → Balance '--' (never a fake zero) */
+  myShares: number | null;
+  /** Share value = myShares × assetsPerShare (derived); null=accountless */
+  myShareValue: number | null;
+  /** Connected-account vote delegate; null=accountless */
+  delegatee: string | null;
+  /** Connected-account redeem queue; null=accountless (an empty array would read as "confirmed none") */
   pendingRedeems: Array<{
     lockedAssets: number;
     requestedAt: string;
@@ -846,9 +871,9 @@ export type Staking = {
     ready: boolean;
     /** Milliseconds remaining from the snapshot anchor to maturity (countdown display start; 0=matured) */
     remainingMs: number;
-  }>;
-  /** Matured total (Withdraw sub-tab Total Available) */
-  claimableTotal: number;
+  }> | null;
+  /** Matured total (Withdraw sub-tab Total Available); null=accountless */
+  claimableTotal: number | null;
 };
 
 /** uAsset USD sample price (fixture dummy data; missing returns null -> UI hides the USD conversion row) */
@@ -897,25 +922,41 @@ export type PolPosition = {
   marketPricePerPol: number;
   /** PT/POL pool market price per 1 PT (YT implied price=1−this value, from the "1 POL=1 PT+1 YT" identity) */
   ptPricePerPol: number;
-  /** Flash Swap user fee-rate sample (sample band 0.3%-85% of the user's payment; spectrum <1% to very high) */
-  flashUserFeeRate: number;
-  myPol: number;
-  myPt: number;
-  myYt: number;
+  /** Flash Swap user fee-rate sample (sample band 0.3%-85% of the user's payment; spectrum <1% to very high); null=no static sample → the dialog's fee row slots */
+  flashUserFeeRate: number | null;
+  /** Connected-account balances; null=accountless/unknown → '--' slots (never fake zeros: a 0 would gate dialogs' input checks) */
+  myPol: number | null;
+  myPt: number | null;
+  myYt: number | null;
   /** Sample account's memecoin balance in this verse (Mint POL supply-side sample) */
-  myMemecoin: number;
+  myMemecoin: number | null;
   /** Sample account's uAsset balance (wallet-level asset; Mint POL supply-side sample) */
-  myUAsset: number;
+  myUAsset: number | null;
   /** Sample account's PSM-paired reserve balance in this verse (wallet-level; Swap reserve-side supply sample) */
-  myReserve: number;
+  myReserve: number | null;
   /** Four-pool LP token balance samples (Remove Liquidity supply side; key=pool identifier) */
-  myLp: { main: number; 'pol-uasset': number; 'pt-uasset': number; 'pt-pol': number };
-  /** YT claimable after genesis ends (claimNormalYT, one-time pro rata by contribution) */
-  claimableYt: number;
+  myLp: {
+    main: number | null;
+    'pol-uasset': number | null;
+    'pt-uasset': number | null;
+    'pt-pol': number | null;
+  };
+  /** YT claimable after genesis ends (claimNormalYT, one-time pro rata by contribution); null=account-scoped, unknown accountless */
+  claimableYt: number | null;
   /** uAsset redeemed per 1 YT (remaining pool after settlement × share / circulating YT; null=leg value unavailable, dialog Receive box falls back to 0.00) */
   ytRedeemUAssetPerUnit: number | null;
   /** Memecoin redeemed per 1 YT (settlementMemecoin × share / circulating YT; null=leg value unavailable, dialog Receive box falls back to 0.00) */
   ytRedeemMemecoinPerUnit: number | null;
+  /** Claim-center sample legs (fifth tab; null=that claim row's sample is absent → row not rendered;
+   *  onchain builds read the wallet's own entitlements client-side instead) */
+  claimablePreorder: number | null;
+  claimedPreorder: number | null;
+  /** Linear-unlock progress sample (no public on-chain view — live mode renders no progress slot) */
+  preorderProgress: number | null;
+  claimableUAssetFee: number | null;
+  claimablePtFee: number | null;
+  claimableLpMeme: number | null;
+  claimableLpUAsset: number | null;
 };
 
 /** POL/PT/YT positions and valuation sample (locked/unlocked verse; null=this panel is not rendered) */
@@ -950,6 +991,13 @@ export function getPolPosition(verseId: string): PolPosition | null {
     ytRedeemMemecoinPerUnit: record.ytRedeemMemecoinPerUnit
       ? Number(record.ytRedeemMemecoinPerUnit.raw)
       : null,
+    claimablePreorder: record.claimablePreorder ? amount(record.claimablePreorder.raw) : null,
+    claimedPreorder: record.claimedPreorder ? amount(record.claimedPreorder.raw) : null,
+    preorderProgress: record.preorderProgress ? Number(record.preorderProgress.raw) : null,
+    claimableUAssetFee: record.claimableUAssetFee ? amount(record.claimableUAssetFee.raw) : null,
+    claimablePtFee: record.claimablePtFee ? amount(record.claimablePtFee.raw) : null,
+    claimableLpMeme: record.claimableLpMeme ? amount(record.claimableLpMeme.raw) : null,
+    claimableLpUAsset: record.claimableLpUAsset ? amount(record.claimableLpUAsset.raw) : null,
   };
 }
 
@@ -978,7 +1026,7 @@ export type GovernanceState = {
   cumulativeIncentivePool: number | null;
   /** Current-cycle treasury composition sample (null=no sample -> breakdown entry not rendered) */
   treasuryAssets: GovernanceAsset[] | null;
-  currentCycleVotes: { total: number; mine: number } | null;
+  currentCycleVotes: { total: number; mine: number | null } | null;
   /** If already voted this cycle, the estimated claimable for this cycle by vote share (derived) */
   estimatedClaimable: number | null;
   lastCycle: {
@@ -988,8 +1036,8 @@ export type GovernanceState = {
     treasuryAssets: GovernanceAsset[] | null;
     remainingRewards: number;
     totalVotes: number;
-    myVotes: number;
-    myClaimable: number;
+    myVotes: number | null;
+    myClaimable: number | null;
     /** Claimable-reward composition sample (multiple tokens by voting-power share; null=no sample -> breakdown entry not rendered) */
     claimableAssets: GovernanceAsset[] | null;
     /** Unclaimed-reward composition sample (null=no sample -> breakdown entry not rendered) */
@@ -1345,12 +1393,13 @@ export function getVaultRows(): VaultRow[] {
       },
       shareSymbol: `s${verse.symbol}`,
       myShares: staking?.myShares ?? 0,
-      apy7d: staking ? staking.apy7d * 100 : 0,
-      waitingTotal: staking
-        ? staking.pendingRedeems
-            .filter((entry) => !entry.ready)
-            .reduce((sum, entry) => sum + entry.lockedAssets, 0)
-        : 0,
+      apy7d: staking?.apy7d != null ? staking.apy7d * 100 : 0,
+      waitingTotal:
+        staking?.pendingRedeems != null
+          ? staking.pendingRedeems
+              .filter((entry) => !entry.ready)
+              .reduce((sum, entry) => sum + entry.lockedAssets, 0)
+          : 0,
       readyTotal: staking?.claimableTotal ?? 0,
       readyUsd:
         verse.currentPrice != null ? (staking?.claimableTotal ?? 0) * verse.currentPrice : null,
@@ -1408,7 +1457,8 @@ export function getPortfolioActions(): PortfolioAction[] {
     const remainingMs = Date.parse(verse.unlockedAt) + PROTECTION_WINDOW_MS - ANCHOR_MS;
     if (remainingMs <= 0) continue;
     const pol = getPolPosition(verse.id);
-    const principal = pol ? pol.myPt + pol.myPol * pol.uAssetPerPol : null;
+    const principal =
+      pol && pol.myPt != null && pol.myPol != null ? pol.myPt + pol.myPol * pol.uAssetPerPol : null;
     actions.push({
       kind: 'protection',
       verse: {
@@ -1542,13 +1592,14 @@ export type ParticipationRow = {
     /** true when any normal participation used the stake route -> shows the "Stake participation" badge + section (3) position cross-link */
     stakeRoute: boolean;
   } | null;
-  /** POL/PT/YT/LP holdings (locked/unlocked); null=genesis stage has no vouchers */
+  /** POL/PT/YT/LP holdings (locked/unlocked); null=genesis stage has no vouchers; per-field
+   *  null=accountless slot (mirrors PolPosition — sample snapshots fill every field) */
   holdings: {
-    pol: number;
-    pt: number;
-    yt: number;
+    pol: number | null;
+    pt: number | null;
+    yt: number | null;
     /** Claimable YT (one-time pro rata by contribution once Stage≥Locked) */
-    claimableYt: number;
+    claimableYt: number | null;
   } | null;
 };
 

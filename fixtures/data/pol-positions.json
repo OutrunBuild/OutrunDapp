@@ -51,6 +51,35 @@
         "raw": "1830",
         "decimals": 18
       },
+      "claimablePreorder": {
+        "raw": "1240.5",
+        "decimals": 18
+      },
+      "claimedPreorder": {
+        "raw": "2000",
+        "decimals": 18
+      },
+      "preorderProgress": {
+        "raw": "0.78",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "claimableUAssetFee": {
+        "raw": "18.2",
+        "decimals": 18
+      },
+      "claimablePtFee": {
+        "raw": "3.4",
+        "decimals": 18
+      },
+      "claimableLpMeme": {
+        "raw": "320.6",
+        "decimals": 18
+      },
+      "claimableLpUAsset": {
+        "raw": "4.1",
+        "decimals": 18
+      },
       "myLp": {
         "main": {
           "raw": "69090.32",
@@ -136,6 +165,35 @@
       },
       "claimableYt": {
         "raw": "1876.02",
+        "decimals": 18
+      },
+      "claimablePreorder": {
+        "raw": "860.4",
+        "decimals": 18
+      },
+      "claimedPreorder": {
+        "raw": "1540",
+        "decimals": 18
+      },
+      "preorderProgress": {
+        "raw": "1",
+        "unit": "ratio",
+        "scale": 18
+      },
+      "claimableUAssetFee": {
+        "raw": "22.7",
+        "decimals": 18
+      },
+      "claimablePtFee": {
+        "raw": "5.2",
+        "decimals": 18
+      },
+      "claimableLpMeme": {
+        "raw": "180.3",
+        "decimals": 18
+      },
+      "claimableLpUAsset": {
+        "raw": "3.6",
         "decimals": 18
       },
       "ytRedeemUAssetPerUnit": {
