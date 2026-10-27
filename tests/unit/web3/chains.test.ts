@@ -68,12 +68,12 @@ describe('six-chain registry snapshot', () => {
     expect(arb.finalityPolicy).toEqual({ safeBlockLag: 24 });
     expect(arb.contracts).toMatchObject({
       status: 'deployed',
-      abiVersion: 'v1-rc',
+      abiVersion: 'v1-rc2',
       deploymentBlock: 318640845,
     });
     expect(
       Object.keys(arb.contracts.status === 'deployed' ? arb.contracts.addresses : {}),
-    ).toHaveLength(37);
+    ).toHaveLength(38);
     expect(arb.eip7702TxType).toBe('0x04');
     expect(arb.authorizationPolicy).toBe('chain-specific');
     expect(arb.gasPaymentPolicy).toBe('user-pays-native');
@@ -91,13 +91,13 @@ describe('six-chain registry snapshot', () => {
     const bscChain = okConfig(97);
     expect(
       Object.keys(bscChain.contracts.status === 'deployed' ? bscChain.contracts.addresses : {}),
-    ).toHaveLength(39);
+    ).toHaveLength(40);
     expect(bscChain.finalityPolicy).toEqual({ safeBlockLag: 15 });
 
     const baseChain = okConfig(84532);
     expect(
       Object.keys(baseChain.contracts.status === 'deployed' ? baseChain.contracts.addresses : {}),
-    ).toHaveLength(39);
+    ).toHaveLength(40);
     expect(baseChain.finalityPolicy).toEqual({ safeBlockLag: 12 });
   });
 
