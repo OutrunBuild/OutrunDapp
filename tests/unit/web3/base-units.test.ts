@@ -2,7 +2,14 @@
 // site. Floats are never allowed on amounts.
 import { describe, expect, it } from 'vitest';
 
-import { WAD, formatBaseUnits, formatWadPercent, toBaseUnits } from '../../../lib/web3/base-units';
+import {
+  WAD,
+  estimateBaseUnitsCeil,
+  estimateBaseUnitsFloor,
+  formatBaseUnits,
+  formatWadPercent,
+  toBaseUnits,
+} from '../../../lib/web3/base-units';
 
 describe('toBaseUnits', () => {
   it('parses plain decimals exactly (no float round-trip)', () => {
@@ -23,6 +30,61 @@ describe('toBaseUnits', () => {
   it('rejects junk as zero instead of NaN', () => {
     expect(toBaseUnits('1e-7', 18)).toBe(0n);
     expect(toBaseUnits('abc', 18)).toBe(0n);
+  });
+});
+
+describe('estimateBaseUnitsFloor/Ceil', () => {
+  it('handles dust that String() would emit as scientific notation (viem parseUnits throws there)', () => {
+    // doubles sit just below their decimal intent; floor/ceil track the actual double
+    expect(estimateBaseUnitsFloor(1.2e-7, 18)).toBe(119_999_999_999n);
+    expect(estimateBaseUnitsCeil(1.2e-7, 18)).toBe(120_000_000_000n);
+    expect(estimateBaseUnitsFloor(0.0000001, 6)).toBe(0n);
+    expect(estimateBaseUnitsCeil(0.0000001, 6)).toBe(1n);
+  });
+
+  it('floors min-out bounds — never above the estimate double', () => {
+    expect(estimateBaseUnitsFloor(0.1, 6)).toBe(100_000n);
+    // the double for 1234.5678901 is 1234.56789010000001133... — floor keeps the tail honest
+    expect(estimateBaseUnitsFloor(1234.5678901, 18)).toBe(1_234_567_890_100_000_113_307n);
+  });
+
+  it('ceils max-in bounds — never below the estimate double', () => {
+    expect(estimateBaseUnitsCeil(0.1, 6)).toBe(100_001n);
+    // the double nearest 2.675 is 2.6749999999999998223... — ceil climbs one unit past it,
+    // floor stays under (the classic half-way literal that must never round up on a bound)
+    expect(estimateBaseUnitsCeil(2.675, 6)).toBe(2_675_000n);
+    expect(estimateBaseUnitsFloor(2.675, 6)).toBe(2_674_999n);
+    // the literal 1.9999999999999999 parses to the double 2.0 exactly — grid-exact
+    expect(estimateBaseUnitsFloor(1.9999999999999999, 18)).toBe(2_000_000_000_000_000_000n);
+    expect(estimateBaseUnitsCeil(1.9999999999999999, 18)).toBe(2_000_000_000_000_000_000n);
+  });
+
+  it('is exact for values already on the decimal grid', () => {
+    expect(estimateBaseUnitsFloor(0.5, 18)).toBe(500_000_000_000_000_000n);
+    expect(estimateBaseUnitsCeil(0.5, 18)).toBe(500_000_000_000_000_000n);
+  });
+
+  it('stays total above 1e21 (doubles are exact integers there)', () => {
+    expect(estimateBaseUnitsFloor(1.5e21, 18)).toBe(1_500_000_000_000_000_000_000n * WAD);
+    expect(estimateBaseUnitsCeil(1e21, 0)).toBe(10n ** 21n);
+  });
+
+  it('degenerate inputs read as zero instead of throwing', () => {
+    expect(estimateBaseUnitsFloor(0, 18)).toBe(0n);
+    expect(estimateBaseUnitsCeil(-1.5, 18)).toBe(0n);
+    expect(estimateBaseUnitsFloor(Number.NaN, 18)).toBe(0n);
+    expect(estimateBaseUnitsCeil(Number.POSITIVE_INFINITY, 18)).toBe(0n);
+  });
+
+  it('brackets every finite positive value (floor ≤ ceil, at most one unit apart)', () => {
+    for (const value of [1.2e-7, 0.1, 0.13, 2.675, 1.9999999999999999, 700244913.3205775]) {
+      for (const decimals of [0, 6, 18]) {
+        const floor = estimateBaseUnitsFloor(value, decimals);
+        const ceil = estimateBaseUnitsCeil(value, decimals);
+        expect(ceil).toBeGreaterThanOrEqual(floor);
+        expect(ceil - floor).toBeLessThanOrEqual(1n);
+      }
+    }
   });
 });
 
