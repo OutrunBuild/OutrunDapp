@@ -126,9 +126,9 @@ for (const verse of targets) {
   const rnd = rngOf(verse.id);
   const existing = markets.items.filter((m) => m.verseId === verse.id);
   const main = existing.find((m) => m.pool === 'main');
-  const projected = verse.projectedMarketCap
-    ? Number(verse.projectedMarketCap.raw)
-    : between(rnd, 4e6, 2e7);
+  // projectedMarketCap snapshot was removed (market cap is now derived per stage at read
+  // time from raised/price×supply) — gap-filling fabricates from a fixed sample magnitude
+  const projected = between(rnd, 4e6, 2e7);
 
   // -- four pools: missing pools are filled (tvl magnitude derived from the existing main; without
   // a main, fabricated from the projected ratio) --

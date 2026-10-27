@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 // check-abi-manifest.mjs — offline (no network) integrity gate for the frozen ABI release.
-// ① manifest.json passes the Zod schema; ② every contracts/abi/v1-rc/*.json hashes to the
+// ① manifest.json passes the Zod schema; ② every contracts/abi/<abiVersion>/*.json hashes to the
 // sha256 registered in the manifest (and vice versa — no unregistered ABI files);
 // ③ all addresses in both artifact kinds are exact EIP-55 (via schema helpers);
 // ④ deployments/{chainId}.json cross-checks against the manifest (addresses, deployment
 // blocks, abiVersion, kernel codehash, implementation codehashes);
 // ⑤ no plaintext API-key patterns in manifest/deployments.
+// The release directory comes from the manifest's own abiVersion, so a version bump moves the
+// whole gate with it and no path here needs editing.
 // On-chain live codehash re-reads are release certification, not CI.
 
 import { createHash } from 'node:crypto';
@@ -17,8 +19,10 @@ const REPO = new URL('.', import.meta.url).pathname + '../';
 const problems = [];
 const fail = (msg) => problems.push(msg);
 
-// ① + load
-const manifest = JSON.parse(readFileSync(join(REPO, 'contracts/abi/v1-rc/manifest.json'), 'utf8'));
+// The release directory is a property of the artifact set, not of this script: read the
+// manifest from the current release and locate its ABI directory from the version it declares.
+const manifest = JSON.parse(readFileSync(join(REPO, 'contracts/abi/v1-rc2/manifest.json'), 'utf8'));
+const abiDir = join(REPO, 'contracts/abi', manifest.abiVersion ?? '');
 const mParse = manifestSchema.safeParse(manifest);
 if (!mParse.success)
   fail(
@@ -26,7 +30,6 @@ if (!mParse.success)
   );
 
 // ② sha256 both directions
-const abiDir = join(REPO, 'contracts/abi/v1-rc');
 const abiFiles = readdirSync(abiDir).filter((f) => f.endsWith('.json') && f !== 'manifest.json');
 const registered = mParse.success ? manifest.abis : {};
 for (const file of abiFiles) {
@@ -72,7 +75,9 @@ for (const chainId of chainIds) {
     const [base, inst] = name.split('.');
     const entry = mc.contracts[base];
     if (!entry) {
-      if (name === 'UniswapV4PoolManager') continue; // trusted infra beyond the ABI list
+      // trusted infra beyond the ABI list: address-only entries in the deployment table
+      // (PoolManager = third-party v4 core; ProxyDeployer = subgraph settlement-deploy source)
+      if (name === 'UniswapV4PoolManager' || name === 'MemeverseProxyDeployer') continue;
       fail(`${chainId}: deployments contract not in manifest: ${name}`);
       continue;
     }
@@ -125,7 +130,7 @@ for (const chainId of chainIds) {
 
 // ⑤ plaintext key patterns (alchemy v2/infura v3 hex keys) anywhere in the artifacts
 for (const file of [
-  'contracts/abi/v1-rc/manifest.json',
+  `contracts/abi/${manifest.abiVersion}/manifest.json`,
   ...chainIds.map((c) => `deployments/${c}.json`),
 ]) {
   const text = readFileSync(join(REPO, file), 'utf8');

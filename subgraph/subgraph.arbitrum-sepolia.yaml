@@ -10,7 +10,7 @@ dataSources:
     source:
       address: "0x634FA8eEf0649B200F7059b1Aa32C8a16149205E"
       abi: Launcher
-      startBlock: 318640840
+      startBlock: 318640845
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -26,7 +26,7 @@ dataSources:
       - ParticipationClaim
       abis:
         - name: Launcher
-          file: ../contracts/abi/v1-rc/MemeverseLauncherUpgradeable.json
+          file: ../contracts/abi/v1-rc2/MemeverseLauncherUpgradeable.json
       eventHandlers:
       - event: RegisterMemeverse(indexed uint256,(string,string,string,string,address,uint8,bool,address,address,address,address,address,uint128,uint128,uint32[]))
         handler: handleRegisterMemeverse
@@ -55,7 +55,7 @@ dataSources:
     source:
       address: "0x9f263401c17f4Dd5c5E1E8EB4Dd68A5049580bB8"
       abi: Polend
-      startBlock: 318640840
+      startBlock: 318640845
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -69,7 +69,7 @@ dataSources:
       - ParticipationClaim
       abis:
         - name: Polend
-          file: ../contracts/abi/v1-rc/POLendUpgradeable.json
+          file: ../contracts/abi/v1-rc2/POLendUpgradeable.json
       eventHandlers:
       - event: LeveragedGenesis(indexed uint256,indexed address,indexed address,uint256)
         handler: handleLeveragedGenesis
@@ -90,7 +90,7 @@ dataSources:
     source:
       address: "0x1F8cE4a2f4bE978B53967deE87B54E759906B56d"
       abi: PolSplitter
-      startBlock: 318640840
+      startBlock: 318640845
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -99,7 +99,7 @@ dataSources:
       - ParticipationClaim
       abis:
         - name: PolSplitter
-          file: ../contracts/abi/v1-rc/POLSplitterUpgradeable.json
+          file: ../contracts/abi/v1-rc2/POLSplitterUpgradeable.json
       eventHandlers:
       - event: Split(indexed uint256,indexed address,uint256,uint256,uint256)
         handler: handleSplit
@@ -116,7 +116,7 @@ dataSources:
     source:
       address: "0x56eDfD9077f78aaEc23B9BcF6883E718B9f428cc"
       abi: Hook
-      startBlock: 318640840
+      startBlock: 318640845
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -128,7 +128,7 @@ dataSources:
       - ReferralRebate
       abis:
         - name: Hook
-          file: ../contracts/abi/v1-rc/MemeverseUniswapHookUpgradeable.json
+          file: ../contracts/abi/v1-rc2/MemeverseUniswapHookUpgradeable.json
       eventHandlers:
       - event: PoolInitialized(indexed bytes32,indexed address,indexed address,address)
         handler: handlePoolInitialized
@@ -155,7 +155,7 @@ dataSources:
     source:
       address: "0xFB3e0C6F74eB1a21CC1Da29aeC80D2Dfe6C9a317"
       abi: PoolManager
-      startBlock: 318640840
+      startBlock: 318640845
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -173,7 +173,7 @@ dataSources:
     name: YTFlashSwapRouter
     network: arbitrum-sepolia
     source:
-      address: "0x7024B5325E9A84aF01a092C0f3b82aF6bBa722BC"
+      address: "0x2Fc878A8fBA98FA4816Db0C5acF65C5aF5b8cc0c"
       abi: YTFlashSwapRouter
       startBlock: 319059915
     mapping:
@@ -184,7 +184,7 @@ dataSources:
       - YTFlashSwap
       abis:
         - name: YTFlashSwapRouter
-          file: ../contracts/abi/v1-rc/MemeverseYTFlashSwapRouter.json
+          file: ../contracts/abi/v1-rc2/MemeverseYTFlashSwapRouter.json
       eventHandlers:
       - event: YTFlashSwapPOLForYT(indexed uint256,indexed address,indexed address,uint256,uint256,address)
         handler: handleYTFlashSwapPOLForYT
@@ -197,7 +197,7 @@ dataSources:
     source:
       address: "0x969CbA159EBb2e9E997149092C0dbf7d88F13417"
       abi: Interoperation
-      startBlock: 318640840
+      startBlock: 318640845
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -206,7 +206,7 @@ dataSources:
       - LayerZeroMessage
       abis:
         - name: Interoperation
-          file: ../contracts/abi/v1-rc/MemeverseOmnichainInteroperation.json
+          file: ../contracts/abi/v1-rc2/MemeverseOmnichainInteroperation.json
       eventHandlers:
       - event: OmnichainMemecoinStaking(indexed bytes32,indexed address,address,indexed address,uint256,uint256,uint256)
         handler: handleInteroperationStaking
@@ -217,7 +217,7 @@ dataSources:
     source:
       address: "0xd321c219c65DC686483b045395a0743A3191475D"
       abi: Staker
-      startBlock: 318640840
+      startBlock: 318640845
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -226,7 +226,7 @@ dataSources:
       - LayerZeroMessage
       abis:
         - name: Staker
-          file: ../contracts/abi/v1-rc/OmnichainMemecoinStakerUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OmnichainMemecoinStakerUpgradeable.json
       eventHandlers:
       - event: OmnichainMemecoinStakingProcessed(indexed bytes32,indexed address,indexed address,address,uint256)
         handler: handleStakingProcessed
@@ -236,12 +236,34 @@ dataSources:
         handler: handleComposeRejected
       file: src/crosschain.ts
   - kind: ethereum
+    name: ProxyDeployer
+    network: arbitrum-sepolia
+    source:
+      address: "0x3b070CD446317E6a11D02b0C2b4fa1195AD44A6F"
+      abi: ProxyDeployer
+      startBlock: 318640845
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+      - Verse
+      abis:
+        - name: ProxyDeployer
+          file: ./abis/MemeverseProxyDeployer.json
+      eventHandlers:
+      - event: DeployYieldVault(indexed uint256,address)
+        handler: handleDeployYieldVault
+      - event: DeployGovernorAndIncentivizer(indexed uint256,address,address)
+        handler: handleDeployGovernorAndIncentivizer
+      file: src/governance-deploy.ts
+  - kind: ethereum
     name: PsmUeth
     network: arbitrum-sepolia
     source:
       address: "0x81b51a3DB0B2Fe9D6EbB7418d5c6ae1a43668751"
       abi: PsmUeth
-      startBlock: 318640840
+      startBlock: 318640845
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -250,7 +272,7 @@ dataSources:
       - PsmSwap
       abis:
         - name: PsmUeth
-          file: ../contracts/abi/v1-rc/OutrunPSMUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OutrunPSMUpgradeable.json
       eventHandlers:
       - event: SwapMintForUAsset(indexed address,indexed address,uint256,uint256,uint256)
         handler: handlePsmMintUeth
@@ -263,7 +285,7 @@ dataSources:
     source:
       address: "0xa2E795029E6dFF01d106FDa30fd2096c24714353"
       abi: PsmUusd
-      startBlock: 318640840
+      startBlock: 318640845
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -272,7 +294,7 @@ dataSources:
       - PsmSwap
       abis:
         - name: PsmUusd
-          file: ../contracts/abi/v1-rc/OutrunPSMUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OutrunPSMUpgradeable.json
       eventHandlers:
       - event: SwapMintForUAsset(indexed address,indexed address,uint256,uint256,uint256)
         handler: handlePsmMintUusd
@@ -285,7 +307,7 @@ dataSources:
     source:
       address: "0xAE6c13054bE5a1DdA8fbf8a347463f3DafA3d234"
       abi: PsmUbnb
-      startBlock: 318640840
+      startBlock: 318640845
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -294,7 +316,7 @@ dataSources:
       - PsmSwap
       abis:
         - name: PsmUbnb
-          file: ../contracts/abi/v1-rc/OutrunPSMUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OutrunPSMUpgradeable.json
       eventHandlers:
       - event: SwapMintForUAsset(indexed address,indexed address,uint256,uint256,uint256)
         handler: handlePsmMintUbnb
@@ -307,7 +329,7 @@ dataSources:
     source:
       address: "0x37E86eb37a18B8E426664A8befA8550c65b4C9e9"
       abi: UsrVaultUbnb
-      startBlock: 318640840
+      startBlock: 318640845
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -316,7 +338,7 @@ dataSources:
       - UsrVaultActivity
       abis:
         - name: UsrVaultUbnb
-          file: ../contracts/abi/v1-rc/OutrunUSRVaultUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OutrunUSRVaultUpgradeable.json
       eventHandlers:
       - event: Deposit(indexed address,indexed address,uint256,uint256)
         handler: handleUsrDepositUbnb
@@ -329,7 +351,7 @@ dataSources:
     source:
       address: "0x6acC355b9006dea082877CD984Dd19c89D17e701"
       abi: UsrVaultUeth
-      startBlock: 318640840
+      startBlock: 318640845
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -338,7 +360,7 @@ dataSources:
       - UsrVaultActivity
       abis:
         - name: UsrVaultUeth
-          file: ../contracts/abi/v1-rc/OutrunUSRVaultUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OutrunUSRVaultUpgradeable.json
       eventHandlers:
       - event: Deposit(indexed address,indexed address,uint256,uint256)
         handler: handleUsrDepositUeth
@@ -351,7 +373,7 @@ dataSources:
     source:
       address: "0xf20c06c0d3E54cfad7793B50C59E934Dd849BEC0"
       abi: UsrVaultUusd
-      startBlock: 318640840
+      startBlock: 318640845
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -360,7 +382,7 @@ dataSources:
       - UsrVaultActivity
       abis:
         - name: UsrVaultUusd
-          file: ../contracts/abi/v1-rc/OutrunUSRVaultUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OutrunUSRVaultUpgradeable.json
       eventHandlers:
       - event: Deposit(indexed address,indexed address,uint256,uint256)
         handler: handleUsrDepositUusd
@@ -373,7 +395,7 @@ dataSources:
     source:
       address: "0x31b30DED9562B245B6b282B739c1834ba0AFc0d7"
       abi: StakingPositionSusds
-      startBlock: 318640840
+      startBlock: 318640845
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -382,7 +404,7 @@ dataSources:
       - CdpPositionEvent
       abis:
         - name: StakingPositionSusds
-          file: ../contracts/abi/v1-rc/OutrunStakingPositionUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OutrunStakingPositionUpgradeable.json
       eventHandlers:
       - event: Stake(indexed uint256,indexed address,uint256,uint256)
         handler: handleCdpStakeSusds
@@ -397,7 +419,7 @@ dataSources:
     source:
       address: "0x9A66304155E357d793c46C443CEB0e850C0EA90A"
       abi: StakingPositionAusdc
-      startBlock: 318640840
+      startBlock: 318640845
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -406,7 +428,7 @@ dataSources:
       - CdpPositionEvent
       abis:
         - name: StakingPositionAusdc
-          file: ../contracts/abi/v1-rc/OutrunStakingPositionUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OutrunStakingPositionUpgradeable.json
       eventHandlers:
       - event: Stake(indexed uint256,indexed address,uint256,uint256)
         handler: handleCdpStakeAusdc
@@ -416,12 +438,72 @@ dataSources:
         handler: handleCdpRedeemAusdc
       file: src/outstake.ts
   - kind: ethereum
+    name: GenesisCreditUeth
+    network: arbitrum-sepolia
+    source:
+      address: "0xCd6BEaAfFE62c6Df3cA1F8b63053Bf2C0f61C541"
+      abi: GenesisCreditUeth
+      startBlock: 318640845
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+      - GenesisCreditClaim
+      abis:
+        - name: GenesisCreditUeth
+          file: ../contracts/abi/v1-rc2/GenesisCredit.json
+      eventHandlers:
+      - event: Claimed(indexed address,uint256)
+        handler: handleGenesisCreditClaimedUeth
+      file: src/genesis-credit.ts
+  - kind: ethereum
+    name: GenesisCreditUusd
+    network: arbitrum-sepolia
+    source:
+      address: "0x97B1Fc3ad6547366B2721fc58459dD3e8e8540A3"
+      abi: GenesisCreditUusd
+      startBlock: 318640845
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+      - GenesisCreditClaim
+      abis:
+        - name: GenesisCreditUusd
+          file: ../contracts/abi/v1-rc2/GenesisCredit.json
+      eventHandlers:
+      - event: Claimed(indexed address,uint256)
+        handler: handleGenesisCreditClaimedUusd
+      file: src/genesis-credit.ts
+  - kind: ethereum
+    name: GenesisCreditUbnb
+    network: arbitrum-sepolia
+    source:
+      address: "0xAC0ccDB39739c6A3835Be04dd044305D1ed91ef4"
+      abi: GenesisCreditUbnb
+      startBlock: 318640845
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+      - GenesisCreditClaim
+      abis:
+        - name: GenesisCreditUbnb
+          file: ../contracts/abi/v1-rc2/GenesisCredit.json
+      eventHandlers:
+      - event: Claimed(indexed address,uint256)
+        handler: handleGenesisCreditClaimedUbnb
+      file: src/genesis-credit.ts
+  - kind: ethereum
     name: UAssetUeth
     network: arbitrum-sepolia
     source:
       address: "0xB246B6F5A91634E6ba213312CA292B951905A2d9"
       abi: UAssetUeth
-      startBlock: 318640840
+      startBlock: 318640845
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -430,7 +512,7 @@ dataSources:
       - LayerZeroMessage
       abis:
         - name: UAssetUeth
-          file: ../contracts/abi/v1-rc/OutrunUniversalAssetsUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OutrunUniversalAssetsUpgradeable.json
       eventHandlers:
       - event: OFTSent(indexed bytes32,uint32,indexed address,uint256,uint256)
         handler: handleUAssetOftSentUeth
@@ -443,7 +525,7 @@ dataSources:
     source:
       address: "0x1D8A1DD4622b63F3A4b28556C4f0d100c6899134"
       abi: UAssetUusd
-      startBlock: 318640840
+      startBlock: 318640845
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -452,7 +534,7 @@ dataSources:
       - LayerZeroMessage
       abis:
         - name: UAssetUusd
-          file: ../contracts/abi/v1-rc/OutrunUniversalAssetsUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OutrunUniversalAssetsUpgradeable.json
       eventHandlers:
       - event: OFTSent(indexed bytes32,uint32,indexed address,uint256,uint256)
         handler: handleUAssetOftSentUusd
@@ -465,7 +547,7 @@ dataSources:
     source:
       address: "0xFAA577e36F0EC6A3e66b65C8eDBBE7f1D7420340"
       abi: UAssetUbnb
-      startBlock: 318640840
+      startBlock: 318640845
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -474,7 +556,7 @@ dataSources:
       - LayerZeroMessage
       abis:
         - name: UAssetUbnb
-          file: ../contracts/abi/v1-rc/OutrunUniversalAssetsUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OutrunUniversalAssetsUpgradeable.json
       eventHandlers:
       - event: OFTSent(indexed bytes32,uint32,indexed address,uint256,uint256)
         handler: handleUAssetOftSentUbnb
@@ -496,7 +578,7 @@ templates:
       - LayerZeroMessage
       abis:
         - name: Memecoin
-          file: ../contracts/abi/v1-rc/Memecoin.json
+          file: ../contracts/abi/v1-rc2/Memecoin.json
       eventHandlers:
       - event: OFTSent(indexed bytes32,uint32,indexed address,uint256,uint256)
         handler: handleMemecoinOftSent
@@ -516,7 +598,7 @@ templates:
       - VaultActivity
       abis:
         - name: MemecoinYieldVault
-          file: ../contracts/abi/v1-rc/MemecoinYieldVault.json
+          file: ../contracts/abi/v1-rc2/MemecoinYieldVault.json
       eventHandlers:
       - event: Deposit(indexed address,indexed address,uint256,uint256)
         handler: handleVaultDeposit
@@ -543,7 +625,7 @@ templates:
       - GovernanceVote
       abis:
         - name: MemecoinDaoGovernor
-          file: ../contracts/abi/v1-rc/MemecoinDaoGovernorUpgradeable.json
+          file: ../contracts/abi/v1-rc2/MemecoinDaoGovernorUpgradeable.json
       eventHandlers:
       - event: ProposalCreated(uint256,address,address[],uint256[],string[],bytes[],uint256,uint256,string)
         handler: handleProposalCreated
@@ -571,7 +653,7 @@ templates:
       - TreasuryActivity
       abis:
         - name: GovernanceCycleIncentivizer
-          file: ../contracts/abi/v1-rc/GovernanceCycleIncentivizerUpgradeable.json
+          file: ../contracts/abi/v1-rc2/GovernanceCycleIncentivizerUpgradeable.json
       eventHandlers:
       - event: CycleStarted(indexed uint128,uint128,uint128,address[],uint256[])
         handler: handleCycleStarted

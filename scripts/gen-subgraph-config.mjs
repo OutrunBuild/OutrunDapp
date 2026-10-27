@@ -10,6 +10,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { CURRENT_ABI_VERSION } from './deployment-schema.mjs';
+
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..');
 // key = The Graph canonical network id (TheGraphNetworksRegistry.json — the Studio deploy API only
 // accepts these, aliases like bnb-testnet/bsc-testnet are rejected as "network is not supported");
@@ -32,12 +34,14 @@ const camel = (s) => {
 
 // --- ABI event signature resolution (graph manifests need full signatures) -------------
 const abiCache = new Map();
+// third-party / non-frozen fragments kept locally (PoolManager v4 Swap, ProxyDeployer events
+// for the settlement-deploy governance addresses)
+const LOCAL_ABIS = new Set(['UniswapV4PoolManager', 'MemeverseProxyDeployer']);
 function loadAbi(abiFile) {
   if (!abiCache.has(abiFile)) {
-    const p =
-      abiFile === 'UniswapV4PoolManager'
-        ? join(repo, 'subgraph', 'abis', `${abiFile}.json`)
-        : join(repo, 'contracts', 'abi', 'v1-rc', `${abiFile}.json`);
+    const p = LOCAL_ABIS.has(abiFile)
+      ? join(repo, 'subgraph', 'abis', `${abiFile}.json`)
+      : join(repo, 'contracts', 'abi', CURRENT_ABI_VERSION, `${abiFile}.json`);
     abiCache.set(abiFile, JSON.parse(readFileSync(p, 'utf8')));
   }
   return abiCache.get(abiFile);
@@ -184,6 +188,17 @@ const STATIC_SOURCES = [
     [['Registration', 'handleRegistration']],
     ['SymbolRegistration'],
   ],
+  [
+    'ProxyDeployer',
+    'MemeverseProxyDeployer',
+    /^MemeverseProxyDeployer$/,
+    'src/governance-deploy.ts',
+    [
+      ['DeployYieldVault', 'handleDeployYieldVault'],
+      ['DeployGovernorAndIncentivizer', 'handleDeployGovernorAndIncentivizer'],
+    ],
+    ['Verse'],
+  ],
 ];
 
 // families keyed by deployment contract-key prefix; one source per matching key
@@ -293,7 +308,7 @@ const TEMPLATE_SOURCES = [
   ],
 ];
 
-const ABI_DIR = '../contracts/abi/v1-rc';
+const ABI_DIR = `../contracts/abi/${CURRENT_ABI_VERSION}`;
 const LOCAL_ABI_DIR = './abis'; // third-party standard fragments kept locally (PoolManager Swap)
 
 const yamlDataSource = (name, abiFile, address, startBlock, file, handlers, entities, abiDir) => {
@@ -370,7 +385,7 @@ for (const net of NETWORKS) {
         file,
         handlers,
         entities,
-        name === 'PoolManager' ? LOCAL_ABI_DIR : ABI_DIR,
+        LOCAL_ABIS.has(abiFile) ? LOCAL_ABI_DIR : ABI_DIR,
       ),
     );
   }

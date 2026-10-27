@@ -143,8 +143,15 @@ export const contractEntrySchema = z.object({
   note: z.string().optional(),
 });
 
+// ABI release directory name. Frozen releases are immutable: a semantic ABI change opens a NEW
+// version directory beside the old one instead of overwriting it, so rollback is a pointer flip
+// and one version never holds two different byte sets. The enum keeps retained releases
+// parseable; new artifacts are always written with CURRENT_ABI_VERSION.
+export const ABI_VERSIONS = ['v1-rc', 'v1-rc2'];
+export const CURRENT_ABI_VERSION = 'v1-rc2';
+
 export const manifestSchema = z.object({
-  abiVersion: z.literal('v1-rc'),
+  abiVersion: z.enum(ABI_VERSIONS),
   memeverseCommit: z.string().regex(/^[0-9a-f]{40}$/),
   outstakeCommit: z.string().regex(/^[0-9a-f]{40}$/),
   kernelTagCommit: z.string().regex(/^[0-9a-f]{40}$/),
@@ -171,7 +178,7 @@ export const chainConfigSchema = z.object({
   finalityPolicy: z.object({ safeBlockLag: z.number().int().nonnegative() }),
   contracts: z.record(z.string(), checksummedAddress),
   deploymentBlock: z.number().int().nonnegative(),
-  abiVersion: z.literal('v1-rc'),
+  abiVersion: z.enum(ABI_VERSIONS),
   implementationCodehashes: z.record(z.string(), codehash),
   kernel7702Implementation: checksummedAddress,
   kernel7702Codehash: codehash,

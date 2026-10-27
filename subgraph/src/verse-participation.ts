@@ -1,6 +1,7 @@
 // Verse registration / lifecycle (MemeverseLauncher + registration hub) and plain genesis /
-// preorder participation history. Event shapes come from the frozen ABIs; the RegisterMemeverse
-// tuple carries every dynamically deployed contract address, which is where templates attach.
+// preorder participation history. Event shapes come from the frozen ABIs. The RegisterMemeverse
+// tuple's governance fields are registration-time zeros (those contracts deploy at settlement —
+// see governance-deploy.ts); only memecoin is live at registration and attaches its template here.
 import { BigInt, Bytes } from '@graphprotocol/graph-ts';
 import {
   ChangeStage,
@@ -24,12 +25,7 @@ import {
   VerseParticipant,
   VerseStageChange,
 } from '../generated/schema';
-import {
-  MemecoinDaoGovernor as MemecoinDaoGovernorTemplate,
-  MemecoinYieldVault as MemecoinYieldVaultTemplate,
-  GovernanceCycleIncentivizer as GovernanceCycleIncentivizerTemplate,
-  Memecoin as MemecoinTemplate,
-} from '../generated/templates';
+import { Memecoin as MemecoinTemplate } from '../generated/templates';
 import { chainId, chainIdInt, scopedId, stageName } from './utils';
 
 function zero(): BigInt {
@@ -125,10 +121,10 @@ export function handleRegisterMemeverse(event: RegisterMemeverse): void {
   if (countDeployed(verse.stage)) aggregate.deployedVerseCount = aggregate.deployedVerseCount + 1;
   aggregate.save();
 
+  // Memecoin deploys at registration, so its template attaches here. The governance contracts
+  // (vault/governor/incentivizer) deploy at SETTLEMENT — the tuple carries registration zeros —
+  // their templates attach in governance-deploy.ts on the deployer's real-address events.
   MemecoinTemplate.create(event.params.verse.memecoin);
-  MemecoinYieldVaultTemplate.create(event.params.verse.yieldVault);
-  MemecoinDaoGovernorTemplate.create(event.params.verse.governor);
-  GovernanceCycleIncentivizerTemplate.create(event.params.verse.incentivizer);
 }
 
 export function handleChangeStage(event: ChangeStage): void {

@@ -1,0 +1,1287 @@
+{
+  "abiVersion": "v1-rc2",
+  "memeverseCommit": "6f026e152c83b9bc16e74d118d4575d0e4d7fc7c",
+  "outstakeCommit": "2c033a89a247013d76482af2bd10ec2670b0647f",
+  "kernelTagCommit": "cd697c7e21715d015e0643af22310a99aa17433b",
+  "abis": {
+    "Faucet": "ad38e69cfffe59cfa5ddfd254f2733d183c2dfab4da152e9945e0ee0051c64ce",
+    "GenesisCredit": "6724370d2508d49ce6dcbec5fd165d9800c636dbc214ac8da3b64a666b055794",
+    "GovernanceCycleIncentivizerUpgradeable": "4a082325f3c4969addd7def06b2dd3e7cbf3d07b2ffbc0cdee044e849fdc9409",
+    "Kernel": "034a576f5d8d085f118cf262500af749a183f0a6b17654d751c0dc3564866594",
+    "MemePol": "5039a4cc6961ef26aa6436c8d5fab39977f26aea695129da5014dad04c666438",
+    "Memecoin": "2c720ce79ee3e482a5c80fe0814f2c2d7c53c14b2ca0be87fe75596550ad9b89",
+    "MemecoinDaoGovernorUpgradeable": "2c73f07a4256184ab49867cf8395773b6ec5f3c9aff31b0ea18b790812286081",
+    "MemecoinYieldVault": "307b03f33dd8b4e7ea5b59b51a72c05b5e8398206c5832933a3c4d596aebbcc9",
+    "MemeverseFeePreviewReader": "7edbd84b9590a18266f59bde3235a26487aa62822cb196e8c0d29db03d04b786",
+    "MemeverseLauncherUpgradeable": "05132baebd5cb7998033f11263da83a9ec12a13189bd2af1f38525d665df38fe",
+    "MemeverseOmnichainInteroperation": "92a1d2459b494733e15593e36e0dad9a787d48b14a1313642a59a4106fd3c3e7",
+    "MemeverseRegistrarOmnichain": "5954bfd3111f2eb84f6ab15984afdae23746204914db840b64cfaa46494aa639",
+    "MemeverseRegistrationCenterUpgradeable": "42d4792d50a205fae73302c4368dd0401aedb7e61c2486dbfecf007cb3b3d0f1",
+    "MemeverseSwapRouter": "d37385bbd7af288f71e32699cb044073f7fcd45ac140235571abf9a730047627",
+    "MemeverseUniswapHookLens": "502623d8240c66584a51131268d4bd3354e7a4d3c6e6f2ac91e39524491d5a77",
+    "MemeverseUniswapHookUpgradeable": "437e6267921fcbcdcfb8464de524ff5ceac8c702e2458b1689b5dd47e36e59d6",
+    "MemeverseYTFlashSwapRouter": "80bde425ea890654f85b07be64ad62ea53fe66ba765c40570ad7cd26d58701cc",
+    "MockAUSDC": "6b163a625e0efaa5cc89f24b6bbefdd1d3e828160f0a14e39b4c724c5a53cd5c",
+    "MockOutrunAUSDCSYUpgradeable": "0a115dd70097bf742c3fe2e58b0a1a3b7d2a1cd15d3e7c984a301315ca732914",
+    "MockOutrunSUSDSSYUpgradeable": "8f4386ec48d24e734eddae550e481e428f570e3cc41adf2f2e0e3ff33328b047",
+    "MockSUSDS": "6b163a625e0efaa5cc89f24b6bbefdd1d3e828160f0a14e39b4c724c5a53cd5c",
+    "MockUSDC": "61a7a0daeb3bf55554990ce57485b3a23b5c740cba81d1d0760eb51189cdf493",
+    "OmnichainMemecoinStakerUpgradeable": "a2cfbc5ee86b0d12e990c5a1f29b13cb666d30b61df8240c59dcb02f22cfc4e2",
+    "OutrunAaveV3SYUpgradeable": "c30832c7628a8fc34821cb0c02966249a2b7abf56f1c34acf179bb73cd2e81de",
+    "OutrunPSMUpgradeable": "d59021c5407fe2791841744fde2d1b82d27e94dc49b01a0063b591bf61bf7699",
+    "OutrunRouter": "84bd3c33f53ca6f42675a7e5f78ce784d9c862fa64fa834f19b39ecaf2ffcdfe",
+    "OutrunSlisBNBSYUpgradeable": "dbfbbccb7e40e093df4be3fdaea99c91cbd2d038e5a9065c10f81dd1975eb742",
+    "OutrunStakedUSDeSYUpgradeable": "174cd1974592d9ee4e05c05ee0cd966841fc5590232bad00d3094ca9db0cbe5a",
+    "OutrunStakingPositionUpgradeable": "20587bdf6488f14653a669f22fc93eeba620471e51750fa2c4aa1f43b9f56ae3",
+    "OutrunUSRVaultUpgradeable": "dbf9e49166d769462a1c847d7f509296e287522483ccef2b8687f4546a541adb",
+    "OutrunUniversalAssetsUpgradeable": "e91482ff77dc6430a194473d620217b33c444880b5135cac3cd3f4c814bf669c",
+    "OutrunWstETHSYUpgradeable": "20a1b93de672a872c3c8c24566cb2981706593e9a4fdfd51e1347d00aaae1b99",
+    "POLSplitterUpgradeable": "71b3b17036ec5915f7e0b7ebd025263248e20dd4c08a879256973e9383c24190",
+    "POLendUpgradeable": "fcf32ecd568d4adc1b1387f40ae786cffa6846e8114f7fd30c8d23ec8d21900c",
+    "Permit2": "62dab8841513e558aeebdbe20dca54f7da8e2224b0c7d62ebc45f28caf45979d",
+    "PrincipalToken": "c2c6d35eda523eed584dc7cf9fa6aad4d874166cf3d3ab681821f997df700e4c",
+    "UniswapLP": "f815a03f3543004338814e9b673ff695982d441bcf34d88a0b49e77b8e2aa060",
+    "YieldToken": "c2c6d35eda523eed584dc7cf9fa6aad4d874166cf3d3ab681821f997df700e4c"
+  },
+  "chains": {
+    "97": {
+      "kernel7702": {
+        "implementation": "0xd6CEDDe84be40893d153Be9d467CD6aD37875b28",
+        "runtimeCodehash": "0x5143969744cb305cedc9748f191ce11fb77fab00ae1e08f8d3beeeb0219239bd",
+        "observedBlock": null
+      },
+      "contracts": {
+        "MemeverseLauncher": {
+          "abi": "MemeverseLauncherUpgradeable",
+          "address": "0x634FA8eEf0649B200F7059b1Aa32C8a16149205E",
+          "status": "deployed",
+          "implementation": "0x7c27638704CEda3Fd8b9D94b912f8F89f0BA6D7a",
+          "deploymentTx": "0xd1cc43e7ec3867cdfea593107f43fa61cd15308048cd28c73e8b199a68bf3e4b",
+          "deploymentBlock": 136538368,
+          "runtimeCodehash": "0xfed7423e67470ce98769fa09eecd184ea60ef1bd2d2dcd79f913179192f91da3"
+        },
+        "MemeverseRegistrarOmnichain": {
+          "abi": "MemeverseRegistrarOmnichain",
+          "address": null,
+          "status": "undeployed",
+          "note": "center chain (97) uses MemeverseRegistrarAtLocal; user entry there is MemeverseRegistrationCenter"
+        },
+        "MemeverseFeePreviewReader": {
+          "abi": "MemeverseFeePreviewReader",
+          "address": "0x730F3189Ca54DA017D99D6e532143a49708c5977",
+          "status": "deployed",
+          "deploymentTx": "0xc7a67a82e676b11635af395b3d7f8c26441d7da17844e32aa09c6526df5ac1df",
+          "deploymentBlock": 136490661,
+          "runtimeCodehash": "0x9a3d501c7dc3aa1c3cd8942f52bfb2a8fc9c517fdb296ab4e10b60e69d94b7f2"
+        },
+        "POLend": {
+          "abi": "POLendUpgradeable",
+          "address": "0x9f263401c17f4Dd5c5E1E8EB4Dd68A5049580bB8",
+          "status": "deployed",
+          "implementation": "0x423C4c3083337d9639f8fef9b22c0726eFE21754",
+          "deploymentTx": "0x791f81dae44067cd176827b3431daac596f981ef42d942cd7a73c169e2dfa2a0",
+          "deploymentBlock": 136538375,
+          "runtimeCodehash": "0x9c5dde33c595f72f894e39a23ae5fb7043bbca4fb75d8128e361036cce84aa66"
+        },
+        "POLSplitter": {
+          "abi": "POLSplitterUpgradeable",
+          "address": "0x1F8cE4a2f4bE978B53967deE87B54E759906B56d",
+          "status": "deployed",
+          "implementation": "0x995E893627D916A7F463B70BEc43409D607f9cF8",
+          "deploymentTx": "0x43e72f6a1794a232793c3b7b38b5a117d55d6fbe39a110ebbda06fd6eb843086",
+          "deploymentBlock": 136490885,
+          "runtimeCodehash": "0x945b43e79ebfa89619a6542c47063828c9e349b50a3e631a5154851c4fd58da8"
+        },
+        "MemeverseSwapRouter": {
+          "abi": "MemeverseSwapRouter",
+          "address": "0x416315158C6779DCbAFc14869FF55921D30DE7fa",
+          "status": "deployed",
+          "deploymentTx": "0xe770b2aad2542269444d58ceaeead1e7b75e0388330ec9f23d8b1cabddd13aa6",
+          "deploymentBlock": 136492153,
+          "runtimeCodehash": "0x4e392e532605af6791e358c10aa15c7ffceca621de124d1d75450e01faa89567"
+        },
+        "MemeverseYTFlashSwapRouter": {
+          "abi": "MemeverseYTFlashSwapRouter",
+          "address": "0x2Fc878A8fBA98FA4816Db0C5acF65C5aF5b8cc0c",
+          "status": "deployed",
+          "deploymentBlock": 137397543,
+          "runtimeCodehash": "0xc43f2b34f2dcf1eebc2ef1217a8395411e44a6915b100797b4682e0213505a60"
+        },
+        "MemeverseUniswapHookLens": {
+          "abi": "MemeverseUniswapHookLens",
+          "address": "0x350D7b9096Ba127B22189e78953272fb708E1f80",
+          "status": "deployed",
+          "deploymentTx": "0x5593d60d57c2a540a1308f74fc031230d38a533020f0d977eb9f8085c1271e86",
+          "deploymentBlock": 136492143,
+          "runtimeCodehash": "0xf02b326f4a1e44b42b779f705c6a4b580eadcc8791c82e1c466982c680745fcf"
+        },
+        "MemeverseUniswapHook": {
+          "abi": "MemeverseUniswapHookUpgradeable",
+          "address": "0x56eDfD9077f78aaEc23B9BcF6883E718B9f428cc",
+          "status": "deployed",
+          "implementation": "0xa8d0CE34787d9D5F5b18f15E6eC59B538D87C333",
+          "deploymentTx": "0xc62f9e7e2a92a1f9e47b2732270f0ba5f1b6ca9f5a428d7a270d90006adffd46",
+          "deploymentBlock": 136492160,
+          "runtimeCodehash": "0x53ff1c55bc1fbfb795098ba7e74e5c30acb714ec40bc7a0ec0c7e4357b44ff30"
+        },
+        "Permit2": {
+          "abi": "Permit2",
+          "address": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+          "status": "deployed",
+          "runtimeCodehash": "0xc9fc98683a624e287416c3560ef5f91675fa759668a377d4ce0adc080f315f3d",
+          "note": "address = MemeverseSwapRouter.permit2() immutable on all three chains (frozen script CANONICAL_PERMIT2); Uniswap canonical Permit2 singleton \u2014 same address live on Ethereum mainnet; per-chain codehash differs by design (chainId inside the DOMAIN_SEPARATOR immutable)"
+        },
+        "Memecoin": {
+          "abi": "Memecoin",
+          "address": null,
+          "status": "dynamic",
+          "implementation": "0x73058D4CB554219473CEB93696aBCAbd753194Eb",
+          "deploymentTx": "0xdde700d0a3d14726349931f270646941e7eb1d0fe80d037ce5ac33e50673234f",
+          "deploymentBlock": 136491272,
+          "runtimeCodehash": "0xb4e784d068d19651786cb16b46366f7d19078466cf8fcc5f6b4dc5c9eca115c1",
+          "note": "per-verse instances are deployed at runtime via MemeverseProxyDeployer"
+        },
+        "MemePol": {
+          "abi": "MemePol",
+          "address": null,
+          "status": "dynamic",
+          "implementation": "0x653EE946023594aDb0D182534Df5EC901cd65744",
+          "deploymentTx": "0xd3616e1176267e701c178408e1970af1d79b3e701e90747d08e0adbc680852a0",
+          "deploymentBlock": 136491264,
+          "runtimeCodehash": "0x7049e2404ac613dcf1b19cb7df13d8590e8d1c8e3b2cb7025129f9afcfced364",
+          "note": "per-verse instances are deployed at runtime via MemeverseProxyDeployer"
+        },
+        "UniswapLP": {
+          "abi": "UniswapLP",
+          "address": null,
+          "status": "dynamic",
+          "implementation": "0x93c2d3933A3063A9422Bb8F73be45568681A8031",
+          "deploymentTx": "0xb5b895942efe4a61d2b346b5f828b42dcb2f4f4001455c22a619e851b12aa72a",
+          "deploymentBlock": 136491828,
+          "runtimeCodehash": "0x2a2a031695aba6439a9130178cd044ebc6db7f0cc091be6108b35060e03e0bb1",
+          "note": "per-verse instances are deployed at runtime via MemeverseProxyDeployer"
+        },
+        "MemecoinYieldVault": {
+          "abi": "MemecoinYieldVault",
+          "address": null,
+          "status": "dynamic",
+          "implementation": "0x5d250237B9885537c6D8b47907aAeDEcbd60E104",
+          "deploymentTx": "0x0fec666754baded82c8671c32455d2c8c36ed2334dad4c9edab3066ab039b23b",
+          "deploymentBlock": 136491281,
+          "runtimeCodehash": "0xe0835c3520b0ea8cef20be8a48d85e5b9360637b55186a6a2cf188a75ba7d19e",
+          "note": "per-verse instances are deployed at runtime via MemeverseProxyDeployer"
+        },
+        "MemecoinDaoGovernor": {
+          "abi": "MemecoinDaoGovernorUpgradeable",
+          "address": null,
+          "status": "dynamic",
+          "implementation": "0x3735c741Cb42C5a98fa1585789F6f86856A1C0bb",
+          "deploymentTx": "0x546724134df850277a052e4613a722f32902dad10b0ff557b6f37054091a51d1",
+          "deploymentBlock": 136491069,
+          "runtimeCodehash": "0xd87c73696fa7f55c1c4eb8df37c677807ca9521f5fa2b68f66a8b72fc165204b",
+          "note": "per-verse instances are deployed at runtime via MemeverseProxyDeployer"
+        },
+        "GovernanceCycleIncentivizer": {
+          "abi": "GovernanceCycleIncentivizerUpgradeable",
+          "address": null,
+          "status": "dynamic",
+          "implementation": "0x73cC860bBacBbeF048e74BB98444B285Ee80e5F3",
+          "deploymentTx": "0x673f42ad6ea752255653d281d63c529a117eba3287ba09089d63546bc03ed4e3",
+          "deploymentBlock": 136491291,
+          "runtimeCodehash": "0x3f9510483400a97495e7c6c8db7c90912e55f122363543887e15e16a3f0a370a",
+          "note": "per-verse instances are deployed at runtime via MemeverseProxyDeployer"
+        },
+        "PrincipalToken": {
+          "abi": "PrincipalToken",
+          "address": "0x1949e2298d4d109eC26eaAF422964bAC7c90d78A",
+          "status": "deployed",
+          "deploymentTx": "0x43e72f6a1794a232793c3b7b38b5a117d55d6fbe39a110ebbda06fd6eb843086",
+          "deploymentBlock": 136490885,
+          "runtimeCodehash": "0x9ef045a196faeea5bcbc29e9ab9223eb184702ec327148e49a897ae7c55c0318",
+          "note": "genesis-pair instance; per-verse pairs deploy dynamically via POLSplitter"
+        },
+        "YieldToken": {
+          "abi": "YieldToken",
+          "address": "0x42250b9b61b1D3dE359191814cE57C76900F57C7",
+          "status": "deployed",
+          "deploymentTx": "0x43e72f6a1794a232793c3b7b38b5a117d55d6fbe39a110ebbda06fd6eb843086",
+          "deploymentBlock": 136490885,
+          "runtimeCodehash": "0x8964253cf3a6787914fd9d9994b48cbdcac741470c0a61f551e5978cc1d0d492",
+          "note": "genesis-pair instance; per-verse pairs deploy dynamically via POLSplitter"
+        },
+        "OmnichainMemecoinStaker": {
+          "abi": "OmnichainMemecoinStakerUpgradeable",
+          "address": "0xd321c219c65DC686483b045395a0743A3191475D",
+          "status": "deployed",
+          "implementation": "0x3dc205c5D2DABEA8C71d4f24C35405B788392475",
+          "deploymentTx": "0x1b4708fd9726a45796dc4ffba16030699a6591be08ea01f1a9a59b9108792d0c",
+          "deploymentBlock": 136491449,
+          "runtimeCodehash": "0x9c5dde33c595f72f894e39a23ae5fb7043bbca4fb75d8128e361036cce84aa66"
+        },
+        "MemeverseOmnichainInteroperation": {
+          "abi": "MemeverseOmnichainInteroperation",
+          "address": "0x969CbA159EBb2e9E997149092C0dbf7d88F13417",
+          "status": "deployed",
+          "deploymentTx": "0x1e02149199b6d657a8e190f3a322538e8ef76863f5c9662619ff95837be2b166",
+          "deploymentBlock": 136491433,
+          "runtimeCodehash": "0xe5cad785eff7c278565adc7019bb46aff7d793185a71505374be689600f913eb"
+        },
+        "OutrunRouter": {
+          "abi": "OutrunRouter",
+          "address": "0xC4F8D020720473E5EaD903532Cf9039F6583aa88",
+          "status": "deployed",
+          "deploymentBlock": 138509527,
+          "runtimeCodehash": "0xe5a277f8dd733b69059e396b217c7b1ea25fc7be4fc33f9577d967f2282d1976",
+          "deploymentTx": "0xb3bbf7d52d0b637f85bf6867eefcdb9c90b6d3da99796dae03e365498d6efa1f"
+        },
+        "OutrunStakingPosition": {
+          "abi": "OutrunStakingPositionUpgradeable",
+          "address": null,
+          "status": "deployed",
+          "instances": {
+            "sUSDS": {
+              "address": "0x31b30DED9562B245B6b282B739c1834ba0AFc0d7",
+              "implementation": "0xE09639602F00f04DF589009E035E5aFed66cb197",
+              "deploymentTx": "0x9a28a56b632db1cbcc8d4e6c7020cd23900efcbb760f1d0c93f125e51be19b89",
+              "deploymentBlock": 136492952,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            },
+            "aUSDC": {
+              "address": "0x9A66304155E357d793c46C443CEB0e850C0EA90A",
+              "implementation": "0x79eaF030fc8F098069343C47bF91F5774060Cd41",
+              "deploymentTx": "0x73845a05be51f98432597178c863b39f7c8da833547179bf9e7da75a1e0f5614",
+              "deploymentBlock": 136492927,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            },
+            "slisBNB": {
+              "address": "0xA14078Ee89a4228Bdbdc6e3c95661C4906c94095",
+              "implementation": "0xcF84a82e3C94Eae1f1c04769De1034903Df07D71",
+              "deploymentTx": "0x36a192e279bf21192dcdf1665d6758c1b1128f1abbbfa0344ff350484620bd32",
+              "deploymentBlock": 136493470,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            }
+          }
+        },
+        "OutrunPSM": {
+          "abi": "OutrunPSMUpgradeable",
+          "address": null,
+          "status": "deployed",
+          "instances": {
+            "UETH": {
+              "address": "0x81b51a3DB0B2Fe9D6EbB7418d5c6ae1a43668751",
+              "implementation": "0xBEBB444048D748C30a8029e093EFf7f47797E46D",
+              "deploymentTx": "0x862d09efbaddea51685ae37904453d452465a1e52db94882800afa574319837f",
+              "deploymentBlock": 136493078,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            },
+            "UUSD": {
+              "address": "0xa2E795029E6dFF01d106FDa30fd2096c24714353",
+              "implementation": "0xFD665bF5d45F130b04F40bD2FDefbC2527e036C0",
+              "deploymentTx": "0xa77575a838c944cea650ee560efdcc297819e98396de22c10585aebcb7d71d11",
+              "deploymentBlock": 136493113,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            },
+            "UBNB": {
+              "address": "0xAE6c13054bE5a1DdA8fbf8a347463f3DafA3d234",
+              "implementation": "0x167De3C606bA42633C5d2854dc1415cf4b2498B5",
+              "deploymentTx": "0x0807356e25b322aac8a78ab21bc8d000c50b78295b1d85ad664017a982e25809",
+              "deploymentBlock": 136493152,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            }
+          }
+        },
+        "OutrunUSRVault": {
+          "abi": "OutrunUSRVaultUpgradeable",
+          "address": null,
+          "status": "deployed",
+          "instances": {
+            "UBNB": {
+              "address": "0x37E86eb37a18B8E426664A8befA8550c65b4C9e9",
+              "implementation": "0x3f8BBC3E75F25A04a49D998dd830A6cfD53Dd7dF",
+              "deploymentTx": "0x9d008485cfe08571942fa4c878651d57ba2516d1918527e3c5b7c3de75c5bf51",
+              "deploymentBlock": 136493319,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            },
+            "UETH": {
+              "address": "0x6acC355b9006dea082877CD984Dd19c89D17e701",
+              "implementation": "0x287b1eB59b119f6c1A1D9Af09b2024cD0eABBD68",
+              "deploymentTx": "0x00cad7656bc955cf5fed93d0602d75d8a3f600400773d68362f5d111933bb1b6",
+              "deploymentBlock": 136493284,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            },
+            "UUSD": {
+              "address": "0xf20c06c0d3E54cfad7793B50C59E934Dd849BEC0",
+              "implementation": "0x5B8712D8Dd467836BDc00071b223b51147915351",
+              "deploymentTx": "0x5083aa586852d0a26ffd787a7061b203fae41edf281fe8c5ca0cd6502aad9b6b",
+              "deploymentBlock": 136493303,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            }
+          }
+        },
+        "UAsset": {
+          "abi": "OutrunUniversalAssetsUpgradeable",
+          "address": null,
+          "status": "deployed",
+          "instances": {
+            "UETH": {
+              "address": "0xB246B6F5A91634E6ba213312CA292B951905A2d9",
+              "implementation": "0xFcCfE35D1bd9cb5d810fdEF4E33A1D4Ba758477B",
+              "deploymentTx": "0x67e702404bd03b65b1f1c9b16c35e2cea1cde9db39520ee37aa29bf912e4b3d1",
+              "deploymentBlock": 136487795,
+              "runtimeCodehash": "0x8ed2e5a709c58a61ca67331ac466cf5e955729d7b5089401fb9e3d06b61cae4e"
+            },
+            "UUSD": {
+              "address": "0x1D8A1DD4622b63F3A4b28556C4f0d100c6899134",
+              "implementation": "0xE0d0A009378cEb55246cf8ec07cb9bFBb3d6F527",
+              "deploymentTx": "0x2a83bb72a0a6551694b46cbcf9bbb02c436518f3061fd924a0c5eb157076b699",
+              "deploymentBlock": 136487864,
+              "runtimeCodehash": "0x8ed2e5a709c58a61ca67331ac466cf5e955729d7b5089401fb9e3d06b61cae4e"
+            },
+            "UBNB": {
+              "address": "0xFAA577e36F0EC6A3e66b65C8eDBBE7f1D7420340",
+              "implementation": "0xdaB4AA72733F48fD54fc688BDcCD8eC8B9c30CBC",
+              "deploymentTx": "0xc0088e383f79d8bad755da7b710dc93fe63f30a55a1055bb506ee762615514bd",
+              "deploymentBlock": 136487937,
+              "runtimeCodehash": "0x8ed2e5a709c58a61ca67331ac466cf5e955729d7b5089401fb9e3d06b61cae4e"
+            }
+          }
+        },
+        "Faucet": {
+          "abi": "Faucet",
+          "address": "0x8A26774beBf1DCB5b332222e1B9d1dd12EC39428",
+          "status": "deployed",
+          "deploymentTx": "0xfbc698efe9c89c7ccd2a3099f96cd87c3c22be8437a9c3c476a7bc336d937edb",
+          "deploymentBlock": 136492633,
+          "runtimeCodehash": "0x21131b4765998e9fe99d93055878bb129819b26c81a1ed89572a7082f51f9ac8"
+        },
+        "MockUSDC": {
+          "abi": "MockUSDC",
+          "address": "0xd6d4d629d1AAe5ac82Bd614199E625A23CAc681D",
+          "status": "deployed",
+          "deploymentTx": "0xc4424d3a2ad0878324f246180a21e50847db0908a1335f7ff4b78c92cec8568f",
+          "deploymentBlock": 136492643,
+          "runtimeCodehash": "0xedf7e6996cd9df5d8579c7dd6041dfda9d1fce697aa50d1b3754c6edf9dceb22"
+        },
+        "MockSUSDS": {
+          "abi": "MockSUSDS",
+          "address": "0xB13347933a6DB67E793f45ae2Db9cB2C641B7F12",
+          "status": "deployed",
+          "deploymentTx": "0xcd899d22e82e3e1dbdaba5400ba8c1c6b7b5169243849f21c9cd9e755abec4e7",
+          "deploymentBlock": 136492657,
+          "runtimeCodehash": "0x53094476eb1918dc3eaf561133a5c42157e6c5048d0a20ae6c12c19681923134"
+        },
+        "MockAUSDC": {
+          "abi": "MockAUSDC",
+          "address": "0x2F4AB1b103263C8088Ab339d272b70549dF1A108",
+          "status": "deployed",
+          "deploymentTx": "0x9eea6ad0a53f35e0ea21e75d78bb3c0d915063d86640df443cdf88e8700f8b2d",
+          "deploymentBlock": 136492650,
+          "runtimeCodehash": "0x0b9c8fb5e94a411528f5f4f373edfa93cf236101444470778fd621687b7a58f6"
+        },
+        "MockOutrunAUSDCSY": {
+          "abi": "MockOutrunAUSDCSYUpgradeable",
+          "address": "0x85bdd6c8a058BC2f02f038657Eb37e0f1D8913ce",
+          "status": "deployed",
+          "implementation": "0x4321188Df77F089C97405029302D13f3167F52c1",
+          "deploymentTx": "0xebdd9c34b1a45d50a4e3b7bdb74b9e57902a2855e65f20a7f3ab267aa472312d",
+          "deploymentBlock": 136492802,
+          "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+        },
+        "MockOutrunSUSDSSY": {
+          "abi": "MockOutrunSUSDSSYUpgradeable",
+          "address": "0x8Ea94c65E2915ee0d23267f2c37DfbA3c2D04190",
+          "status": "deployed",
+          "implementation": "0xEd03bffbdA4E7d323EcdA3bbBcfb31b90D4a0578",
+          "deploymentTx": "0x2989c0e07499fafe9384eabaceb196bb006eb4fabfe0ec77b93c23dabd5ca598",
+          "deploymentBlock": 136492818,
+          "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+        },
+        "OutrunWstETHSY": {
+          "abi": "OutrunWstETHSYUpgradeable",
+          "address": null,
+          "status": "undeployed",
+          "note": "Sepolia-targeted batch; chain not in the testnet set (421614/84532/97)"
+        },
+        "OutrunStakedUSDeSY": {
+          "abi": "OutrunStakedUSDeSYUpgradeable",
+          "address": null,
+          "status": "undeployed",
+          "note": "Sepolia-targeted batch; chain not in the testnet set (421614/84532/97)"
+        },
+        "OutrunSlisBNBSY": {
+          "abi": "OutrunSlisBNBSYUpgradeable",
+          "address": "0xd144e56C7b69224e51F9A9ad84cAfb67C4480383",
+          "status": "deployed",
+          "implementation": "0x3C41e390fB6aB9eC6A8Ae421bF6C4C42f30930d6",
+          "deploymentTx": "0xa8ad12b2441297e9149dde85d6b0d5d643c7b6c0c682f1083b45d7da403c0ed2",
+          "deploymentBlock": 136493446,
+          "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+        },
+        "OutrunAaveV3SY": {
+          "abi": "OutrunAaveV3SYUpgradeable",
+          "address": null,
+          "status": "undeployed",
+          "note": "Base Sepolia only"
+        },
+        "MemeverseRegistrationCenter": {
+          "abi": "MemeverseRegistrationCenterUpgradeable",
+          "address": "0xA8101c6D52479f9B73A7b806fCeCAD0D07975046",
+          "status": "deployed",
+          "implementation": "0x218b7158B37927C662efb411f913991C0A9EA9b9",
+          "deploymentTx": "0x709e86ea76c3b6f963a8e76c3e6fcb5993eee508aa754ac1516efb75387cb00a",
+          "deploymentBlock": 136538384,
+          "runtimeCodehash": "0x9c5dde33c595f72f894e39a23ae5fb7043bbca4fb75d8128e361036cce84aa66"
+        },
+        "GenesisCreditRegistry": {
+          "abi": "GenesisCredit",
+          "address": "0x32b847cBB95aB9337aF0a99290f04f7ffc3d2005",
+          "status": "deployed",
+          "deploymentTx": "0xef468e14ce2450238ddbb03afa57cd1ad6b88b480ef1df0ce9f342e7b58f50be",
+          "deploymentBlock": 136489071,
+          "runtimeCodehash": "0xd49d56695853ae31c0ffcaa6d8e75a70fe5bc8b0bd0290d6a16e23d1c1f701e2",
+          "note": "registry dispenses per-verse GenesisCredit credits (home chain = BSC Testnet per GENESIS_CREDIT_HOME_EID); abi field points at the credit token ABI \u2014 the registry itself is not a frontend call target"
+        },
+        "GenesisCredit": {
+          "abi": "GenesisCredit",
+          "address": null,
+          "status": "deployed",
+          "instances": {
+            "UETH": {
+              "address": "0xCd6BEaAfFE62c6Df3cA1F8b63053Bf2C0f61C541",
+              "runtimeCodehash": "0x2fc06ccedf047afdb07347ad0b9714f61993e8293c832753c5998f8bea12b579"
+            },
+            "UUSD": {
+              "address": "0x97B1Fc3ad6547366B2721fc58459dD3e8e8540A3",
+              "runtimeCodehash": "0x2fc06ccedf047afdb07347ad0b9714f61993e8293c832753c5998f8bea12b579"
+            },
+            "UBNB": {
+              "address": "0xAC0ccDB39739c6A3835Be04dd044305D1ed91ef4",
+              "runtimeCodehash": "0x2fc06ccedf047afdb07347ad0b9714f61993e8293c832753c5998f8bea12b579"
+            }
+          },
+          "note": "this generation's credit trio, dispensed via Faucet claimHeld"
+        }
+      }
+    },
+    "84532": {
+      "kernel7702": {
+        "implementation": "0xd6CEDDe84be40893d153Be9d467CD6aD37875b28",
+        "runtimeCodehash": "0x0b7b78a4c39a523ebfc23394a547dffd0b9eb0276740e8ce59b6b87287ded3af",
+        "observedBlock": null
+      },
+      "contracts": {
+        "MemeverseLauncher": {
+          "abi": "MemeverseLauncherUpgradeable",
+          "address": "0x634FA8eEf0649B200F7059b1Aa32C8a16149205E",
+          "status": "deployed",
+          "implementation": "0x7c27638704CEda3Fd8b9D94b912f8F89f0BA6D7a",
+          "deploymentTx": "0xaa03eb8636435e4f3a6c90de71e72e2a6719284c18a361b3c807467376d2ff80",
+          "deploymentBlock": 48049729,
+          "runtimeCodehash": "0xfed7423e67470ce98769fa09eecd184ea60ef1bd2d2dcd79f913179192f91da3"
+        },
+        "MemeverseRegistrarOmnichain": {
+          "abi": "MemeverseRegistrarOmnichain",
+          "address": "0xE93aaaDE7fA070e87126C2db319C0A20762C9601",
+          "status": "deployed",
+          "deploymentTx": "0xcfcd8e6731dd831f668927f205298ca0eb2ce8ff7c8e118d4463b255e5fd9422",
+          "deploymentBlock": 48049905,
+          "runtimeCodehash": "0x62972378f020676f3fb786afe42ff89d6cb90a61decfec91b6d1ff2cd08c18cd",
+          "note": "same CREATE3 address hosts the Omnichain registrar form on remote chains"
+        },
+        "MemeverseFeePreviewReader": {
+          "abi": "MemeverseFeePreviewReader",
+          "address": "0x91af00D81f3aa6b885d0c507D167bd70b4409089",
+          "status": "deployed",
+          "deploymentTx": "0xe1a863e1218a177e2b5ffd0352f9ba68f9f29253d0f2c957f32de5914a18e029",
+          "deploymentBlock": 48049729,
+          "runtimeCodehash": "0x9a3d501c7dc3aa1c3cd8942f52bfb2a8fc9c517fdb296ab4e10b60e69d94b7f2"
+        },
+        "POLend": {
+          "abi": "POLendUpgradeable",
+          "address": "0x9f263401c17f4Dd5c5E1E8EB4Dd68A5049580bB8",
+          "status": "deployed",
+          "implementation": "0x423C4c3083337d9639f8fef9b22c0726eFE21754",
+          "deploymentTx": "0x798c8d7bfa924ba65d8322914897de7bd247844c8cf6e7a09750ceb4cebce342",
+          "deploymentBlock": 48049685,
+          "runtimeCodehash": "0x9c5dde33c595f72f894e39a23ae5fb7043bbca4fb75d8128e361036cce84aa66"
+        },
+        "POLSplitter": {
+          "abi": "POLSplitterUpgradeable",
+          "address": "0x1F8cE4a2f4bE978B53967deE87B54E759906B56d",
+          "status": "deployed",
+          "implementation": "0x995E893627D916A7F463B70BEc43409D607f9cF8",
+          "deploymentTx": "0x7173436f6eb4d6ebe1396496537babd018965eee96bbc428a78df0c69ae49522",
+          "deploymentBlock": 48049793,
+          "runtimeCodehash": "0x945b43e79ebfa89619a6542c47063828c9e349b50a3e631a5154851c4fd58da8"
+        },
+        "MemeverseSwapRouter": {
+          "abi": "MemeverseSwapRouter",
+          "address": "0x416315158C6779DCbAFc14869FF55921D30DE7fa",
+          "status": "deployed",
+          "deploymentTx": "0xdcf0e2dfcc860dcb532bc4daee9b2e838f8b1e273ceb9cfefb271adf68de469b",
+          "deploymentBlock": 48050076,
+          "runtimeCodehash": "0xd09ec7fd68d360886cce5b39e7ac95d96886bd01a74bd706523bb64ad35e583e"
+        },
+        "MemeverseYTFlashSwapRouter": {
+          "abi": "MemeverseYTFlashSwapRouter",
+          "address": "0x2Fc878A8fBA98FA4816Db0C5acF65C5aF5b8cc0c",
+          "status": "deployed",
+          "deploymentBlock": 48289137,
+          "runtimeCodehash": "0xf49b586f78d5f8c06b053f17a954bc6d521464204aca39d5de5e2d87ecb87db6"
+        },
+        "MemeverseUniswapHookLens": {
+          "abi": "MemeverseUniswapHookLens",
+          "address": "0x350D7b9096Ba127B22189e78953272fb708E1f80",
+          "status": "deployed",
+          "deploymentTx": "0x1cafe0f0ae5031059669b86fa74da71e9418c32e4aea7ec679a91a41a440e78f",
+          "deploymentBlock": 48050076,
+          "runtimeCodehash": "0x589d10835693a67c3c1868b5b669ea5c623a427b64ad621276cc84e87f953f6b"
+        },
+        "MemeverseUniswapHook": {
+          "abi": "MemeverseUniswapHookUpgradeable",
+          "address": "0x56eDfD9077f78aaEc23B9BcF6883E718B9f428cc",
+          "status": "deployed",
+          "implementation": "0xa8d0CE34787d9D5F5b18f15E6eC59B538D87C333",
+          "deploymentTx": "0xc99df485e0f265ce623271228766696ae5b3014ec361fe204528626c3e36e42a",
+          "deploymentBlock": 48050076,
+          "runtimeCodehash": "0x53ff1c55bc1fbfb795098ba7e74e5c30acb714ec40bc7a0ec0c7e4357b44ff30"
+        },
+        "Permit2": {
+          "abi": "Permit2",
+          "address": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+          "status": "deployed",
+          "runtimeCodehash": "0xdcde65555316946c298e4c60c6213eb5c3aeab4354d1f3fac5427236bcbb9ebe",
+          "note": "address = MemeverseSwapRouter.permit2() immutable on all three chains (frozen script CANONICAL_PERMIT2); Uniswap canonical Permit2 singleton \u2014 same address live on Ethereum mainnet; per-chain codehash differs by design (chainId inside the DOMAIN_SEPARATOR immutable)"
+        },
+        "Memecoin": {
+          "abi": "Memecoin",
+          "address": null,
+          "status": "dynamic",
+          "implementation": "0x73058D4CB554219473CEB93696aBCAbd753194Eb",
+          "deploymentTx": "0xa2b095d478ecfc60749e416bb1baaadb064138fb9103a1a43a994404401a1701",
+          "deploymentBlock": 48049879,
+          "runtimeCodehash": "0xb4e784d068d19651786cb16b46366f7d19078466cf8fcc5f6b4dc5c9eca115c1",
+          "note": "per-verse instances are deployed at runtime via MemeverseProxyDeployer"
+        },
+        "MemePol": {
+          "abi": "MemePol",
+          "address": null,
+          "status": "dynamic",
+          "implementation": "0x653EE946023594aDb0D182534Df5EC901cd65744",
+          "deploymentTx": "0xe997bd6e59923a8166af5337dddd4582e6f51fb898934f7b20995c6f21d9ec84",
+          "deploymentBlock": 48049879,
+          "runtimeCodehash": "0x7049e2404ac613dcf1b19cb7df13d8590e8d1c8e3b2cb7025129f9afcfced364",
+          "note": "per-verse instances are deployed at runtime via MemeverseProxyDeployer"
+        },
+        "UniswapLP": {
+          "abi": "UniswapLP",
+          "address": null,
+          "status": "dynamic",
+          "implementation": "0x93c2d3933A3063A9422Bb8F73be45568681A8031",
+          "deploymentTx": "0x37dc9ef8dbcd42043781f6dc60d55df437f03c550f5a1a865558e1cb7977e5c3",
+          "deploymentBlock": 48050006,
+          "runtimeCodehash": "0x2a2a031695aba6439a9130178cd044ebc6db7f0cc091be6108b35060e03e0bb1",
+          "note": "per-verse instances are deployed at runtime via MemeverseProxyDeployer"
+        },
+        "MemecoinYieldVault": {
+          "abi": "MemecoinYieldVault",
+          "address": null,
+          "status": "dynamic",
+          "implementation": "0x5d250237B9885537c6D8b47907aAeDEcbd60E104",
+          "deploymentTx": "0x10c8fcd04658e6107cadbe87366bba4fbaa70d4b0316eaa936694e0d624bca60",
+          "deploymentBlock": 48049879,
+          "runtimeCodehash": "0xe0835c3520b0ea8cef20be8a48d85e5b9360637b55186a6a2cf188a75ba7d19e",
+          "note": "per-verse instances are deployed at runtime via MemeverseProxyDeployer"
+        },
+        "MemecoinDaoGovernor": {
+          "abi": "MemecoinDaoGovernorUpgradeable",
+          "address": null,
+          "status": "dynamic",
+          "implementation": "0x3735c741Cb42C5a98fa1585789F6f86856A1C0bb",
+          "deploymentTx": "0xe0f1f63260cad65a40dfb0f7388a60baaa8b820ccfcc352dd185766d9c39667a",
+          "deploymentBlock": 48049835,
+          "runtimeCodehash": "0xd87c73696fa7f55c1c4eb8df37c677807ca9521f5fa2b68f66a8b72fc165204b",
+          "note": "per-verse instances are deployed at runtime via MemeverseProxyDeployer"
+        },
+        "GovernanceCycleIncentivizer": {
+          "abi": "GovernanceCycleIncentivizerUpgradeable",
+          "address": null,
+          "status": "dynamic",
+          "implementation": "0x73cC860bBacBbeF048e74BB98444B285Ee80e5F3",
+          "deploymentTx": "0xca281f18a6dd445b7561f7e4e94d15cfad571e6b1aa8ef1ca30ad0aec0174fd4",
+          "deploymentBlock": 48049879,
+          "runtimeCodehash": "0x3f9510483400a97495e7c6c8db7c90912e55f122363543887e15e16a3f0a370a",
+          "note": "per-verse instances are deployed at runtime via MemeverseProxyDeployer"
+        },
+        "PrincipalToken": {
+          "abi": "PrincipalToken",
+          "address": "0x1949e2298d4d109eC26eaAF422964bAC7c90d78A",
+          "status": "deployed",
+          "deploymentTx": "0x7173436f6eb4d6ebe1396496537babd018965eee96bbc428a78df0c69ae49522",
+          "deploymentBlock": 48049793,
+          "runtimeCodehash": "0x9ef045a196faeea5bcbc29e9ab9223eb184702ec327148e49a897ae7c55c0318",
+          "note": "genesis-pair instance; per-verse pairs deploy dynamically via POLSplitter"
+        },
+        "YieldToken": {
+          "abi": "YieldToken",
+          "address": "0x42250b9b61b1D3dE359191814cE57C76900F57C7",
+          "status": "deployed",
+          "deploymentTx": "0x7173436f6eb4d6ebe1396496537babd018965eee96bbc428a78df0c69ae49522",
+          "deploymentBlock": 48049793,
+          "runtimeCodehash": "0x8964253cf3a6787914fd9d9994b48cbdcac741470c0a61f551e5978cc1d0d492",
+          "note": "genesis-pair instance; per-verse pairs deploy dynamically via POLSplitter"
+        },
+        "OmnichainMemecoinStaker": {
+          "abi": "OmnichainMemecoinStakerUpgradeable",
+          "address": "0xd321c219c65DC686483b045395a0743A3191475D",
+          "status": "deployed",
+          "implementation": "0x3dc205c5D2DABEA8C71d4f24C35405B788392475",
+          "deploymentTx": "0xda560828cd54b00d2bcae2cba6a122ef375fd6ee4422649eb460649f429ee0a9",
+          "deploymentBlock": 48049905,
+          "runtimeCodehash": "0x9c5dde33c595f72f894e39a23ae5fb7043bbca4fb75d8128e361036cce84aa66"
+        },
+        "MemeverseOmnichainInteroperation": {
+          "abi": "MemeverseOmnichainInteroperation",
+          "address": "0x969CbA159EBb2e9E997149092C0dbf7d88F13417",
+          "status": "deployed",
+          "deploymentTx": "0x5a40e16416c9503ffafc7d49e851dd07e0a69ba0821150491aa24ce0ca2c18b4",
+          "deploymentBlock": 48049905,
+          "runtimeCodehash": "0xe5cad785eff7c278565adc7019bb46aff7d793185a71505374be689600f913eb"
+        },
+        "OutrunRouter": {
+          "abi": "OutrunRouter",
+          "address": "0xC4F8D020720473E5EaD903532Cf9039F6583aa88",
+          "status": "deployed",
+          "deploymentBlock": 49290775,
+          "runtimeCodehash": "0xe5a277f8dd733b69059e396b217c7b1ea25fc7be4fc33f9577d967f2282d1976",
+          "deploymentTx": "0x0c483b90ef35f0ded9c548d51454f629986e32e83d42188e1dbc9edd7a3fd60b"
+        },
+        "OutrunStakingPosition": {
+          "abi": "OutrunStakingPositionUpgradeable",
+          "address": null,
+          "status": "deployed",
+          "instances": {
+            "sUSDS": {
+              "address": "0x31b30DED9562B245B6b282B739c1834ba0AFc0d7",
+              "implementation": "0xE09639602F00f04DF589009E035E5aFed66cb197",
+              "deploymentTx": "0x2fe2a4ab571aa3500ee3125d69b92d764abc30eff698d66b1fe82155315aab6b",
+              "deploymentBlock": 48050252,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            },
+            "aUSDC(AaveV3)": {
+              "address": "0x8385dd0DBaE484e920Deeca31DD8639Fd3089f69",
+              "implementation": "0x99A4416486A2570575Ddedeca6a7aF703a59a727",
+              "deploymentTx": "0x913739a3e9125bd956b7a8f0125313b6fec00f36e87abfae9324901132df890b",
+              "deploymentBlock": 48050368,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            },
+            "aUSDC": {
+              "address": "0x9A66304155E357d793c46C443CEB0e850C0EA90A",
+              "implementation": "0x79eaF030fc8F098069343C47bF91F5774060Cd41",
+              "deploymentTx": "0x075b53b0d7a92868a3c9a135d885ec6d867f800f29bf45a947ec01c9e54e2463",
+              "deploymentBlock": 48050251,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            }
+          }
+        },
+        "OutrunPSM": {
+          "abi": "OutrunPSMUpgradeable",
+          "address": null,
+          "status": "deployed",
+          "instances": {
+            "UETH": {
+              "address": "0x81b51a3DB0B2Fe9D6EbB7418d5c6ae1a43668751",
+              "implementation": "0xBEBB444048D748C30a8029e093EFf7f47797E46D",
+              "deploymentTx": "0xfafeeb3a07ac8614c56e692fa98143528005f60cebb6a08531f3bb37db0090a5",
+              "deploymentBlock": 48050287,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            },
+            "UUSD": {
+              "address": "0xa2E795029E6dFF01d106FDa30fd2096c24714353",
+              "implementation": "0xFD665bF5d45F130b04F40bD2FDefbC2527e036C0",
+              "deploymentTx": "0x899f023876789fb7f5a96ebc177bc4cc384c0da9bba30eb68682a5f50791776c",
+              "deploymentBlock": 48050287,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            },
+            "UBNB": {
+              "address": "0xAE6c13054bE5a1DdA8fbf8a347463f3DafA3d234",
+              "implementation": "0x167De3C606bA42633C5d2854dc1415cf4b2498B5",
+              "deploymentTx": "0x359d3dd51065c618805703dfc5da558654860f4c162563813ae90353b254b651",
+              "deploymentBlock": 48050287,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            }
+          }
+        },
+        "OutrunUSRVault": {
+          "abi": "OutrunUSRVaultUpgradeable",
+          "address": null,
+          "status": "deployed",
+          "instances": {
+            "UBNB": {
+              "address": "0x37E86eb37a18B8E426664A8befA8550c65b4C9e9",
+              "implementation": "0x3f8BBC3E75F25A04a49D998dd830A6cfD53Dd7dF",
+              "deploymentTx": "0x02917d9633f5aa9319c56d9fea6bc902832c0c915206a6fbbeea699fc3072fbd",
+              "deploymentBlock": 48050332,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            },
+            "UETH": {
+              "address": "0x6acC355b9006dea082877CD984Dd19c89D17e701",
+              "implementation": "0x287b1eB59b119f6c1A1D9Af09b2024cD0eABBD68",
+              "deploymentTx": "0x78cc745accab17a19f45c6033ca435c74b458a8bc6ad0fdcbb5f7afc281efc93",
+              "deploymentBlock": 48050332,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            },
+            "UUSD": {
+              "address": "0xf20c06c0d3E54cfad7793B50C59E934Dd849BEC0",
+              "implementation": "0x5B8712D8Dd467836BDc00071b223b51147915351",
+              "deploymentTx": "0xe46ced947666550fea87a9ce82a4451f8d40ed213ac36e4e862afb2b36e3b73c",
+              "deploymentBlock": 48050332,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            }
+          }
+        },
+        "UAsset": {
+          "abi": "OutrunUniversalAssetsUpgradeable",
+          "address": null,
+          "status": "deployed",
+          "instances": {
+            "UETH": {
+              "address": "0xB246B6F5A91634E6ba213312CA292B951905A2d9",
+              "implementation": "0xFcCfE35D1bd9cb5d810fdEF4E33A1D4Ba758477B",
+              "deploymentTx": "0x6ba71085aaad0678ebc6a68043bbffb8ba4e6affece382b19f1eabea3596c061",
+              "deploymentBlock": 48049098,
+              "runtimeCodehash": "0x8ed2e5a709c58a61ca67331ac466cf5e955729d7b5089401fb9e3d06b61cae4e"
+            },
+            "UUSD": {
+              "address": "0x1D8A1DD4622b63F3A4b28556C4f0d100c6899134",
+              "implementation": "0xE0d0A009378cEb55246cf8ec07cb9bFBb3d6F527",
+              "deploymentTx": "0x6164e974f19daa7a22848215ebf7d15d019195844e78eedf609980643bff8a76",
+              "deploymentBlock": 48049098,
+              "runtimeCodehash": "0x8ed2e5a709c58a61ca67331ac466cf5e955729d7b5089401fb9e3d06b61cae4e"
+            },
+            "UBNB": {
+              "address": "0xFAA577e36F0EC6A3e66b65C8eDBBE7f1D7420340",
+              "implementation": "0xdaB4AA72733F48fD54fc688BDcCD8eC8B9c30CBC",
+              "deploymentTx": "0xb0924a05ab6ece8b699ac79957ee4e27e052aaceb4d29e7ec5e962decc9c5b51",
+              "deploymentBlock": 48049098,
+              "runtimeCodehash": "0x8ed2e5a709c58a61ca67331ac466cf5e955729d7b5089401fb9e3d06b61cae4e"
+            }
+          }
+        },
+        "Faucet": {
+          "abi": "Faucet",
+          "address": "0x8A26774beBf1DCB5b332222e1B9d1dd12EC39428",
+          "status": "deployed",
+          "deploymentTx": "0x61de3017cc482bbf230d04df81836bc1bc6cba4349de59da0bd9fbc8786629a1",
+          "deploymentBlock": 48050187,
+          "runtimeCodehash": "0x21131b4765998e9fe99d93055878bb129819b26c81a1ed89572a7082f51f9ac8"
+        },
+        "MockUSDC": {
+          "abi": "MockUSDC",
+          "address": "0xd6d4d629d1AAe5ac82Bd614199E625A23CAc681D",
+          "status": "deployed",
+          "deploymentTx": "0x298afb8b42f4b79ee00e1279e9e06ed0a9c650216e5e955651ef49f4edd04cd2",
+          "deploymentBlock": 48050187,
+          "runtimeCodehash": "0xedf7e6996cd9df5d8579c7dd6041dfda9d1fce697aa50d1b3754c6edf9dceb22"
+        },
+        "MockSUSDS": {
+          "abi": "MockSUSDS",
+          "address": "0xB13347933a6DB67E793f45ae2Db9cB2C641B7F12",
+          "status": "deployed",
+          "deploymentTx": "0x5a9e8d23aae33a448975d6f075ca4c51619848da89b2bb54a5a4a4af8fcb21fe",
+          "deploymentBlock": 48050187,
+          "runtimeCodehash": "0x53094476eb1918dc3eaf561133a5c42157e6c5048d0a20ae6c12c19681923134"
+        },
+        "MockAUSDC": {
+          "abi": "MockAUSDC",
+          "address": "0x2F4AB1b103263C8088Ab339d272b70549dF1A108",
+          "status": "deployed",
+          "deploymentTx": "0x8d23c38234bf346e2b0e394e0a8fc06cadb466c884c0266d0090e9f8db65cc5f",
+          "deploymentBlock": 48050187,
+          "runtimeCodehash": "0x0b9c8fb5e94a411528f5f4f373edfa93cf236101444470778fd621687b7a58f6"
+        },
+        "MockOutrunAUSDCSY": {
+          "abi": "MockOutrunAUSDCSYUpgradeable",
+          "address": "0x85bdd6c8a058BC2f02f038657Eb37e0f1D8913ce",
+          "status": "deployed",
+          "implementation": "0x4321188Df77F089C97405029302D13f3167F52c1",
+          "deploymentTx": "0xab20f27583c052c11d907444a061d74cf1a8551cf3a0ceab019893cb4d3351ee",
+          "deploymentBlock": 48050224,
+          "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+        },
+        "MockOutrunSUSDSSY": {
+          "abi": "MockOutrunSUSDSSYUpgradeable",
+          "address": "0x8Ea94c65E2915ee0d23267f2c37DfbA3c2D04190",
+          "status": "deployed",
+          "implementation": "0xEd03bffbdA4E7d323EcdA3bbBcfb31b90D4a0578",
+          "deploymentTx": "0x42464c881181c92cf0906d9febba57630a1cd228b6d049a02cd975c561fd0809",
+          "deploymentBlock": 48050224,
+          "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+        },
+        "OutrunWstETHSY": {
+          "abi": "OutrunWstETHSYUpgradeable",
+          "address": null,
+          "status": "undeployed",
+          "note": "Sepolia-targeted batch; chain not in the testnet set (421614/84532/97)"
+        },
+        "OutrunStakedUSDeSY": {
+          "abi": "OutrunStakedUSDeSYUpgradeable",
+          "address": null,
+          "status": "undeployed",
+          "note": "Sepolia-targeted batch; chain not in the testnet set (421614/84532/97)"
+        },
+        "OutrunSlisBNBSY": {
+          "abi": "OutrunSlisBNBSYUpgradeable",
+          "address": null,
+          "status": "undeployed",
+          "note": "BSC Testnet only"
+        },
+        "OutrunAaveV3SY": {
+          "abi": "OutrunAaveV3SYUpgradeable",
+          "address": "0x1d7eb951EBb179e811766A1034ca322bAb29eD25",
+          "status": "deployed",
+          "implementation": "0x72BEeb652080883B1C9F16A848754e3293551387",
+          "deploymentTx": "0x38a159646d43e0a8f191803acf3c090fd10887d0e301a2cd02d8982b1bcef2a6",
+          "deploymentBlock": 48050368,
+          "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+        },
+        "GenesisCreditRegistry": {
+          "abi": "GenesisCredit",
+          "address": "0x32b847cBB95aB9337aF0a99290f04f7ffc3d2005",
+          "status": "deployed",
+          "deploymentBlock": 49272104,
+          "runtimeCodehash": "0x476ca26ddf15eef6fba00ff9792936de8535624bb6d657a0a9d86e8c9e1d9fa3",
+          "note": "registry dispenses per-verse GenesisCredit credits (home chain = BSC Testnet per GENESIS_CREDIT_HOME_EID); abi field points at the credit token ABI \u2014 the registry itself is not a frontend call target"
+        },
+        "GenesisCredit": {
+          "abi": "GenesisCredit",
+          "address": null,
+          "status": "deployed",
+          "instances": {
+            "UETH": {
+              "address": "0xCd6BEaAfFE62c6Df3cA1F8b63053Bf2C0f61C541",
+              "deploymentBlock": 49272420,
+              "runtimeCodehash": "0x2fc06ccedf047afdb07347ad0b9714f61993e8293c832753c5998f8bea12b579"
+            },
+            "UUSD": {
+              "address": "0x97B1Fc3ad6547366B2721fc58459dD3e8e8540A3",
+              "deploymentBlock": 49272434,
+              "runtimeCodehash": "0x2fc06ccedf047afdb07347ad0b9714f61993e8293c832753c5998f8bea12b579"
+            },
+            "UBNB": {
+              "address": "0xAC0ccDB39739c6A3835Be04dd044305D1ed91ef4",
+              "deploymentBlock": 49272447,
+              "runtimeCodehash": "0x2fc06ccedf047afdb07347ad0b9714f61993e8293c832753c5998f8bea12b579"
+            }
+          },
+          "note": "this generation's credit trio, dispensed via Faucet claimHeld"
+        }
+      }
+    },
+    "421614": {
+      "kernel7702": {
+        "implementation": "0xd6CEDDe84be40893d153Be9d467CD6aD37875b28",
+        "runtimeCodehash": "0xbf56eb9abfca858cf7aef8c86b97b93fe776547de7793b0dc25d801ae26fc9ac",
+        "observedBlock": 318790661
+      },
+      "contracts": {
+        "MemeverseLauncher": {
+          "abi": "MemeverseLauncherUpgradeable",
+          "address": "0x634FA8eEf0649B200F7059b1Aa32C8a16149205E",
+          "status": "deployed",
+          "implementation": "0x7c27638704CEda3Fd8b9D94b912f8F89f0BA6D7a",
+          "deploymentTx": "0x106fd737092206fec338b75a81be0655a48b4ec877f6766ce1d979a3c9ee5eea",
+          "deploymentBlock": 318645719,
+          "runtimeCodehash": "0xfed7423e67470ce98769fa09eecd184ea60ef1bd2d2dcd79f913179192f91da3"
+        },
+        "MemeverseRegistrarOmnichain": {
+          "abi": "MemeverseRegistrarOmnichain",
+          "address": "0xE93aaaDE7fA070e87126C2db319C0A20762C9601",
+          "status": "deployed",
+          "deploymentTx": "0xcfa39cab82303190b16b0dfce41b1c4fc466814922f3560eed3c44879e12818b",
+          "deploymentBlock": 318647093,
+          "runtimeCodehash": "0x62972378f020676f3fb786afe42ff89d6cb90a61decfec91b6d1ff2cd08c18cd",
+          "note": "same CREATE3 address hosts the Omnichain registrar form on remote chains"
+        },
+        "MemeverseFeePreviewReader": {
+          "abi": "MemeverseFeePreviewReader",
+          "address": "0xF9bd5B09433d9ce552140C0F2c05136F8C0c1750",
+          "status": "deployed",
+          "deploymentTx": "0x6073cb1ba97763dcb3939e9d8c96329736a76298a97de36fbdd8dac45aa0fead",
+          "deploymentBlock": 318645762,
+          "runtimeCodehash": "0x9a3d501c7dc3aa1c3cd8942f52bfb2a8fc9c517fdb296ab4e10b60e69d94b7f2"
+        },
+        "POLend": {
+          "abi": "POLendUpgradeable",
+          "address": "0x9f263401c17f4Dd5c5E1E8EB4Dd68A5049580bB8",
+          "status": "deployed",
+          "implementation": "0x423C4c3083337d9639f8fef9b22c0726eFE21754",
+          "deploymentTx": "0x0f1687ec5ec4b03046af2c60e5504b782dd82b37ed1703c8da01262dcc7e8d34",
+          "deploymentBlock": 318645384,
+          "runtimeCodehash": "0x9c5dde33c595f72f894e39a23ae5fb7043bbca4fb75d8128e361036cce84aa66"
+        },
+        "POLSplitter": {
+          "abi": "POLSplitterUpgradeable",
+          "address": "0x1F8cE4a2f4bE978B53967deE87B54E759906B56d",
+          "status": "deployed",
+          "implementation": "0x995E893627D916A7F463B70BEc43409D607f9cF8",
+          "deploymentTx": "0x2d95eb3f5849af87bcdae15bc2050158dd8a774553a5cd0dc18e5ada2085d2a3",
+          "deploymentBlock": 318646217,
+          "runtimeCodehash": "0x945b43e79ebfa89619a6542c47063828c9e349b50a3e631a5154851c4fd58da8"
+        },
+        "MemeverseSwapRouter": {
+          "abi": "MemeverseSwapRouter",
+          "address": "0x416315158C6779DCbAFc14869FF55921D30DE7fa",
+          "status": "deployed",
+          "deploymentTx": "0x16bcd33791309ad91f3524962f0531daad9cab236636971c025afd92951c532d",
+          "deploymentBlock": 318648401,
+          "runtimeCodehash": "0x6c3aea045e5333b1842e3dbf0b262465fbbb321a657da5fa340893d539dfe23d"
+        },
+        "MemeverseYTFlashSwapRouter": {
+          "abi": "MemeverseYTFlashSwapRouter",
+          "address": "0x2Fc878A8fBA98FA4816Db0C5acF65C5aF5b8cc0c",
+          "status": "deployed",
+          "deploymentBlock": 321081010,
+          "runtimeCodehash": "0xbc9e3d9313bf48adbdbef883afb0a001926ed59bcc47da21b5dc6b68740b529a"
+        },
+        "MemeverseUniswapHookLens": {
+          "abi": "MemeverseUniswapHookLens",
+          "address": "0x350D7b9096Ba127B22189e78953272fb708E1f80",
+          "status": "deployed",
+          "deploymentTx": "0x170aa2da1b6c7136c585c6ee653623bc3a7f25b9f9f3823b73319a3eb777640a",
+          "deploymentBlock": 318648394,
+          "runtimeCodehash": "0x272a51208c28673ee529779dd0a437e9fa0c6fa1e7cabecd4503dd5c614c79a6"
+        },
+        "MemeverseUniswapHook": {
+          "abi": "MemeverseUniswapHookUpgradeable",
+          "address": "0x56eDfD9077f78aaEc23B9BcF6883E718B9f428cc",
+          "status": "deployed",
+          "implementation": "0xa8d0CE34787d9D5F5b18f15E6eC59B538D87C333",
+          "deploymentTx": "0xfa5ebe434a64c1dc3021167cb872384bd21f6aab7c30e7ae679fc7fe6e1d6936",
+          "deploymentBlock": 318648407,
+          "runtimeCodehash": "0x53ff1c55bc1fbfb795098ba7e74e5c30acb714ec40bc7a0ec0c7e4357b44ff30"
+        },
+        "Permit2": {
+          "abi": "Permit2",
+          "address": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+          "status": "deployed",
+          "runtimeCodehash": "0x055d90ff6146107f315c7c306b841138ec59c541a8e4e04df787c38ce400a1e4",
+          "note": "address = MemeverseSwapRouter.permit2() immutable on all three chains (frozen script CANONICAL_PERMIT2); Uniswap canonical Permit2 singleton \u2014 same address live on Ethereum mainnet; per-chain codehash differs by design (chainId inside the DOMAIN_SEPARATOR immutable)"
+        },
+        "Memecoin": {
+          "abi": "Memecoin",
+          "address": null,
+          "status": "dynamic",
+          "implementation": "0x73058D4CB554219473CEB93696aBCAbd753194Eb",
+          "deploymentTx": "0x193c76c78ef8b3da73142e3e8cacebf2730a2a70d2db9e78c82e2cd5e53e2f20",
+          "deploymentBlock": 318646882,
+          "runtimeCodehash": "0xb4e784d068d19651786cb16b46366f7d19078466cf8fcc5f6b4dc5c9eca115c1",
+          "note": "per-verse instances are deployed at runtime via MemeverseProxyDeployer"
+        },
+        "MemePol": {
+          "abi": "MemePol",
+          "address": null,
+          "status": "dynamic",
+          "implementation": "0x653EE946023594aDb0D182534Df5EC901cd65744",
+          "deploymentTx": "0x888c185f8113390d49e582b6d1bbeca57f52f8c6bf0b232dfe08309f1103ceb7",
+          "deploymentBlock": 318646875,
+          "runtimeCodehash": "0x7049e2404ac613dcf1b19cb7df13d8590e8d1c8e3b2cb7025129f9afcfced364",
+          "note": "per-verse instances are deployed at runtime via MemeverseProxyDeployer"
+        },
+        "UniswapLP": {
+          "abi": "UniswapLP",
+          "address": null,
+          "status": "dynamic",
+          "implementation": "0x93c2d3933A3063A9422Bb8F73be45568681A8031",
+          "deploymentTx": "0x6e43a6b4af81b4b55f8c709316f914c46105f3acab6c9ca69c5576ba20f72faa",
+          "deploymentBlock": 318647853,
+          "runtimeCodehash": "0x2a2a031695aba6439a9130178cd044ebc6db7f0cc091be6108b35060e03e0bb1",
+          "note": "per-verse instances are deployed at runtime via MemeverseProxyDeployer"
+        },
+        "MemecoinYieldVault": {
+          "abi": "MemecoinYieldVault",
+          "address": null,
+          "status": "dynamic",
+          "implementation": "0x5d250237B9885537c6D8b47907aAeDEcbd60E104",
+          "deploymentTx": "0xbba3cde71c0e31207e054afe85b9ea3a63b4d41456c8a6e335747a3d2d1ba118",
+          "deploymentBlock": 318646888,
+          "runtimeCodehash": "0xe0835c3520b0ea8cef20be8a48d85e5b9360637b55186a6a2cf188a75ba7d19e",
+          "note": "per-verse instances are deployed at runtime via MemeverseProxyDeployer"
+        },
+        "MemecoinDaoGovernor": {
+          "abi": "MemecoinDaoGovernorUpgradeable",
+          "address": null,
+          "status": "dynamic",
+          "implementation": "0x3735c741Cb42C5a98fa1585789F6f86856A1C0bb",
+          "deploymentTx": "0x46c2dae172770f8d04f8028e5160226681dc87c35d9ceca249cc520ca9a77710",
+          "deploymentBlock": 318646535,
+          "runtimeCodehash": "0xd87c73696fa7f55c1c4eb8df37c677807ca9521f5fa2b68f66a8b72fc165204b",
+          "note": "per-verse instances are deployed at runtime via MemeverseProxyDeployer"
+        },
+        "GovernanceCycleIncentivizer": {
+          "abi": "GovernanceCycleIncentivizerUpgradeable",
+          "address": null,
+          "status": "dynamic",
+          "implementation": "0x73cC860bBacBbeF048e74BB98444B285Ee80e5F3",
+          "deploymentTx": "0x08af4d17fb7511e520277fc40c4ed5899782eb031e5b1670e17c6cc006578b43",
+          "deploymentBlock": 318646894,
+          "runtimeCodehash": "0x3f9510483400a97495e7c6c8db7c90912e55f122363543887e15e16a3f0a370a",
+          "note": "per-verse instances are deployed at runtime via MemeverseProxyDeployer"
+        },
+        "PrincipalToken": {
+          "abi": "PrincipalToken",
+          "address": "0x1949e2298d4d109eC26eaAF422964bAC7c90d78A",
+          "status": "deployed",
+          "deploymentTx": "0x2d95eb3f5849af87bcdae15bc2050158dd8a774553a5cd0dc18e5ada2085d2a3",
+          "deploymentBlock": 318646217,
+          "runtimeCodehash": "0x9ef045a196faeea5bcbc29e9ab9223eb184702ec327148e49a897ae7c55c0318",
+          "note": "genesis-pair instance; per-verse pairs deploy dynamically via POLSplitter"
+        },
+        "YieldToken": {
+          "abi": "YieldToken",
+          "address": "0x42250b9b61b1D3dE359191814cE57C76900F57C7",
+          "status": "deployed",
+          "deploymentTx": "0x2d95eb3f5849af87bcdae15bc2050158dd8a774553a5cd0dc18e5ada2085d2a3",
+          "deploymentBlock": 318646217,
+          "runtimeCodehash": "0x8964253cf3a6787914fd9d9994b48cbdcac741470c0a61f551e5978cc1d0d492",
+          "note": "genesis-pair instance; per-verse pairs deploy dynamically via POLSplitter"
+        },
+        "OmnichainMemecoinStaker": {
+          "abi": "OmnichainMemecoinStakerUpgradeable",
+          "address": "0xd321c219c65DC686483b045395a0743A3191475D",
+          "status": "deployed",
+          "implementation": "0x3dc205c5D2DABEA8C71d4f24C35405B788392475",
+          "deploymentTx": "0x6cb93634c6bb7b232b3f22a429fa84bf063c0e8cddc82e43cf18456786959922",
+          "deploymentBlock": 318647133,
+          "runtimeCodehash": "0x9c5dde33c595f72f894e39a23ae5fb7043bbca4fb75d8128e361036cce84aa66"
+        },
+        "MemeverseOmnichainInteroperation": {
+          "abi": "MemeverseOmnichainInteroperation",
+          "address": "0x969CbA159EBb2e9E997149092C0dbf7d88F13417",
+          "status": "deployed",
+          "deploymentTx": "0xfdf1db4c950c269dea08b0458bf59bcfeadd571f9b9696b93370687f9455b341",
+          "deploymentBlock": 318647122,
+          "runtimeCodehash": "0xe5cad785eff7c278565adc7019bb46aff7d793185a71505374be689600f913eb"
+        },
+        "OutrunRouter": {
+          "abi": "OutrunRouter",
+          "address": "0xC4F8D020720473E5EaD903532Cf9039F6583aa88",
+          "status": "deployed",
+          "deploymentBlock": 322133628,
+          "runtimeCodehash": "0xe5a277f8dd733b69059e396b217c7b1ea25fc7be4fc33f9577d967f2282d1976",
+          "deploymentTx": "0x31adbdc68f86ec02f4d8cce0c0bc792b5e6af4b71c80f5a59440e2275d13fa9e"
+        },
+        "OutrunStakingPosition": {
+          "abi": "OutrunStakingPositionUpgradeable",
+          "address": null,
+          "status": "deployed",
+          "instances": {
+            "sUSDS": {
+              "address": "0x31b30DED9562B245B6b282B739c1834ba0AFc0d7",
+              "implementation": "0xE09639602F00f04DF589009E035E5aFed66cb197",
+              "deploymentTx": "0xc7129728f73ed736e9c6a228889515894039cfe25eb0ab60960c7cff0b9810c9",
+              "deploymentBlock": 318649779,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            },
+            "aUSDC": {
+              "address": "0x9A66304155E357d793c46C443CEB0e850C0EA90A",
+              "implementation": "0x79eaF030fc8F098069343C47bF91F5774060Cd41",
+              "deploymentTx": "0xea56fd96650d9da9bade14f8e3a5157e89c765efb332f5ab13ded0941c6f302f",
+              "deploymentBlock": 318649760,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            }
+          }
+        },
+        "OutrunPSM": {
+          "abi": "OutrunPSMUpgradeable",
+          "address": null,
+          "status": "deployed",
+          "instances": {
+            "UETH": {
+              "address": "0x81b51a3DB0B2Fe9D6EbB7418d5c6ae1a43668751",
+              "implementation": "0xBEBB444048D748C30a8029e093EFf7f47797E46D",
+              "deploymentTx": "0xdae1afa15a88cd5af7b9d2ae4b6c6ac428c9ec27861f74e2d5943acb3d4e4c9b",
+              "deploymentBlock": 318650041,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            },
+            "UUSD": {
+              "address": "0xa2E795029E6dFF01d106FDa30fd2096c24714353",
+              "implementation": "0xFD665bF5d45F130b04F40bD2FDefbC2527e036C0",
+              "deploymentTx": "0xc372a3da8425f858465af5072b62373364e64d6a256fcc4c04eba9a1afa3fbfc",
+              "deploymentBlock": 318650065,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            },
+            "UBNB": {
+              "address": "0xAE6c13054bE5a1DdA8fbf8a347463f3DafA3d234",
+              "implementation": "0x167De3C606bA42633C5d2854dc1415cf4b2498B5",
+              "deploymentTx": "0x23c00ed149cbbb3a1e83e87fbc97ac53c34876613ab08019469caa890d5a72c7",
+              "deploymentBlock": 318650089,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            }
+          }
+        },
+        "OutrunUSRVault": {
+          "abi": "OutrunUSRVaultUpgradeable",
+          "address": null,
+          "status": "deployed",
+          "instances": {
+            "UBNB": {
+              "address": "0x37E86eb37a18B8E426664A8befA8550c65b4C9e9",
+              "implementation": "0x3f8BBC3E75F25A04a49D998dd830A6cfD53Dd7dF",
+              "deploymentTx": "0x3172eba936d4d419abbe7113a105ccc7988ef3821d0645335828fc84a224d4bc",
+              "deploymentBlock": 318650416,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            },
+            "UETH": {
+              "address": "0x6acC355b9006dea082877CD984Dd19c89D17e701",
+              "implementation": "0x287b1eB59b119f6c1A1D9Af09b2024cD0eABBD68",
+              "deploymentTx": "0x664128173a4b9fcc3bff616e53460fb272377e835df68a984946621f51d9ae91",
+              "deploymentBlock": 318650392,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            },
+            "UUSD": {
+              "address": "0xf20c06c0d3E54cfad7793B50C59E934Dd849BEC0",
+              "implementation": "0x5B8712D8Dd467836BDc00071b223b51147915351",
+              "deploymentTx": "0xfb50d5e983e6eb111b432a3bb096734b24765ba4f635aee7f867b70d1e8ddc3e",
+              "deploymentBlock": 318650404,
+              "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+            }
+          }
+        },
+        "UAsset": {
+          "abi": "OutrunUniversalAssetsUpgradeable",
+          "address": null,
+          "status": "deployed",
+          "instances": {
+            "UETH": {
+              "address": "0xB246B6F5A91634E6ba213312CA292B951905A2d9",
+              "implementation": "0xFcCfE35D1bd9cb5d810fdEF4E33A1D4Ba758477B",
+              "deploymentTx": "0xbbecdcccd309a02399bedb1eda4e2a737b61294d472c850107ff900226971e61",
+              "deploymentBlock": 318640845,
+              "runtimeCodehash": "0x8ed2e5a709c58a61ca67331ac466cf5e955729d7b5089401fb9e3d06b61cae4e"
+            },
+            "UUSD": {
+              "address": "0x1D8A1DD4622b63F3A4b28556C4f0d100c6899134",
+              "implementation": "0xE0d0A009378cEb55246cf8ec07cb9bFBb3d6F527",
+              "deploymentTx": "0xc25a8e75a340508f79181f24023260eab7a0693942e7f1c194929fac8b5d5648",
+              "deploymentBlock": 318640893,
+              "runtimeCodehash": "0x8ed2e5a709c58a61ca67331ac466cf5e955729d7b5089401fb9e3d06b61cae4e"
+            },
+            "UBNB": {
+              "address": "0xFAA577e36F0EC6A3e66b65C8eDBBE7f1D7420340",
+              "implementation": "0xdaB4AA72733F48fD54fc688BDcCD8eC8B9c30CBC",
+              "deploymentTx": "0xb85950c3686f1196b3b8620acc57660b33efe76975f653399530c8d4e2f71442",
+              "deploymentBlock": 318640942,
+              "runtimeCodehash": "0x8ed2e5a709c58a61ca67331ac466cf5e955729d7b5089401fb9e3d06b61cae4e"
+            }
+          }
+        },
+        "Faucet": {
+          "abi": "Faucet",
+          "address": "0x8A26774beBf1DCB5b332222e1B9d1dd12EC39428",
+          "status": "deployed",
+          "deploymentTx": "0x4d96133683fef9b1a1a5244c55b5e90d12e18c7ac03b706594d727636595fc79",
+          "deploymentBlock": 318649263,
+          "runtimeCodehash": "0x21131b4765998e9fe99d93055878bb129819b26c81a1ed89572a7082f51f9ac8"
+        },
+        "MockUSDC": {
+          "abi": "MockUSDC",
+          "address": "0xd6d4d629d1AAe5ac82Bd614199E625A23CAc681D",
+          "status": "deployed",
+          "deploymentTx": "0x19c88187b8a7c47a1b13b71b47bbbfdaa462e3f43d5f6c4e675e6499fcf2f403",
+          "deploymentBlock": 318649269,
+          "runtimeCodehash": "0xedf7e6996cd9df5d8579c7dd6041dfda9d1fce697aa50d1b3754c6edf9dceb22"
+        },
+        "MockSUSDS": {
+          "abi": "MockSUSDS",
+          "address": "0xB13347933a6DB67E793f45ae2Db9cB2C641B7F12",
+          "status": "deployed",
+          "deploymentTx": "0x03d283eb0ceb58ab2aea6695af80e9bc42060d60e1d748e4b7edc18abfe4cfdd",
+          "deploymentBlock": 318649280,
+          "runtimeCodehash": "0x53094476eb1918dc3eaf561133a5c42157e6c5048d0a20ae6c12c19681923134"
+        },
+        "MockAUSDC": {
+          "abi": "MockAUSDC",
+          "address": "0x2F4AB1b103263C8088Ab339d272b70549dF1A108",
+          "status": "deployed",
+          "deploymentTx": "0x28a4072b745e0a257df2ec6704e6d7c74e43a818dfd4cd36ca29b66ad3fdab44",
+          "deploymentBlock": 318649274,
+          "runtimeCodehash": "0x0b9c8fb5e94a411528f5f4f373edfa93cf236101444470778fd621687b7a58f6"
+        },
+        "MockOutrunAUSDCSY": {
+          "abi": "MockOutrunAUSDCSYUpgradeable",
+          "address": "0x85bdd6c8a058BC2f02f038657Eb37e0f1D8913ce",
+          "status": "deployed",
+          "implementation": "0x4321188Df77F089C97405029302D13f3167F52c1",
+          "deploymentTx": "0x7b8c8bf2562dd01d8d8d202a90e0f9db5af4efc5a54a00b33e3e1c48b5d639c0",
+          "deploymentBlock": 318649554,
+          "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+        },
+        "MockOutrunSUSDSSY": {
+          "abi": "MockOutrunSUSDSSYUpgradeable",
+          "address": "0x8Ea94c65E2915ee0d23267f2c37DfbA3c2D04190",
+          "status": "deployed",
+          "implementation": "0xEd03bffbdA4E7d323EcdA3bbBcfb31b90D4a0578",
+          "deploymentTx": "0x84c02f632c50656fb1ec8ad029add489c2a59a686bbe8ecb4d71227df7eea5d7",
+          "deploymentBlock": 318649568,
+          "runtimeCodehash": "0xd6531a16e97b82fe4a91bf1c9f26b8be5a97250e18bedd69fc36b46ce4d2889a"
+        },
+        "OutrunWstETHSY": {
+          "abi": "OutrunWstETHSYUpgradeable",
+          "address": null,
+          "status": "undeployed",
+          "note": "Sepolia-targeted batch; chain not in the testnet set (421614/84532/97)"
+        },
+        "OutrunStakedUSDeSY": {
+          "abi": "OutrunStakedUSDeSYUpgradeable",
+          "address": null,
+          "status": "undeployed",
+          "note": "Sepolia-targeted batch; chain not in the testnet set (421614/84532/97)"
+        },
+        "OutrunSlisBNBSY": {
+          "abi": "OutrunSlisBNBSYUpgradeable",
+          "address": null,
+          "status": "undeployed",
+          "note": "BSC Testnet only"
+        },
+        "OutrunAaveV3SY": {
+          "abi": "OutrunAaveV3SYUpgradeable",
+          "address": null,
+          "status": "undeployed",
+          "note": "Base Sepolia only"
+        },
+        "GenesisCreditRegistry": {
+          "abi": "GenesisCredit",
+          "address": "0x32b847cBB95aB9337aF0a99290f04f7ffc3d2005",
+          "status": "deployed",
+          "deploymentBlock": 322119575,
+          "runtimeCodehash": "0x476ca26ddf15eef6fba00ff9792936de8535624bb6d657a0a9d86e8c9e1d9fa3",
+          "note": "registry dispenses per-verse GenesisCredit credits (home chain = BSC Testnet per GENESIS_CREDIT_HOME_EID); abi field points at the credit token ABI \u2014 the registry itself is not a frontend call target"
+        },
+        "GenesisCredit": {
+          "abi": "GenesisCredit",
+          "address": null,
+          "status": "deployed",
+          "instances": {
+            "UETH": {
+              "address": "0xCd6BEaAfFE62c6Df3cA1F8b63053Bf2C0f61C541",
+              "deploymentBlock": 322119732,
+              "runtimeCodehash": "0x2fc06ccedf047afdb07347ad0b9714f61993e8293c832753c5998f8bea12b579"
+            },
+            "UUSD": {
+              "address": "0x97B1Fc3ad6547366B2721fc58459dD3e8e8540A3",
+              "deploymentBlock": 322119745,
+              "runtimeCodehash": "0x2fc06ccedf047afdb07347ad0b9714f61993e8293c832753c5998f8bea12b579"
+            },
+            "UBNB": {
+              "address": "0xAC0ccDB39739c6A3835Be04dd044305D1ed91ef4",
+              "deploymentBlock": 322119759,
+              "runtimeCodehash": "0x2fc06ccedf047afdb07347ad0b9714f61993e8293c832753c5998f8bea12b579"
+            }
+          },
+          "note": "this generation's credit trio, dispensed via Faucet claimHeld"
+        }
+      }
+    }
+  }
+}

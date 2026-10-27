@@ -26,7 +26,7 @@ dataSources:
       - ParticipationClaim
       abis:
         - name: Launcher
-          file: ../contracts/abi/v1-rc/MemeverseLauncherUpgradeable.json
+          file: ../contracts/abi/v1-rc2/MemeverseLauncherUpgradeable.json
       eventHandlers:
       - event: RegisterMemeverse(indexed uint256,(string,string,string,string,address,uint8,bool,address,address,address,address,address,uint128,uint128,uint32[]))
         handler: handleRegisterMemeverse
@@ -69,7 +69,7 @@ dataSources:
       - ParticipationClaim
       abis:
         - name: Polend
-          file: ../contracts/abi/v1-rc/POLendUpgradeable.json
+          file: ../contracts/abi/v1-rc2/POLendUpgradeable.json
       eventHandlers:
       - event: LeveragedGenesis(indexed uint256,indexed address,indexed address,uint256)
         handler: handleLeveragedGenesis
@@ -99,7 +99,7 @@ dataSources:
       - ParticipationClaim
       abis:
         - name: PolSplitter
-          file: ../contracts/abi/v1-rc/POLSplitterUpgradeable.json
+          file: ../contracts/abi/v1-rc2/POLSplitterUpgradeable.json
       eventHandlers:
       - event: Split(indexed uint256,indexed address,uint256,uint256,uint256)
         handler: handleSplit
@@ -128,7 +128,7 @@ dataSources:
       - ReferralRebate
       abis:
         - name: Hook
-          file: ../contracts/abi/v1-rc/MemeverseUniswapHookUpgradeable.json
+          file: ../contracts/abi/v1-rc2/MemeverseUniswapHookUpgradeable.json
       eventHandlers:
       - event: PoolInitialized(indexed bytes32,indexed address,indexed address,address)
         handler: handlePoolInitialized
@@ -173,7 +173,7 @@ dataSources:
     name: YTFlashSwapRouter
     network: base-sepolia
     source:
-      address: "0x7024B5325E9A84aF01a092C0f3b82aF6bBa722BC"
+      address: "0x2Fc878A8fBA98FA4816Db0C5acF65C5aF5b8cc0c"
       abi: YTFlashSwapRouter
       startBlock: 48102821
     mapping:
@@ -184,7 +184,7 @@ dataSources:
       - YTFlashSwap
       abis:
         - name: YTFlashSwapRouter
-          file: ../contracts/abi/v1-rc/MemeverseYTFlashSwapRouter.json
+          file: ../contracts/abi/v1-rc2/MemeverseYTFlashSwapRouter.json
       eventHandlers:
       - event: YTFlashSwapPOLForYT(indexed uint256,indexed address,indexed address,uint256,uint256,address)
         handler: handleYTFlashSwapPOLForYT
@@ -206,7 +206,7 @@ dataSources:
       - LayerZeroMessage
       abis:
         - name: Interoperation
-          file: ../contracts/abi/v1-rc/MemeverseOmnichainInteroperation.json
+          file: ../contracts/abi/v1-rc2/MemeverseOmnichainInteroperation.json
       eventHandlers:
       - event: OmnichainMemecoinStaking(indexed bytes32,indexed address,address,indexed address,uint256,uint256,uint256)
         handler: handleInteroperationStaking
@@ -226,7 +226,7 @@ dataSources:
       - LayerZeroMessage
       abis:
         - name: Staker
-          file: ../contracts/abi/v1-rc/OmnichainMemecoinStakerUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OmnichainMemecoinStakerUpgradeable.json
       eventHandlers:
       - event: OmnichainMemecoinStakingProcessed(indexed bytes32,indexed address,indexed address,address,uint256)
         handler: handleStakingProcessed
@@ -235,6 +235,28 @@ dataSources:
       - event: ComposeRejected(indexed bytes32,indexed address,uint256)
         handler: handleComposeRejected
       file: src/crosschain.ts
+  - kind: ethereum
+    name: ProxyDeployer
+    network: base-sepolia
+    source:
+      address: "0x3b070CD446317E6a11D02b0C2b4fa1195AD44A6F"
+      abi: ProxyDeployer
+      startBlock: 48049098
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+      - Verse
+      abis:
+        - name: ProxyDeployer
+          file: ./abis/MemeverseProxyDeployer.json
+      eventHandlers:
+      - event: DeployYieldVault(indexed uint256,address)
+        handler: handleDeployYieldVault
+      - event: DeployGovernorAndIncentivizer(indexed uint256,address,address)
+        handler: handleDeployGovernorAndIncentivizer
+      file: src/governance-deploy.ts
   - kind: ethereum
     name: PsmUeth
     network: base-sepolia
@@ -250,7 +272,7 @@ dataSources:
       - PsmSwap
       abis:
         - name: PsmUeth
-          file: ../contracts/abi/v1-rc/OutrunPSMUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OutrunPSMUpgradeable.json
       eventHandlers:
       - event: SwapMintForUAsset(indexed address,indexed address,uint256,uint256,uint256)
         handler: handlePsmMintUeth
@@ -272,7 +294,7 @@ dataSources:
       - PsmSwap
       abis:
         - name: PsmUusd
-          file: ../contracts/abi/v1-rc/OutrunPSMUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OutrunPSMUpgradeable.json
       eventHandlers:
       - event: SwapMintForUAsset(indexed address,indexed address,uint256,uint256,uint256)
         handler: handlePsmMintUusd
@@ -294,7 +316,7 @@ dataSources:
       - PsmSwap
       abis:
         - name: PsmUbnb
-          file: ../contracts/abi/v1-rc/OutrunPSMUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OutrunPSMUpgradeable.json
       eventHandlers:
       - event: SwapMintForUAsset(indexed address,indexed address,uint256,uint256,uint256)
         handler: handlePsmMintUbnb
@@ -316,7 +338,7 @@ dataSources:
       - UsrVaultActivity
       abis:
         - name: UsrVaultUbnb
-          file: ../contracts/abi/v1-rc/OutrunUSRVaultUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OutrunUSRVaultUpgradeable.json
       eventHandlers:
       - event: Deposit(indexed address,indexed address,uint256,uint256)
         handler: handleUsrDepositUbnb
@@ -338,7 +360,7 @@ dataSources:
       - UsrVaultActivity
       abis:
         - name: UsrVaultUeth
-          file: ../contracts/abi/v1-rc/OutrunUSRVaultUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OutrunUSRVaultUpgradeable.json
       eventHandlers:
       - event: Deposit(indexed address,indexed address,uint256,uint256)
         handler: handleUsrDepositUeth
@@ -360,7 +382,7 @@ dataSources:
       - UsrVaultActivity
       abis:
         - name: UsrVaultUusd
-          file: ../contracts/abi/v1-rc/OutrunUSRVaultUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OutrunUSRVaultUpgradeable.json
       eventHandlers:
       - event: Deposit(indexed address,indexed address,uint256,uint256)
         handler: handleUsrDepositUusd
@@ -382,7 +404,7 @@ dataSources:
       - CdpPositionEvent
       abis:
         - name: StakingPositionSusds
-          file: ../contracts/abi/v1-rc/OutrunStakingPositionUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OutrunStakingPositionUpgradeable.json
       eventHandlers:
       - event: Stake(indexed uint256,indexed address,uint256,uint256)
         handler: handleCdpStakeSusds
@@ -406,7 +428,7 @@ dataSources:
       - CdpPositionEvent
       abis:
         - name: StakingPositionAusdcaavev3)
-          file: ../contracts/abi/v1-rc/OutrunStakingPositionUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OutrunStakingPositionUpgradeable.json
       eventHandlers:
       - event: Stake(indexed uint256,indexed address,uint256,uint256)
         handler: handleCdpStakeAusdcaavev3)
@@ -430,7 +452,7 @@ dataSources:
       - CdpPositionEvent
       abis:
         - name: StakingPositionAusdc
-          file: ../contracts/abi/v1-rc/OutrunStakingPositionUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OutrunStakingPositionUpgradeable.json
       eventHandlers:
       - event: Stake(indexed uint256,indexed address,uint256,uint256)
         handler: handleCdpStakeAusdc
@@ -439,6 +461,66 @@ dataSources:
       - event: Redeem(indexed uint256,indexed address,uint256,uint256,uint256,indexed address,address,uint256)
         handler: handleCdpRedeemAusdc
       file: src/outstake.ts
+  - kind: ethereum
+    name: GenesisCreditUeth
+    network: base-sepolia
+    source:
+      address: "0xCd6BEaAfFE62c6Df3cA1F8b63053Bf2C0f61C541"
+      abi: GenesisCreditUeth
+      startBlock: 48049098
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+      - GenesisCreditClaim
+      abis:
+        - name: GenesisCreditUeth
+          file: ../contracts/abi/v1-rc2/GenesisCredit.json
+      eventHandlers:
+      - event: Claimed(indexed address,uint256)
+        handler: handleGenesisCreditClaimedUeth
+      file: src/genesis-credit.ts
+  - kind: ethereum
+    name: GenesisCreditUusd
+    network: base-sepolia
+    source:
+      address: "0x97B1Fc3ad6547366B2721fc58459dD3e8e8540A3"
+      abi: GenesisCreditUusd
+      startBlock: 48049098
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+      - GenesisCreditClaim
+      abis:
+        - name: GenesisCreditUusd
+          file: ../contracts/abi/v1-rc2/GenesisCredit.json
+      eventHandlers:
+      - event: Claimed(indexed address,uint256)
+        handler: handleGenesisCreditClaimedUusd
+      file: src/genesis-credit.ts
+  - kind: ethereum
+    name: GenesisCreditUbnb
+    network: base-sepolia
+    source:
+      address: "0xAC0ccDB39739c6A3835Be04dd044305D1ed91ef4"
+      abi: GenesisCreditUbnb
+      startBlock: 48049098
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+      - GenesisCreditClaim
+      abis:
+        - name: GenesisCreditUbnb
+          file: ../contracts/abi/v1-rc2/GenesisCredit.json
+      eventHandlers:
+      - event: Claimed(indexed address,uint256)
+        handler: handleGenesisCreditClaimedUbnb
+      file: src/genesis-credit.ts
   - kind: ethereum
     name: UAssetUeth
     network: base-sepolia
@@ -454,7 +536,7 @@ dataSources:
       - LayerZeroMessage
       abis:
         - name: UAssetUeth
-          file: ../contracts/abi/v1-rc/OutrunUniversalAssetsUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OutrunUniversalAssetsUpgradeable.json
       eventHandlers:
       - event: OFTSent(indexed bytes32,uint32,indexed address,uint256,uint256)
         handler: handleUAssetOftSentUeth
@@ -476,7 +558,7 @@ dataSources:
       - LayerZeroMessage
       abis:
         - name: UAssetUusd
-          file: ../contracts/abi/v1-rc/OutrunUniversalAssetsUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OutrunUniversalAssetsUpgradeable.json
       eventHandlers:
       - event: OFTSent(indexed bytes32,uint32,indexed address,uint256,uint256)
         handler: handleUAssetOftSentUusd
@@ -498,7 +580,7 @@ dataSources:
       - LayerZeroMessage
       abis:
         - name: UAssetUbnb
-          file: ../contracts/abi/v1-rc/OutrunUniversalAssetsUpgradeable.json
+          file: ../contracts/abi/v1-rc2/OutrunUniversalAssetsUpgradeable.json
       eventHandlers:
       - event: OFTSent(indexed bytes32,uint32,indexed address,uint256,uint256)
         handler: handleUAssetOftSentUbnb
@@ -520,7 +602,7 @@ templates:
       - LayerZeroMessage
       abis:
         - name: Memecoin
-          file: ../contracts/abi/v1-rc/Memecoin.json
+          file: ../contracts/abi/v1-rc2/Memecoin.json
       eventHandlers:
       - event: OFTSent(indexed bytes32,uint32,indexed address,uint256,uint256)
         handler: handleMemecoinOftSent
@@ -540,7 +622,7 @@ templates:
       - VaultActivity
       abis:
         - name: MemecoinYieldVault
-          file: ../contracts/abi/v1-rc/MemecoinYieldVault.json
+          file: ../contracts/abi/v1-rc2/MemecoinYieldVault.json
       eventHandlers:
       - event: Deposit(indexed address,indexed address,uint256,uint256)
         handler: handleVaultDeposit
@@ -567,7 +649,7 @@ templates:
       - GovernanceVote
       abis:
         - name: MemecoinDaoGovernor
-          file: ../contracts/abi/v1-rc/MemecoinDaoGovernorUpgradeable.json
+          file: ../contracts/abi/v1-rc2/MemecoinDaoGovernorUpgradeable.json
       eventHandlers:
       - event: ProposalCreated(uint256,address,address[],uint256[],string[],bytes[],uint256,uint256,string)
         handler: handleProposalCreated
@@ -595,7 +677,7 @@ templates:
       - TreasuryActivity
       abis:
         - name: GovernanceCycleIncentivizer
-          file: ../contracts/abi/v1-rc/GovernanceCycleIncentivizerUpgradeable.json
+          file: ../contracts/abi/v1-rc2/GovernanceCycleIncentivizerUpgradeable.json
       eventHandlers:
       - event: CycleStarted(indexed uint128,uint128,uint128,address[],uint256[])
         handler: handleCycleStarted

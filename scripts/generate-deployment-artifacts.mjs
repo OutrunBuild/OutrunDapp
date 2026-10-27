@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// generate-deployment-artifacts.mjs — assemble contracts/abi/v1-rc/manifest.json and
+// generate-deployment-artifacts.mjs — assemble contracts/abi/<version>/manifest.json and
 // deployments/{421614,84532,97}.json from:
 //   /tmp/outrun-deploy-full.json      address-keyed chain reads (tx/block/codehash/impl)
 //   /tmp/outrun-abi-sha256.txt        per-ABI-file sha256 lines from export-abi.mjs
@@ -10,7 +10,12 @@
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { chainConfigSchema, manifestSchema, toChecksumAddress } from './deployment-schema.mjs';
+import {
+  CURRENT_ABI_VERSION,
+  chainConfigSchema,
+  manifestSchema,
+  toChecksumAddress,
+} from './deployment-schema.mjs';
 
 const REPO = new URL('.', import.meta.url).pathname + '../';
 const full = JSON.parse(readFileSync('/tmp/outrun-deploy-full.json', 'utf8'));
@@ -330,7 +335,7 @@ function manifestContracts(chain) {
 }
 
 const manifest = {
-  abiVersion: 'v1-rc',
+  abiVersion: CURRENT_ABI_VERSION,
   memeverseCommit: COMMITS.memeverse,
   outstakeCommit: COMMITS.outstake,
   kernelTagCommit: COMMITS.kernel,
@@ -402,7 +407,7 @@ for (const { id, env, explorer, layerZeroEid, safeBlockLag, alchemyHost, infuraH
     finalityPolicy: { safeBlockLag },
     contracts,
     deploymentBlock,
-    abiVersion: 'v1-rc',
+    abiVersion: CURRENT_ABI_VERSION,
     implementationCodehashes,
     kernel7702Implementation: KERNEL.implementation,
     kernel7702Codehash: KERNEL.codehash[id],
@@ -417,9 +422,9 @@ for (const { id, env, explorer, layerZeroEid, safeBlockLag, alchemyHost, infuraH
 }
 
 writeFileSync(
-  join(REPO, 'contracts/abi/v1-rc/manifest.json'),
+  join(REPO, `contracts/abi/${CURRENT_ABI_VERSION}/manifest.json`),
   JSON.stringify(manifest, null, 2) + '\n',
 );
 console.log(
-  'wrote contracts/abi/v1-rc/manifest.json + deployments/{421614,84532,97}.json (schema-validated)',
+  `wrote contracts/abi/${CURRENT_ABI_VERSION}/manifest.json + deployments/{421614,84532,97}.json (schema-validated)`,
 );

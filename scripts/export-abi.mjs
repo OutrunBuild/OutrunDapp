@@ -14,10 +14,13 @@
 //   with a stdout declaration; a flat-name collision at write time also falls back to the
 //   repo subdirectory.
 // - Prints one `sha256 <hash>  <path>` line per file (consumed by manifest generation).
+// - `--version <v1-rc|v1-rc2>` selects the release directory (defaults to the current one).
 
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
+
+import { CURRENT_ABI_VERSION } from './deployment-schema.mjs';
 
 function parseArgs(argv) {
   const args = {};
@@ -45,7 +48,8 @@ function walkJsonFiles(dir) {
   return out;
 }
 
-const { src, list, repo } = parseArgs(process.argv.slice(2));
+const { src, list, repo, version } = parseArgs(process.argv.slice(2));
+const abiVersion = version ?? CURRENT_ABI_VERSION;
 const listData = JSON.parse(readFileSync(list, 'utf8'));
 const names = listData[repo];
 if (!Array.isArray(names) || names.length === 0) {
@@ -89,7 +93,7 @@ if (missing.length > 0) {
   throw new Error(`artifacts not found under ${srcDir}: ${missing.join(', ')}`);
 }
 
-const outRoot = resolve(new URL('.', import.meta.url).pathname, '../contracts/abi/v1-rc');
+const outRoot = resolve(new URL('.', import.meta.url).pathname, `../contracts/abi/${abiVersion}`);
 mkdirSync(outRoot, { recursive: true });
 
 for (const [name, { abi }] of wanted) {

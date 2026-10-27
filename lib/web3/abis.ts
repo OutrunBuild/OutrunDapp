@@ -1,30 +1,31 @@
-// Frozen ABI registry (contracts/abi/v1-rc/, governed by manifest.json + check-abi-manifest in CI).
+// Frozen ABI registry (contracts/abi/v1-rc2/, governed by manifest.json + check-abi-manifest in CI).
 // Only the ABIs the RPC data layer and the stage-6 transaction pipeline call are imported.
 // The generic ERC20 read ABI is the frozen MockUSDC ABI (balanceOf/allowance/decimals/symbol/
 // totalSupply are chain-standard); ERC20 approve calldata for session batches reuses it.
 import type { Abi } from 'viem';
-import mockUsdcJson from '../../contracts/abi/v1-rc/MockUSDC.json';
-import faucetJson from '../../contracts/abi/v1-rc/Faucet.json';
-import genesisCreditJson from '../../contracts/abi/v1-rc/GenesisCredit.json';
-import launcherJson from '../../contracts/abi/v1-rc/MemeverseLauncherUpgradeable.json';
-import registrationCenterJson from '../../contracts/abi/v1-rc/MemeverseRegistrationCenterUpgradeable.json';
-import hookJson from '../../contracts/abi/v1-rc/MemeverseUniswapHookUpgradeable.json';
-import hookLensJson from '../../contracts/abi/v1-rc/MemeverseUniswapHookLens.json';
-import psmJson from '../../contracts/abi/v1-rc/OutrunPSMUpgradeable.json';
-import usrVaultJson from '../../contracts/abi/v1-rc/OutrunUSRVaultUpgradeable.json';
-import stakingPositionJson from '../../contracts/abi/v1-rc/OutrunStakingPositionUpgradeable.json';
-import kernelJson from '../../contracts/abi/v1-rc/Kernel.json';
-import swapRouterJson from '../../contracts/abi/v1-rc/MemeverseSwapRouter.json';
-import ytFlashRouterJson from '../../contracts/abi/v1-rc/MemeverseYTFlashSwapRouter.json';
-import outrunRouterJson from '../../contracts/abi/v1-rc/OutrunRouter.json';
-import permit2Json from '../../contracts/abi/v1-rc/Permit2.json';
-import polendJson from '../../contracts/abi/v1-rc/POLendUpgradeable.json';
-import governorJson from '../../contracts/abi/v1-rc/MemecoinDaoGovernorUpgradeable.json';
-import registrarOmnichainJson from '../../contracts/abi/v1-rc/MemeverseRegistrarOmnichain.json';
-import splitterJson from '../../contracts/abi/v1-rc/POLSplitterUpgradeable.json';
-import universalAssetsJson from '../../contracts/abi/v1-rc/OutrunUniversalAssetsUpgradeable.json';
-import yieldVaultJson from '../../contracts/abi/v1-rc/MemecoinYieldVault.json';
-import mockOutrunSusdsSyJson from '../../contracts/abi/v1-rc/MockOutrunSUSDSSYUpgradeable.json';
+import mockUsdcJson from '../../contracts/abi/v1-rc2/MockUSDC.json';
+import faucetJson from '../../contracts/abi/v1-rc2/Faucet.json';
+import genesisCreditJson from '../../contracts/abi/v1-rc2/GenesisCredit.json';
+import launcherJson from '../../contracts/abi/v1-rc2/MemeverseLauncherUpgradeable.json';
+import registrationCenterJson from '../../contracts/abi/v1-rc2/MemeverseRegistrationCenterUpgradeable.json';
+import hookJson from '../../contracts/abi/v1-rc2/MemeverseUniswapHookUpgradeable.json';
+import hookLensJson from '../../contracts/abi/v1-rc2/MemeverseUniswapHookLens.json';
+import psmJson from '../../contracts/abi/v1-rc2/OutrunPSMUpgradeable.json';
+import usrVaultJson from '../../contracts/abi/v1-rc2/OutrunUSRVaultUpgradeable.json';
+import stakingPositionJson from '../../contracts/abi/v1-rc2/OutrunStakingPositionUpgradeable.json';
+import kernelJson from '../../contracts/abi/v1-rc2/Kernel.json';
+import swapRouterJson from '../../contracts/abi/v1-rc2/MemeverseSwapRouter.json';
+import ytFlashRouterJson from '../../contracts/abi/v1-rc2/MemeverseYTFlashSwapRouter.json';
+import outrunRouterJson from '../../contracts/abi/v1-rc2/OutrunRouter.json';
+import permit2Json from '../../contracts/abi/v1-rc2/Permit2.json';
+import polendJson from '../../contracts/abi/v1-rc2/POLendUpgradeable.json';
+import governorJson from '../../contracts/abi/v1-rc2/MemecoinDaoGovernorUpgradeable.json';
+import incentivizerJson from '../../contracts/abi/v1-rc2/GovernanceCycleIncentivizerUpgradeable.json';
+import registrarOmnichainJson from '../../contracts/abi/v1-rc2/MemeverseRegistrarOmnichain.json';
+import splitterJson from '../../contracts/abi/v1-rc2/POLSplitterUpgradeable.json';
+import universalAssetsJson from '../../contracts/abi/v1-rc2/OutrunUniversalAssetsUpgradeable.json';
+import yieldVaultJson from '../../contracts/abi/v1-rc2/MemecoinYieldVault.json';
+import mockOutrunSusdsSyJson from '../../contracts/abi/v1-rc2/MockOutrunSUSDSSYUpgradeable.json';
 
 const asAbi = (json: unknown) => json as Abi;
 
@@ -46,6 +47,7 @@ export const outrunRouterAbi = asAbi(outrunRouterJson);
 export const permit2Abi = asAbi(permit2Json);
 export const polendAbi = asAbi(polendJson);
 export const governorAbi = asAbi(governorJson);
+export const incentivizerAbi = asAbi(incentivizerJson);
 export const registrarOmnichainAbi = asAbi(registrarOmnichainJson);
 export const splitterAbi = asAbi(splitterJson);
 // UAsset OFT surface (send/quoteSend) lives on the UniversalAssets ABI.
