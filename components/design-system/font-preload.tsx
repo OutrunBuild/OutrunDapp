@@ -10,7 +10,7 @@ import { getDisplayLocale } from '@/lib/locale'
 //    for dynamic route segments (static routes have them, dynamic routes don't; every
 //    app/[locale]/** route on this site is affected), so fonts degrade to lazy
 //    fetching after CSS parse and even warm-cache refreshes often lose to the first paint →
-//    swap paints the fallback then re-dresses, i.e. the flicker users complained about. This
+//    swap paints the fallback then re-dresses (the visible first-paint flicker). This
 //    reads Next's build artifact next-font-manifest.json (key=route, value=woff2 files that
 //    should be preloaded, Latin .p. files only), takes the union across all routes and re-emits
 //    them as <link rel="preload">. Hashed URLs all come from the manifest, zero hardcoding;
