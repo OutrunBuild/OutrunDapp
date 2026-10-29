@@ -21,6 +21,10 @@ const MEMECOIN = getAddress('0x0a0aa00000000000000000000000000000000001');
 const POL = getAddress('0x0a0aa00000000000000000000000000000000002');
 const PT = getAddress('0x0a0aa00000000000000000000000000000000003');
 const UUSD = deployment.contracts['UAsset.UUSD'];
+// Valid hex but absent from every deployment table — the "unknown raise asset" shape. A
+// syntactically invalid address would throw inside viem's poolId encoding and collapse the
+// whole composition to the empty trade shape, testing the wrong degrade path.
+const UNKNOWN_UASSET = getAddress('0x0000000000000000000000000000000000000777');
 const HOOK = deployment.contracts.MemeverseUniswapHook;
 const ROUTER = deployment.contracts.MemeverseSwapRouter;
 const SPLITTER = deployment.contracts.POLSplitter;
@@ -258,7 +262,7 @@ describe('getVerseTrade onchain composition', () => {
   it('a missing USD sample nulls the $ slots (tvl/liquidity/marketCap) — never a ×1 stand-in', async () => {
     // out-of-table uAsset -> raiseAsset null -> getAssetUsdPrice null: the same shape a
     // UETH/UBNB feed failure produces (null sample entering buildVerseTrade)
-    await wireComposition(9301n, { uAsset: '0x0000000000000000000000000000000000000uasset' });
+    await wireComposition(9301n, { uAsset: UNKNOWN_UASSET });
     const adapter = await import('../../../lib/data/onchain-source');
     const trade = await adapter.getVerseTrade('9301');
     expect(trade).not.toBeNull();
