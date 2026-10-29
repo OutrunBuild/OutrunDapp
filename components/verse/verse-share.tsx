@@ -22,8 +22,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
  * The random copy is only fixed at open time (onOpenChange swaps the index): SSR/hydration do
  * not participate,
  * no mismatch; the dialog's manual trigger source=general — no intro congratulation section,
- * auto-open after execution is not wired
- * (the CTA does not fake execution, same as PolMintDialog).
+ * auto-open after execution is not wired.
  */
 export function VerseShare({ locale, verse }: { locale: Locale; verse: Verse }) {
   const copy = getCopy(locale).verse

@@ -15,6 +15,7 @@ import { TxSuccessDialog, type TxSuccessRow } from '../global/tx-success-dialog'
 import { useTxSuccessGate } from '../global/use-tx-success'
 import {
   readAllowances,
+  readLiquidityQuote,
   resolvePoolTokens,
 } from '../global/execution-reads'
 import { getTokenDecimals, getVerseSession } from '../global/write-session'
@@ -27,7 +28,8 @@ import {
 } from '@/lib/web3/session-actions'
 import { useParams } from 'next/navigation'
 import { formatUnits, type Hex } from 'viem'
-import { estimateBaseUnitsFloor, toBaseUnits } from '@/lib/web3/base-units'
+import { toBaseUnits } from '@/lib/web3/base-units'
+import { buildRemoveLiquidityLegs } from '@/lib/web3/pool-quote'
 import { SwapSettings } from '../global/swap-settings'
 import { formatAmount } from '../global/signal-ui'
 import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount, trimFractionZeros, typedAmountPositive } from '../global/amount-input'
@@ -49,9 +51,9 @@ import { Input } from '@/components/ui/input'
  * Output derivation=reverse of Add: quote = burnLP ÷ lpPerQuote, base = quote ÷ ratio;
  * the two PT pools' ratio=anchor-rate derivation sample (see the ptAnchorRatio note below).
  * LP balance=pol-positions myLp four-pool sample;
- * same discipline as Add: the quote is a linear-derivation sample; CTA disconnected=
- * Connect Wallet clickable to toggle connection,
- * connected=Remove disabled, no faked on-chain execution.
+ * same discipline as Add: the quote is a linear-derivation sample; the CTA arms the real
+ * pipeline (disconnected=Connect Wallet clickable to toggle connection,
+ * connected=Remove runs prepare → review → Type-4 / wallet_sendCalls).
  */
 export function PoolRemoveLiquidityDialog({
   locale,
@@ -124,12 +126,13 @@ export function PoolRemoveLiquidityDialog({
       : amountToInputString(lpBalance ?? 0)
   // POL/uAsset pool market price sample (for the POL-denominated side's ≈$ conversion)
   const polPrice = pol?.marketPricePerPol ?? null
-  const lpSymbol = `${pool.baseSymbol}/${pool.quoteSymbol} LP`
+  // An empty quote symbol (unresolved raise asset) renders the base side alone — no "X/ LP" wreckage
+  const lpSymbol = `${pool.quoteSymbol ? `${pool.baseSymbol}/${pool.quoteSymbol}` : pool.baseSymbol} LP`
   // Pool ratio 1 base = ratio quote. The two PT pools use anchor-rate derived samples
   // (no '--'/slots): 1 PT = uAssetPerPol uAsset (fixed redemption rate); the PT/POL pool then
   // converts via the POL/uAsset market price: 1 PT = uAssetPerPol÷marketPricePerPol POL
   const ptAnchorRatio =
-    pol != null && pol.marketPricePerPol > 0
+    pol != null && pol.marketPricePerPol != null && pol.marketPricePerPol > 0
       ? pool.pool === 'pt-uasset'
         ? pol.uAssetPerPol
         : pol.uAssetPerPol / pol.marketPricePerPol
@@ -143,6 +146,9 @@ export function PoolRemoveLiquidityDialog({
     lpExact != null
       ? Number.isFinite(lpVal) && toBaseUnits(lpAmount, lpExact.decimals) > lpExact.base
       : lpBalance != null && lpVal > lpBalance
+  // Both balance reads missing (probe not landed/failed and no sample): the amount cannot be
+  // validated, so the CTA stays closed — submitting would only revert on-chain for gas.
+  const lpBalanceUnknown = lpExact == null && lpBalance == null
   const executionReady =
     center.source === 'real' &&
     connected &&
@@ -153,7 +159,7 @@ export function PoolRemoveLiquidityDialog({
     verseId != null
 
   async function startRemoveReview(): Promise<void> {
-    if (!executionReady || !valid || lpOver || slippageIssue != null || resolving) return
+    if (!executionReady || !valid || lpOver || lpBalanceUnknown || slippageIssue != null || resolving) return
     setRemoveRows([
       {
         label: common.txYouWithdrew,
@@ -195,7 +201,8 @@ export function PoolRemoveLiquidityDialog({
         eoa,
         verseId: BigInt(verseId),
       })
-      const router = session.contracts.MemeverseSwapRouter as Hex
+      const router = session.contracts.MemeverseSwapRouter as Hex | undefined
+      if (!router) throw new Error('outrun: MemeverseSwapRouter missing')
       const reader = session.reader
       const { base, quote } = await resolvePoolTokens(reader, session, pool.pool, BigInt(verseId))
       const lpToken = (await reader.read({
@@ -204,23 +211,26 @@ export function PoolRemoveLiquidityDialog({
         functionName: 'lpToken',
         args: [base, quote],
       })) as Hex
-      const [lpDecimals, baseDecimals, quoteDecimals] = await Promise.all([
-        getTokenDecimals(reader, chainId, lpToken),
-        getTokenDecimals(reader, chainId, base),
-        getTokenDecimals(reader, chainId, quote),
-      ])
+      const lpDecimals = await getTokenDecimals(reader, chainId, lpToken)
       const liquidity = toBaseUnits(lpAmount, lpDecimals)
       if (liquidity === 0n) throw new Error('typed amount below one base unit')
+      // uint128 is the router's liquidity width for the quote read and the burn call
+      if (liquidity > 2n ** 128n - 1n) throw new Error('typed amount above uint128 liquidity')
       const slippageBps = Math.round(slippage * 100)
-      // mins derive from the display minQuote/minBase (fall back to zero when slotted);
-      // slippage bounds floor — never a hair above the estimate (Uniswap rounding convention)
-      const minQuoteBase =
-        minQuote != null ? estimateBaseUnitsFloor(minQuote, quoteDecimals) : 0n
-      const minBaseBase = minBase != null ? estimateBaseUnitsFloor(minBase, baseDecimals) : 0n
-      const sorted = base.toLowerCase() < quote.toLowerCase()
-      const currency0 = (sorted ? base : quote) as Hex
-      const currency1 = (sorted ? quote : base) as Hex
-      const [allowance] = await readAllowances(reader, eoa, [{ token: lpToken, spender: router }])
+      // Floors come from the click-time router quote — never from the page-load display
+      // samples: a missing sample must not degrade into a zero floor, and a stale one must
+      // not become the bound.
+      const [{ amountA: quotedBase, amountB: quotedQuote }, [allowance]] = await Promise.all([
+        readLiquidityQuote(reader, router, base, quote, liquidity),
+        readAllowances(reader, eoa, [{ token: lpToken, spender: router }]),
+      ])
+      const { currency0, currency1, amount0Min, amount1Min } = buildRemoveLiquidityLegs({
+        base,
+        quote,
+        quotedBase,
+        quotedQuote,
+        slippageBps,
+      })
       const approval =
         allowance < liquidity
           ? approvalCall(lpToken, router, liquidity)
@@ -229,8 +239,8 @@ export function PoolRemoveLiquidityDialog({
         currency0,
         currency1,
         liquidity,
-        amount0Min: (sorted ? minBaseBase : minQuoteBase) as bigint,
-        amount1Min: (sorted ? minQuoteBase : minBaseBase) as bigint,
+        amount0Min,
+        amount1Min,
         to: eoa,
         deadline: BigInt(Math.floor(Date.now() / 1000) + (Number(deadlineText) || 10) * 60),
       })
@@ -287,6 +297,8 @@ export function PoolRemoveLiquidityDialog({
     quoteOut != null && slippageIssue == null ? quoteOut * (1 - slippage / 100) : null
   const minBase =
     baseOut != null && slippageIssue == null ? baseOut * (1 - slippage / 100) : null
+  // Display only — the submitted floors are re-derived from the click-time quote inside
+  // startRemoveReview, so a slotted row here cannot widen what the chain accepts.
 
   // display formatting goes through global/amount-format (fmtUsd/fmtTokenAmount) — raw float
   // products carry precision noise;
@@ -422,7 +434,7 @@ export function PoolRemoveLiquidityDialog({
                 <dt>{copy.swapRate}</dt>
                 <dd className="swap-panel__rate">
                   <span data-numeric>
-                    {ratio != null && ratio > 0
+                    {ratio != null && ratio > 0 && pool.quoteSymbol !== ''
                       ? rateInverted
                         ? `1 ${pool.quoteSymbol} ≈ ${fmtTokenAmount(1 / ratio, locale)} ${pool.baseSymbol}`
                         : `1 ${pool.baseSymbol} ≈ ${fmtTokenAmount(ratio, locale)} ${pool.quoteSymbol}`
@@ -465,7 +477,7 @@ export function PoolRemoveLiquidityDialog({
             onAction={() => void startRemoveReview()}
             label={copy.removeLiquidity}
             connectLabel={copy.swapCta}
-            disabled={!valid || lpOver || slippageIssue != null || !executionReady || resolving || tx.running}
+            disabled={!valid || lpOver || lpBalanceUnknown || slippageIssue != null || !executionReady || resolving || tx.running}
             switchChainTo={
               wrongChain
                 ? { execChain, chainName: governanceChainName, onSwitch: switchChain }

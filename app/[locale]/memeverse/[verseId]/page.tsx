@@ -1,8 +1,23 @@
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
 import { narrowVerseQuery, verseHref } from '@/components/global/routes';
+import { getVerseTitle } from '@/components/verse/verse-metadata';
 import { VersePage } from '@/components/verse/verse-page';
 import { getDisplayLocale } from '@/lib/locale';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; verseId: string }>;
+}): Promise<Metadata> {
+  const { verseId } = await params;
+  const title = await getVerseTitle(verseId);
+  // Unknown id keeps the root default: the page body owns the notFound() surface
+  if (!title) return {};
+
+  return { title };
+}
 
 export default async function LocalizedVerse({
   params,

@@ -47,6 +47,7 @@ import {
   readErc20Meta,
   type ContractReader,
 } from '../global/execution-reads'
+import { buildReserveLeg, mergePullLegs } from './fund-leg'
 import { useVerseLive } from './genesis-live'
 import {
   getTokenDecimals,
@@ -64,9 +65,13 @@ import {
 } from '@/lib/web3/chains'
 import { formatBaseUnits, formatWadPercent, toBaseUnits } from '@/lib/web3/base-units'
 import {
+  debtHeadroomBase,
   leverageDebtBase,
+  leverageGateExceeded,
   preorderCapBase,
+  preorderRemainingExceeded,
   psmMintQuote,
+  resolveLeverageRateWad,
   stakeMintBase,
 } from '@/lib/web3/contract-formulas'
 import { erc20ReadAbi } from '@/lib/web3/abis'
@@ -152,7 +157,7 @@ export function ParticipationPanel({
   /** Sample wallet balances (symbol→cross-chain total, balances fixture; symbols missing from the snapshot are absent from the table → slot state) */
   walletBalances: Record<string, number>
   sourceRef: string
-  /** Verse's governance chain (execution chain; vault-actions' MAINNET_TO_TESTNET convention) */
+  /** Verse's governance chain (execution chain; lib/web3 executionChainId) */
   governanceChain: number
   governanceChainName: string
   /** Chains whose subgraph actually holds this verse (landed set); null = source carries no
@@ -422,12 +427,22 @@ export function ParticipationPanel({
   const interestRaisedB = live.chainRow?.leverageInterest ?? leverageInterestRaised
   const preorderRaisedB = live.chainRow?.preorderRaised ?? preorderRaised
   const asBaseFloat = (base: bigint) => Number(base) / 1e18
+  // Ratio operand, probe-first like the rate below: the probe's copy is the wallet chain's own
+  // launcher config while the SSR prop is the canonical chain's copy — the per-user cap gate,
+  // capText and the used reconstruction all read this one resolution, so every scaling follows
+  // a single chain's ratio.
+  const capRatioBps =
+    liveAggregates != null
+      ? liveAggregates.preorderCapRatioBps
+      : preorderCapRatioBps != null
+        ? BigInt(preorderCapRatioBps)
+        : null
+  // Float alias of the same resolution for the display-only rows (verse capacity meter and the
+  // ratio legend): the probe's bps converts where the SSR float prop stood before.
+  const capRatio = capRatioBps != null ? Number(capRatioBps) / 1e4 : preorderCapacityRatio
   const liveUsedBase =
     liveAggregates != null
-      ? deriveVersePreorderUsed(
-          liveAggregates,
-          preorderCapRatioBps != null ? BigInt(preorderCapRatioBps) : null,
-        )
+      ? deriveVersePreorderUsed(liveAggregates, capRatioBps)
       : null
   const preorderRaisedE = liveUsedBase != null ? asBaseFloat(liveUsedBase) : preorderRaisedB
 
@@ -448,7 +463,8 @@ export function ParticipationPanel({
     leverageRate != null && leverageDebtCap != null && leverageCurrentDebt != null
       ? Math.max(leverageDebtCap - leverageCurrentDebt, 0)
       : null
-  const leverageExceeded = leverageQuota != null && leverageHeadroom != null && leverageQuota > leverageHeadroom
+  const leverageExceededFloat =
+    leverageQuota != null && leverageHeadroom != null && leverageQuota > leverageHeadroom
   // Stake path conversion: sy asset converted to uAsset at real-time value (fixture anchorValue sample rate; a missing rate sample does not open a placeholder slot — it falls back to par 1);
   // direct=par minus the PSM mint fee (reserveFee), uAsset=par
   const convertedAmount =
@@ -700,8 +716,8 @@ export function ParticipationPanel({
         ? normalRaisedB + interestRaisedB / leverageRate
         : null
   const versePreorderCap =
-    preorderCapacityRatio != null && versePreorderBase != null
-      ? versePreorderBase * PREORDER_CAP_RATE * preorderCapacityRatio
+    capRatio != null && versePreorderBase != null
+      ? versePreorderBase * PREORDER_CAP_RATE * capRatio
       : null
   // With a probe the remaining is the chain's own preview — exact, no float reconstruction.
   const versePreorderRemaining =
@@ -725,14 +741,16 @@ export function ParticipationPanel({
   const mainTinWad = payAssetRecord?.psmFeeInWad ? BigInt(payAssetRecord.psmFeeInWad) : null
   const preorderTinWad =
     effectivePreorderRecord?.psmFeeInWad ? BigInt(effectivePreorderRecord.psmFeeInWad) : null
-  // uAsset that actually enters genesis from the main leg: par for uAsset, the exact PSM mint
-  // for a reserve, the chain per-unit stake preview for the stake route. null = source unread.
+  // uAsset that actually enters genesis from the main leg: par for uAsset and for genesis
+  // credit (GenesisCredit is 18-dec 1:1 face value and the chain books the credit amount
+  // verbatim as leverage interest), the exact PSM mint for a reserve, the chain per-unit stake
+  // preview for the stake route. null = source unread.
   const mainMintBase: bigint | null =
     effectiveRoute === 'stake'
       ? payAssetRecord?.anchorPreviewBase
         ? stakeMintBase(mainBase, payDecimals, BigInt(payAssetRecord.anchorPreviewBase))
         : null
-      : payIsUAsset
+      : effectiveRoute === 'credit' || payIsUAsset
         ? mainBase
         : mainTinWad != null
           ? psmMintQuote(mainBase, payDecimals, mainTinWad).amountOut
@@ -742,15 +760,32 @@ export function ParticipationPanel({
     : preorderTinWad != null
       ? psmMintQuote(preorderInputBase, preorderDecimals, preorderTinWad).amountOut
       : null
-  const rateWad = leverageInterestRateWad != null ? BigInt(leverageInterestRateWad) : null
+  // Rate operand, probe-first like the aggregates above: the probe's copy is the wallet
+  // chain's own rate while the SSR wad is the canonical chain's copy — debtBase and the
+  // percent text read this one resolution, so every conversion follows a single chain's rate.
+  const rateWad = resolveLeverageRateWad(
+    liveAggregates != null ? liveAggregates.interestRateBase : null,
+    leverageInterestRateWad,
+  )
   const debtBase =
     rateWad != null && rateWad > 0n && mainMintBase != null && mainMintBase > 0n
       ? leverageDebtBase(mainMintBase, rateWad)
       : null
+  // Leverage debt-cap gate, exact-first like the preorder gate: the probe carries all three
+  // operands — the two money amounts in uAsset base units plus the wallet chain's own rate —
+  // so a landed probe is the gate on its own. The float quota/headroom above stay
+  // display-only and resume as the gate only while the probe has not landed (seam null →
+  // float branch).
+  const leverageExceededExact = leverageGateExceeded(mainMintBase, liveAggregates)
+  const leverageExceeded = leverageExceededExact ?? leverageExceededFloat
+  // Exact debt-cap headroom from the same probe the gate reads: remaining borrowable debt =
+  // cap − the chain's own total debt, floor-clamped; null until the probe lands, where the
+  // float figure above covers the window.
+  const exactDebtHeadroomBase = debtHeadroomBase(liveAggregates)
   const genesisFundsBase = mode === 'leverage' ? debtBase : mainMintBase
   const exactCapBase =
-    preorderCapRatioBps != null && genesisFundsBase != null && genesisFundsBase > 0n
-      ? preorderCapBase(genesisFundsBase, BigInt(preorderCapRatioBps))
+    capRatioBps != null && genesisFundsBase != null && genesisFundsBase > 0n
+      ? preorderCapBase(genesisFundsBase, capRatioBps)
       : null
   // The SSR remaining prop was read on the canonical chain alone — it applies only while the
   // view chain IS the canonical chain; any other chain gets its remaining from the probe
@@ -827,17 +862,20 @@ export function ParticipationPanel({
       ? preorderMintBase > exactCapBase
       : preorderCap != null && numericPreorder > preorderCap
   const preorderCapNote =
-    preorderCapacityRatio != null
+    capRatio != null
       ? copy.verse.preorderCapNote.replace(
           '{ratio}',
-          formatPercent(preorderCapacityRatio * 100, locale),
+          formatPercent(capRatio * 100, locale),
         )
       : null
   const preorderTabExceeded =
     preorderOnly &&
-    (exactRemainingBase != null && mainMintBase != null
-      ? mainMintBase > exactRemainingBase
-      : versePreorderRemaining != null && numericAmount > versePreorderRemaining)
+    preorderRemainingExceeded(
+      exactRemainingBase,
+      mainMintBase,
+      versePreorderRemaining,
+      mainMintBase != null ? asBaseFloat(mainMintBase) : convertedAmount,
+    )
   // One-click preorder shares the verse-level capacity the preorder tab already gates on: the
   // per-user cap (preorderCap) can pass while the verse's remaining capacity cannot (the chain
   // reverts InvalidLength), so the submit gate must honour both. Unknown remaining → no gate
@@ -845,22 +883,25 @@ export function ParticipationPanel({
   const oneClickRemainingExceeded =
     !preorderOnly &&
     preorderEnabled &&
-    (exactRemainingBase != null && preorderMintBase != null
-      ? preorderMintBase > exactRemainingBase
-      : versePreorderRemaining != null && numericPreorder > versePreorderRemaining)
+    preorderRemainingExceeded(
+      exactRemainingBase,
+      preorderMintBase,
+      versePreorderRemaining,
+      preorderMintBase != null ? asBaseFloat(preorderMintBase) : netPreorderAmount,
+    )
 
   // Payment asset wallet balance. The connected build reads exact base units (bigint) — the
   // balance gate and Max fill use those integers directly; fixture samples stay float and are
   // display-only (never a gate on the real build).
   const exactBalanceOf = (symbol: string) =>
     center.source === 'real' ? (liveBalances[symbol] ?? null) : null
-  const sampleBalanceOf = (symbol: string) =>
+  const harnessBalanceOf = (symbol: string) =>
     center.source === 'real' ? null : (walletBalances[symbol] ?? null)
   const balanceTextOf = (symbol: string): string | null => {
     const exact = exactBalanceOf(symbol)
     if (exact != null) return formatBaseUnits(exact.base, exact.decimals, locale)
-    const sample = sampleBalanceOf(symbol)
-    return sample != null ? formatAmount(sample, locale) : null
+    const harnessBalance = harnessBalanceOf(symbol)
+    return harnessBalance != null ? formatAmount(harnessBalance, locale) : null
   }
   // Exact balance as an input-fill string: full precision, trailing fraction zeros trimmed
   // (the input cap is 40 chars; "1000" must stay "1000", never "1").
@@ -869,14 +910,14 @@ export function ParticipationPanel({
   const balanceFillOf = (symbol: string): string => {
     const exact = exactBalanceOf(symbol)
     if (exact != null) return trimFractionZeros(formatUnits(exact.base, exact.decimals))
-    const sample = sampleBalanceOf(symbol)
-    return sample != null ? amountToInputString(sample) : ''
+    const harnessBalance = harnessBalanceOf(symbol)
+    return harnessBalance != null ? amountToInputString(harnessBalance) : ''
   }
   const balanceZeroOf = (symbol: string): boolean => {
     const exact = exactBalanceOf(symbol)
     if (exact != null) return exact.base === 0n
-    const sample = sampleBalanceOf(symbol)
-    return sample == null || sample <= 0
+    const harnessBalance = harnessBalanceOf(symbol)
+    return harnessBalance == null || harnessBalance <= 0
   }
   const walletBalanceText = balanceTextOf(payAsset)
   const preorderWalletBalanceText = balanceTextOf(effectivePreorderAsset)
@@ -887,17 +928,17 @@ export function ParticipationPanel({
   const balanceShort =
     mainBalanceBase != null
       ? mainBase > mainBalanceBase
-      : sampleBalanceOf(payAsset) != null &&
+      : harnessBalanceOf(payAsset) != null &&
         Number.isFinite(numericAmount) &&
-        numericAmount > (sampleBalanceOf(payAsset) as number)
+        numericAmount > (harnessBalanceOf(payAsset) as number)
   const showBalanceShort =
     balanceShort && !preorderTabExceeded && !(mode === 'leverage' && leverageExceeded)
   const preorderBalanceShort =
     preorderBalanceBase != null
       ? preorderInputBase > preorderBalanceBase
-      : sampleBalanceOf(effectivePreorderAsset) != null &&
+      : harnessBalanceOf(effectivePreorderAsset) != null &&
         Number.isFinite(numericPreorder) &&
-        numericPreorder > (sampleBalanceOf(effectivePreorderAsset) as number)
+        numericPreorder > (harnessBalanceOf(effectivePreorderAsset) as number)
 
 
   /** Provider-truth chain check fired before any on-chain read leaves the page: the cached
@@ -928,11 +969,12 @@ export function ParticipationPanel({
     const resolved = getClientChainConfig(chainId)
     if (resolved.status !== 'ok' || resolved.config.contracts.status !== 'deployed') return null
     const contracts = resolved.config.contracts.addresses
-    const launcher = contracts.MemeverseLauncher as Hex
-    const polend = contracts.POLend as Hex
-    const router = contracts.OutrunRouter as Hex
+    const launcher = session.launcher
+    const polend = contracts.POLend as Hex | undefined
+    const router = contracts.OutrunRouter as Hex | undefined
     const kernel = resolved.config.kernel7702Implementation as Hex
-    const hook = contracts.MemeverseUniswapHook as Hex
+    const hook = session.hook
+    if (!polend || !router) return null
     try {
       const { reader } = session
       const uAsset = session.verse.uAsset
@@ -940,6 +982,22 @@ export function ParticipationPanel({
       // Typed decimal string -> uAsset base units, exactly (never via float). Digits beyond
       // the asset precision are truncated, matching what the chain can represent.
       const toBase = (raw: string): bigint => toBaseUnits(raw, decimals)
+      // Reserve pay legs all share one shape (record → token → chain decimals → display):
+      // the async decimals read stays here, the leg construction itself is pure (fund-leg.ts).
+      const reserveLegFor = async (
+        record: { id: string } | null,
+        amount: string,
+        symbol: string,
+      ) => {
+        if (!record) throw new Error('preorder reserve asset missing')
+        const token = record.id as Hex
+        return buildReserveLeg({
+          token,
+          amount,
+          symbol,
+          decimals: await getTokenDecimals(reader, chainId, token),
+        })
+      }
       // Per-kind amounts (display → base units) and the pull legs behind the approval:
       // same-token legs arrive merged (one approve per token — ERC20 approve replaces, two
       // legs on one token must never emit two approves).
@@ -1036,35 +1094,25 @@ export function ParticipationPanel({
               { token: uAsset, amount: preorderBase, display: preorderDisplay },
             ]
           } else {
-            if (!effectivePreorderRecord) throw new Error('preorder reserve asset missing')
-            const preorderReserve = effectivePreorderRecord.id as Hex
-            const preorderReserveDecimals = await getTokenDecimals(reader, chainId, preorderReserve)
-            const preorderReserveBase = toBaseUnits(preorderAmount, preorderReserveDecimals)
-            const preorderReserveDisplay =
-              `${formatUnits(preorderReserveBase, preorderReserveDecimals)} ${effectivePreorderAsset}`
+            const preorderLeg = await reserveLegFor(
+              effectivePreorderRecord,
+              preorderAmount,
+              effectivePreorderAsset,
+            )
             action = genesisAndPreorderCall(router, {
               verseId: BigInt(verseId),
               genesis: fundStakeInput(sp, token, genesisBase),
-              preorder: fundPsmInput(preorderReserve, preorderReserveBase),
+              preorder: preorderLeg.funding,
               user: eoa,
             })
             functionName = 'genesisAndPreorder'
-            inputs = `${genesisDisplay} + ${preorderReserveDisplay}`
+            inputs = `${genesisDisplay} + ${preorderLeg.display}`
             target = router
             spender = router
-            pulls =
-              preorderReserve === token
-                ? [
-                    {
-                      token,
-                      amount: genesisBase + preorderReserveBase,
-                      display: `${formatUnits(genesisBase + preorderReserveBase, tokenDecimals)} ${payAsset}`,
-                    },
-                  ]
-                : [
-                    { token, amount: genesisBase, display: genesisDisplay },
-                    { token: preorderReserve, amount: preorderReserveBase, display: preorderReserveDisplay },
-                  ]
+            pulls = mergePullLegs(
+              { token, amount: genesisBase, display: genesisDisplay },
+              preorderLeg,
+            )
           }
         } else if (payIsUAsset) {
           const genesisBase = toBase(amount)
@@ -1088,26 +1136,29 @@ export function ParticipationPanel({
           } else {
             // uAsset genesis + Psm preorder: two pull tokens → two approve legs; the typed
             // preorder amount is reserve-denominated and books the fee-adjusted mint.
-            if (!effectivePreorderRecord) throw new Error('preorder reserve asset missing')
-            const preorderReserve = effectivePreorderRecord.id as Hex
-            const preorderReserveDecimals = await getTokenDecimals(reader, chainId, preorderReserve)
-            const preorderReserveBase = toBaseUnits(preorderAmount, preorderReserveDecimals)
-            const preorderReserveDisplay =
-              `${formatUnits(preorderReserveBase, preorderReserveDecimals)} ${effectivePreorderAsset}`
+            const preorderLeg = await reserveLegFor(
+              effectivePreorderRecord,
+              preorderAmount,
+              effectivePreorderAsset,
+            )
             action = genesisAndPreorderCall(router, {
               verseId: BigInt(verseId),
               genesis: fundUAssetInput(genesisBase),
-              preorder: fundPsmInput(preorderReserve, preorderReserveBase),
+              preorder: preorderLeg.funding,
               user: eoa,
             })
             functionName = 'genesisAndPreorder'
-            inputs = `${formatUnits(genesisBase, decimals)} ${raiseAssetSymbol} + ${preorderReserveDisplay}`
+            inputs = `${formatUnits(genesisBase, decimals)} ${raiseAssetSymbol} + ${preorderLeg.display}`
             target = router
             spender = router
-            pulls = [
-              { token: uAsset, amount: genesisBase, display: `${formatUnits(genesisBase, decimals)} ${raiseAssetSymbol}` },
-              { token: preorderReserve, amount: preorderReserveBase, display: preorderReserveDisplay },
-            ]
+            pulls = mergePullLegs(
+              {
+                token: uAsset,
+                amount: genesisBase,
+                display: `${formatUnits(genesisBase, decimals)} ${raiseAssetSymbol}`,
+              },
+              preorderLeg,
+            )
           }
         } else {
           // Psm genesis leg (reserve): the router mints the genesis uAsset through the PSM pair;
@@ -1134,35 +1185,25 @@ export function ParticipationPanel({
               { token: uAsset, amount: preorderBase, display: preorderDisplay },
             ]
           } else {
-            if (!effectivePreorderRecord) throw new Error('preorder reserve asset missing')
-            const preorderReserve = effectivePreorderRecord.id as Hex
-            const preorderReserveDecimals = await getTokenDecimals(reader, chainId, preorderReserve)
-            const preorderReserveBase = toBaseUnits(preorderAmount, preorderReserveDecimals)
-            const preorderReserveDisplay =
-              `${formatUnits(preorderReserveBase, preorderReserveDecimals)} ${effectivePreorderAsset}`
-            const sameReserve = preorderReserve === reserve
+            const preorderLeg = await reserveLegFor(
+              effectivePreorderRecord,
+              preorderAmount,
+              effectivePreorderAsset,
+            )
             action = genesisAndPreorderCall(router, {
               verseId: BigInt(verseId),
               genesis: fundPsmInput(reserve, genesisBase),
-              preorder: fundPsmInput(preorderReserve, preorderReserveBase),
+              preorder: preorderLeg.funding,
               user: eoa,
             })
             functionName = 'genesisAndPreorder'
-            inputs = `${genesisDisplay} + ${preorderReserveDisplay}`
+            inputs = `${genesisDisplay} + ${preorderLeg.display}`
             target = router
             spender = router
-            pulls = sameReserve
-              ? [
-                  {
-                    token: reserve,
-                    amount: genesisBase + preorderReserveBase,
-                    display: `${formatUnits(genesisBase + preorderReserveBase, reserveDecimals)} ${payAsset}`,
-                  },
-                ]
-              : [
-                  { token: reserve, amount: genesisBase, display: genesisDisplay },
-                  { token: preorderReserve, amount: preorderReserveBase, display: preorderReserveDisplay },
-                ]
+            pulls = mergePullLegs(
+              { token: reserve, amount: genesisBase, display: genesisDisplay },
+              preorderLeg,
+            )
           }
         }
       } else if (wiredKind === 'preorder-only') {
@@ -1185,22 +1226,23 @@ export function ParticipationPanel({
           // mints the uAsset through the registered PSM pair and forwards the full mint into
           // launcher preorder; the pull token is the reserve.
           if (!payAssetRecord) throw new Error('reserve pay asset missing')
-          const reserve = payAssetRecord.id as Hex
-          const reserveDecimals = await getTokenDecimals(reader, chainId, reserve)
-          const reserveBase = toBaseUnits(preorderOnly ? amount : preorderAmount, reserveDecimals)
-          const reserveDisplay = `${formatUnits(reserveBase, reserveDecimals)} ${payAsset}`
+          const reserveLeg = await reserveLegFor(
+            payAssetRecord,
+            preorderOnly ? amount : preorderAmount,
+            payAsset,
+          )
           action = preorderByPsmCall(router, {
             uAsset,
-            reserveToken: reserve,
-            amountIn: reserveBase,
+            reserveToken: reserveLeg.token,
+            amountIn: reserveLeg.amount,
             verseId: BigInt(verseId),
             preorderUser: eoa,
           })
           functionName = 'preorderByPSM'
-          inputs = reserveDisplay
+          inputs = reserveLeg.display
           target = router
           spender = router
-          pulls = [{ token: reserve, amount: reserveBase, display: reserveDisplay }]
+          pulls = [reserveLeg]
         }
       } else if (wiredKind === 'leverage-preorder') {
         // Router leveragedGenesisAndPreorder: the interest leg funds per route and the preorder
@@ -1231,26 +1273,29 @@ export function ParticipationPanel({
               { token: uAsset, amount: preorderBase, display: preorderDisplay },
             ]
           } else {
-            if (!effectivePreorderRecord) throw new Error('preorder reserve asset missing')
-            const preorderReserve = effectivePreorderRecord.id as Hex
-            const preorderReserveDecimals = await getTokenDecimals(reader, chainId, preorderReserve)
-            const preorderReserveBase = toBaseUnits(preorderAmount, preorderReserveDecimals)
-            const preorderReserveDisplay =
-              `${formatUnits(preorderReserveBase, preorderReserveDecimals)} ${effectivePreorderAsset}`
+            const preorderLeg = await reserveLegFor(
+              effectivePreorderRecord,
+              preorderAmount,
+              effectivePreorderAsset,
+            )
             action = leveragedGenesisAndPreorderCall(router, {
               verseId: BigInt(verseId),
               genesis: fundCreditInput(interestBase),
-              preorder: fundPsmInput(preorderReserve, preorderReserveBase),
+              preorder: preorderLeg.funding,
               user: eoa,
             })
             functionName = 'leveragedGenesisAndPreorder'
-            inputs = `${formatUnits(interestBase, creditDecimals)} ${payAsset} + ${preorderReserveDisplay}`
+            inputs = `${formatUnits(interestBase, creditDecimals)} ${payAsset} + ${preorderLeg.display}`
             target = router
             spender = router
-            pulls = [
-              { token: credit, amount: interestBase, display: `${formatUnits(interestBase, creditDecimals)} ${payAsset}` },
-              { token: preorderReserve, amount: preorderReserveBase, display: preorderReserveDisplay },
-            ]
+            pulls = mergePullLegs(
+              {
+                token: credit,
+                amount: interestBase,
+                display: `${formatUnits(interestBase, creditDecimals)} ${payAsset}`,
+              },
+              preorderLeg,
+            )
           }
         } else if (payIsUAsset && preorderPayIsUAsset) {
           // uAsset-direct leverage interest with a uAsset preorder: both legs pay the raise
@@ -1273,27 +1318,30 @@ export function ParticipationPanel({
         } else if (payIsUAsset) {
           // uAsset-direct interest + PSM preorder: the router mints the preorder uAsset through
           // the PSM pair — the interest pulls uAsset, the preorder pulls the reserve.
-          if (!effectivePreorderRecord) throw new Error('preorder reserve asset missing')
-          const preorderReserve = effectivePreorderRecord.id as Hex
-          const preorderReserveDecimals = await getTokenDecimals(reader, chainId, preorderReserve)
-          const preorderReserveBase = toBaseUnits(preorderAmount, preorderReserveDecimals)
-          const preorderReserveDisplay =
-            `${formatUnits(preorderReserveBase, preorderReserveDecimals)} ${effectivePreorderAsset}`
+          const preorderLeg = await reserveLegFor(
+            effectivePreorderRecord,
+            preorderAmount,
+            effectivePreorderAsset,
+          )
           const interestBase = toBase(amount)
           action = leveragedGenesisAndPreorderCall(router, {
             verseId: BigInt(verseId),
             genesis: fundUAssetInput(interestBase),
-            preorder: fundPsmInput(preorderReserve, preorderReserveBase),
+            preorder: preorderLeg.funding,
             user: eoa,
           })
           functionName = 'leveragedGenesisAndPreorder'
-          inputs = `${formatUnits(interestBase, decimals)} ${raiseAssetSymbol} + ${preorderReserveDisplay}`
+          inputs = `${formatUnits(interestBase, decimals)} ${raiseAssetSymbol} + ${preorderLeg.display}`
           target = router
           spender = router
-          pulls = [
-            { token: uAsset, amount: interestBase, display: `${formatUnits(interestBase, decimals)} ${raiseAssetSymbol}` },
-            { token: preorderReserve, amount: preorderReserveBase, display: preorderReserveDisplay },
-          ]
+          pulls = mergePullLegs(
+            {
+              token: uAsset,
+              amount: interestBase,
+              display: `${formatUnits(interestBase, decimals)} ${raiseAssetSymbol}`,
+            },
+            preorderLeg,
+          )
         } else {
           // Reserve interest leg (Psm): the router mints the interest uAsset through the PSM
           // pair — the quota preview above already nets the mint fee (tin) via netUAsset. The
@@ -1319,35 +1367,25 @@ export function ParticipationPanel({
               { token: uAsset, amount: preorderBase, display: preorderDisplay },
             ]
           } else {
-            if (!effectivePreorderRecord) throw new Error('preorder reserve asset missing')
-            const preorderReserve = effectivePreorderRecord.id as Hex
-            const preorderReserveDecimals = await getTokenDecimals(reader, chainId, preorderReserve)
-            const preorderReserveBase = toBaseUnits(preorderAmount, preorderReserveDecimals)
-            const preorderReserveDisplay =
-              `${formatUnits(preorderReserveBase, preorderReserveDecimals)} ${effectivePreorderAsset}`
-            const sameReserve = preorderReserve === reserve
+            const preorderLeg = await reserveLegFor(
+              effectivePreorderRecord,
+              preorderAmount,
+              effectivePreorderAsset,
+            )
             action = leveragedGenesisAndPreorderCall(router, {
               verseId: BigInt(verseId),
               genesis: fundPsmInput(reserve, interestBase),
-              preorder: fundPsmInput(preorderReserve, preorderReserveBase),
+              preorder: preorderLeg.funding,
               user: eoa,
             })
             functionName = 'leveragedGenesisAndPreorder'
-            inputs = `${interestDisplay} + ${preorderReserveDisplay}`
+            inputs = `${interestDisplay} + ${preorderLeg.display}`
             target = router
             spender = router
-            pulls = sameReserve
-              ? [
-                  {
-                    token: reserve,
-                    amount: interestBase + preorderReserveBase,
-                    display: `${formatUnits(interestBase + preorderReserveBase, reserveDecimals)} ${payAsset}`,
-                  },
-                ]
-              : [
-                  { token: reserve, amount: interestBase, display: interestDisplay },
-                  { token: preorderReserve, amount: preorderReserveBase, display: preorderReserveDisplay },
-                ]
+            pulls = mergePullLegs(
+              { token: reserve, amount: interestBase, display: interestDisplay },
+              preorderLeg,
+            )
           }
         }
       } else {
@@ -1633,11 +1671,11 @@ export function ParticipationPanel({
           </b>
         </FieldDescription>
       ) : null}
-      {mode === 'leverage' && leverageExceeded && leverageHeadroom != null ? (
+      {mode === 'leverage' && leverageExceeded && (exactDebtHeadroomBase != null || leverageHeadroom != null) ? (
         <FieldError>
           {copy.verse.leverageCapExceeded.replace(
             '{quota}',
-            `${formatAmount(leverageHeadroom, locale)} ${raiseAssetSymbol}`,
+            `${moneyText(exactDebtHeadroomBase, 18, leverageHeadroom ?? 0)} ${raiseAssetSymbol}`,
           )}
         </FieldError>
       ) : null}
@@ -1652,11 +1690,11 @@ export function ParticipationPanel({
           </b>
         </FieldDescription>
       ) : null}
-      {mode === 'leverage' && leverageHeadroom != null ? (
+      {mode === 'leverage' && (exactDebtHeadroomBase != null || leverageHeadroom != null) ? (
         <FieldDescription>
           {copy.verse.leverageCapHeadroom}{' '}
           <b data-numeric>
-            {formatAmount(leverageHeadroom, locale)} {raiseAssetSymbol}
+            {moneyText(exactDebtHeadroomBase, 18, leverageHeadroom ?? 0)} {raiseAssetSymbol}
           </b>
         </FieldDescription>
       ) : null}
@@ -2345,7 +2383,7 @@ export function ParticipationPanel({
           </ActionDialogShell>
         </Dialog>
       ) : null}
-      {/* Feedback pair (2026-10-26 弹窗序列纪律): progress = its own button-less dialog
+      {/* Feedback pair (dialog stacking discipline): progress = its own button-less dialog
           stacked on the review dialog (always second-to-last); confirmed yields to the
           generic receipt dialog, the last one. */}
       <TxProgressDialog

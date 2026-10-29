@@ -16,7 +16,7 @@ import { useAccountCenter } from '../global/use-account-center'
 import { useWalletProviderReader } from '../global/wallet-provider-reader'
 import { useVerseLive } from './genesis-live'
 
-/** 「您的参与」 stat value: equivalent genesis funds summed across the verse's LANDED chains
+/** 「你的参与」 stat value: equivalent genesis funds summed across the verse's LANDED chains
  *  (genesis settles per chain — normal funds + leveraged interest converted at the on-chain
  *  rate via POLend getUserLeveragedDebt; preorder excluded). Leg sources: the wallet's own
  *  chain reads through the wallet provider (same RPC that confirmed any receipt, refreshed by
@@ -29,15 +29,16 @@ export function MyParticipationStat({
   raiseAsset,
   governanceChain,
   landedChains,
-  sample,
+  harness,
 }: {
   locale: Locale
-  raiseAsset: string
+  /** null = raise asset unresolved from the deployment tables; the stat renders unit-less */
+  raiseAsset: string | null
   governanceChain: number
   /** Verse's landed set; null = the source carries no per-chain presence (governance chain alone) */
   landedChains: number[] | null
-  /** SSR sample sum, equivalent-genesis-funds basis (participations fixture; 0 on onchain builds) */
-  sample: number
+  /** SSR harness sum, equivalent-genesis-funds basis (participations fixture; 0 on onchain builds) */
+  harness: number
 }) {
   const copy = getCopy(locale)
   const center = useAccountCenter()
@@ -149,10 +150,10 @@ export function MyParticipationStat({
     return sum
   }, [chainRows, walletChainLanded, walletChain, walletLeg, chains])
 
-  const amount = !real ? sample : totalBase != null ? Number(formatUnits(totalBase, 18)) : null
+  const amount = !real ? harness : totalBase != null ? Number(formatUnits(totalBase, 18)) : null
   const body =
     amount != null && amount > 0
-      ? `${formatAmount(amount, locale)} ${raiseAsset}`
+      ? `${formatAmount(amount, locale)}${raiseAsset ? ` ${raiseAsset}` : ''}`
       : real && connected && amount == null
         ? '--'
         : copy.verse.notParticipating

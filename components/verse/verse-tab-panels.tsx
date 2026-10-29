@@ -50,6 +50,12 @@ export async function LiquidityPanel({
     0,
   )
   const hasVolume = trade.pools.some((pool) => pool.volume24h != null)
+  // A USD sample missing on ANY pool (feed failure / unresolved raise asset) nulls the total —
+  // summing the remaining pools would dress a partial number as the four-pool total
+  const tvlTotal =
+    trade.pools.length > 0 && trade.pools.every((pool) => pool.tvl != null)
+      ? trade.pools.reduce((sum, pool) => sum + (pool.tvl ?? 0), 0)
+      : null
   // ≈$ conversion is paired with the main pool (same uAssetUsd/price sources as PolPanel)
   const uAssetUsd = await getAssetUsdPrice(verse.raiseAsset)
 
@@ -58,7 +64,11 @@ export async function LiquidityPanel({
       <dl className="liquidity-panel__overview" data-numeric>
         <div>
           <dt>{copy.totalValueLocked}</dt>
-          <dd>{`$${formatMarketCap(trade.pools.reduce((sum, pool) => sum + pool.tvl, 0))}`}</dd>
+          {tvlTotal != null ? (
+            <dd>{`$${formatMarketCap(tvlTotal)}`}</dd>
+          ) : (
+            <dd>--</dd>
+          )}
         </div>
         {hasVolume ? (
           <div>
@@ -77,7 +87,7 @@ export async function LiquidityPanel({
                 data row=TVL+24h volume, bottom row=full-width equal-split dual buttons */}
             <header className="pool-card__head">
               <strong className="pool-card__pair" data-numeric>
-                {pool.baseSymbol}/{pool.quoteSymbol}
+                {pool.quoteSymbol ? `${pool.baseSymbol}/${pool.quoteSymbol}` : pool.baseSymbol}
               </strong>
               {pool.apr7d != null ? (
                 <span className="pool-card__apr">
@@ -89,10 +99,12 @@ export async function LiquidityPanel({
               ) : null}
             </header>
             <dl className="pool-card__stats" data-numeric>
-              <div>
-                <dt>TVL</dt>
-                <dd>{`$${formatMarketCap(pool.tvl)}`}</dd>
-              </div>
+              {pool.tvl != null ? (
+                <div>
+                  <dt>TVL</dt>
+                  <dd>{`$${formatMarketCap(pool.tvl)}`}</dd>
+                </div>
+              ) : null}
               {pool.volume24h != null ? (
                 <div>
                   <dt>{copy.liquidityVolume}</dt>
@@ -173,19 +185,26 @@ export async function PolPanel({
   // baseline=0 (parity, magenta datum), the market mark's position is always the linear landing
   // spot Δ/(2D)+50%, and the deviation bar between them is the ink of |Δ|
   const nominal = pol?.nominalValuePerPol ?? 0
-  const market = pol?.marketPricePerPol ?? 0
-  const deltaPct = nominal > 0 ? ((market - nominal) / nominal) * 100 : 0
-  const domainPct = [50, 100, 200, 400].find((d) => Math.abs(deltaPct) <= d) ?? 400
-  const marketPos = nominal > 0 ? Math.min(1, Math.max(0, 0.5 + deltaPct / (domainPct * 2))) : 0.5
-  const spanWidth = Math.abs(marketPos - 0.5)
-  const deltaLabel = `${deltaPct < 0 ? '−' : '+'}${formatPercent(Math.abs(deltaPct), locale)}%`
+  // A failed pool read is unknown, not worthless — the gauge slots (no mark/span/readout,
+  // '--' in the label) instead of plotting a fabricated −100% deviation
+  const market = pol?.marketPricePerPol ?? null
+  const deltaPct = market != null && nominal > 0 ? ((market - nominal) / nominal) * 100 : null
+  const domainPct = [50, 100, 200, 400].find((d) => Math.abs(deltaPct ?? 0) <= d) ?? 400
+  const marketPos =
+    deltaPct != null ? Math.min(1, Math.max(0, 0.5 + deltaPct / (domainPct * 2))) : 0.5
+  const spanWidth = deltaPct != null ? Math.abs(marketPos - 0.5) : 0
+  const deltaLabel =
+    deltaPct != null
+      ? `${deltaPct < 0 ? '−' : '+'}${formatPercent(Math.abs(deltaPct), locale)}%`
+      : '--'
 
   // Denomination=USD (pricing unified to the $ scope, consistent with
   // the trade desk stats bar/Liquidity panel;
   // rate=asset usdPrice — same uAssetUsd source as SwapPanel; no sample → slot state.
   // Market cap/total supply not shown — no real value to users)
   const uAssetUsd = await getAssetUsdPrice(verse.raiseAsset)
-  const marketUsd = uAssetUsd != null && pol ? `$${formatAmount(market * uAssetUsd, locale)}` : null
+  const marketUsd =
+    uAssetUsd != null && market != null ? `$${formatAmount(market * uAssetUsd, locale)}` : null
   const nominalUsd = uAssetUsd != null && pol ? `$${formatAmount(nominal * uAssetUsd, locale)}` : null
   // Per-unit mechanism values of PT/YT (well readout):
   // PT leg=fixed redemption rate uAssetPerPol (registered once at genesis lock, determined in
@@ -244,7 +263,7 @@ export async function PolPanel({
               className="pol-gauge"
               role="img"
               data-numeric
-              aria-label={`${copy.marketPrice} ${marketUsd ?? `${market.toFixed(4)} ${verse.raiseAsset}`} · ${copy.nominalValue} ${nominalUsd ?? `${nominal.toFixed(4)} ${verse.raiseAsset}`} · ${deltaLabel} ${copy.vsNominal} · ${copy.polScaleNote.replace('{n}', String(domainPct))}`}
+              aria-label={`${copy.marketPrice} ${marketUsd ?? (market != null ? `${market.toFixed(4)} ${verse.raiseAsset ?? ''}` : '--')} · ${copy.nominalValue} ${nominalUsd ?? `${nominal.toFixed(4)} ${verse.raiseAsset ?? ''}`} · ${deltaLabel} ${copy.vsNominal} · ${copy.polScaleNote.replace('{n}', String(domainPct))}`}
             >
               <div className="pol-gauge__row">
                 <span className="pol-gauge__legend pol-gauge__legend--market">
@@ -253,15 +272,17 @@ export async function PolPanel({
                     <strong className="pol-gauge__value pol-gauge__value--market">{marketUsd}</strong>
                   ) : null}
                 </span>
-                <span className="pol-gauge__readout" data-trend={deltaPct < 0 ? 'down' : 'up'}>
-                  <em>{copy.vsNominal}</em>
-                  <strong>{deltaLabel}</strong>
-                </span>
+                {deltaPct != null && (
+                  <span className="pol-gauge__readout" data-trend={deltaPct < 0 ? 'down' : 'up'}>
+                    <em>{copy.vsNominal}</em>
+                    <strong>{deltaLabel}</strong>
+                  </span>
+                )}
               </div>
               <div className="pol-gauge__axis">
                 {/* Z order=deviation bar → market mark → nominal datum: near parity the datum sits
                     above the mark so the 0 point never disappears */}
-                {spanWidth > 0.004 && (
+                {deltaPct != null && spanWidth > 0.004 && (
                   <span
                     className="pol-gauge__span"
                     data-trend={deltaPct < 0 ? 'down' : 'up'}
@@ -271,10 +292,12 @@ export async function PolPanel({
                     }}
                   />
                 )}
-                <span
-                  className="pol-gauge__mark"
-                  style={{ insetInlineStart: `${(marketPos * 100).toFixed(1)}%` }}
-                />
+                {deltaPct != null && (
+                  <span
+                    className="pol-gauge__mark"
+                    style={{ insetInlineStart: `${(marketPos * 100).toFixed(1)}%` }}
+                  />
+                )}
                 <span className="pol-gauge__datum" style={{ insetInlineStart: '50%' }} />
                 {/* End labels + midpoint anchor the scale: linear deviation scale
                     −D%~+D%, 0=parity */}
@@ -305,7 +328,8 @@ export async function PolPanel({
               <div className="pol-card__btns">
                 {/* Mint opens a dialog (dual-token supply → POL,
                     mechanism same as mintNote;
-                    the in-dialog CTA stays disabled — no faked execution) */}
+                    the in-dialog CTA arms the real pipeline —
+                    prepare → review → Type-4 / wallet_sendCalls) */}
                 <PolMintDialog
                   locale={locale}
                   verse={verse}
@@ -368,11 +392,11 @@ export async function PolPanel({
                       <Tooltip>
                         <TooltipTrigger
                           className="create-info"
-                          aria-label={copy.ptTip.replace('{asset}', verse.raiseAsset)}
+                          aria-label={copy.ptTip.replace('{asset}', verse.raiseAsset ?? '')}
                         >
                           <Info aria-hidden="true" />
                         </TooltipTrigger>
-                        <TooltipContent>{copy.ptTip.replace('{asset}', verse.raiseAsset)}</TooltipContent>
+                        <TooltipContent>{copy.ptTip.replace('{asset}', verse.raiseAsset ?? '')}</TooltipContent>
                       </Tooltip>
                     </span>
                   </div>
@@ -392,7 +416,7 @@ export async function PolPanel({
                   <div className="pol-twin__legs" data-numeric>
                     <span>
                       {ptLeg != null
-                        ? `${formatAmount(ptLeg, locale)} ${verse.raiseAsset}`
+                        ? `${formatAmount(ptLeg, locale)} ${verse.raiseAsset ?? ''}`
                         : '--'}
                     </span>
                   </div>
@@ -415,11 +439,11 @@ export async function PolPanel({
                       <Tooltip>
                         <TooltipTrigger
                           className="create-info"
-                          aria-label={copy.ytTip.replace('{asset}', verse.raiseAsset)}
+                          aria-label={copy.ytTip.replace('{asset}', verse.raiseAsset ?? '')}
                         >
                           <Info aria-hidden="true" />
                         </TooltipTrigger>
-                        <TooltipContent>{copy.ytTip.replace('{asset}', verse.raiseAsset)}</TooltipContent>
+                        <TooltipContent>{copy.ytTip.replace('{asset}', verse.raiseAsset ?? '')}</TooltipContent>
                       </Tooltip>
                     </span>
                   </div>
@@ -447,7 +471,7 @@ export async function PolPanel({
                     {/* uAsset leg: unlocked=settlement sample truth; locked=settlement estimate
                         sample (locked-stage estimate; see above) */}
                     <span className="pol-twin__leg-extra">
-                      + {ytUAssetLeg != null ? `${formatAmount(ytUAssetLeg, locale)} ${verse.raiseAsset}` : '--'}
+                      + {ytUAssetLeg != null ? `${formatAmount(ytUAssetLeg, locale)} ${verse.raiseAsset ?? ''}` : '--'}
                     </span>
                   </div>
                 </div>
@@ -599,7 +623,9 @@ export function DaoPanel({
               time has passed and settlement has not happened; finalizeNote tucked into the ⊙
               bubble after the button (the explanation does not go into the banner body), button
               placed right */}
-          {!governance.finalized && new Date(governance.cycleEndsAt).getTime() <= Date.now() ? (
+          {governance.finalized === false &&
+          governance.cycleEndsAt != null &&
+          new Date(governance.cycleEndsAt).getTime() <= Date.now() ? (
             <div className="cycle-card__settle">
               <div className="cycle-card__settle-copy">
                 <strong>{copy.settleOpen}</strong>
@@ -631,7 +657,15 @@ export function DaoPanel({
               <dd className="stat-meta">
                 #{governance.cycleNumber}{' '}
                 <span className="stat-sub">
-                  ({governance.finalized ? copy.ended : `${copy.endsIn} ${formatDay(governance.cycleEndsAt, locale)}`})
+                  {`(${
+                    governance.finalized == null
+                      ? '--'
+                      : governance.finalized
+                        ? copy.ended
+                        : governance.cycleEndsAt != null
+                          ? `${copy.endsIn} ${formatDay(governance.cycleEndsAt, locale)}`
+                          : '--'
+                  })`}
                 </span>
               </dd>
             </div>
@@ -713,7 +747,7 @@ export function DaoPanel({
                 <dt>{copy.lastCycleChip}</dt>
                 <dd className="stat-meta">#{governance.lastCycle.number}</dd>
               </div>
-              {governance.lastCycle.treasuryAssets ? (
+              {governance.lastCycle.treasuryUAsset != null && governance.lastCycle.treasuryAssets ? (
                 <DaoFundDialog
                   locale={locale}
                   title={copy.lastTreasuryDetailsTitle}
@@ -728,13 +762,13 @@ export function DaoPanel({
                     <dd>${formatAmount(governance.lastCycle.treasuryUAsset, locale)}</dd>
                   </>
                 </DaoFundDialog>
-              ) : (
+              ) : governance.lastCycle.treasuryUAsset != null ? (
                 <div>
                   <dt>{copy.treasury}</dt>
                   <dd>${formatAmount(governance.lastCycle.treasuryUAsset, locale)}</dd>
                 </div>
-              )}
-              {governance.lastCycle.unclaimedAssets ? (
+              ) : null}
+              {governance.lastCycle.remainingRewards != null && governance.lastCycle.unclaimedAssets ? (
                 <DaoFundDialog
                   locale={locale}
                   title={copy.unclaimedDetailsTitle}
@@ -750,12 +784,12 @@ export function DaoPanel({
                     <dd>${formatAmount(governance.lastCycle.remainingRewards, locale)}</dd>
                   </>
                 </DaoFundDialog>
-              ) : (
+              ) : governance.lastCycle.remainingRewards != null ? (
                 <div>
                   <dt>{copy.remainingRewards}</dt>
                   <dd>${formatAmount(governance.lastCycle.remainingRewards, locale)}</dd>
                 </div>
-              )}
+              ) : null}
               <div>
                 <dt>{copy.cycleTotalVotes}</dt>
                 <dd>

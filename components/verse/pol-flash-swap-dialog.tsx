@@ -59,12 +59,15 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
  * uAsset-derived read-only; the mode bar only changes labels and the protection row's direction.
  * Gate is locked only (well-bottom gating; after unlock split/merge closes and Flash Swap
  * becomes unavailable with it, moving to settlement redemption).
- * Settings gear keeps only slippage (the contract has no deadline parameter; optional limit
- * price + expiry are advanced items not built — same scope as the Split/Merge dialog).
+ * Settings gear keeps only slippage: the flash router does take a deadline (pinned to
+ * now + 600s, enforced on chain via ExpiredPastDeadline) and a sqrt price limit (pinned
+ * to the pool bounds) — configurable expiry/limit price are just not exposed as settings.
+ * (Split/Merge is different: its splitter takes no deadline parameter at all.)
  * Opens with empty input (amount input defaults to empty 0.00, not prefilled with balance);
  * recalculates as usual after clearing/changing the number; mode switch preserves input.
- * CTA discipline same as the Mint dialog: disconnected=Connect Wallet clickable to toggle mock
- * connection; connected=action button disabled (no faked execution).
+ * CTA discipline same as the Mint dialog: the CTA arms the real pipeline (disconnected=
+ * Connect Wallet clickable to toggle connection; connected=the flash swap runs prepare →
+ * review → Type-4 / wallet_sendCalls).
  */
 export function PolFlashSwapDialog({
   locale,
@@ -115,7 +118,7 @@ export function PolFlashSwapDialog({
   }, [tx.display])
   const live = useVerseBalances({
     verseId,
-    uAssetSymbol: verse.raiseAsset,
+    uAssetSymbol: verse.raiseAsset ?? undefined,
     governanceChain: verse.governanceChain,
     refreshKey: settleTick,
   })
@@ -134,15 +137,22 @@ export function PolFlashSwapDialog({
   // 1 POL=1 PT+1 YT → 1 YT ≈ 1 POL − PT pool market price, then converted to
   // uAsset via the POL/uAsset pool price;
   // on-chain it still settles in POL via Flash Swap, the frontend composes the POL/uAsset pool legs)
-  const ytPerUAsset = (1 - pol.ptPricePerPol) * pol.marketPricePerPol
+  const ytPerUAsset =
+    pol.ptPricePerPol != null && pol.marketPricePerPol != null
+      ? (1 - pol.ptPricePerPol) * pol.marketPricePerPol
+      : null
   const parsed = Number(amount)
-  const valid = typedAmountPositive(amount, ytExact) && ytPerUAsset > 0
+  const valid = typedAmountPositive(amount, ytExact) && ytPerUAsset != null && ytPerUAsset > 0
   // Buy and sell both use the linear reference price: paid/received uAsset = YT amount × implied
   // price (execution price is decided by pool state, see the leverage warning)
   const uAssetLeg = valid ? parsed * ytPerUAsset : null
   // Insufficient balance: sell=exceeds YT holdings; buy=derived pay leg exceeds the uAsset
   // balance (lower block is read-only, the error belongs to the driving input). A null balance
-  // (accountless slot) never blocks — the chain enforces real holdings at execution.
+  // (accountless slot) never triggers the over error row — the chain enforces real holdings at
+  // execution. The submit gate is separately fail-closed on unread legs: sell = both YT reads
+  // missing (probe not landed/failed, no sample), buy = the uAsset pay leg unread; either
+  // leaves the amount unverifiable, and the early-exit/CTA below stay closed — submitting
+  // would only revert on-chain for gas.
   // Sell compares exact base units when the probe landed (the Max prefill round-trips through
   // the input string); the buy leg is a reference-price float estimate (execution re-quotes
   // on-chain with the real balance enforced), so it keeps the float comparison.
@@ -152,6 +162,8 @@ export function PolFlashSwapDialog({
         ? Number.isFinite(parsed) && toBaseUnits(amount, ytExact.decimals) > ytExact.base
         : myYtLive != null && parsed > myYtLive
       : uAssetLeg != null && myUAssetLive != null && uAssetLeg > myUAssetLive
+  const balanceUnknown =
+    mode === 'sell' ? ytExact == null && myYtLive == null : myUAssetLive == null
   // Slippage validation (see getSlippageIssue/slippageToNumber in global/slippage-input):
   // while out of bounds, protected-value derivation falls back to the '--' slot
   const slippage = slippageToNumber(slippageText)
@@ -170,6 +182,7 @@ export function PolFlashSwapDialog({
     center.chainId != null &&
     center.address != null &&
     verseId != null &&
+    pol.marketPricePerPol != null &&
     pol.marketPricePerPol > 0
 
   async function startFlashReview(): Promise<void> {
@@ -181,7 +194,7 @@ export function PolFlashSwapDialog({
                   {
                     label: common.txYouPaid,
                     value: `≈ ${fmtTokenAmount(uAssetLeg, locale)}`,
-                    symbol: verse.raiseAsset,
+                    symbol: verse.raiseAsset ?? undefined,
                   },
                 ]
               : []),
@@ -194,13 +207,13 @@ export function PolFlashSwapDialog({
                   {
                     label: common.txReceived,
                     value: `≈ ${fmtTokenAmount(uAssetLeg, locale)}`,
-                    symbol: verse.raiseAsset,
+                    symbol: verse.raiseAsset ?? undefined,
                   },
                 ]
               : []),
           ],
     )
-    if (!executionReady || !valid || overBalance || slippageIssue != null || resolving) return
+    if (!executionReady || !valid || overBalance || balanceUnknown || slippageIssue != null || resolving) return
     const provider = getActiveEip1193Provider()
     const eoa = center.address as Hex | null
     const chainId = center.chainId
@@ -218,8 +231,10 @@ export function PolFlashSwapDialog({
         verseId: BigInt(verseId),
       })
       const contracts = session.contracts
-      const router = contracts.MemeverseYTFlashSwapRouter as Hex
-      const splitter = contracts.POLSplitter as Hex
+      const router = contracts.MemeverseYTFlashSwapRouter as Hex | undefined
+      const splitter = contracts.POLSplitter as Hex | undefined
+      if (!router) throw new Error('outrun: MemeverseYTFlashSwapRouter missing')
+      if (!splitter) throw new Error('outrun: POLSplitter missing')
       const reader: ContractReader = session.reader
       const yt = (await reader.read({
         address: splitter,
@@ -234,7 +249,7 @@ export function PolFlashSwapDialog({
       const ytAmount = toBaseUnits(amount, ytDecimals)
       if (ytAmount === 0n) throw new Error('typed amount below one base unit')
       const protectedPol =
-        protectedLeg != null && pol.marketPricePerPol > 0
+        protectedLeg != null && pol.marketPricePerPol != null && pol.marketPricePerPol > 0
           ? protectedLeg / pol.marketPricePerPol
           : null
       if (protectedPol == null) {
@@ -346,8 +361,8 @@ export function PolFlashSwapDialog({
         title={copy.flashSwap}
         closeLabel={common.close}
         toolbar={
-          /* Slippage only: the contract has no deadline; optional limit price + expiry not done
-             (see the component header note) */
+          /* Slippage only: deadline (fixed now+600s, chain-enforced) and the sqrt price limit
+             (pinned to pool bounds) are hardcoded, not settings (see the component header note) */
           <SwapSettings
             locale={locale}
             settingsLabel={copy.flashSettingsTitle}
@@ -452,7 +467,7 @@ export function PolFlashSwapDialog({
               <output
                 className="swap-panel__output numeric-input"
                 data-numeric
-                aria-label={`${mode === 'buy' ? copy.flashYouPay : copy.youReceive} ${verse.raiseAsset}`}
+                aria-label={`${mode === 'buy' ? copy.flashYouPay : copy.youReceive} ${verse.raiseAsset ?? ''}`}
               >
                 {uAssetLeg != null ? fmtTokenAmount(uAssetLeg, locale) : '0.00'}
               </output>
@@ -473,17 +488,17 @@ export function PolFlashSwapDialog({
               </dt>
               <dd className="swap-panel__rate">
                 <span data-numeric>
-                  {ytPerUAsset > 0
+                  {ytPerUAsset != null && ytPerUAsset > 0
                     ? rateInverted
-                      ? `1 ${verse.raiseAsset} ≈ ${fmtTokenAmount(1 / ytPerUAsset, locale)} ${ytSymbol}`
-                      : `1 ${ytSymbol} ≈ ${fmtTokenAmount(ytPerUAsset, locale)} ${verse.raiseAsset}`
+                      ? `1 ${verse.raiseAsset ?? ''} ≈ ${fmtTokenAmount(1 / ytPerUAsset, locale)} ${ytSymbol}`
+                      : `1 ${ytSymbol} ≈ ${fmtTokenAmount(ytPerUAsset, locale)} ${verse.raiseAsset ?? ''}`
                     : '--'}
                 </span>
                 <button
                   type="button"
                   className="swap-panel__rate-flip"
                   onClick={() => setRateInverted((v) => !v)}
-                  disabled={!(ytPerUAsset > 0)}
+                  disabled={!(ytPerUAsset != null && ytPerUAsset > 0)}
                   aria-label={copy.swapRateFlip}
                 >
                   <ArrowLeftRight aria-hidden="true" size={12} />
@@ -493,7 +508,7 @@ export function PolFlashSwapDialog({
             <div>
               <dt>{mode === 'buy' ? copy.maxPaid : copy.minReceived}</dt>
               <dd data-numeric>
-                {protectedLeg != null ? `${fmtTokenAmount(protectedLeg, locale)} ${verse.raiseAsset}` : '--'}
+                {protectedLeg != null ? `${fmtTokenAmount(protectedLeg, locale)} ${verse.raiseAsset ?? ''}` : '--'}
               </dd>
             </div>
             <div>
@@ -516,7 +531,7 @@ export function PolFlashSwapDialog({
             onAction={() => void startFlashReview()}
             label={mode === 'buy' ? copy.flashBuy : copy.flashSell}
             connectLabel={copy.swapCta}
-            disabled={!valid || overBalance || slippageIssue != null || !executionReady || resolving || tx.running}
+            disabled={!valid || overBalance || balanceUnknown || slippageIssue != null || !executionReady || resolving || tx.running}
             switchChainTo={
               wrongChain
                 ? { execChain, chainName: verse.governanceChainName, onSwitch: switchChain }
@@ -526,7 +541,7 @@ export function PolFlashSwapDialog({
           {resolveFailed ? <FieldError>{common.degrade.errorBody}</FieldError> : null}
       </ActionDialogShell>
       </Dialog>
-      {/* Feedback pair (2026-10-26 弹窗序列纪律): progress = its own button-less dialog
+      {/* Feedback pair (dialog stacking discipline): progress = its own button-less dialog
           (second-to-last), confirmed yields to the generic receipt dialog (last). */}
       <TxProgressDialog
         locale={locale}

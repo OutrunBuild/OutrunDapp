@@ -56,9 +56,9 @@ import { Input } from '@/components/ui/input'
  * Ratio linkage: main pool=main-pool price (tokenStats.price), POL/uAsset=fixture
  * marketPricePerPol sample, the two PT pools=anchor-rate derivation sample (see the
  * ptAnchorRatio note below).
- * Same discipline as Mint: the quote is a linear-derivation sample; CTA disconnected=
- * Connect Wallet clickable to toggle connection,
- * connected=Add Liquidity disabled, no faked on-chain execution.
+ * Same discipline as Mint: the quote is a linear-derivation sample; the CTA arms the real
+ * pipeline (disconnected=Connect Wallet clickable to toggle connection,
+ * connected=Add Liquidity runs prepare → review → Type-4 / wallet_sendCalls).
  */
 export function PoolAddLiquidityDialog({
   locale,
@@ -149,12 +149,13 @@ export function PoolAddLiquidityDialog({
   // LP name = same pair scope as the pool card + LP suffix (the v4 position system has no ERC20
   // LP naming source of truth;
   // display-layer naming follows industry convention; each of the four pools gets its own name)
-  const lpSymbol = `${pool.baseSymbol}/${pool.quoteSymbol} LP`
+  // An empty quote symbol (unresolved raise asset) renders the base side alone — no "X/ LP" wreckage
+  const lpSymbol = `${pool.quoteSymbol ? `${pool.baseSymbol}/${pool.quoteSymbol}` : pool.baseSymbol} LP`
   // 1 base = ratio quote. The two PT pools use anchor-rate derived samples (never
   // non-linked/'--'): 1 PT = uAssetPerPol uAsset (fixed redemption rate);
   // the PT/POL pool then converts via the POL/uAsset market price: 1 PT = uAssetPerPol÷marketPricePerPol POL
   const ptAnchorRatio =
-    pol != null && pol.marketPricePerPol > 0
+    pol != null && pol.marketPricePerPol != null && pol.marketPricePerPol > 0
       ? pool.pool === 'pt-uasset'
         ? pol.uAssetPerPol
         : pol.uAssetPerPol / pol.marketPricePerPol
@@ -172,6 +173,10 @@ export function PoolAddLiquidityDialog({
     quoteExact != null
       ? Number.isFinite(quoteVal) && toBaseUnits(quoteAmount, quoteExact.decimals) > quoteExact.base
       : quoteBalance != null && quoteVal > quoteBalance
+  // Both balance reads missing on a leg (probe not landed/failed and no sample): the amount
+  // cannot be validated, so the CTA stays closed — submitting would only revert on-chain for gas.
+  const baseUnknown = baseExact == null && baseBalance == null
+  const quoteUnknown = quoteExact == null && quoteBalance == null
   // LP minted = quote side × lpPerQuote (mint rate fixture sample, linear derivation; production reads on-chain values)
   const lpOut = valid && pool.lpPerQuote != null && pool.lpPerQuote > 0 ? quoteVal * pool.lpPerQuote : null
   // Pool side → token resolution (main=[memecoin,uAsset], pol-uasset=[POL,uAsset],
@@ -186,7 +191,7 @@ export function PoolAddLiquidityDialog({
     verseId != null
 
   async function startAddReview(): Promise<void> {
-    if (!executionReady || !valid || baseOver || quoteOver || slippageIssue != null || resolving) return
+    if (!executionReady || !valid || baseOver || quoteOver || baseUnknown || quoteUnknown || slippageIssue != null || resolving) return
     setAddRows([
       {
         label: common.txYouSupplied,
@@ -224,7 +229,8 @@ export function PoolAddLiquidityDialog({
         eoa,
         verseId: BigInt(verseId),
       })
-      const router = session.contracts.MemeverseSwapRouter as Hex
+      const router = session.contracts.MemeverseSwapRouter as Hex | undefined
+      if (!router) throw new Error('outrun: MemeverseSwapRouter missing')
       const reader = session.reader
       const { base: baseToken, quote: quoteToken } = await resolvePoolTokens(
         reader,
@@ -510,7 +516,7 @@ export function PoolAddLiquidityDialog({
                 <dt>{copy.swapRate}</dt>
                 <dd className="swap-panel__rate">
                   <span data-numeric>
-                    {ratio != null && ratio > 0
+                    {ratio != null && ratio > 0 && pool.quoteSymbol !== ''
                       ? rateInverted
                         ? `1 ${pool.quoteSymbol} ≈ ${fmtTokenAmount(1 / ratio, locale)} ${pool.baseSymbol}`
                         : `1 ${pool.baseSymbol} ≈ ${fmtTokenAmount(ratio, locale)} ${pool.quoteSymbol}`
@@ -546,7 +552,7 @@ export function PoolAddLiquidityDialog({
             onAction={() => void startAddReview()}
             label={copy.addLiquidity}
             connectLabel={copy.swapCta}
-            disabled={!valid || baseOver || quoteOver || slippageIssue != null || !executionReady || resolving || tx.running}
+            disabled={!valid || baseOver || quoteOver || baseUnknown || quoteUnknown || slippageIssue != null || !executionReady || resolving || tx.running}
             switchChainTo={
               wrongChain
                 ? { execChain, chainName: governanceChainName, onSwitch: switchChain }

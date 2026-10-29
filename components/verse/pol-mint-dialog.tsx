@@ -109,7 +109,7 @@ export function PolMintDialog({
   }, [tx.display])
   const live = useVerseBalances({
     verseId,
-    uAssetSymbol: verse.raiseAsset,
+    uAssetSymbol: verse.raiseAsset ?? undefined,
     governanceChain: verse.governanceChain,
     refreshKey: settleTick,
   })
@@ -125,7 +125,10 @@ export function PolMintDialog({
   const memeVal = Number(memeAmount)
   const uVal = Number(uAmount)
   const valid = typedAmountPositive(memeAmount, memeExact) && typedAmountPositive(uAmount, uExact)
-  // A null balance (accountless slot) never blocks — the chain enforces real holdings at execution
+  // A null balance (accountless slot) never triggers the over error row — the chain enforces
+  // real holdings at execution. The submit gate is separately fail-closed: both reads missing
+  // on a leg (probe not landed/failed, no sample) leaves the amount unverifiable, and the
+  // early-exit/CTA below stay closed — submitting would only revert on-chain for gas.
   const memeOver =
     memeExact != null
       ? Number.isFinite(memeVal) && toBaseUnits(memeAmount, memeExact.decimals) > memeExact.base
@@ -134,8 +137,13 @@ export function PolMintDialog({
     uExact != null
       ? Number.isFinite(uVal) && toBaseUnits(uAmount, uExact.decimals) > uExact.base
       : myUAssetLive != null && uVal > myUAssetLive
+  const memeUnknown = memeExact == null && myMemecoinLive == null
+  const uUnknown = uExact == null && myUAssetLive == null
   // POL output = the uAsset side ÷ the uAsset leg per POL at the current main-pool price.
   // uAssetPerPol would only hold at the settlement price and overstates the mint afterwards.
+  // Estimate-lane decimals for the probe-absent/sample lane only (the probe fails closed on
+  // core legs, and the write path re-reads exact decimals at execution); 18 is sample parity,
+  // not a protocol invariant — uAsset calibration is operational (arbitrary decimals allowed).
   const uAssetDecimals = uExact?.decimals ?? 18
   const memecoinDecimals = memeExact?.decimals ?? 18
   const polOut =
@@ -157,7 +165,7 @@ export function PolMintDialog({
     verseId != null
 
   async function startMintReview(): Promise<void> {
-    if (!executionReady || !valid || memeOver || uOver || slippageIssue != null || resolving) return
+    if (!executionReady || !valid || memeOver || uOver || memeUnknown || uUnknown || slippageIssue != null || resolving) return
     const provider = getActiveEip1193Provider()
     const eoa = center.address as Hex | null
     const chainId = center.chainId
@@ -174,7 +182,7 @@ export function PolMintDialog({
         eoa,
         verseId: BigInt(verseId),
       })
-      const launcher = session.contracts.MemeverseLauncher as Hex
+      const launcher = session.launcher
       const [memeDecimals, uDecimals, polDecimals] = await Promise.all([
         getTokenDecimals(session.reader, chainId, session.verse.memecoin),
         getTokenDecimals(session.reader, chainId, session.verse.uAsset),
@@ -242,13 +250,13 @@ export function PolMintDialog({
           account: eoa,
           targetContract: launcher,
           functionName: 'mintPOLToken',
-          inputs: `${formatUnits(memeDesired, memeDecimals)} ${verse.symbol} + ${formatUnits(uDesired, uDecimals)} ${verse.raiseAsset}`,
+          inputs: `${formatUnits(memeDesired, memeDecimals)} ${verse.symbol} + ${formatUnits(uDesired, uDecimals)} ${verse.raiseAsset ?? ''}`,
           minOutput: outDesired > 0n ? `${formatUnits(outDesired, polDecimals)} ${polSymbol}` : '—',
           fee: '—',
           gasPayer: eoa,
           authorizationChange:
             approvals.length > 0
-              ? `${verse.symbol} + ${verse.raiseAsset}`
+              ? `${verse.symbol} + ${verse.raiseAsset ?? ''}`
               : '—',
           // 审阅面板不渲染 gas 字段（网络费行来自 useGasQuote），点击链路不预估
           estimatedGas: '—',
@@ -278,7 +286,7 @@ export function PolMintDialog({
         {
           label: common.txYouSupplied,
           value: fmtTokenAmount(Number(uAmount), locale),
-          symbol: verse.raiseAsset,
+          symbol: verse.raiseAsset ?? undefined,
         },
         ...(quotedOut != null
           ? [
@@ -434,7 +442,7 @@ export function PolMintDialog({
                 value={uAmount}
                 maxLength={AMOUNT_MAX_CHARS}
                 onChange={(event) => onUInput(sanitizeAmount(event.target.value))}
-                aria-label={`${copy.mintSupply} ${verse.raiseAsset}`}
+                aria-label={`${copy.mintSupply} ${verse.raiseAsset ?? ''}`}
                 aria-invalid={uOver || undefined}
                 aria-describedby={uOver ? uBalanceErrorId : undefined}
               />
@@ -488,8 +496,8 @@ export function PolMintDialog({
                   <span data-numeric>
                     {price != null && price > 0
                       ? rateInverted
-                        ? `1 ${verse.raiseAsset} ≈ ${fmtTokenAmount(1 / price, locale)} ${verse.symbol}`
-                        : `1 ${verse.symbol} ≈ ${fmtTokenAmount(price, locale)} ${verse.raiseAsset}`
+                        ? `1 ${verse.raiseAsset ?? ''} ≈ ${fmtTokenAmount(1 / price, locale)} ${verse.symbol}`
+                        : `1 ${verse.symbol} ≈ ${fmtTokenAmount(price, locale)} ${verse.raiseAsset ?? ''}`
                       : '--'}
                   </span>
                   <button
@@ -522,7 +530,7 @@ export function PolMintDialog({
             onAction={() => void startMintReview()}
             label={copy.mintPol}
             connectLabel={copy.swapCta}
-            disabled={!valid || memeOver || uOver || slippageIssue != null || !executionReady || resolving || tx.running}
+            disabled={!valid || memeOver || uOver || memeUnknown || uUnknown || slippageIssue != null || !executionReady || resolving || tx.running}
             switchChainTo={
               wrongChain
                 ? { execChain, chainName: verse.governanceChainName, onSwitch: switchChain }

@@ -23,7 +23,13 @@ import { readAllowances } from '../global/execution-reads'
 import { ActionDialogShell, DialogCta } from '../global/action-dialogs'
 import { GasEditor, GasSummaryRow } from '../global/gas-setting'
 import { useGasQuote, type GasOverride } from '../global/use-gas-quote'
-import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount, trimFractionZeros, typedAmountPositive } from '../global/amount-input'
+import {
+  AMOUNT_MAX_CHARS,
+  amountToInputString,
+  evaluateAmountBalance,
+  sanitizeAmount,
+  trimFractionZeros,
+} from '../global/amount-input'
 import { parseVerseIdParam } from '../global/routes'
 import { useVerseExecChain } from '../global/switch-chain-cta'
 import { fmtTokenAmount, fmtTokenAmountExact, fmtUsd } from '../global/amount-format'
@@ -35,7 +41,9 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { SwapTokenSelectDialog, type SwapTokenOption } from './swap-token-select-dialog'
 import { buildSwapPlan, swapApprovalLegs, swapFeeBps } from './swap-plan'
+import { cardAmountValid } from './swap-amount'
 import {
+  cardOutOf,
   impactTone,
   minOutOf,
   priceImpactOf,
@@ -52,7 +60,7 @@ import { useTradeBalances } from './trade-balances'
 type SwapLeg = { amount: string; symbol: string }
 
 /** What the confirm dialog freezes at click time — the success screen re-reads these, never
- *  the (already cleared) form. Price impact stays off the dialog (2026-10-27 ruling): danger
+ *  the (already cleared) form. Price impact stays off the dialog: danger
  *  is already blocked at the CTA gate, warning lives on the card's details rows. */
 type SwapSnapshot = {
   pay: SwapLeg
@@ -108,7 +116,10 @@ export function SwapPanel({
   memecoinSymbol: string
   /** Token full name (verse.name fixture) — secondary text of the select dialog row */
   memecoinName: string
-  uAssetSymbol: string
+  /** The verse's raise uAsset; null = unresolved from the deployment tables — the uAsset
+   *  option stays listed but unpickable (unavailable) and every symbol-keyed lookup fails
+   *  closed instead of borrowing a deployed family's contracts */
+  uAssetSymbol: string | null
   /** Main-pool price: 1 Memecoin = price uAsset (onchain builds: real candles; fixture: sample) */
   price: number
   /** uAsset USD price (onchain builds: PSM par / Chainlink feed; null=hide the USD conversion row) */
@@ -145,7 +156,9 @@ export function SwapPanel({
   const [resolveFailed, setResolveFailed] = useState(false)
   const [direction, setDirection] = useState<'stable-to-meme' | 'meme-to-stable'>('stable-to-meme')
   const buyLabelId = useId()
-  const [stableId, setStableId] = useState(uAssetSymbol)
+  // Symbol alias for string-typed consumers; '' when unresolved (never a known-symbol guess)
+  const uAssetLabel = uAssetSymbol ?? ''
+  const [stableId, setStableId] = useState(uAssetLabel)
   const [memeId, setMemeId] = useState<MemeTokenId>('meme')
   // Opens with empty input (amount input defaults to empty 0.00, not prefilled with balance);
   // flip/token change preserves input
@@ -178,7 +191,7 @@ export function SwapPanel({
   }, [tx.display])
   const walletBalances = useTradeBalances({
     verseId,
-    uAssetSymbol,
+    uAssetSymbol: uAssetSymbol ?? undefined,
     governanceChain,
     refreshKey: settleTick,
   })
@@ -201,11 +214,13 @@ export function SwapPanel({
     reserve.id.startsWith('0x') ? reserve.id : reserve.symbol
   const stableOptions: SwapTokenOption[] = [
     {
-      id: uAssetSymbol,
-      symbol: uAssetSymbol,
+      id: uAssetLabel,
+      symbol: uAssetLabel,
       name: copy.mintSideUasset,
       balance: displayUAssetBalance,
       exact: exactUAsset,
+      // Unresolved raise asset: listed but unpickable (no deployment-table contracts behind it)
+      unavailable: uAssetSymbol == null ? true : undefined,
     },
     ...reserves.map((reserve) => ({
       id: reserveId(reserve),
@@ -245,11 +260,11 @@ export function SwapPanel({
     },
   ]
   const priceInUAsset = new Map<string, number | null>([
-    [uAssetSymbol, 1],
+    [uAssetLabel, 1],
     ...reserves.map((reserve) => [reserveId(reserve), 1] as const),
     ['meme', price > 0 ? price : null],
     ['pol', polPrice],
-    ['pt', pol != null && polPrice != null ? polPrice * pol.ptPricePerPol : null],
+    ['pt', pol != null && polPrice != null && pol.ptPricePerPol != null ? polPrice * pol.ptPricePerPol : null],
   ])
 
   const stableSide = stableOptions.find((token) => token.id === stableId) ?? stableOptions[0]
@@ -259,15 +274,28 @@ export function SwapPanel({
   const sellBalance = sellToken.balance
   const buyBalance = buyToken.balance
   const sellExact = sellToken.exact ?? null
+  // The selling leg's Asset decimals when that side is a PSM reserve (undefined on the
+  // protocol legs, which are 18-dec by deployment — swap-amount.ts owns the fallback).
+  const sellReserveDecimals = reserves.find(
+    (reserve) => reserveId(reserve) === sellToken.id,
+  )?.decimals
   // Reference conversion (linear via both sides' reference prices) — the display fallback for
   // states without a live quote (disconnected / fixture / probe failure); execution always
   // quotes on-chain.
   const parsed = Number(amount)
-  const valid = typedAmountPositive(amount, sellExact)
-  const overBalance =
-    sellExact != null
-      ? valid && toBaseUnits(amount, sellExact.decimals) > sellExact.base
-      : sellBalance != null && Number.isFinite(parsed) && parsed > sellBalance
+  // Never float-only: sub-unit dust stays invalid, or the quote layer resolves the request to
+  // no context and the card strands on its pending spinner.
+  const valid = cardAmountValid(amount, {
+    exactDecimals: sellExact?.decimals ?? null,
+    reserveDecimals: sellReserveDecimals,
+  })
+  // Shared balance gate (amount-input.ts, the family single source): the exact read wins,
+  // the float sample is the fallback, and an unknown balance (probe in flight or failed)
+  // fails closed — an unread balance must never arm the CTA. The `valid &&` conjunction is
+  // display-layer only: a float sample's dust corner must not paint the insufficient-balance
+  // error on an amount that is already invalid at its decimals.
+  const amountGate = evaluateAmountBalance(amount, sellBalance, sellExact)
+  const overBalance = valid && amountGate.overBalance
   const sellPrice = priceInUAsset.get(sellToken.id) ?? null
   const buyPrice = priceInUAsset.get(buyToken.id) ?? null
   const pairRate =
@@ -302,7 +330,10 @@ export function SwapPanel({
     verseIdValid &&
     pairExecutable
   const live = useSwapLiveQuote({
-    active: executionReady,
+    // A dust amount has no request to quote (the context resolves to null): disarming keeps
+    // the card off its pending spinner and stops the 10s retry loop for a request that can
+    // never succeed.
+    active: executionReady && valid,
     eoa: center.address as Hex | null,
     chainId: center.chainId,
     verseId,
@@ -323,7 +354,7 @@ export function SwapPanel({
   const liveUsable = executionReady && liveQuote != null && liveQuote.amount === amount
   const quotePending = executionReady && valid && !liveUsable && !live.failed
   const referenceUsable = !executionReady || live.failed
-  const liveOutDisplay = liveUsable && liveQuote ? toDisplay(liveQuote.out, liveQuote.decimalsOut) : null
+  const liveOutDisplay = liveUsable && liveQuote ? cardOutOf(liveQuote) : null
   const displayOut = liveOutDisplay ?? (referenceUsable ? referenceQuote : null)
   // The buy side floors on the CARD's output token; a reserve leg's output decimals differ
   // from the pool leg's, so the quote carries both.
@@ -368,7 +399,7 @@ export function SwapPanel({
     feeBpsTotal != null ? `${formatPercent(feeBpsTotal / 100, locale, 2)}%` : null
 
   async function startSwap(): Promise<void> {
-    if (!executionReady || !valid || slippageIssue != null || resolving) return
+    if (!executionReady || !valid || amountGate.blocked || slippageIssue != null || resolving) return
     const eoa = center.address as Hex | null
     const chainId = center.chainId
     if (!eoa || chainId == null || verseId == null) return
@@ -402,7 +433,10 @@ export function SwapPanel({
       //    both legs in one call, so the batch is one approval plus one router action.
       const reserve = ctx.reserve
       const isBuy = reserve != null && ctx.tokenIn === reserve.uAsset
-      const quote = await quoteForContext(ctx, eoa)
+      const [quote, allowances] = await Promise.all([
+        quoteForContext(ctx, eoa),
+        readAllowances(ctx.reader, eoa, swapApprovalLegs(ctx)),
+      ])
       const minOut = minOutOf(quote.out, slippageBps)
       const deadlineSecs = BigInt(
         Math.floor(Date.now() / 1000) + (Number(deadlineText) || 10) * 60,
@@ -418,7 +452,7 @@ export function SwapPanel({
         uAssetIn: quote.psm?.uAssetAmount ?? 0n,
         deadline: deadlineSecs,
         eoa,
-        allowances: await readAllowances(ctx.reader, eoa, swapApprovalLegs(ctx)),
+        allowances,
       })
       const { calls, calldata: batch } = buildSessionWrite({
         hook: ctx.hook,
@@ -569,19 +603,21 @@ export function SwapPanel({
     ? { label: copy.swapEnterAmount, disabled: true }
     : overBalance
       ? { label: fillTemplate(copy.swapInsufficientBalance, { symbol: sellToken.symbol }), disabled: true }
-      : slippageIssue != null
-        ? { label: copy.swapInvalidSlippage, disabled: true }
-        : realMode && !pairExecutable
-          ? { label: copy.swapPairUnavailable, disabled: true }
-          : resolving || quotePending
-            ? { label: copy.swapFetchingQuote, disabled: true }
-            : tx.running || confirming
-              ? { label: copy.swapAction, disabled: true }
-              : realMode
-                ? impactToneNow === 'danger'
-                  ? { label: copy.swapHighImpact, disabled: true }
-                  : { label: copy.swapAction, disabled: false }
-                : { label: copy.swapAction, disabled: true }
+      : realMode && amountGate.balanceUnknown
+        ? { label: copy.swapBalanceUnavailable, disabled: true }
+        : slippageIssue != null
+          ? { label: copy.swapInvalidSlippage, disabled: true }
+          : realMode && !pairExecutable
+            ? { label: copy.swapPairUnavailable, disabled: true }
+            : resolving || quotePending
+              ? { label: copy.swapFetchingQuote, disabled: true }
+              : tx.running || confirming
+                ? { label: copy.swapAction, disabled: true }
+                : realMode
+                  ? impactToneNow === 'danger'
+                    ? { label: copy.swapHighImpact, disabled: true }
+                    : { label: copy.swapAction, disabled: false }
+                  : { label: copy.swapAction, disabled: true }
 
   return (
     <section className="swap-panel ax-glow-card" aria-labelledby="swap-title">
@@ -869,7 +905,7 @@ export function SwapPanel({
           </ActionDialogShell>
         </Dialog>
       ) : null}
-      {/* Feedback pair (2026-10-26 弹窗序列纪律): progress = its own button-less dialog
+      {/* Feedback pair (dialog stacking discipline): progress = its own button-less dialog
           stacked on the confirm dialog (always second-to-last); confirmed yields to the
           generic receipt dialog, the last one. Receipt legs read the click-time snapshot
           (the form's amount clears on landing). */}

@@ -31,13 +31,12 @@ import { ParticipationPanel } from './participation-panel'
 import { RefundSettlement } from './refund-settlement'
 import { DaoPanel, LiquidityPanel, PolPanel } from './verse-tab-panels'
 import { ClaimCenterPanel, ClaimCenterProvider, ClaimTabBadge } from './claim-center'
-import { sampleClaimEntitlements } from './claim-rows'
+import { claimEntitlements } from './claim-rows'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   formatAmount,
   formatMarketCap,
   FastBadge,
-  LayoutNotes,
   SectionHeading,
   SourceRef,
 } from '../global/signal-ui'
@@ -62,7 +61,10 @@ function CurrentAction({
   // non-Fast before the deadline carries no met split (either way the deadline unlock
   // advances the verse); missed deadline = the advance goes to Refund (lifecycle.md:51-55).
   const thresholdMet = verse.normalProgress >= 100 || verse.leverageProgress >= 100
-  const deadlinePassed = Date.now() >= Date.parse(verse.endsAt)
+  // One clock read per render: the copy below and the advance CTA's hydration-safe start value
+  // must come from the same instant, or the card can disagree with its own button.
+  const now = Date.now()
+  const deadlinePassed = verse.endsAt != null && now >= Date.parse(verse.endsAt)
   const body =
     verse.stage === 'genesis'
       ? deadlinePassed
@@ -99,6 +101,7 @@ function CurrentAction({
           fastGenesis={verse.fastGenesis}
           thresholdMet={thresholdMet}
           endsAt={verse.endsAt}
+          initialNow={now}
         />
       ) : (
         <Button variant="outline" disabled title={copy.verse.noParticipation}>
@@ -129,30 +132,48 @@ export async function VersePage({
   /** Raw URL ?action= value; only the vault tab accepts withdraw (vault action card initial value) */
   action?: string
 }) {
-  const displayAccount = await getDisplayAccount()
-  const verse = await getVerse(verseId)
+  const [displayAccount, verse] = await Promise.all([getDisplayAccount(), getVerse(verseId)])
   if (!verse) notFound()
   const initialTab = VERSE_TAB_KEYS.find((key) => key === tab)
   const vaultInitialView = initialTab === 'vault' && action === 'withdraw' ? 'withdraw' : undefined
   const copy = getCopy(locale)
   // Execution chain scopes the stake-source registry (SP instances differ per chain); the
   // fixture twin is chain-agnostic and ignores the id.
-  const participationOptions = await getParticipationOptions(
-    verse.raiseAsset,
-    executionChainId(verse.governanceChain),
-  )
+  // Independent reads start together: awaited one by one they serialize their cold-cache
+  // network legs into the first screen (this RSC path blocks the route HTML until it returns).
+  const [
+    participationOptions,
+    allParticipations,
+    chains,
+    trade,
+    staking,
+    polPosition,
+    governance,
+  ] = await Promise.all([
+    // The genesis-only participation panel is the sole consumer — other stages (locked/
+    // unlocked/refund) must not pay this read's cold-cache RPC legs.
+    verse.stage === 'genesis'
+      ? getParticipationOptions(verse.raiseAsset, executionChainId(verse.governanceChain))
+      : null,
+    getParticipations(),
+    getChains(),
+    getVerseTrade(verse.id),
+    getStaking(verse.id),
+    getPolPosition(verse.id),
+    getGovernanceState(verse.id),
+  ])
+  // locked/unlocked trade desk and four-tab data (missing → panel slot state)
+  if (!trade) notFound()
   // Fast Genesis threshold check: either of the two scopes met (preorder and debt principal do not count toward the threshold)
   const thresholdMet = verse.normalProgress >= 100 || verse.leverageProgress >= 100
   // Refund is the settlement state: no participation workbench/pools/generic timeline rendered;
   // collapses to a single refund settlement panel
   const isRefund = verse.stage === 'refund'
-  const allParticipations = await getParticipations()
   const myRefundParticipations = isRefund
     ? allParticipations.filter((participation) => participation.verseId === verse.id)
     : []
   // Deployment-face scope consistent with the Explore cards: mainnet chains other than the
   // governance chain are Spoke chains (omnichain deployment face)
-  const chains = await getChains()
   // Identity-row spokes: the verse's registered omnichainIds (minus governance) are the truth
   // on the onchain build; a null field (fixture snapshot) keeps the chains-fixture sample face
   const spokeChains =
@@ -184,12 +205,6 @@ export async function VersePage({
       }
       return sum + participation.amount
     }, 0)
-  // locked/unlocked trade desk and four-tab data (missing → panel slot state)
-  const trade = await getVerseTrade(verse.id)
-  if (!trade) notFound()
-  const staking = await getStaking(verse.id)
-  const polPosition = await getPolPosition(verse.id)
-  const governance = await getGovernanceState(verse.id)
 
   return (
     <OutrunShell
@@ -282,7 +297,7 @@ export async function VersePage({
             locale={locale}
             raiseAsset={verse.raiseAsset}
             governanceChain={verse.governanceChain}
-            sample={myRefundParticipations.map(({ kind, amount }) => ({ kind, amount }))}
+            harness={myRefundParticipations.map(({ kind, amount }) => ({ kind, amount }))}
           />
           <SourceRef value={verse.sourceRef} id={verse.id} />
         </section>
@@ -335,12 +350,14 @@ export async function VersePage({
           <h2 id="participation-title" className="sr-only">
             {copy.verse.participateTitle}
           </h2>
+          {/* Non-null by construction: fetched under the same `verse.stage === 'genesis'`
+              condition as this branch (see the Promise.all above). */}
           <ParticipationPanel
             locale={locale}
-            raiseAsset={participationOptions.raiseAsset}
-            reserves={participationOptions.reserves}
-            yieldSourceRegistry={participationOptions.yieldSourceRegistry}
-            creditAsset={participationOptions.creditAsset}
+            raiseAsset={participationOptions!.raiseAsset}
+            reserves={participationOptions!.reserves}
+            yieldSourceRegistry={participationOptions!.yieldSourceRegistry}
+            creditAsset={participationOptions!.creditAsset}
             normalRaised={verse.normalRaised}
             preorderRaised={verse.preorderRaised}
             preorderCapacityRatio={verse.preorderCapacityRatio}
@@ -368,8 +385,10 @@ export async function VersePage({
                 {/* Cross-chain total in the same uAsset denomination on every chain (the
                     discovery cards read the same field); per-chain genesis settles
                     independently, so this total never feeds the threshold meters */}
-                <dd data-numeric>
-                  {formatAmount(verse.omniRaised, locale, true)} {verse.raiseAsset}
+                <dd data-numeric={verse.omniRaised == null ? undefined : true}>
+                  {verse.omniRaised == null
+                    ? copy.verse.unavailable
+                    : `${formatAmount(verse.omniRaised, locale, true)} ${verse.raiseAsset}`}
                 </dd>
               </div>
               <div>
@@ -377,7 +396,11 @@ export async function VersePage({
                 {/* Participant count is a cross-chain total: per-chain distinct counts summed
                     over the landed set (cross-chain dedup needs an identity the contracts do
                     not carry) */}
-                <dd data-numeric>{formatAmount(verse.omniParticipantCount, locale)}</dd>
+                <dd data-numeric={verse.omniParticipantCount == null ? undefined : true}>
+                  {verse.omniParticipantCount == null
+                    ? copy.verse.unavailable
+                    : formatAmount(verse.omniParticipantCount, locale)}
+                </dd>
               </div>
               {verse.marketCapUsd != null ? (
                 <div>
@@ -407,7 +430,7 @@ export async function VersePage({
                   raiseAsset={verse.raiseAsset}
                   governanceChain={verse.governanceChain}
                   landedChains={verse.deployedChainIds}
-                  sample={myParticipation}
+                  harness={myParticipation}
                 />
               </div>
             </dl>
@@ -451,7 +474,7 @@ export async function VersePage({
                     governanceChain={verse.governanceChain}
                     governanceChainName={verse.governanceChainName}
                     deployedChainIds={verse.deployedChainIds}
-                    sample={sampleClaimEntitlements(polPosition, verse.symbol, verse.raiseAsset)}
+                    harness={claimEntitlements(polPosition, verse.symbol, verse.raiseAsset)}
                   />
                 ),
               }}
@@ -461,7 +484,6 @@ export async function VersePage({
       )}
 
 
-      <LayoutNotes locale={locale} items={copy.verse.notes} />
     </OutrunShell>
   )
 }

@@ -35,7 +35,7 @@ const MA_WINDOWS = [7, 30, 60] as const
 const MA_COLOR_VARS = ['--or-cyan', '--accent-echo', '--color-text-secondary'] as const
 const MA_ALPHAS = [0.55, 0.45, 0.9] as const
 
-function aggregate(candles: Candle[], size: number): Candle[] {
+export function aggregate(candles: Candle[], size: number): Candle[] {
   const out: Candle[] = []
   for (let end = candles.length; end > 0; end -= size) {
     const bucket = candles.slice(Math.max(0, end - size), end)

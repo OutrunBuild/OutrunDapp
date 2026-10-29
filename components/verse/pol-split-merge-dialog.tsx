@@ -48,9 +48,9 @@ import { FieldError } from '@/components/ui/field'
  * parameters → no settings gear;
  * gate is locked only (unlock/settled reverts with AlreadyUnlocked; after unlock this dialog
  * is not rendered — the bar switches to Redeem PT/YT);
- * CTA discipline same as the Mint dialog: disconnected=Connect Wallet clickable to toggle mock
- * connection, connected=action button disabled
- * (no faked on-chain execution, no disclaimers).
+ * CTA discipline same as the Mint dialog: the CTA arms the real pipeline (disconnected=
+ * Connect Wallet clickable to toggle connection, connected=Split/Merge runs prepare →
+ * review → Type-4 / wallet_sendCalls, no disclaimers).
  * No valuation row (the split input ≈$ conversion is omitted; PT/YT have no
  * independent price samples to begin with).
  * Max disabled at zero: amountToInputString(0)
@@ -129,7 +129,10 @@ export function PolSplitMergeDialog({
   const polSymbol = `POL-${verse.symbol}`
   const ptSymbol = `PT-${verse.symbol}`
   const ytSymbol = `YT-${verse.symbol}`
-  // A null balance (accountless slot) never blocks — the chain enforces real holdings at execution
+  // A null balance (accountless slot) never triggers the over error row — the chain enforces
+  // real holdings at execution. The submit gate is separately fail-closed: both reads missing
+  // on a leg (probe not landed/failed, no sample) leaves the amount unverifiable, and the
+  // early-exit/CTA below stay closed — submitting would only revert on-chain for gas.
   const maxMerge =
     myPtLive != null && myYtLive != null ? Math.min(myPtLive, myYtLive) : null
   const clean = (raw: string) => setAmount(sanitizeAmount(raw))
@@ -154,6 +157,10 @@ export function PolSplitMergeDialog({
           ytExact == null &&
           maxMerge != null &&
           parsed > maxMerge)
+  const balanceUnknown =
+    mode === 'split'
+      ? polExact == null && myPolLive == null
+      : (ptExact == null && myPtLive == null) || (ytExact == null && myYtLive == null)
   const executionReady =
     center.source === 'real' &&
     connected &&
@@ -164,7 +171,7 @@ export function PolSplitMergeDialog({
     verseId != null
 
   async function startSplitMergeReview(): Promise<void> {
-    if (!executionReady || !valid || overBalance || resolving) return
+    if (!executionReady || !valid || overBalance || balanceUnknown || resolving) return
     setSplitMergeRows([
       {
         label: mode === 'split' ? common.txYouSplit : common.txYouSupplied,
@@ -193,7 +200,8 @@ export function PolSplitMergeDialog({
         eoa,
         verseId: BigInt(verseId),
       })
-      const splitter = session.contracts.POLSplitter as Hex
+      const splitter = session.contracts.POLSplitter as Hex | undefined
+      if (!splitter) throw new Error('outrun: POLSplitter missing')
       const reader: ContractReader = session.reader
       // Merge pulls PT+YT (resolved via splitter views); split pulls POL.
       const [pt, yt] =
@@ -438,7 +446,7 @@ export function PolSplitMergeDialog({
             ) : (
               <Button
                 className="swap-panel__cta"
-                disabled={!valid || overBalance || !executionReady || resolving || tx.running}
+                disabled={!valid || overBalance || balanceUnknown || !executionReady || resolving || tx.running}
                 onClick={() => void startSplitMergeReview()}
               >
                 {mode === 'split' ? copy.splitPol : copy.mergePol}

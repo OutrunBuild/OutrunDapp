@@ -46,6 +46,7 @@ export function EndGenesisButton({
   fastGenesis,
   thresholdMet,
   endsAt,
+  initialNow,
 }: {
   locale: Locale
   /** Numeric on-chain verse id (URL segment, already normalized by the page) */
@@ -56,8 +57,13 @@ export function EndGenesisButton({
   fastGenesis: boolean
   /** Either threshold independently ≥ the minimum success amount (server-computed) */
   thresholdMet: boolean
-  /** ISO timestamp; the non-Fast gate is wall clock against it */
-  endsAt: string
+  /** ISO timestamp; the non-Fast gate is wall clock against it. null = unrepresentable
+   *  source timestamp (dirty row): no countdown, the on-chain gate still decides */
+  endsAt: string | null
+  /** Server render clock (RSC-supplied): the first client render reuses it verbatim, so the
+   *  countdown text hydrated from the server HTML never disagrees with it. The tick adopts
+   *  the client's own clock right after mount. */
+  initialNow: number
 }) {
   const copy = getCopy(locale)
   const common = copy.common
@@ -71,14 +77,18 @@ export function EndGenesisButton({
   // Deadline tick: the button unlocks the second the wall clock passes endsAt — a
   // display-only tick, no network read (faucet countdown semantics). Only runs while the
   // button is still gated (a Fast verse already met thresholds needs no countdown).
-  const [now, setNow] = useState(() => Date.now())
-  const endsAtMs = useMemo(() => Date.parse(endsAt), [endsAt])
+  const [now, setNow] = useState(initialNow)
+  const endsAtMs = useMemo(() => (endsAt != null ? Date.parse(endsAt) : Number.NaN), [endsAt])
   const deadlinePending = Number.isFinite(endsAtMs) && now < endsAtMs
   // Triggerable = Fast with either threshold met (early), or the deadline passed — after the
   // deadline anyone triggers regardless of the thresholds (met→Locked, missed→Refund,
   // lifecycle.md:51-55); non-Fast waits for the deadline even when met early.
   const canTrigger = !deadlinePending || (fastGenesis && thresholdMet)
   useEffect(() => {
+    // Adopt the browser's clock once mounted, before the gate is read again: the server value
+    // may be seconds old, and a client clock running behind it must be able to flip the button
+    // back to gated (the tick below only starts while gated, so it cannot correct this itself).
+    setNow(Date.now())
     if (canTrigger) return
     const id = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(id)

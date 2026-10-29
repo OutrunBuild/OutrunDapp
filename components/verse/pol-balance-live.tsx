@@ -24,8 +24,8 @@ export function PolBalanceLive({
   governanceChain: number
   /** SSR slot value (fixture sample; null on onchain builds) */
   fallback: number | null
-  /** POL/uAsset pool market price */
-  market: number
+  /** POL/uAsset pool market price; 0=empty pool, null=read failed (unknown — hides the ≈ valuation) */
+  market: number | null
   /** uAsset USD sample; null=hides the ≈ valuation */
   uAssetUsd: number | null
 }) {
@@ -35,7 +35,7 @@ export function PolBalanceLive({
   // an estimate by construction)
   const polExact = live?.exact.pol ?? null
   const estUsd =
-    uAssetUsd != null && myPol != null
+    uAssetUsd != null && myPol != null && market != null
       ? `$${formatMarketCap(myPol * market * uAssetUsd)}`
       : null
   return (

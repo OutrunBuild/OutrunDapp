@@ -4,6 +4,7 @@ import type { Hex } from 'viem';
 import {
   IMPACT_DANGER,
   IMPACT_WARNING,
+  cardOutOf,
   impactTone,
   memeTokenAddressOf,
   minOutOf,
@@ -78,10 +79,20 @@ describe('minOutOf', () => {
 
 describe('swapQuoteKey', () => {
   it('keys the full request identity — a display value is only valid for its own key', () => {
-    const base = swapQuoteKey(97, '21', '0xa', '0xb', 100n);
-    expect(base).toBe('97:21:0xa:0xb:100');
-    expect(swapQuoteKey(97, '21', '0xb', '0xa', 100n)).not.toBe(base);
-    expect(swapQuoteKey(97, '21', '0xa', '0xb', 101n)).not.toBe(base);
+    const base = swapQuoteKey(97, '21', '0xe0a', '0xa', '0xb', '0x0', 100n);
+    expect(base).toBe('97:21:0xe0a:0xa:0xb:0x0:100');
+    expect(swapQuoteKey(97, '21', '0xe0a', '0xb', '0xa', '0x0', 100n)).not.toBe(base);
+    expect(swapQuoteKey(97, '21', '0xe0a', '0xa', '0xb', '0x0', 101n)).not.toBe(base);
+  });
+
+  it('separates the card stable leg and the trader — axes the pool request cannot see', () => {
+    // The verse's uAsset and its PSM reserve are the SAME pool request (identical legs and
+    // memecoin input amount) but different card requests: the cached quote must not cross over.
+    const uAssetSide = swapQuoteKey(97, '21', '0xe0a', '0xa', '0xb', '0x0', 100n);
+    const reserveSide = swapQuoteKey(97, '21', '0xe0a', '0xa', '0xb', '0xcc', 100n);
+    expect(reserveSide).not.toBe(uAssetSide);
+    // quoteSwap prices the trader's dynamic-fee batch state — another EOA is another quote.
+    expect(swapQuoteKey(97, '21', '0xe0b', '0xa', '0xb', '0x0', 100n)).not.toBe(uAssetSide);
   });
 });
 
@@ -89,6 +100,17 @@ describe('toDisplay', () => {
   it('converts raw units through the token decimals', () => {
     expect(toDisplay(1_000_000n, 6)).toBe(1);
     expect(toDisplay(1n, 18)).toBeCloseTo(1e-18);
+  });
+});
+
+describe('cardOutOf', () => {
+  it('formats the output at the card leg decimals, not the pool leg decimals', () => {
+    // Reserve sell: `out` is in 6-dec reserve units while the pool leg is 18-dec uAsset.
+    // Formatting with the pool decimals would render ~1e-12 of the real amount on the card.
+    expect(cardOutOf({ out: 1_500_000n, cardDecimalsOut: 6 })).toBe(1.5);
+    expect(toDisplay(1_500_000n, 18)).toBeCloseTo(1.5e-12);
+    // uAsset↔meme legs keep the pool decimals (cardDecimalsOut mirrors them).
+    expect(cardOutOf({ out: 1_500_000_000_000_000_000n, cardDecimalsOut: 18 })).toBeCloseTo(1.5);
   });
 });
 

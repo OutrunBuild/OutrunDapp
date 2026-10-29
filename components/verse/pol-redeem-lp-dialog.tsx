@@ -47,8 +47,8 @@ import { FieldError } from '@/components/ui/field'
  * scope {MEME}/{uAsset} LP (repository main pool pair; consistent with the two pool dialogs'
  * lpSymbol convention — on-chain the ERC20 of every pool statically shares symbol "MLP"/name
  * "Memeverse LP", so pools can only be told apart by the pair scope);
- * opens with empty input; CTA discipline as before:
- * disconnected=Connect Wallet clickable; connected=action button disabled (no faked execution).
+ * opens with empty input; the CTA arms the real pipeline (disconnected=Connect Wallet
+ * clickable; connected=Redeem runs prepare → review → Type-4 / wallet_sendCalls).
  */
 export function PolRedeemLpDialog({
   locale,
@@ -98,17 +98,22 @@ export function PolRedeemLpDialog({
   const polExact = live?.exact.pol ?? null
 
   const polSymbol = `POL-${verse.symbol}`
-  // Main-pool LP pair scope (repository main pool pair [verse.symbol, verse.raiseAsset])
-  const lpSymbol = `${verse.symbol}/${verse.raiseAsset} LP`
+  // Main-pool LP pair scope (repository main pool pair [verse.symbol, verse.raiseAsset]); an
+  // unresolved raise asset renders the meme side alone — no "X/ LP" wreckage
+  const lpSymbol = verse.raiseAsset ? `${verse.symbol}/${verse.raiseAsset} LP` : `${verse.symbol} LP`
   const clean = (raw: string) => setAmount(sanitizeAmount(raw))
 
   const parsed = Number(amount)
   const valid = typedAmountPositive(amount, polExact)
-  // A null balance (accountless slot) never blocks — the chain enforces real holdings at execution
+  // A null balance (accountless slot) never triggers the over error row — the chain enforces
+  // real holdings at execution. The submit gate is separately fail-closed: both reads missing
+  // on the POL leg (probe not landed/failed, no sample) leaves the amount unverifiable, and
+  // the early-exit/CTA below stay closed — submitting would only revert on-chain for gas.
   const overBalance =
     polExact != null
       ? Number.isFinite(parsed) && toBaseUnits(amount, polExact.decimals) > polExact.base
       : myPolLive != null && parsed > myPolLive
+  const balanceUnknown = polExact == null && myPolLive == null
   // 1:1 identity by main-pool construction (amountInLP=amountInPOL), no sample/slot branch
   const lpOut = valid ? parsed : null
   // POL burn by the launcher proxy spends the holder's allowance (MemePol.burn third-party
@@ -123,7 +128,7 @@ export function PolRedeemLpDialog({
     verseId != null
 
   async function startRedeemReview(): Promise<void> {
-    if (!executionReady || !valid || overBalance || resolving) return
+    if (!executionReady || !valid || overBalance || balanceUnknown || resolving) return
     setRedeemRows([
       {
         label: common.txYouRedeemed,
@@ -152,7 +157,7 @@ export function PolRedeemLpDialog({
         eoa,
         verseId: BigInt(verseId),
       })
-      const launcher = session.contracts.MemeverseLauncher as Hex
+      const launcher = session.launcher
       const decimals = await getTokenDecimals(session.reader, chainId, session.verse.pol)
       const amountBase = toBaseUnits(amount, decimals)
       if (amountBase === 0n) throw new Error('typed amount below one base unit')
@@ -280,7 +285,7 @@ export function PolRedeemLpDialog({
             ) : (
               <Button
                 className="swap-panel__cta"
-                disabled={!valid || overBalance || !executionReady || resolving || tx.running}
+                disabled={!valid || overBalance || balanceUnknown || !executionReady || resolving || tx.running}
                 onClick={() => void startRedeemReview()}
               >
                 {copy.redeemPol}

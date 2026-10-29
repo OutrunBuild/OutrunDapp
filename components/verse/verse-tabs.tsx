@@ -57,7 +57,7 @@ export function VerseTabs({
   }, [initialTab])
 
   return (
-    <section ref={sectionRef} className="verse-tabs ax-glow-card" aria-label={copy.tabLiquidity}>
+    <section ref={sectionRef} className="verse-tabs ax-glow-card" aria-label={copy.tabsGroup}>
       <ToggleGroup
         className="verse-tabs__bar"
         value={[tab]}

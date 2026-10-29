@@ -26,7 +26,7 @@ function kindLabel(kind: Participation['kind'], locale: Locale) {
 }
 
 /** Refund settlement body (per-kind legs + total + the sample-anchored claim CTA). Same
- *  retired-server-path family as the 「您的参与」 stat: the SSR legs come from the
+ *  retired-server-path family as the 「你的参与」 stat: the SSR legs come from the
  *  participations fixture (empty on onchain builds), so a real wallet reads its own ledger
  *  client-side — normal/preorder legs drop out once their one-shot isRefunded flag flips
  *  (the claim keeps the amounts on chain, MemeverseSettlementImpl.sol:61). The interest leg's
@@ -36,13 +36,14 @@ export function RefundSettlement({
   locale,
   raiseAsset,
   governanceChain,
-  sample,
+  harness,
 }: {
   locale: Locale
-  raiseAsset: string
+  /** null = raise asset unresolved from the deployment tables; unit slots render empty */
+  raiseAsset: string | null
   governanceChain: number
-  /** SSR sample legs (participations fixture; empty on onchain builds) */
-  sample: RefundLeg[]
+  /** SSR harness legs (participations fixture; empty on onchain builds) */
+  harness: RefundLeg[]
 }) {
   const copy = getCopy(locale)
   const center = useAccountCenter()
@@ -86,7 +87,7 @@ export function RefundSettlement({
     }
   }, [eligible, center.address, providerReader, verseId])
 
-  const legs = !real ? sample : live
+  const legs = !real ? harness : live
   const unknown = real && center.connected && (live == null || !onExecChain)
 
   if (unknown) {

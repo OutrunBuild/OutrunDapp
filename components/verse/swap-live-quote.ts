@@ -179,11 +179,30 @@ let quoteCache: SwapQuoteValue | null = null
 export function swapQuoteKey(
   chainId: number,
   verseId: string,
+  trader: Hex,
   tokenIn: Hex,
   tokenOut: Hex,
+  cardStableToken: Hex,
   amountIn: bigint,
 ): string {
-  return `${chainId}:${verseId}:${tokenIn}:${tokenOut}:${amountIn}`
+  return `${chainId}:${verseId}:${trader}:${tokenIn}:${tokenOut}:${cardStableToken}:${amountIn}`
+}
+
+/** Cache identity of a quote request. The pool legs and the input amount do not identify the
+ *  card request on their own: the verse's uAsset and its PSM reserve map to the same pool legs
+ *  and the same memecoin input amount, so the card's stable leg (zero address = uAsset, the
+ *  reserve address otherwise) is part of the identity. `trader` is too — `quoteSwap` prices the
+ *  dynamic-fee batch state of the trader. The PSM address is implied by (chainId, verseId). */
+function quoteKeyOf(ctx: SwapQuoteContext, trader: Hex): string {
+  return swapQuoteKey(
+    ctx.chainId,
+    ctx.verseId,
+    trader,
+    ctx.tokenIn,
+    ctx.tokenOut,
+    ctx.reserve?.reserveToken ?? ZERO_ADDRESS,
+    ctx.amountIn,
+  )
 }
 
 /** Resolve everything a quote (and the write path packing a spec) needs for this amount.
@@ -196,8 +215,10 @@ export async function resolveSwapQuoteContext(input: {
   verseId: string
   direction: SwapDirection
   memeTokenId: MemeTokenId
-  /** The verse's raise uAsset symbol (deployment key `OutrunPSM.<symbol>`). */
-  uAssetSymbol: string
+  /** The verse's raise uAsset symbol (deployment key `OutrunPSM.<symbol>`); null =
+   *  unresolved from the deployment tables — the reserve-branch PSM lookup misses and the
+   *  context resolves to null (fail closed). */
+  uAssetSymbol: string | null
   /** Selected stable-side token: the verse's uAsset, or a PSM reserve address. */
   stableToken: { kind: 'uasset' } | { kind: 'reserve'; address: Hex }
   amount: string
@@ -240,10 +261,12 @@ export async function resolveSwapQuoteContext(input: {
   const poolTokenOut = (
     input.direction === 'stable-to-meme' ? memeAddress : session.verse.uAsset
   ) as Hex
+  const router = contracts.MemeverseSwapRouter as Hex | undefined
+  if (!router) return null
   const pairCacheKey = `${input.chainId}:${poolTokenIn}:${poolTokenOut}`
   let key = poolKeyCache.get(pairCacheKey)
   if (!key) {
-    key = await readPoolKey(session.reader, contracts.MemeverseSwapRouter as Hex, poolTokenIn, poolTokenOut)
+    key = await readPoolKey(session.reader, router, poolTokenIn, poolTokenOut)
     poolKeyCache.set(pairCacheKey, key)
   }
   // decimalsIn/decimalsOut describe the POOL legs (the swap card's own tokenIn/tokenOut);
@@ -265,8 +288,8 @@ export async function resolveSwapQuoteContext(input: {
     chainId: input.chainId,
     verseId: input.verseId,
     reader: session.reader,
-    router: contracts.MemeverseSwapRouter as Hex,
-    hook: contracts.MemeverseUniswapHook as Hex,
+    router,
+    hook: session.hook,
     kernel: resolved.config.kernel7702Implementation as Hex,
     manifestVersion: resolved.config.contracts.abiVersion,
     tokenIn: poolTokenIn,
@@ -293,14 +316,14 @@ async function poolLegInputOf(ctx: SwapQuoteContext): Promise<bigint> {
 
 /** PSM par math runs on 18-dec face value: a reserve amount in its own decimals expressed at
  *  18 decimals. */
-function faceOf(reserveAmount: bigint, reserveDecimals: number): bigint {
+export function faceOf(reserveAmount: bigint, reserveDecimals: number): bigint {
   return reserveDecimals >= 18
     ? reserveAmount / 10n ** BigInt(reserveDecimals - 18)
     : reserveAmount * 10n ** BigInt(18 - reserveDecimals)
 }
 
 /** 18-dec face value back into a reserve token's own decimals. */
-function unfaceOf(faceAmount: bigint, reserveDecimals: number): bigint {
+export function unfaceOf(faceAmount: bigint, reserveDecimals: number): bigint {
   return reserveDecimals >= 18
     ? faceAmount * 10n ** BigInt(reserveDecimals - 18)
     : faceAmount / 10n ** BigInt(18 - reserveDecimals)
@@ -342,7 +365,7 @@ export async function fetchSwapQuote(ctx: SwapQuoteContext, eoa: Hex): Promise<S
     cardDecimalsIn: ctx.cardDecimalsIn,
     cardDecimalsOut: ctx.cardDecimalsOut,
     amount: ctx.amount,
-    key: swapQuoteKey(ctx.chainId, ctx.verseId, ctx.tokenIn, ctx.tokenOut, ctx.amountIn),
+    key: quoteKeyOf(ctx, eoa),
     at: Date.now(),
   }
   if (!ctx.reserve) return { ...base, out: swapOut }
@@ -402,7 +425,7 @@ export async function quoteForContext(
   ctx: SwapQuoteContext,
   eoa: Hex,
 ): Promise<SwapQuoteValue> {
-  const expected = swapQuoteKey(ctx.chainId, ctx.verseId, ctx.tokenIn, ctx.tokenOut, ctx.amountIn)
+  const expected = quoteKeyOf(ctx, eoa)
   const cached = quoteCache
   if (cached && cached.key === expected && Date.now() - cached.at <= QUOTE_TTL_MS) {
     return cached
@@ -420,8 +443,9 @@ export type SwapLiveQuoteInput = {
   direction: SwapDirection
   /** Selected meme-leg row — part of the quote identity: a leg switch quotes immediately */
   memeTokenId: MemeTokenId
-  /** The verse's raise uAsset symbol (locates the PSM instance) */
-  uAssetSymbol: string
+  /** The verse's raise uAsset symbol (locates the PSM instance); null = unresolved —
+   *  PSM-keyed lookups miss and the quote fails closed */
+  uAssetSymbol: string | null
   /** Selected stable-side token — part of the quote identity too */
   stableToken: { kind: 'uasset' } | { kind: 'reserve'; address: Hex }
   amount: string
@@ -439,7 +463,11 @@ export type SwapLiveQuote = {
 }
 
 export function useSwapLiveQuote(input: SwapLiveQuoteInput): SwapLiveQuote {
-  const [value, setValue] = useState<SwapQuoteValue | null>(null)
+  // A fetched quote carries the request identity that produced it and is rendered only while
+  // the card still asks for that request: an identity switch is a pending state, never the
+  // previous pair's settled numbers. The card keeps its own amount check for the debounce
+  // window (the amount is not part of the identity key).
+  const [loaded, setLoaded] = useState<{ identity: string; value: SwapQuoteValue } | null>(null)
   const [loading, setLoading] = useState(false)
   const [failed, setFailed] = useState(false)
   // Latest-probe-wins: a slow fetch for a superseded request must not overwrite a newer one.
@@ -465,6 +493,9 @@ export function useSwapLiveQuote(input: SwapLiveQuoteInput): SwapLiveQuote {
     if (prevIdentity.current !== identityKey) {
       prevIdentity.current = identityKey
       setDebouncedAmount(input.amount)
+      // Drop the stored quote on an identity switch: coming back to a previously quoted
+      // identity must not resurrect an old settled value (a same-identity refresh keeps it).
+      setLoaded(null)
       return
     }
     if (input.amount === debouncedAmount) return
@@ -476,7 +507,7 @@ export function useSwapLiveQuote(input: SwapLiveQuoteInput): SwapLiveQuote {
     const { eoa, chainId, verseId, direction, memeTokenId, stableToken, uAssetSymbol } = input
     if (!armed || eoa == null || chainId == null || verseId == null) {
       seq.current += 1
-      setValue(null)
+      setLoaded(null)
       setLoading(false)
       setFailed(false)
       return
@@ -497,16 +528,19 @@ export function useSwapLiveQuote(input: SwapLiveQuoteInput): SwapLiveQuote {
           stableToken,
           amount: debouncedAmount,
         })
-        // A null context or a superseded run leaves the previous value alone: the card falls
-        // back to the reference conversion and the click path re-resolves on its own.
+        // A null context or a superseded run leaves the stored value untouched: it only
+        // renders while the card still asks for its identity, otherwise the card stays pending.
         if (!ctx || run !== seq.current || cancelled) return
         const next = await fetchSwapQuote(ctx, eoa)
+        // Only the winning run may seed the shared cache the click path reads: a superseded
+        // fetch landing late must not replace the newer request's quote.
+        if (run !== seq.current || cancelled) return
         quoteCache = next
-        if (run === seq.current && !cancelled) setValue(next)
+        setLoaded({ identity: identityKey, value: next })
       } catch {
         // A failed read for a changed request must not keep showing the old amount's quote.
         if (run === seq.current && !cancelled) {
-          setValue(null)
+          setLoaded(null)
           setFailed(true)
         }
       } finally {
@@ -527,8 +561,24 @@ export function useSwapLiveQuote(input: SwapLiveQuoteInput): SwapLiveQuote {
       window.clearInterval(id)
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [armed, input.eoa, input.chainId, input.verseId, input.direction, input.memeTokenId, debouncedAmount])
+  }, [
+    armed,
+    input.eoa,
+    input.chainId,
+    input.verseId,
+    input.direction,
+    input.memeTokenId,
+    // The stable-side selection is part of the quote identity: declaring it (as the scalar
+    // projection, since the token object is rebuilt every render) re-runs this effect on a
+    // uAsset↔reserve switch — the debounced-amount resync alone bails out on an unchanged amount.
+    stableKey,
+    // Stamped onto the fetched value so a legacy value cannot render under a new identity.
+    identityKey,
+    input.uAssetSymbol,
+    debouncedAmount,
+  ])
 
+  const value = loaded != null && loaded.identity === identityKey ? loaded.value : null
   return { ready: value != null, loading: loading && value == null, failed, value }
 }
 
@@ -573,4 +623,11 @@ export function minOutOf(out: bigint, slippageBps: number): bigint {
 /** Display number of raw token units. */
 export function toDisplay(raw: bigint, decimals: number): number {
   return Number(formatUnits(raw, decimals))
+}
+
+/** The quote's output in CARD units. A reserve sell quotes `out` in the reserve token's own
+ *  decimals, so formatting it with the pool leg's `decimalsOut` would scale it by the decimal
+ *  difference (6-dec reserve vs 18-dec uAsset: ~1e-12). */
+export function cardOutOf(quote: Pick<SwapQuoteValue, 'out' | 'cardDecimalsOut'>): number {
+  return toDisplay(quote.out, quote.cardDecimalsOut)
 }

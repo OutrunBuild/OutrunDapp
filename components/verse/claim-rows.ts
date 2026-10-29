@@ -28,7 +28,8 @@ export type ClaimRow = {
 
 export type ClaimEntitlements = {
   memecoinSymbol: string
-  uAssetSymbol: string
+  /** null = raise asset unresolved from the deployment tables; its legs drop (null 不渲染) */
+  uAssetSymbol: string | null
   /** Preorder position (claimable + claimed-to-date); absent = no position */
   preorder?: { claimable: number; claimed: number; progress?: number }
   /** One-shot initial YT (absent = not eligible or already claimed) */
@@ -39,8 +40,10 @@ export type ClaimEntitlements = {
   lp?: { meme: number; uAsset: number }
 }
 
-function extras(entries: Array<[number, string]>): ClaimRowLeg[] {
-  return entries.filter(([amount]) => amount > 0).map(([amount, symbol]) => ({ amount, symbol }))
+function extras(entries: Array<[number, string | null]>): ClaimRowLeg[] {
+  return entries
+    .filter(([amount, symbol]) => amount > 0 && symbol != null)
+    .map(([amount, symbol]) => ({ amount, symbol: symbol as string }))
 }
 
 /** Cards in display order: preorder unlock → initial YT → fee share → LP fees. */
@@ -107,13 +110,13 @@ export function claimableBadgeCount(rows: ClaimRow[]): number {
   return rows.filter((row) => row.claimable).length
 }
 
-/** Sample entitlements derived from the pol-position fixture (display denominations) —
+/** Claim entitlements derived from the pol-position snapshot (display denominations) —
  *  lives in this pure module so the RSC page can call it (a 'use client' export cannot be
  *  invoked from the server). Missing optional fields simply drop their cards. */
-export function sampleClaimEntitlements(
+export function claimEntitlements(
   pol: PolPosition | null,
   memecoinSymbol: string,
-  uAssetSymbol: string,
+  uAssetSymbol: string | null,
 ): ClaimEntitlements | null {
   if (!pol) return null
   const e: ClaimEntitlements = { memecoinSymbol, uAssetSymbol }

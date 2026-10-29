@@ -8,7 +8,7 @@
  * current landed chain (same single-chain execution scope as EndGenesisButton: claims run
  * where the wallet sits; cross-chain aggregation is a later layer, MyParticipationStat
  * family). Fixture builds keep the SSR sample rows (e2e baselines) with inert CTAs — no
- * faked execution. Claim interaction = one confirm dialog (user ruling): the dialog IS the
+ * faked execution. Claim interaction = one confirm dialog: the dialog IS the
  * review (amounts in, no inputs), then a §29-style direct write with the shared TxStatus.
  */
 import {
@@ -21,7 +21,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { encodePacked, formatUnits, keccak256, toHex, type Hex } from 'viem'
+import { formatUnits, toHex, type Hex } from 'viem'
 import { Info } from 'lucide-react'
 
 import type { Locale } from '@/lib/data/fixture-repository'
@@ -58,13 +58,8 @@ import { TxProgressDialog } from '../global/tx-progress-dialog'
 import { TxSuccessDialog, type TxSuccessRow } from '../global/tx-success-dialog'
 import { useTxSuccessGate } from '../global/use-tx-success'
 
-// MemeverseLauncher ERC-7201 storage base ("outrun.storage.MemeverseLauncher", OZ
-// SlotDerivation double-keccak formula) — see the vesting lane comment for the field map.
-const LAUNCHER_BASE = (() => {
-  const h1 = BigInt(keccak256(toHex('outrun.storage.MemeverseLauncher')))
-  const inner = toHex((h1 - 1n) % (1n << 256n), { size: 32 })
-  return BigInt(keccak256(inner)) & ~0xffn
-})()
+// Vesting storage layout lives in ./claim-slots — one source shared with the RUN_NET_REPRO
+// regression test (see the vesting lane comment for the field map).
 
 import {
   claimableBadgeCount,
@@ -73,6 +68,7 @@ import {
   type ClaimRow,
   type ClaimRowKind,
 } from './claim-rows'
+import { preorderSettlementTimestampSlot, preorderVestingDurationSlot } from './claim-slots'
 
 type ClaimCenterState = {
   /** null while reads are in flight or after a failure ('--' slots); rows exist once known */
@@ -100,7 +96,9 @@ export function ClaimCenterProvider({
   governanceChain: number
   deployedChainIds: number[] | null
   memecoinSymbol: string
-  uAssetSymbol: string
+  /** null = raise asset unresolved from the deployment tables; uAsset-denominated
+   *  entitlement legs drop (null 不渲染) */
+  uAssetSymbol: string | null
   children: ReactNode
 }) {
   const center = useAccountCenter()
@@ -161,7 +159,7 @@ export function ClaimCenterProvider({
         // Base identity reads (verse tokens): the one prerequisite every card shares.
         // A failure here is a genuine environment failure → the failed state.
         const { uAsset, memecoin } = await readVerseAddresses(reader, launcher, vid)
-        // ── One batched round for all card reads (user perf ruling): viem multicall with
+        // ── One batched round for all card reads: viem multicall with
         // allowFailure keeps per-slot status, so a reverting lane still degrades alone —
         // batching never couples card failures. EXCEPTION learned on-chain: viem does NOT
         // split `account`-carrying calls out of the aggregate — inside aggregate3 the
@@ -207,7 +205,7 @@ export function ClaimCenterProvider({
           // NO public view (OZ SlotDerivation erc7201 — note the DOUBLE keccak: base =
           // keccak(bytes32(keccak(ns) − 1)) & ~0xff). Field offsets (append-only struct):
           // preorderVestingDuration @ +11, preorderStates mapping @ +18, PreorderState.
-          // settlementTimestamp @ entry +2. Dual-source gate (user discipline ruling): the
+          // settlementTimestamp @ entry +2. Dual-source gate: the
           // slot clock only renders when it agrees with the subgraph's stage-change locked-at
           // (±1h) — a bad slot derivation (or bad read) degrades the progress slot instead of
           // showing a wrong percentage. Fixture builds carry progress samples directly.
@@ -215,19 +213,18 @@ export function ClaimCenterProvider({
             try {
               const client = providerReader.client
               const [durRaw, settledRaw, lockedAt] = await Promise.all([
-                client.getStorageAt({ address: launcher, slot: toHex(LAUNCHER_BASE + 11n, { size: 32 }) }),
+                client.getStorageAt({ address: launcher, slot: toHex(preorderVestingDurationSlot(), { size: 32 }) }),
                 client.getStorageAt({
                   address: launcher,
-                  slot: toHex(
-                    BigInt(keccak256(encodePacked(['uint256', 'uint256'], [vid, LAUNCHER_BASE + 18n]))) + 2n,
-                    { size: 32 },
-                  ),
+                  slot: toHex(preorderSettlementTimestampSlot(vid), { size: 32 }),
                 }),
                 // authoritative second source (server action; rides this round in parallel)
                 readVerseLockedAt({ chainId: center.chainId as number, verseId: verseIdParam }),
               ])
               const duration = Number(BigInt(durRaw ?? '0x0'))
               if (!(duration > 0)) return undefined
+              // PreorderState.settlementTimestamp is uint40 — packed low 5 bytes of the storage
+              // word, upper bits unused; the mask also keeps the read under Number()'s 2^53 range.
               const settled = Number(BigInt(settledRaw ?? '0x0') & 0xffffffffffn)
               // Dual-source agreement: no subgraph timestamp, or >1h apart → no progress slot.
               if (lockedAt == null || Math.abs(settled - lockedAt) > 3_600) return undefined
@@ -256,8 +253,15 @@ export function ClaimCenterProvider({
             return null
           }
         }
-                const uAssetDec = scalar(0) != null ? Number(scalar(0)) : 18
-        const memeDec = scalar(1) != null ? Number(scalar(1)) : 18
+                // Decimals are base identity (every card's amounts scale by them, same lane as
+        // readVerseAddresses above): a failed decimals slot is an environment failure, not a
+        // degradeable slot — assuming 18 would print mis-scaled amounts (uAsset calibration is
+        // operational, not an on-chain 18 invariant). No data over wrong data → the failed state.
+        const uAssetDecRaw = scalar(0)
+        const memeDecRaw = scalar(1)
+        if (uAssetDecRaw == null || memeDecRaw == null) return null
+        const uAssetDec = Number(uAssetDecRaw)
+        const memeDec = Number(memeDecRaw)
         const asAmount = (base: bigint, decimals: number) => Number(formatUnits(base, decimals))
         const e: ClaimEntitlements = { memecoinSymbol, uAssetSymbol }
         // Preorder unlock (batch slot 2 + the standalone scoped preview).
@@ -338,6 +342,8 @@ export function ClaimCenterProvider({
       }
       setLive(e)
       setLiveKnown(true)
+      // data arrived — the failure latch's premise is gone (the failed copy promised refocus recovery)
+      setLiveFailed(false)
     })
     return () => {
       cancelled = true
@@ -407,15 +413,15 @@ export function ClaimCenterPanel({
   governanceChain,
   governanceChainName,
   deployedChainIds,
-  sample,
+  harness,
 }: {
   locale: Locale
   verseIdParam: string
   governanceChain: number
   governanceChainName: string
   deployedChainIds: number[] | null
-  /** Fixture-build sample rows (SSR) */
-  sample: ClaimEntitlements | null
+  /** Fixture-build claim rows (SSR) */
+  harness: ClaimEntitlements | null
 }) {
   const copy = getCopy(locale).verseDesk
   const common = getCopy(locale).common
@@ -429,14 +435,14 @@ export function ClaimCenterPanel({
   const [pendingRow, setPendingRow] = useState<ClaimRow | null>(null)
   const [resolving, setResolving] = useState(false)
   const [resolveFailed, setResolveFailed] = useState(false)
-  const sampleMode = center.source !== 'real'
+  const harnessMode = center.source !== 'real'
 
   const execChains = useMemo(
     () => verseExecutionChains(governanceChain, deployedChainIds),
     [governanceChain, deployedChainIds],
   )
   const chainInVerse = center.chainId != null && execChains.includes(center.chainId)
-  const wrongChain = !sampleMode && center.connected && (center.chainId == null || !chainInVerse)
+  const wrongChain = !harnessMode && center.connected && (center.chainId == null || !chainInVerse)
   const switchChainId = verseSwitchChainId(governanceChain, deployedChainIds)
   const switchChainName =
     switchChainId === executionChainId(governanceChain)
@@ -446,15 +452,15 @@ export function ClaimCenterPanel({
           return config.status === 'ok' ? config.config.viemChain.name : String(switchChainId)
         })()
 
-  const entitlements = sampleMode ? sample : (ctx?.live ?? null)
+  const entitlements = harnessMode ? harness : (ctx?.live ?? null)
   const failed =
-    !sampleMode && center.connected && !wrongChain && ctx != null && ctx.liveFailed
+    !harnessMode && center.connected && !wrongChain && ctx != null && ctx.liveFailed
   const reading =
-    !sampleMode && center.connected && !wrongChain && ctx != null && !ctx.liveKnown
+    !harnessMode && center.connected && !wrongChain && ctx != null && !ctx.liveKnown
   const rows = entitlements != null ? deriveClaimRows(entitlements) : []
 
   async function startClaim(row: ClaimRow): Promise<void> {
-    if (sampleMode || resolving) return
+    if (harnessMode || resolving) return
     setClaimRows(
       [row.main, ...row.extra].map((leg) => ({
         label: common.txReceived,
@@ -550,7 +556,7 @@ export function ClaimCenterPanel({
 
   return (
     <div className="claim-center">
-      {!sampleMode && !center.connected ? (
+      {!harnessMode && !center.connected ? (
         <div className="claim-center__gate">
           <p>{copy.claimConnect}</p>
           <Button variant="outline" onClick={center.connectAction}>
@@ -636,7 +642,7 @@ export function ClaimCenterPanel({
                   variant="outline"
                   size="sm"
                   className="claim-card__cta"
-                  disabled={sampleMode || !row.claimable || tx.running}
+                  disabled={harnessMode || !row.claimable || tx.running}
                   onClick={() => setPendingRow(row)}
                 >
                   {copy.claimCta}
@@ -674,7 +680,7 @@ export function ClaimCenterPanel({
           </ActionDialogShell>
         ) : null}
       </Dialog>
-      {/* Feedback pair (2026-10-26 弹窗序列纪律): progress = its own button-less dialog
+      {/* Feedback pair (dialog stacking discipline): progress = its own button-less dialog
           stacked on the confirm dialog (always second-to-last); confirmed yields to the
           generic receipt dialog, the last one. */}
       <TxProgressDialog

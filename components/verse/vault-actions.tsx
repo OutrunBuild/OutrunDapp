@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Info, Zap } from 'lucide-react'
 
 import type { Locale, Staking } from '@/lib/data/fixture-repository'
@@ -11,12 +11,14 @@ import { useTxCenter, useClearOnConfirmed, type WriteSpec } from '../global/use-
 import { TxProgressDialog } from '../global/tx-progress-dialog'
 import { TxSuccessDialog, type TxSuccessRow } from '../global/tx-success-dialog'
 import { useTxSuccessGate } from '../global/use-tx-success'
+import { RedeemCountdown } from './redeem-countdown'
 import { useVerseBalances } from './trade-balances'
 import {
   readAllowances,
 } from '../global/execution-reads'
 import { getTokenDecimals, getVerseSession } from '../global/write-session'
 import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
+import { executionChainId } from '@/lib/web3/chains'
 import {
   approvalCall,
   buildSessionWrite,
@@ -40,40 +42,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 
 type RedeemMode = 'redeem' | 'pending' | 'withdraw'
 
-/** Chain-environment mapping (testnet stand-in shim, not domain values): the fixture
- * governance chain=mainnet ids (1/8453/56),
- * the header chain selector only exposes testnets — the "connected on the governance chain"
- * check uses the governance chain's corresponding testnet
- * (same-name mainnet/testnet family: Ethereum/Base/BNB each with their Sepolia series) */
-const GOVERNANCE_TESTNET: Record<number, number> = { 1: 421614, 8453: 84532, 56: 97 }
-
 /** EVM address scope (governance chain family = Ethereum/Base/BNB): 0x + 40 hex digits; accepts any casing, no EIP-55 validation */
 const EVM_ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/
-
-/**
- * Redemption waiting countdown (ticking seconds): starts from the
- * snapshot remainingMs given by the repository and decrements each second by wall clock (pure
- * display-layer tick, not an on-chain write), stops at 0; template=copy.remaining ({t} placeholder).
- */
-function RedeemCountdown({ remainingMs, template }: { remainingMs: number; template: string }) {
-  const [elapsedMs, setElapsedMs] = useState(0)
-  useEffect(() => {
-    const start = Date.now()
-    const id = setInterval(() => setElapsedMs(Date.now() - start), 1000)
-    return () => clearInterval(id)
-  }, [])
-  const left = Math.max(0, remainingMs - elapsedMs)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const time = `${pad(Math.floor(left / 3_600_000))}:${pad(Math.floor((left % 3_600_000) / 60_000))}:${pad(Math.floor((left % 60_000) / 1000))}`
-  const [before, after] = template.split('{t}')
-  return (
-    <span data-state="waiting">
-      {before}
-      <span data-numeric>{time}</span>
-      {after}
-    </span>
-  )
-}
 
 /**
  * Yield Vault action cards in two columns: a left column with
@@ -99,8 +69,8 @@ function RedeemCountdown({ remainingMs, template }: { remainingMs: number; templ
  * Redeemed on {date} + seconds countdown, capped at a compact scroll window) sits between
  * Redeem and Withdraw; the Withdraw tab's head=Ready to Withdraw (matured entries only:
  * amount + Ready since {maturity date} + ✓ Ready), empty state '--'.
- * Mock layer only demonstrates the ViewModel: write-action CTAs are always disabled, no
- * faked on-chain success.
+ * Write-action CTAs arm the real pipeline (prepare → review → Type-4 / wallet_sendCalls);
+ * they stay disabled until execution conditions hold (connection, chain, per-action validity).
  */
 export function VaultActions({
   locale,
@@ -176,6 +146,19 @@ export function VaultActions({
     }
     prevDisplayRef.current = tx.display
   }, [tx.display])
+  // A wall row whose countdown lands on 00:00:00 re-probes once: the zero-crossing is a
+  // user-approved timer-triggered probe so the Pending/Withdraw split, the Total and the CTA
+  // gate flip with the countdown instead of waiting for the next probe trigger (the probe's
+  // ready/claimable snapshot is what those render from — the display layer never derives
+  // on-chain amounts itself). The throttle collapses same-second rows into one probe; a row
+  // crossing inside the window stays Pending until its own re-mount or any other probe
+  // trigger — acceptable for an edge the 24h delay makes vanishingly rare.
+  const lastMatureProbeAtRef = useRef(0)
+  const handleRowMatured = useCallback(() => {
+    if (Date.now() - lastMatureProbeAtRef.current < 5_000) return
+    lastMatureProbeAtRef.current = Date.now()
+    setSettleTick((tick) => tick + 1)
+  }, [])
   const live = useVerseBalances({ verseId, governanceChain, refreshKey: settleTick })
   const mySharesLive = live?.vault?.shares ?? myShares
   const claimableLive = live?.vault?.claimableTotal ?? claimableTotal
@@ -189,18 +172,19 @@ export function VaultActions({
   const redeemExact = live?.exact.vault?.shares ?? null
   const withdrawExact = live?.exact.vault?.claimableTotal ?? null
 
-  const governanceWalletChain = GOVERNANCE_TESTNET[governanceChain] ?? governanceChain
+  // Fixture governance ids are mainnet but the header chain selector only exposes
+  // testnets: the wrong-chain check and the execution gate both compare the wallet
+  // against the governance chain's testnet twin (same-name mainnet/testnet family,
+  // executionChainId).
+  const governanceWalletChain = executionChainId(governanceChain)
   const wrongChain = connected && chainId !== governanceWalletChain
-  // Execution chain uses the current §26 chainset (the display mapping above predates it and
-  // stays untouched); custom delegate addresses block execution (no silent drop of intent).
-  const MAINNET_TO_TESTNET: Record<number, number> = { 1: 421614, 8453: 84532, 56: 97 }
-  const execChain = MAINNET_TO_TESTNET[governanceChain] ?? governanceChain
+  // Custom delegate addresses block execution (no silent drop of intent).
   const customDelegate = !delegateSelf || delegateAddress !== ''
   const executionReady =
     center.source === 'real' &&
     connected &&
     center.chainSupported &&
-    center.chainId === execChain &&
+    center.chainId === governanceWalletChain &&
     center.address != null &&
     verseId != null
 
@@ -675,15 +659,21 @@ export function VaultActions({
               {waitingRedeems.length === 0 ? (
                 <li className="panel-note">--</li>
               ) : (
-                waitingRedeems.map((entry) => (
-                  <li key={entry.requestedAt}>
+                waitingRedeems.map((entry, index) => (
+                  <li key={`${entry.requestedAt}:${index}`}>
                     <div className="vault-card__list-main">
                       <strong data-numeric>
                         {formatPendingAmount(entry.lockedAssets)} {symbol}
                       </strong>
                       <span>{formatDay(entry.requestedAt, locale)}</span>
                     </div>
-                    <RedeemCountdown remainingMs={entry.remainingMs} template={copy.remaining} />
+                    <RedeemCountdown
+                      maturesAt={entry.maturesAt}
+                      remainingMs={entry.remainingMs}
+                      template={copy.remaining}
+                      timeBase={live?.vault?.pending != null ? 'wall' : 'frozen'}
+                      onMature={handleRowMatured}
+                    />
                   </li>
                 ))
               )}
@@ -697,8 +687,8 @@ export function VaultActions({
                 {readyRedeems.length === 0 ? (
                   <li className="panel-note">--</li>
                 ) : (
-                  readyRedeems.map((entry) => (
-                    <li key={entry.requestedAt}>
+                  readyRedeems.map((entry, index) => (
+                    <li key={`${entry.requestedAt}:${index}`}>
                       <div className="vault-card__list-main">
                         <strong data-numeric>
                           {formatPendingAmount(entry.lockedAssets)} {symbol}

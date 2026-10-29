@@ -45,7 +45,7 @@ export type VerseLiveValue = {
   /** Latest probe read with its chain (provider truth); null until a probe lands. */
   aggregates: (VerseAggregatesLedger & { chainId: number }) | null
   /** Bumps ONLY when a participation confirms in this tab — account-scoped client readers
-   *  (「您的参与」) use it as their post-write refresh signal. Baseline probes (connect/chain
+   *  (「你的参与」) use it as their post-write refresh signal. Baseline probes (connect/chain
    *  moves) never bump it: they change no personal ledger. */
   writeNonce: number
   /** Baseline probe (connect/chain moves): fire-and-forget read of the view chain's
@@ -190,7 +190,8 @@ export function GenesisLiveMeters({
 }: {
   locale: Locale
   labels: { standard: string; leverage: string }
-  unit: string
+  /** null = raise asset unresolved from the deployment tables; meters render unit-less */
+  unit: string | null
   threshold: number
   normalRaised: number
   normalProgress: number

@@ -56,8 +56,9 @@ import { FieldError } from '@/components/ui/field'
  * `output` + token chip) — PT=single box (uAsset chip), YT=dual boxes (memecoin main leg box +
  * uAsset box, same order as the well readout); no separate You receive detail row (would
  * duplicate info); rate missing sample → Receive box degrades to placeholder 0.00.
- * CTA discipline same as Split/Merge: disconnected=Connect Wallet clickable; connected=action
- * button disabled (no faked execution).
+ * CTA discipline same as Split/Merge: the CTA arms the real pipeline (disconnected=Connect
+ * Wallet clickable; connected=Redeem PT / Redeem YT runs prepare → review → Type-4 /
+ * wallet_sendCalls).
  * Max disabled at zero (same as the Split/Merge dialog): when the burn
  * token balance is ≤0 Max is disabled — amountToInputString(0) filling an empty string reads
  * as a dead button.
@@ -139,11 +140,15 @@ export function PolRedeemPtYtDialog({
     ytMemeOut != null && price != null && uAssetUsd != null ? ytMemeOut * price * uAssetUsd : null
 
   const tokenSymbol = mode === 'pt' ? ptSymbol : ytSymbol
-  // A null balance (accountless slot) never blocks — the chain enforces real holdings at execution
+  // A null balance (accountless slot) never triggers the over error row — the chain enforces
+  // real holdings at execution. The submit gate is separately fail-closed: both reads missing
+  // on the mode leg (probe not landed/failed, no sample) leaves the amount unverifiable, and
+  // the early-exit/CTA below stay closed — submitting would only revert on-chain for gas.
   const overBalance =
     exactBalance != null
       ? Number.isFinite(parsed) && toBaseUnits(amount, exactBalance.decimals) > exactBalance.base
       : balance != null && parsed > balance
+  const balanceUnknown = exactBalance == null && balance == null
   const executionReady =
     center.source === 'real' &&
     connected &&
@@ -154,7 +159,7 @@ export function PolRedeemPtYtDialog({
     verseId != null
 
   async function startRedeemReview(): Promise<void> {
-    if (!executionReady || !valid || overBalance || resolving) return
+    if (!executionReady || !valid || overBalance || balanceUnknown || resolving) return
     setRedeemRows(
       mode === 'pt'
         ? [
@@ -168,7 +173,7 @@ export function PolRedeemPtYtDialog({
                   {
                     label: common.txReceived,
                     value: `≈ ${formatAmount(ptOut, locale)}`,
-                    symbol: verse.raiseAsset,
+                    symbol: verse.raiseAsset ?? undefined,
                   },
                 ]
               : []),
@@ -184,7 +189,7 @@ export function PolRedeemPtYtDialog({
                   {
                     label: common.txReceived,
                     value: `≈ ${formatAmount(ytUAssetOut, locale)}`,
-                    symbol: verse.raiseAsset,
+                    symbol: verse.raiseAsset ?? undefined,
                   },
                 ]
               : []),
@@ -215,7 +220,8 @@ export function PolRedeemPtYtDialog({
         eoa,
         verseId: BigInt(verseId),
       })
-      const splitter = session.contracts.POLSplitter as Hex
+      const splitter = session.contracts.POLSplitter as Hex | undefined
+      if (!splitter) throw new Error('outrun: POLSplitter missing')
       const reader: ContractReader = session.reader
       const burnToken = (await reader.read({
         address: splitter,
@@ -243,7 +249,7 @@ export function PolRedeemPtYtDialog({
           targetContract: splitter,
           functionName: mode === 'pt' ? 'redeemPT' : 'redeemYT',
           inputs: `${formatUnits(amountBase, decimals)} ${tokenSymbol}`,
-          minOutput: mode === 'pt' && ptOut != null ? `${ptOut} ${verse.raiseAsset}` : '—',
+          minOutput: mode === 'pt' && ptOut != null ? `${ptOut} ${verse.raiseAsset ?? ''}` : '—',
           fee: '—',
           gasPayer: eoa,
           authorizationChange: approval
@@ -351,7 +357,7 @@ export function PolRedeemPtYtDialog({
                 <output
                   className="swap-panel__output numeric-input"
                   data-numeric
-                  aria-label={`${copy.receiveLabel} ${verse.raiseAsset}`}
+                  aria-label={`${copy.receiveLabel} ${verse.raiseAsset ?? ''}`}
                 >
                   {ptOut != null ? formatAmount(ptOut, locale) : '0.00'}
                 </output>
@@ -387,7 +393,7 @@ export function PolRedeemPtYtDialog({
                 <output
                   className="swap-panel__output numeric-input"
                   data-numeric
-                  aria-label={`${copy.receiveLabel} ${verse.raiseAsset}`}
+                  aria-label={`${copy.receiveLabel} ${verse.raiseAsset ?? ''}`}
                 >
                   {ytUAssetOut != null ? formatAmount(ytUAssetOut, locale) : '0.00'}
                 </output>
@@ -413,7 +419,7 @@ export function PolRedeemPtYtDialog({
             ) : (
               <Button
                 className="swap-panel__cta"
-                disabled={!valid || overBalance || !executionReady || resolving || tx.running}
+                disabled={!valid || overBalance || balanceUnknown || !executionReady || resolving || tx.running}
                 onClick={() => void startRedeemReview()}
               >
                 {mode === 'pt' ? copy.redeemPt : copy.redeemYt}

@@ -124,9 +124,9 @@ export function DaoFundDialog({
               )
             })}
           </ul>
-          {/* CTA always disabled: no faked on-chain execution (same
-              as PolMintDialog); in this repo Button disabled renders identically to enabled —
-              the full-width primary button look is kept, interactions gated */}
+          {/* CTA always disabled: no session builder for governance claimReward, dialog not
+              wired; disabled keeps the primary-button skin (cva renders it at the standard 50%
+              disabled grade), interactions gated */}
           {actionLabel ? (
             <Button className="swap-panel__cta" disabled>
               {actionLabel}

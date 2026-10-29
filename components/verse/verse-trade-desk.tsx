@@ -107,12 +107,14 @@ export async function VerseTradeDesk({
                     tipValue={`$${formatAmount(stats.marketCap, locale)}`}
                   />
                 ) : null}
-                <StatChip
-                  label={copy.liquidity}
-                  value={`$${formatMarketCap(stats.liquidity)}`}
-                  tipTitle={copy.liquidityFull}
-                  tipValue={`$${formatAmount(stats.liquidity, locale)}`}
-                />
+                {stats.liquidity != null ? (
+                  <StatChip
+                    label={copy.liquidity}
+                    value={`$${formatMarketCap(stats.liquidity)}`}
+                    tipTitle={copy.liquidityFull}
+                    tipValue={`$${formatAmount(stats.liquidity, locale)}`}
+                  />
+                ) : null}
                 {stats.volume24h != null ? (
                   <StatChip
                     label={copy.volume24h}
@@ -144,7 +146,7 @@ export async function VerseTradeDesk({
             candles={trade.candles}
             fineCandles={trade.fineCandles}
             locale={locale}
-            pairLabel={`${verse.symbol}/${verse.raiseAsset}`}
+            pairLabel={verse.raiseAsset ? `${verse.symbol}/${verse.raiseAsset}` : verse.symbol}
             header={
               /* Price+CA passed into the chart component, on the same row as the granularity
                  buttons;
