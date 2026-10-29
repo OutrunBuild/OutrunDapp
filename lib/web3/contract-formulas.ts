@@ -77,6 +77,74 @@ export function leverageDebtBase(interestBase: bigint, rateWad: bigint): bigint 
   return floorDiv(interestBase * WAD, rateWad);
 }
 
+/** Leverage debt-cap comparison, integer-exact with the chain pre-check: POLend borrows only
+ * while mulDiv(totalInterest + newInterest, 1e18, rate) stays within the verse debt cap
+ * (POLendUpgradeable._checkLeverageCaps). The comparison itself; probe-presence dispatch
+ * lives in leverageGateExceeded. */
+export function leverageCapExceeded(
+  totalInterestBase: bigint,
+  newInterestBase: bigint,
+  rateWad: bigint,
+  debtCapBase: bigint,
+): boolean {
+  return leverageDebtBase(totalInterestBase + newInterestBase, rateWad) > debtCapBase;
+}
+
+/** Leverage exact-gate dispatch, same shape as preorderRemainingExceeded: a landed probe is
+ * the gate on its own because it carries the wallet chain's own rate (the SSR overlay only
+ * ever carries the canonical copy). null — probe not landed, mint unread or zero, or a
+ * zero-rate probe — hands the decision to the caller's float fallback. */
+export function leverageGateExceeded(
+  mainMintBase: bigint | null,
+  probe: { interestBase: bigint; interestRateBase: bigint; debtCapBase: bigint } | null,
+): boolean | null {
+  if (mainMintBase == null || mainMintBase <= 0n) return null;
+  if (probe == null || probe.interestRateBase <= 0n) return null;
+  return leverageCapExceeded(
+    probe.interestBase,
+    mainMintBase,
+    probe.interestRateBase,
+    probe.debtCapBase,
+  );
+}
+
+/** Rate-operand resolution, probe-first: a landed probe's rate is the wallet chain's own
+ * one-off ratio while the SSR wad is the canonical chain's copy, so every wallet-chain
+ * conversion reads this one resolution. A landed zero rate (unseeded verse) still hands the
+ * decision to the SSR copy, mirroring leverageGateExceeded's zero-rate dispatch. */
+export function resolveLeverageRateWad(
+  probeRateBase: bigint | null,
+  ssrWad: string | null,
+): bigint | null {
+  if (probeRateBase != null && probeRateBase > 0n) return probeRateBase;
+  if (ssrWad != null) return BigInt(ssrWad);
+  return null;
+}
+
+/** Exact debt-cap headroom from the landed probe: remaining borrowable = cap − the chain's
+ * own total debt, floor-clamped. null while the probe has not landed — the float layer
+ * covers that window. */
+export function debtHeadroomBase(
+  probe: { debtCapBase: bigint; debtBase: bigint } | null,
+): bigint | null {
+  if (probe == null) return null;
+  return probe.debtCapBase > probe.debtBase ? probe.debtCapBase - probe.debtBase : 0n;
+}
+
+/** Preorder remaining-capacity gate shared by the preorder tab and the one-click combo,
+ * exact-first per the money-precision contract: integer comparison while the probe remaining
+ * and the mint quote have both landed, float fallback while either has not (no readable
+ * remaining on any layer → no gate). */
+export function preorderRemainingExceeded(
+  exactRemainingBase: bigint | null,
+  mintBase: bigint | null,
+  floatRemaining: number | null,
+  floatMint: number,
+): boolean {
+  if (exactRemainingBase != null && mintBase != null) return mintBase > exactRemainingBase;
+  return floatRemaining != null && floatMint > floatRemaining;
+}
+
 /** Stake leg mint estimate from the chain's per-whole-token preview (uAsset base per 1 token
  * unit of `tokenDecimals`): floor once. */
 export function stakeMintBase(

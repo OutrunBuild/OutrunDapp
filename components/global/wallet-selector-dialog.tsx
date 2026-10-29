@@ -20,11 +20,7 @@ import {
   rememberLastLogin,
   type LoginProvider,
 } from '@/lib/web3/login-identity';
-import {
-  forgetWalletLink,
-  readWalletLink,
-  rememberWalletLink,
-} from '@/lib/web3/session-hint';
+import { forgetWalletLink, readWalletLink } from '@/lib/web3/session-hint';
 import { isDisconnecting, releaseDisconnectStorage } from '@/lib/web3/disconnect-guard';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { getCopy } from './copy';
@@ -188,10 +184,15 @@ function LoginView({ locale, onDone }: { locale: Locale; onDone: () => void }) {
   const metamaskResolved = metamaskProvider !== null || probed;
   const metamaskInstalled = metamaskProvider !== null || (probed && hasEthereum);
 
-  // MetaMask path: close on address, not on the connect callback. The callback
-  // only fires when wagmi runs the full handshake — a queued -32002 retry can
-  // land connected through the connector cache without firing onSuccess, which
-  // used to leave the dialog open over a logged-in page.
+  // MetaMask path: close on address, not on the connect callback. onSuccess
+  // only covers a clean full handshake: a rapid second click fails with
+  // -32002 and supersedes the first call's onSuccess while that connection
+  // still lands (wagmi core writes state directly; the dialog's inline
+  // connector never joins config.connectors; the landed connector's emitter
+  // stays wired into config events, so late provider events still arrive —
+  // only the superseded second call's connector ends up unwired). Privy sync
+  // and session restore also flip address outside this dialog; wallet-link
+  // markers are written site-wide by use-account-center.
   useEffect(() => {
     if (address) onDone();
   }, [address, onDone]);
@@ -312,11 +313,8 @@ function LoginView({ locale, onDone }: { locale: Locale; onDone: () => void }) {
         }),
       },
       {
-        onSuccess: () => {
-          rememberWalletLink('metamask');
-          rememberLastLogin('metamask');
-          onDone();
-        },
+        // Link persistence is owned by the account-center effect — close only.
+        onSuccess: () => onDone(),
       },
     );
   };

@@ -175,8 +175,10 @@ export function parseCallsStatus(response: unknown): CallsStatusResult {
 /**
  * Poll wallet_getCallsStatus until terminal or the deadline. The params shape is the
  * spec's `[batchId]` (a string, not an object). Transient RPC failures keep polling;
- * an unknown-bundle error (5730) fails fast; a deadline hit returns 'timeout' and the
- * caller must not report it as success or cancellation.
+ * a repeated unknown-bundle error (5730) fails fast — the first hit gets one retry so
+ * a transient wallet index delay right after sendCalls cannot fail a live batch;
+ * a deadline hit returns 'timeout' and the caller must not report it as success or
+ * cancellation.
  */
 export async function pollCallsStatus(
   request: Eip5792RequestFn,
@@ -186,16 +188,25 @@ export async function pollCallsStatus(
   const intervalMs = options.intervalMs ?? 1500;
   const deadlineMs = options.deadlineMs ?? 120_000;
   const deadline = Date.now() + deadlineMs;
+  let unknownBundleSeen = false;
   for (;;) {
     let response: unknown;
     try {
       response = await request({ method: 'wallet_getCallsStatus', params: [batchId] });
     } catch (error) {
-      if (isUnknownBundle(error)) return { status: 'failure', statusCode: 5730 };
+      if (isUnknownBundle(error)) {
+        if (unknownBundleSeen) return { status: 'failure', statusCode: 5730 };
+        unknownBundleSeen = true;
+        if (Date.now() >= deadline) return { status: 'timeout' };
+        await new Promise((resolve) => setTimeout(resolve, intervalMs));
+        continue;
+      }
+      unknownBundleSeen = false;
       if (Date.now() >= deadline) return { status: 'timeout' };
       await new Promise((resolve) => setTimeout(resolve, intervalMs));
       continue;
     }
+    unknownBundleSeen = false;
     const parsed = parseCallsStatus(response);
     if (parsed.status !== 'pending') return parsed;
     if (Date.now() >= deadline) return { status: 'timeout' };
@@ -207,5 +218,6 @@ export async function pollCallsStatus(
 function isUnknownBundle(error: unknown): boolean {
   if (typeof error !== 'object' || error === null) return false;
   if ((error as { code?: unknown }).code === 5730) return true;
-  return /unknown bundle|bundle id/i.test(String((error as { message?: unknown }).message ?? ''));
+  const message = String((error as { message?: unknown }).message ?? '');
+  return /unknown bundle|bundle[^.!?]{0,120}not found/i.test(message);
 }

@@ -2,10 +2,7 @@
 // Server/client-isomorphic: NO 'use client' directive — the discovery RSC calls these during
 // SSR. The client harness (web3-harness.ts) only owns the wallet store.
 
-// NEXT_PUBLIC_ mirror is the client-inlinable projection; the server var covers SSR.
-const ONCHAIN_BUILD =
-  process.env.NEXT_PUBLIC_OUTRUN_DATA_SOURCE !== 'fixture' &&
-  process.env.OUTRUN_DATA_SOURCE !== 'fixture';
+import { ONCHAIN_BUILD } from '@/lib/data/source-flag';
 
 /** Whitelist of screenshot-freeze hook ids */
 export const SCENARIO_IDS = ['loading', 'empty', 'error'] as const;

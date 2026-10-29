@@ -7,23 +7,23 @@ import { ChainLogoMark } from './chain-icons'
 import { getCopy } from './copy'
 import { useAccountCenter } from './use-account-center'
 import { switchProviderChain } from '@/lib/web3/active-provider'
-
-/** Fixture governance ids are mainnet; the current chainset runs the testnet twin. */
-const MAINNET_TO_TESTNET: Record<number, number> = { 1: 421614, 8453: 84532, 56: 97 }
+import { executionChainId } from '@/lib/web3/chains'
 
 /** Verse execution chain + wrong-chain verdict for the trading-desk panels: a wallet on
  * another chain must never fire the desk's on-chain reads (same-address deployments on the
  * other chains revert InvalidVerseId); the panel CTA becomes the network switch instead. */
 export function useVerseExecChain(governanceChain: number) {
   const center = useAccountCenter()
-  const execChain = MAINNET_TO_TESTNET[governanceChain] ?? governanceChain
+  // Fixture governance ids are mainnet; the wallet executes on the testnet twin.
+  const execChain = executionChainId(governanceChain)
   const wrongChain = center.source === 'real' && center.connected && center.chainId !== execChain
   return { execChain, wrongChain, switchChain: center.switchChainAction }
 }
 
 /** Switch-network CTA: the target chain's icon rides before its name.
- *  The switch itself goes provider-direct first (wallet_switchEthereumChain — the connector
- *  path can be stale); the wagmi fallback only fires when the direct call cannot run. */
+ *  The switch goes provider-direct first (resolves on the wallet's answer, no event
+ *  wait); anything short of `switched` that is not a refusal still falls through to
+ *  the wagmi connector path, which confirms via chainChanged + eth_chainId re-read. */
 export function SwitchChainCta({
   locale,
   execChain,
@@ -54,8 +54,11 @@ export function SwitchChainCta({
       variant={variant}
       size={size}
       onClick={() => {
-        void switchProviderChain(execChain).then((ok) => {
-          if (!ok) onSwitch(execChain)
+        void switchProviderChain(execChain).then((result) => {
+          // `rejected` stops here: the wallet answered no, and a connector retry would
+          // just pop the same prompt again. Anything else still gets the wagmi fallback.
+          if (result === 'rejected') return
+          if (result !== 'switched') onSwitch(execChain)
           onSwitched?.()
         })
       }}

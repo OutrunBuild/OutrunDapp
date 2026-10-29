@@ -16,7 +16,6 @@ import {
   polendAbi,
   psmAbi,
   registrationCenterAbi,
-  registrarOmnichainAbi,
   splitterAbi,
   stakingPositionAbi,
   swapRouterAbi,
@@ -622,46 +621,6 @@ export function registerAtCenterCall(
           uAsset: param.uAsset,
           flashGenesis: param.flashGenesis,
         },
-      ],
-    }),
-  };
-}
-
-/** Spoke-side entry (421614/84532): forwards the same param to the hub center. */
-export function registerAtSpokeCall(
-  registrar: Hex,
-  param: {
-    name: string;
-    symbol: string;
-    uri: string;
-    desc: string;
-    communities: string[];
-    durationDays: bigint;
-    omnichainIds: number[];
-    uAsset: Hex;
-    flashGenesis: boolean;
-  },
-  value: bigint,
-): BatchExecution {
-  return {
-    target: registrar,
-    value,
-    callData: encodeFunctionData({
-      abi: registrarOmnichainAbi,
-      functionName: 'registerAtCenter',
-      args: [
-        {
-          name: param.name,
-          symbol: param.symbol,
-          uri: param.uri,
-          desc: param.desc,
-          communities: param.communities,
-          durationDays: param.durationDays,
-          omnichainIds: param.omnichainIds,
-          uAsset: param.uAsset,
-          flashGenesis: param.flashGenesis,
-        },
-        value,
       ],
     }),
   };

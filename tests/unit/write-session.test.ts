@@ -86,6 +86,31 @@ describe('getVerseSession: static half resolves once per landed chain', () => {
     expect(methods).toEqual(['eth_chainId']);
   });
 
+  it('does not merge concurrent resolves across a provider re-registration', async () => {
+    // A re-registered provider is a new connection: its request identity must not be
+    // served the old connection's in-flight promise (its reader binds the stale request).
+    const methods: string[] = [];
+    const oldProvider = providerOn(BSC, methods);
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let calls = 0;
+    const resolve = async () => {
+      calls += 1;
+      await gate;
+      return sessionOf();
+    };
+    const verseId = 221n;
+    const stale = getVerseSession(input(oldProvider, EOA, verseId), resolve);
+    const newProvider = providerOn(BSC, methods);
+    const fresh = getVerseSession(input(newProvider, EOA, verseId), resolve);
+    release();
+    const [staleSession, freshSession] = await Promise.all([stale, fresh]);
+    expect(calls).toBe(2);
+    expect(freshSession).not.toBe(staleSession);
+  });
+
   it('a warm session costs exactly one probe and no static read', async () => {
     const methods: string[] = [];
     const provider = providerOn(BSC, methods);

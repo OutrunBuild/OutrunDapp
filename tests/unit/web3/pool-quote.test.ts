@@ -5,6 +5,8 @@
 import { describe, expect, it } from 'vitest';
 import { getAddress, keccak256 } from 'viem';
 import {
+  buildRemoveLiquidityLegs,
+  burnFloorsFromQuote,
   DYNAMIC_FEE_FLAG,
   HOOK_TICK_SPACING,
   hookPoolKey,
@@ -93,5 +95,77 @@ describe('lpPerQuoteUnit', () => {
 
   it('null when the quote side is empty (division without a denominator)', () => {
     expect(lpPerQuoteUnit(1200n, 0n)).toBeNull();
+  });
+});
+
+describe('burnFloorsFromQuote', () => {
+  it('trims both legs by the slippage and maps to currency order', () => {
+    expect(
+      burnFloorsFromQuote({
+        quotedBase: 10_000n,
+        quotedQuote: 5_000n,
+        baseIsCurrency0: true,
+        slippageBps: 50,
+      }),
+    ).toEqual({ amount0Min: 9_950n, amount1Min: 4_975n });
+    expect(
+      burnFloorsFromQuote({
+        quotedBase: 10_000n,
+        quotedQuote: 5_000n,
+        baseIsCurrency0: false,
+        slippageBps: 50,
+      }),
+    ).toEqual({ amount0Min: 4_975n, amount1Min: 9_950n });
+  });
+
+  it('floors below the round-up quote at the 1-bps minimum trim (never above the round-down payout)', () => {
+    // quote rounds up, burn settles round-down: floor(q*(1-bps/10000)) <= q-1 <= payout for bps>=1
+    for (const quoted of [1n, 2n, 3n, 10_001n, 123_456_789n]) {
+      const { amount0Min } = burnFloorsFromQuote({
+        quotedBase: quoted,
+        quotedQuote: quoted,
+        baseIsCurrency0: true,
+        slippageBps: 1,
+      });
+      expect(amount0Min).toBeLessThanOrEqual(quoted - 1n);
+      expect(amount0Min).toBeGreaterThanOrEqual(0n);
+    }
+  });
+
+  it('keeps the raw round-up quote only at a zero trim — the boundary the UI rejects', () => {
+    expect(
+      burnFloorsFromQuote({
+        quotedBase: 10_000n,
+        quotedQuote: 10_000n,
+        baseIsCurrency0: true,
+        slippageBps: 0,
+      }).amount0Min,
+    ).toBe(10_000n);
+  });
+});
+
+describe('buildRemoveLiquidityLegs', () => {
+  it('sorts tokens and maps floors together when base is currency0', () => {
+    expect(
+      buildRemoveLiquidityLegs({
+        base: A,
+        quote: B,
+        quotedBase: 10_000n,
+        quotedQuote: 5_000n,
+        slippageBps: 50,
+      }),
+    ).toEqual({ currency0: A, currency1: B, amount0Min: 9_950n, amount1Min: 4_975n });
+  });
+
+  it('sorts tokens and maps floors together when base is currency1', () => {
+    expect(
+      buildRemoveLiquidityLegs({
+        base: B,
+        quote: A,
+        quotedBase: 10_000n,
+        quotedQuote: 5_000n,
+        slippageBps: 50,
+      }),
+    ).toEqual({ currency0: A, currency1: B, amount0Min: 4_975n, amount1Min: 9_950n });
   });
 });

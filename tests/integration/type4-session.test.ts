@@ -1,11 +1,11 @@
-// Anvil fork Type-4 session suite (runbook step 8, architecture.md §11.3).
+// Anvil fork Type-4 session suite (architecture.md §11.3).
 // One fork at a time; the chain under test comes from the environment:
 //
 //   TEST_CHAIN_ID=97 ANVIL_URL=http://localhost:8545 VERSE_ID=<id> pnpm exec vitest run tests/integration
 //
 // VERSE_ID empty = skip verse flows (genesis needs a deployed verse; only BSC has one).
 // Without ANVIL_URL the whole file skips, so plain `pnpm test` never needs a fork.
-// Fixed fork blocks are recorded in docs/runbooks/acceptance-checklist.md (AC-5).
+// Pin chain state with --fork-block-number <n> on the anvil command when needed.
 import {
   createPublicClient,
   createWalletClient,

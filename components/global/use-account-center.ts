@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAccount, useBytecode, useSwitchChain } from 'wagmi';
 import { usePrivy } from '@privy-io/react-auth';
@@ -9,26 +9,26 @@ import { CHAIN_IDS, getClientChainConfig } from '@/lib/web3/chains';
 import {
   advanceAccount,
   detectCodeCapability,
-  resolveWriteCapability,
   type AccountEvent,
   type AccountState,
-  type ProviderCapability,
-  type WriteCapabilityResolution,
 } from '@/lib/web3/account';
-import { setActiveEip1193Provider, type Eip1193ProviderLike } from '@/lib/web3/active-provider';
+import {
+  getActiveEip1193Provider,
+  setActiveEip1193Provider,
+  type Eip1193ProviderLike,
+} from '@/lib/web3/active-provider';
 import { readWalletLink, rememberWalletLink } from '@/lib/web3/session-hint';
 import { rememberLastLogin } from '@/lib/web3/login-identity';
+import { ONCHAIN_BUILD } from '@/lib/data/source-flag';
 
 import { useHarnessWallet } from './web3-harness';
 import { openWalletSelector } from './wallet-selector-dialog';
 
-// NEXT_PUBLIC_ mirror is the client-inlinable projection; the server var covers SSR.
-const ONCHAIN_BUILD =
-  process.env.NEXT_PUBLIC_OUTRUN_DATA_SOURCE !== 'fixture' &&
-  process.env.OUTRUN_DATA_SOURCE !== 'fixture';
-
-const CAPABLE_PROVIDER: ProviderCapability = { canSignAuthorization: true, canSendType4: true };
-const LIMITED_PROVIDER: ProviderCapability = { canSignAuthorization: false, canSendType4: false };
+// The wagmi connector settles its switch only when a chainChanged event (or its own
+// eth_chainId re-read) confirms the target chain; a wallet that answers the request
+// without switching would pend forever. The deadline bounds that wait at the app's
+// only seam around the connector, generous enough for slow user approval.
+const SWITCH_CHAIN_DEADLINE_MS = 15_000;
 
 export type AccountCenter = {
   source: 'real' | 'harness';
@@ -38,10 +38,7 @@ export type AccountCenter = {
   chainId: number | null;
   /** False for off-chainset networks (AC-2: writes disabled + switch guidance, never a popup). */
   chainSupported: boolean;
-  accountState: AccountState;
-  write: WriteCapabilityResolution;
-  /** True after the provider refused an authorization/type-4 RPC (per-brand fallback, §16). */
-  providerLimited: boolean;
+  /** Session write path reports a provider refusing an authorization/type-4 RPC (§16 fallback). */
   reportProviderLimitation: () => void;
   dispatchAccount: (event: AccountEvent) => void;
   /** Harness-only connect toggle (e2e click path; onchain builds open the selector instead). */
@@ -52,7 +49,8 @@ export type AccountCenter = {
   connectAction: () => void;
   /**
    * Wallet chain switch (user-confirmed click; rejections keep the current chain).
-   * Resolves true on success, false on failure — callers write URL state only on true.
+   * Resolves true on success, false on failure (refusal, unsupported chain, or a
+   * deadline without a live-chain confirmation). Nothing here writes URL state.
    */
   switchChainAction: (chainId: number) => Promise<boolean>;
   /** Last wallet chain-switch failure (null when idle/success); selector surfaces it. */
@@ -122,8 +120,11 @@ function useRealAccountCenter(): AccountCenter {
     chainId: walletChainId,
     query: { enabled: isConnected && !!address },
   });
-  const [accountState, setAccountState] = useState<AccountState>('Disconnected');
-  const [providerLimited, setProviderLimited] = useState(false);
+  // Nine-state machine and the reactive provider-limitation flag stay live for the
+  // pending §6.2 capability-gate wiring; their values stay unprojected until that
+  // gate has consumers (architecture.md §6.2 实现状态).
+  const [, setAccountState] = useState<AccountState>('Disconnected');
+  const [, setProviderLimited] = useState(false);
   // Restore-window deadline: the link effect retries setActiveWallet every 500ms up
   // to 12 tries (login-session-restore.ts), so 7s covers the full retry budget plus
   // slack. Past it, a session that never lands degrades to the Login button instead
@@ -175,19 +176,45 @@ function useRealAccountCenter(): AccountCenter {
 
   const connectAction = useCallback(() => openWalletSelector(), []);
   // Wallet chain switch: resolves true on success, false on failure (user refusal,
-  // unconfigured chain). Callers write URL state only on true; failures surface as
-  // switchChainError with retry copy. Rejections keep the current chain.
+  // unsupported chain, or a deadline without a confirmed switch). Failures surface as
+  // switchChainError with retry copy. Rejections keep the current chain; nothing
+  // here writes URL state.
   const [switchChainError, setSwitchChainError] = useState<string | null>(null);
   const clearSwitchChainError = useCallback(() => setSwitchChainError(null), []);
   const switchChainAction = useCallback(
     async (chainId: number): Promise<boolean> => {
+      let deadline: number | undefined;
       try {
-        await switchChainAsync({ chainId });
+        const outcome = await Promise.race([
+          switchChainAsync({ chainId }).then(() => 'switched' as const),
+          new Promise<'deadline'>((resolve) => {
+            deadline = window.setTimeout(() => resolve('deadline'), SWITCH_CHAIN_DEADLINE_MS);
+          }),
+        ]);
+        if (outcome === 'deadline') {
+          // Classify by the live chain, not by the timeout itself: an approval that
+          // landed late is a success; anything else stays a retryable failure.
+          const provider = getActiveEip1193Provider();
+          const live = provider
+            ? await provider
+                .request({ method: 'eth_chainId' })
+                .then((value) => Number.parseInt(String(value), 16))
+                .catch(() => null)
+            : null;
+          if (live === chainId) {
+            setSwitchChainError(null);
+            return true;
+          }
+          setSwitchChainError('switch-failed');
+          return false;
+        }
         setSwitchChainError(null);
         return true;
       } catch {
         setSwitchChainError('switch-failed');
         return false;
+      } finally {
+        window.clearTimeout(deadline);
       }
     },
     [switchChainAsync],
@@ -269,13 +296,6 @@ function useRealAccountCenter(): AccountCenter {
 
   const chainSupported =
     walletChainId !== undefined && (CHAIN_IDS as readonly number[]).includes(walletChainId);
-  const resolved = walletChainId !== undefined ? getClientChainConfig(walletChainId) : null;
-  const manifestImplementation =
-    resolved !== null && resolved.status === 'ok' ? resolved.config.kernel7702Implementation : '';
-  const capability = detectCodeCapability(code ?? '0x', manifestImplementation);
-  const write = chainSupported
-    ? resolveWriteCapability(capability, providerLimited ? LIMITED_PROVIDER : CAPABLE_PROVIDER)
-    : { capability: 'blocked-readonly' as const, upgradeHint: false };
 
   return {
     source: 'real',
@@ -283,9 +303,6 @@ function useRealAccountCenter(): AccountCenter {
     address: address ?? null,
     chainId: walletChainId ?? null,
     chainSupported,
-    accountState,
-    write,
-    providerLimited,
     reportProviderLimitation: () => setProviderLimited(true),
     dispatchAccount,
     toggleHarness: null,
@@ -315,11 +332,6 @@ function useHarnessAccountCenter(): AccountCenter {
     address: null,
     chainId: harness.chainId,
     chainSupported: true,
-    accountState: harness.connected ? 'Connected EOA' : 'Disconnected',
-    write: harness.connected
-      ? { capability: 'needs-delegation', upgradeHint: false }
-      : { capability: 'blocked-readonly', upgradeHint: false },
-    providerLimited: false,
     reportProviderLimitation: () => undefined,
     dispatchAccount,
     toggleHarness: harness.toggle,
@@ -332,9 +344,22 @@ function useHarnessAccountCenter(): AccountCenter {
   };
 }
 
-const useAccountCenterImpl = ONCHAIN_BUILD ? useRealAccountCenter : useHarnessAccountCenter;
+/** The single AccountCenter instance, hosted by AccountCenterProvider (web3-providers shell). */
+export const AccountCenterContext = createContext<AccountCenter | null>(null);
+
+/**
+ * Provider-only instance runner: consumer code goes through useAccountCenter (context
+ * read), never calls this directly.
+ */
+export const useAccountCenterImpl = ONCHAIN_BUILD ? useRealAccountCenter : useHarnessAccountCenter;
 
 /** Unified account view: real hooks on onchain builds, the test harness otherwise. */
 export function useAccountCenter(): AccountCenter {
-  return useAccountCenterImpl();
+  const shared = useContext(AccountCenterContext);
+  if (shared === null) {
+    throw new Error(
+      'outrun: useAccountCenter requires the AccountCenterProvider mount (web3-providers shell)',
+    );
+  }
+  return shared;
 }

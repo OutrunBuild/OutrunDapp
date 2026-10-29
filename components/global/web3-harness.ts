@@ -2,6 +2,8 @@
 
 import { useSyncExternalStore } from 'react';
 
+import { ONCHAIN_BUILD } from '@/lib/data/source-flag';
+
 /**
  * Non-production account harness (runbook step 5): the e2e/visual successor of the retired
  * test harness wallet. Active ONLY in fixture mode (OUTRUN_DATA_SOURCE=fixture; onchain is the default) — onchain builds drive the
@@ -11,10 +13,6 @@ import { useSyncExternalStore } from 'react';
  * Scenario freeze hooks live in the isomorphic ./scenario-view (no 'use client'): the
  * discovery RSC calls them during SSR.
  */
-// NEXT_PUBLIC_ mirror is the client-inlinable projection; the server var covers SSR.
-const ONCHAIN_BUILD =
-  process.env.NEXT_PUBLIC_OUTRUN_DATA_SOURCE !== 'fixture' &&
-  process.env.OUTRUN_DATA_SOURCE !== 'fixture';
 
 function assertHarness(): void {
   if (ONCHAIN_BUILD) throw new Error('outrun: test harness is unavailable on onchain builds');

@@ -56,3 +56,30 @@ export function typedAmountPositive(amount: string, exact: { decimals: number } 
   if (!Number.isFinite(parsed) || parsed <= 0) return false
   return exact == null || toBaseUnits(amount, exact.decimals) > 0n
 }
+
+/**
+ * Balance gate shared by AmountField's error row and every executable CTA's disabled
+ * predicate — one implementation so the field and the button cannot drift. The exact
+ * wallet read (raw base units) wins when it landed; the float sample is only the fallback.
+ * `balanceUnknown` (live read in flight or failed) blocks submission: an unread balance
+ * must never arm a CTA that could only revert on-chain.
+ */
+export type AmountBalanceGate = {
+  overBalance: boolean
+  balanceUnknown: boolean
+  blocked: boolean
+}
+
+export function evaluateAmountBalance(
+  amount: string,
+  balance: number | null,
+  exactBalance?: { base: bigint; decimals: number } | null,
+): AmountBalanceGate {
+  const parsed = Number(amount)
+  const overBalance =
+    exactBalance != null
+      ? toBaseUnits(amount, exactBalance.decimals) > exactBalance.base
+      : balance != null && Number.isFinite(parsed) && parsed > balance
+  const balanceUnknown = balance == null && exactBalance == null
+  return { overBalance, balanceUnknown, blocked: overBalance || balanceUnknown }
+}

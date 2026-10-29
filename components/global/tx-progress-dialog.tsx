@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Generic write-progress dialog (2026-10-26 用户裁定): execution progress lives in its own
+ * Generic write-progress dialog: execution progress lives in its own
  * dialog — never a strip appended to the action dialog — and carries no buttons; it is
  * always the second-to-last dialog, yielding on confirmed to a success dialog
  * (components/global/tx-success-dialog.tsx) that closes the sequence. Cancelled/reverted

@@ -46,16 +46,23 @@ export function getActiveEip1193Provider(): Eip1193ProviderLike | null {
   return activeProvider;
 }
 
+/** Outcome of a provider-direct switch: `rejected` means the user said no (switch or
+ * add-chain prompt declined) — retrying through the connector path would just re-prompt
+ * them; `unsupported`/`no-provider` mean the direct route cannot complete (no wallet
+ * provider, chain outside the app chainset, wallet-side failure) and the wagmi fallback
+ * is the remaining route. */
+export type ProviderSwitchResult = 'switched' | 'rejected' | 'unsupported' | 'no-provider';
+
 /**
  * Provider-direct network switch: wallet_switchEthereumChain straight to the active
- * provider, wallet_addEthereumChain on 4902 (chain not added). The wagmi/Privy connector
- * path can run on stale state (cached chainId lies after an in-wallet switch; nobody
- * app-side subscribes chainChanged) — the switch rides the same provider truth the
- * execution gate reads. Returns false when no provider or the wallet rejects.
+ * provider, wallet_addEthereumChain on 4902 (chain not added). The resolve is taken as
+ * the answer here (no chainChanged wait, no re-read — the connector path has both);
+ * execution gates re-read the live provider chainId themselves, so nothing rides on
+ * wagmi's cached chainId.
  */
-export async function switchProviderChain(chainId: number): Promise<boolean> {
+export async function switchProviderChain(chainId: number): Promise<ProviderSwitchResult> {
   const provider = activeProvider;
-  if (!provider) return false;
+  if (!provider) return 'no-provider';
   const hex = `0x${chainId.toString(16)}`;
   const chain = WALLET_CHAINS.find((entry) => entry.id === chainId);
   try {
@@ -63,10 +70,11 @@ export async function switchProviderChain(chainId: number): Promise<boolean> {
       method: 'wallet_switchEthereumChain',
       params: [{ chainId: hex }],
     });
-    return true;
+    return 'switched';
   } catch (error) {
     const code = (error as { code?: number }).code;
-    if (code !== 4902 || !chain) return false;
+    if (code === 4001) return 'rejected';
+    if (code !== 4902 || !chain) return 'unsupported';
     try {
       await provider.request({
         method: 'wallet_addEthereumChain',
@@ -82,9 +90,12 @@ export async function switchProviderChain(chainId: number): Promise<boolean> {
           },
         ],
       });
-      return true;
-    } catch {
-      return false;
+      return 'switched';
+    } catch (addError) {
+      // A declined add prompt is the user saying no; any other failure is wallet-side
+      // (transient RPC errors land here) and the connector retry may still get past it.
+      const addCode = (addError as { code?: number }).code;
+      return addCode === 4001 ? 'rejected' : 'unsupported';
     }
   }
 }

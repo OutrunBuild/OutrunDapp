@@ -14,6 +14,7 @@ import {
   MAINNET_CHAIN_IDS,
   TESTNET_CHAIN_IDS,
   parseDeployment,
+  resolveClientChain,
   resolveOutrunChain,
   verseExecutionChains,
   verseSwitchChainId,
@@ -249,5 +250,37 @@ describe('verse execution chains', () => {
   it('treats an empty landed set like no data instead of allowing nothing', () => {
     expect(verseExecutionChains(8453, [])).toEqual([84532]);
     expect(verseSwitchChainId(8453, [])).toBe(84532);
+  });
+});
+
+describe('client-safe resolution mirrors the server field mapping', () => {
+  /** Field-mapping drift guard: the two paths must agree on every field except transport. */
+  const fields = (config: OutrunChainConfig) =>
+    Object.fromEntries(
+      Object.entries(config).filter(([key]) => key !== 'rpc' && key !== 'subgraphEndpoint'),
+    );
+
+  it('deployed chains carry every server field except the transport', () => {
+    const server = okConfig(421614);
+    const client = resolveClientChain(421614);
+    if (client.status !== 'ok') {
+      throw new Error(`client 421614 unexpectedly not-configured: ${client.reason}`);
+    }
+    expect(fields(client.config)).toEqual(fields(server));
+    expect(client.config.rpc).toBeNull();
+    expect(client.config.subgraphEndpoint).toBeNull();
+  });
+
+  it('undeployed mainnet entries are identical on both paths', () => {
+    for (const chainId of MAINNET_CHAIN_IDS) {
+      expect(resolveClientChain(chainId)).toEqual(resolveOutrunChain(chainId, {}));
+    }
+  });
+
+  it('unknown chain ids fail closed on the client path too', () => {
+    expect(resolveClientChain(12345)).toEqual({
+      status: 'not-configured',
+      reason: 'unknown chainId 12345',
+    });
   });
 });

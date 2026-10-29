@@ -5,6 +5,7 @@ import type { Hex } from 'viem';
 import {
   deriveVersePreorderUsed,
   poolSideKinds,
+  quoteRegistrationFanOut,
   readAllowances,
   readErc20Meta,
   readGenesisLedger,
@@ -321,6 +322,11 @@ describe('readVerseAggregates (post-write probe)', () => {
       totalNormalFunds: 3n * 10n ** 18n,
       previewPreorderCapacity: 10n ** 17n,
       // viem decodes the single named struct as an object keyed by field name
+      getLauncherParameters: {
+        executorRewardRate: 0n,
+        preorderCapRatio: 2_500n,
+        preorderVestingDuration: 0n,
+      },
       getLeveragedDebtInfo: {
         totalLeveragedInterest: 10n ** 17n,
         totalLeveragedDebt: 2n * 10n ** 18n,
@@ -333,7 +339,10 @@ describe('readVerseAggregates (post-write probe)', () => {
       normalBase: 3n * 10n ** 18n,
       interestBase: 10n ** 17n,
       debtBase: 2n * 10n ** 18n,
+      interestRateBase: 5n * 10n ** 16n,
+      debtCapBase: 90n * 10n ** 18n,
       remainingPreorderBase: 10n ** 17n,
+      preorderCapRatioBps: 2_500n,
     });
   });
 
@@ -341,13 +350,17 @@ describe('readVerseAggregates (post-write probe)', () => {
     const reader = stubReader({
       totalNormalFunds: 0n,
       previewPreorderCapacity: 0n,
+      getLauncherParameters: [0n, 0n, 0n, 0n, 0n],
       getLeveragedDebtInfo: [0n, 0n, 0n, 0n, 0n],
     });
     await expect(readVerseAggregates(reader, ROUTER, TOKEN_A, 21n)).resolves.toEqual({
       normalBase: 0n,
       interestBase: 0n,
       debtBase: 0n,
+      interestRateBase: 0n,
+      debtCapBase: 0n,
       remainingPreorderBase: 0n,
+      preorderCapRatioBps: 0n,
     });
   });
 });
@@ -373,5 +386,52 @@ describe('deriveVersePreorderUsed (chain-exact reconstruction)', () => {
     expect(
       deriveVersePreorderUsed({ normalBase: 5n, debtBase: 0n, remainingPreorderBase: 0n }, null),
     ).toBeNull();
+  });
+});
+
+describe('quoteRegistrationFanOut', () => {
+  const shape = {
+    name: 'Osmosis Kitty',
+    symbol: 'OSMK',
+    uri: '',
+    desc: 'desc',
+    communities: [] as string[],
+    omnichainIds: [97, 421614],
+    uAsset: TOKEN_A,
+    flashGenesis: false,
+  };
+
+  it('keeps the total fee from quoteSend positional outputs (totalFee, fees[], eids[])', async () => {
+    const reader = stubReader({
+      quoteSend: [1_234n, [1_000n, 234n], [97n, 421614n]],
+    });
+    await expect(quoteRegistrationFanOut(reader, ROUTER, shape)).resolves.toBe(1_234n);
+  });
+
+  it('unwraps viem named-output objects by declaration order', async () => {
+    const reader = stubReader({
+      quoteSend: { totalFee: 55n, fees: [30n, 25n], eids: [40231n, 40245n] },
+    });
+    await expect(quoteRegistrationFanOut(reader, ROUTER, shape)).resolves.toBe(55n);
+  });
+
+  it('passes the target set through and encodes a non-empty fan-out message', async () => {
+    let seen: { functionName: string; args?: readonly unknown[] } | null = null;
+    const reader: ContractReader = {
+      read: async (params) => {
+        seen = params;
+        return [7n, [], []];
+      },
+    };
+    await quoteRegistrationFanOut(reader, ROUTER, shape);
+    const call = seen as unknown as { functionName: string; args?: readonly unknown[] };
+    expect(call.functionName).toBe('quoteSend');
+    expect(call.args?.[0]).toEqual([97, 421614]);
+    expect(String(call.args?.[1]).startsWith('0x')).toBe(true);
+  });
+
+  it('a failed quote degrades to null instead of a fabricated 0', async () => {
+    const reader = stubReader({});
+    await expect(quoteRegistrationFanOut(reader, ROUTER, shape)).resolves.toBeNull();
   });
 });

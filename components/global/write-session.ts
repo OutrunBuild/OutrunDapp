@@ -13,7 +13,6 @@
 import type { Hex } from 'viem';
 
 import type { Eip1193ProviderLike, Eip1193Request } from '@/lib/web3/active-provider';
-import { tracePhase } from '@/lib/web3/click-trace';
 
 import {
   readErc20Meta,
@@ -60,14 +59,21 @@ type SessionEntry = {
   request: Eip1193Request;
 };
 
+/** 在途解析条目：与落库缓存同键校验，防止重注册瞬间共用旧连接的在途 promise。 */
+type InflightEntry = {
+  promise: Promise<VerseWriteContext>;
+  /** 入口 provider 的 request 引用：旧连接的读结果不得发给新连接 */
+  request: Eip1193Request;
+};
+
 /** 页面内并存的上限（多 verse 浏览 + 多账号 + 多落地链），超出按插入顺序淘汰最旧一条。 */
 const MAX_SESSIONS = 32;
 /** 同一链上 token 的精度恒定（ERC20 部署后不可变），按 chain+token 缓存即可。 */
 const MAX_DECIMALS = 64;
 
 const sessions = new Map<string, SessionEntry>();
-/** 在途解析：两个弹窗（或预热与点击）同时到达时共用一个探测 + 元组读。 */
-const inflight = new Map<string, Promise<VerseWriteContext>>();
+/** 在途解析：两个弹窗（预热与点击）同时到达时共用一个探测 + 元组读。 */
+const inflight = new Map<string, InflightEntry>();
 const decimalsCache = new Map<string, Promise<number>>();
 
 /**
@@ -78,10 +84,7 @@ export async function probeVerseChain(
   provider: Eip1193ProviderLike,
   chains: readonly number[],
 ): Promise<number> {
-  const live = Number.parseInt(
-    String(await tracePhase('chain.probe', () => provider.request({ method: 'eth_chainId' }))),
-    16,
-  );
+  const live = Number.parseInt(String(await provider.request({ method: 'eth_chainId' })), 16);
   if (!chains.includes(live)) throw new VerseChainError();
   return live;
 }
@@ -99,9 +102,11 @@ export function getVerseSession(
 ): Promise<VerseWriteContext> {
   const request = input.provider.request;
   // 允许集参与在途合并：同一批链 + same verse/account 的并发调用只探一次链。
+  // 条目同时校验 provider 身份：重注册瞬间到达的并发调用若复用旧连接的在途 promise，
+  // 解析出的会话 reader 会绑定已作废的 request —— 落库缓存只护已存条目，不护在途。
   const flightKey = `${input.chains.join(',')}:${input.verseId}:${input.eoa.toLowerCase()}`;
   const pending = inflight.get(flightKey);
-  if (pending) return pending;
+  if (pending && pending.request === request) return pending.promise;
 
   const promise = (async () => {
     const live = await probeVerseChain(input.provider, input.chains);
@@ -111,17 +116,13 @@ export function getVerseSession(
     const entry: SessionEntry = {
       request,
       promise: (async () => {
-        const session = await tracePhase('session.registry', () =>
-          resolve({
-            request,
-            chainId: live,
-            eoa: input.eoa,
-            verseId: input.verseId,
-          }),
-        );
-        const { decimals } = await tracePhase('session.meta', () =>
-          readErc20Meta(session.reader, session.verse.uAsset),
-        );
+        const session = await resolve({
+          request,
+          chainId: live,
+          eoa: input.eoa,
+          verseId: input.verseId,
+        });
+        const { decimals } = await readErc20Meta(session.reader, session.verse.uAsset);
         return { ...session, uAssetDecimals: decimals };
       })(),
     };
@@ -129,16 +130,18 @@ export function getVerseSession(
     void entry.promise.catch(() => {
       if (sessions.get(key) === entry) sessions.delete(key);
     });
-    sessions.set(key, entry);
+    // 慢回的旧连接不得覆盖已落库的新连接：写入时复验 request 身份。
+    const landed = sessions.get(key);
+    if (!landed || landed.request === request) sessions.set(key, entry);
     if (sessions.size > MAX_SESSIONS) {
       const oldest = sessions.keys().next();
       if (!oldest.done && oldest.value !== key) sessions.delete(oldest.value);
     }
     return entry.promise;
   })().finally(() => {
-    if (inflight.get(flightKey) === promise) inflight.delete(flightKey);
+    if (inflight.get(flightKey)?.promise === promise) inflight.delete(flightKey);
   });
-  inflight.set(flightKey, promise);
+  inflight.set(flightKey, { promise, request });
   return promise;
 }
 

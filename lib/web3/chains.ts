@@ -219,27 +219,7 @@ export function resolveOutrunChain(chainId: number, env: EnvLookup = process.env
     if (!parsed.success || parsed.data.chainId !== entry.viemChain.id) {
       return { status: 'not-configured', reason: `mainnet ${chainId} entry rejected` };
     }
-    return {
-      status: 'ok',
-      config: {
-        chainId,
-        environment: 'mainnet',
-        viemChain: entry.viemChain,
-        explorer: parsed.data.explorer,
-        layerZeroEid: parsed.data.layerZeroEid,
-        finalityPolicy: null,
-        contracts: { status: 'undeployed' },
-        kernel7702Implementation: parsed.data.kernel7702Implementation,
-        kernel7702Codehash: parsed.data.kernel7702Codehash,
-        nativeUsdFeed: null,
-        eip7702TxType: '0x04',
-        authorizationPolicy: 'chain-specific',
-        gasPaymentPolicy: 'user-pays-native',
-        rpc: null,
-        subgraphEndpoint: null,
-        features: [],
-      },
-    };
+    return assembleUndeployedConfig(chainId, entry.viemChain, parsed.data);
   }
 
   const parsed = parseDeployment(entry.deployment, chainId);
@@ -262,41 +242,10 @@ export function resolveOutrunChain(chainId: number, env: EnvLookup = process.env
   }
   const subgraph = resolveTemplate(d.subgraphEndpoint, env);
 
-  // EIP-55 normalization at the registry boundary (AC-3): deployment files carry raw hex
-  // casing, but every viem send path validates checksums — normalize once here so all
-  // downstream readers, encoders and comparisons see canonical addresses.
-  const checksumValues = (record: Record<string, string>): Record<string, string> =>
-    Object.fromEntries(Object.entries(record).map(([key, value]) => [key, getAddress(value)]));
-  const checksumKeys = (record: Record<string, string>): Record<string, string> =>
-    Object.fromEntries(Object.entries(record).map(([key, value]) => [getAddress(key), value]));
-
-  return {
-    status: 'ok',
-    config: {
-      chainId,
-      environment: d.environment,
-      viemChain: entry.viemChain,
-      explorer: d.explorer,
-      layerZeroEid: d.layerZeroEid,
-      finalityPolicy: d.finalityPolicy,
-      contracts: {
-        status: 'deployed',
-        addresses: checksumValues(d.contracts),
-        abiVersion: d.abiVersion,
-        deploymentBlock: d.deploymentBlock,
-        implementationCodehashes: checksumKeys(d.implementationCodehashes),
-      },
-      kernel7702Implementation: getAddress(d.kernel7702Implementation),
-      kernel7702Codehash: d.kernel7702Codehash,
-      nativeUsdFeed: d.nativeUsdFeed ? getAddress(d.nativeUsdFeed) : null,
-      eip7702TxType: '0x04',
-      authorizationPolicy: 'chain-specific',
-      gasPaymentPolicy: 'user-pays-native',
-      rpc: { primary: primary.value, fallback: fallback.value },
-      subgraphEndpoint: subgraph.missing.length ? null : subgraph.value,
-      features: d.features,
-    },
-  };
+  return assembleDeployedConfig(chainId, entry.viemChain, d, {
+    rpc: { primary: primary.value, fallback: fallback.value },
+    subgraphEndpoint: subgraph.missing.length ? null : subgraph.value,
+  });
 }
 
 const resolvedCache = new Map<number, ResolvedChain>();
@@ -311,15 +260,25 @@ export function getChainConfig(chainId: number): ResolvedChain {
   return r;
 }
 
-function buildClientOkConfig(
+type Deployment = z.infer<typeof deploymentSchema>;
+
+// EIP-55 normalization at the registry boundary (AC-3): deployment files carry raw hex
+// casing, but every viem send path validates checksums — normalize once here so all
+// downstream readers, encoders and comparisons see canonical addresses.
+const checksumValues = (record: Record<string, string>): Record<string, string> =>
+  Object.fromEntries(Object.entries(record).map(([key, value]) => [key, getAddress(value)]));
+const checksumKeys = (record: Record<string, string>): Record<string, string> =>
+  Object.fromEntries(Object.entries(record).map(([key, value]) => [getAddress(key), value]));
+
+/** The deployed-chain field mapping lives here once: both resolution paths transpose the same
+ *  deployment schema, and differ only in transport (server resolves ENV placeholders, the
+ *  client has none). Adding a field here reaches both paths in the same edit. */
+function assembleDeployedConfig(
   chainId: number,
   viemChain: Chain,
-  d: z.infer<typeof deploymentSchema>,
+  d: Deployment,
+  transport: { rpc: OutrunChainConfig['rpc']; subgraphEndpoint: string | null },
 ): ResolvedChain {
-  const checksumValues = (record: Record<string, string>): Record<string, string> =>
-    Object.fromEntries(Object.entries(record).map(([key, value]) => [key, getAddress(value)]));
-  const checksumKeys = (record: Record<string, string>): Record<string, string> =>
-    Object.fromEntries(Object.entries(record).map(([key, value]) => [getAddress(key), value]));
   return {
     status: 'ok',
     config: {
@@ -342,11 +301,44 @@ function buildClientOkConfig(
       eip7702TxType: '0x04',
       authorizationPolicy: 'chain-specific',
       gasPaymentPolicy: 'user-pays-native',
-      // Client path never carries RPC endpoints or subgraph URLs: reads and sends ride
-      // the active wallet's EIP-1193 provider; server keys stay server-side (§14).
+      rpc: transport.rpc,
+      subgraphEndpoint: transport.subgraphEndpoint,
+      features: d.features,
+    },
+  };
+}
+
+/** Client entry: the null transport is produced here, not passed by a caller, so a browser
+ *  build can never carry an RPC endpoint or subgraph URL (wallet-provider reads only, §14). */
+function assembleClientConfig(chainId: number, viemChain: Chain, d: Deployment): ResolvedChain {
+  return assembleDeployedConfig(chainId, viemChain, d, { rpc: null, subgraphEndpoint: null });
+}
+
+/** Undeployed mainnet shape: no ENV dependence, so both paths share this literal verbatim. */
+function assembleUndeployedConfig(
+  chainId: number,
+  viemChain: Chain,
+  meta: MainnetEntry,
+): ResolvedChain {
+  return {
+    status: 'ok',
+    config: {
+      chainId,
+      environment: 'mainnet',
+      viemChain,
+      explorer: meta.explorer,
+      layerZeroEid: meta.layerZeroEid,
+      finalityPolicy: null,
+      contracts: { status: 'undeployed' },
+      kernel7702Implementation: meta.kernel7702Implementation,
+      kernel7702Codehash: meta.kernel7702Codehash,
+      nativeUsdFeed: null,
+      eip7702TxType: '0x04',
+      authorizationPolicy: 'chain-specific',
+      gasPaymentPolicy: 'user-pays-native',
       rpc: null,
       subgraphEndpoint: null,
-      features: d.features,
+      features: [],
     },
   };
 }
@@ -365,27 +357,7 @@ export function resolveClientChain(chainId: number): ResolvedChain {
     if (!parsed.success || parsed.data.chainId !== entry.viemChain.id) {
       return { status: 'not-configured', reason: `mainnet ${chainId} entry rejected` };
     }
-    return {
-      status: 'ok',
-      config: {
-        chainId,
-        environment: 'mainnet',
-        viemChain: entry.viemChain,
-        explorer: parsed.data.explorer,
-        layerZeroEid: parsed.data.layerZeroEid,
-        finalityPolicy: null,
-        contracts: { status: 'undeployed' },
-        kernel7702Implementation: parsed.data.kernel7702Implementation,
-        kernel7702Codehash: parsed.data.kernel7702Codehash,
-        nativeUsdFeed: null,
-        eip7702TxType: '0x04',
-        authorizationPolicy: 'chain-specific',
-        gasPaymentPolicy: 'user-pays-native',
-        rpc: null,
-        subgraphEndpoint: null,
-        features: [],
-      },
-    };
+    return assembleUndeployedConfig(chainId, entry.viemChain, parsed.data);
   }
   const parsed = parseDeployment(entry.deployment, chainId);
   if (!parsed.ok) return { status: 'not-configured', reason: parsed.reason };
@@ -393,7 +365,7 @@ export function resolveClientChain(chainId: number): ResolvedChain {
   if (d.chainId !== entry.viemChain.id) {
     return { status: 'not-configured', reason: `chainId ${chainId} mismatches viem chain` };
   }
-  return buildClientOkConfig(chainId, entry.viemChain, d);
+  return assembleClientConfig(chainId, entry.viemChain, d);
 }
 
 const clientResolvedCache = new Map<number, ResolvedChain>();

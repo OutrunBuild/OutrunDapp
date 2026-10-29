@@ -5,9 +5,10 @@
 //   - the sendCalls envelope matches v2.0.0 with required atomicity
 //   - wallet-side outcomes map to exactly one terminal UI event each
 // If an executor change and this file disagree, the freeze rule in fake-wallet.ts applies.
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Chain, Hex } from 'viem';
 
+import type { Eip1193ProviderLike } from '../../../lib/web3/active-provider';
 import { runCalls, runDirect, type WriteSpec } from '../../../lib/web3/tx-executor';
 import type { TxEvent } from '../../../lib/web3/tx-center';
 import { Fake5792Wallet } from './fake-wallet';
@@ -47,9 +48,14 @@ const sessionSpec = (): WriteSpec =>
     ],
   }) as unknown as WriteSpec;
 
-const depsFor = (wallet: Fake5792Wallet, events: TxEvent[]) =>
+const depsFor = (
+  wallet: Fake5792Wallet,
+  events: TxEvent[],
+  isStale: () => boolean = () => false,
+  provider: Eip1193ProviderLike = wallet,
+) =>
   ({
-    provider: wallet,
+    provider,
     eoa: EOA,
     chain: CHAIN,
     dispatch: (event: TxEvent) => events.push(event),
@@ -58,8 +64,26 @@ const depsFor = (wallet: Fake5792Wallet, events: TxEvent[]) =>
     signAuthorization: async () => {
       throw new Error('signing must not happen on the external path');
     },
-    isStale: () => false,
+    isStale,
   }) as unknown as Parameters<typeof runCalls>[1];
+
+/** A reset while the batch is out: the run generation flips after the wallet accepted it. */
+function resetAfterSend(wallet: Fake5792Wallet): {
+  provider: Eip1193ProviderLike;
+  isStale: () => boolean;
+} {
+  let stale = false;
+  return {
+    provider: {
+      request: async (args) => {
+        const result = await wallet.request(args);
+        if (args.method === 'wallet_sendCalls') stale = true;
+        return result;
+      },
+    },
+    isStale: () => stale,
+  };
+}
 
 const methods = (wallet: Fake5792Wallet) => wallet.requests.map((r) => r.method);
 
@@ -95,6 +119,28 @@ describe('runCalls × frozen 5792 wallet: happy path', () => {
     expect(events.find((e) => e.type === 'receipt-success')).toEqual({
       type: 'receipt-success',
       hash: HASH,
+    });
+  });
+
+  it('a success without receipts carries a null hash, never the bundle id', async () => {
+    // Some wallets omit receipts on success: the bundle id is opaque, not an on-chain
+    // hash — carrying it as the receipt hash would render an explorer dead link.
+    const events: TxEvent[] = [];
+    const wallet = new Fake5792Wallet({ atomic: true });
+    const provider = {
+      request: async (args: { method: string; params?: unknown }) => {
+        if (args.method === 'wallet_getCallsStatus') return { status: 200 };
+        return wallet.request(args);
+      },
+    };
+    const outcome = await runCalls(
+      sessionSpec(),
+      depsFor(wallet, events, () => false, provider),
+    );
+    expect(outcome).toBe('confirmed');
+    expect(events.find((e) => e.type === 'receipt-success')).toEqual({
+      type: 'receipt-success',
+      hash: null,
     });
   });
 
@@ -143,16 +189,54 @@ describe('runCalls × frozen 5792 wallet: wallet-side failures', () => {
     });
   });
 
-  it('an eternally-pending batch holds Confirming as pending (no fabricated cancellation)', async () => {
+  it('a 200 status with a mixed (0x1 + 0x0) receipt set is a failure, never a success', async () => {
+    // The frozen fake only scripts single-receipt statuses, so the mixed set rides a
+    // provider wrapper over its confirmed script — fake-wallet.ts itself stays untouched.
     const events: TxEvent[] = [];
-    const wallet = new Fake5792Wallet({
-      atomic: true,
-      getCallsStatus: { kind: 'eternal-pending' },
+    const wallet = new Fake5792Wallet({ atomic: true });
+    const mixed: Eip1193ProviderLike = {
+      request: async (args) => {
+        if (args.method === 'wallet_getCallsStatus') {
+          return {
+            status: 200,
+            receipts: [
+              { status: '0x1', transactionHash: HASH },
+              { status: '0x0', transactionHash: HASH },
+            ],
+          };
+        }
+        return wallet.request(args);
+      },
+    };
+    const outcome = await runCalls(
+      sessionSpec(),
+      depsFor(wallet, events, () => false, mixed),
+    );
+    expect(outcome).toBe('failed');
+    expect(events.map((e) => e.type)).toEqual(['preflight-ok', 'calls-submitted', 'tx-reverted']);
+    expect(events.find((e) => e.type === 'tx-reverted')).toEqual({
+      type: 'tx-reverted',
+      kind: 'batch-reverted',
     });
-    const outcome = await runCalls(sessionSpec(), depsFor(wallet, events));
-    expect(outcome).toBe('pending');
-    expect(events.map((e) => e.type)).toEqual(['preflight-ok', 'calls-submitted']);
-  }, 140_000);
+    expect(events.some((e) => e.type === 'receipt-success')).toBe(false);
+  });
+
+  it('an eternally-pending batch holds Confirming as pending (no fabricated cancellation)', async () => {
+    vi.useFakeTimers();
+    try {
+      const events: TxEvent[] = [];
+      const wallet = new Fake5792Wallet({
+        atomic: true,
+        getCallsStatus: { kind: 'eternal-pending' },
+      });
+      const pending = runCalls(sessionSpec(), depsFor(wallet, events));
+      await vi.advanceTimersByTimeAsync(120_000);
+      expect(await pending).toBe('pending');
+      expect(events.map((e) => e.type)).toEqual(['preflight-ok', 'calls-submitted']);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 
   it('a wallet without the atomic capability is reported unsupported, nothing sent', async () => {
     const events: TxEvent[] = [];
@@ -169,6 +253,59 @@ describe('runCalls × frozen 5792 wallet: wallet-side failures', () => {
     const outcome = await runCalls(sessionSpec(), depsFor(wallet, events));
     expect(outcome).toBe('unsupported');
     expect(wallet.callsRequested()).toBe(false);
+  });
+});
+
+// A reset bumps the run generation while the batch is still polling. That abandons the
+// observation, not the write: the wallet's answer alone decides the outcome, while the
+// machine events stay suppressed so the reset context is not written into.
+describe('runCalls × abandoned observation (run generation changed)', () => {
+  it('a reset after the batch settles keeps the confirmed outcome and skips the events', async () => {
+    const events: TxEvent[] = [];
+    const wallet = new Fake5792Wallet({ atomic: true });
+    const reset = resetAfterSend(wallet);
+    const outcome = await runCalls(
+      sessionSpec(),
+      depsFor(wallet, events, reset.isStale, reset.provider),
+    );
+    expect(outcome).toBe('confirmed');
+    expect(events.map((e) => e.type)).toEqual(['preflight-ok', 'calls-submitted']);
+  });
+
+  it('a reset during the status poll keeps the deadline outcome pending, not failed', async () => {
+    vi.useFakeTimers();
+    try {
+      const events: TxEvent[] = [];
+      const wallet = new Fake5792Wallet({
+        atomic: true,
+        getCallsStatus: { kind: 'eternal-pending' },
+      });
+      const reset = resetAfterSend(wallet);
+      const pending = runCalls(
+        sessionSpec(),
+        depsFor(wallet, events, reset.isStale, reset.provider),
+      );
+      await vi.advanceTimersByTimeAsync(120_000);
+      expect(await pending).toBe('pending');
+      expect(events.map((e) => e.type)).toEqual(['preflight-ok', 'calls-submitted']);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a stale on-chain batch failure still reports failed without writing the machine', async () => {
+    const events: TxEvent[] = [];
+    const wallet = new Fake5792Wallet({
+      atomic: true,
+      getCallsStatus: { kind: 'on-chain-failure', transactionHash: HASH },
+    });
+    const reset = resetAfterSend(wallet);
+    const outcome = await runCalls(
+      sessionSpec(),
+      depsFor(wallet, events, reset.isStale, reset.provider),
+    );
+    expect(outcome).toBe('failed');
+    expect(events.map((e) => e.type)).toEqual(['preflight-ok', 'calls-submitted']);
   });
 });
 
@@ -250,6 +387,92 @@ describe('runDirect × frozen 5792 wallet', () => {
       'tx-signed',
       'receipt-pending',
       'receipt-success',
+    ]);
+  });
+
+  it('reports pending when the receipt wait fails (unknown is not failure)', async () => {
+    const events: TxEvent[] = [];
+    const wallet = new Fake5792Wallet();
+    wallet.requests.length = 0;
+    (
+      wallet as unknown as {
+        request: (a: { method: string; params?: unknown }) => Promise<unknown>;
+      }
+    ).request = async (args) => {
+      wallet.requests.push({ method: args.method, params: args.params });
+      if (args.method === 'eth_chainId') return '0x61';
+      if (args.method === 'eth_sendTransaction') return HASH as `0x${string}`;
+      if (args.method === 'eth_blockNumber') return '0x1';
+      if (args.method === 'eth_getTransactionByHash') {
+        return {
+          hash: HASH,
+          from: EOA,
+          to: ROUTER,
+          nonce: '0x0',
+          value: '0x0',
+          input: '0xcafef00d',
+          blockNumber: null,
+          blockHash: null,
+          transactionIndex: null,
+          gas: '0x5208',
+          gasPrice: '0x1',
+          maxFeePerGas: null,
+          maxPriorityFeePerGas: null,
+          type: '0x2',
+          chainId: '0x61',
+          v: '0x0',
+          r: '0x0',
+          s: '0x0',
+          yParity: '0x0',
+          accessList: [],
+          authorizationList: null,
+        };
+      }
+      if (args.method === 'eth_getTransactionReceipt') {
+        // viem's receipt read carries no retry of its own: a non-not-found RPC error
+        // rejects the wait before its deadline.
+        throw Object.assign(new Error('Request exceeds defined limit'), { code: -32005 });
+      }
+      throw Object.assign(new Error('The method does not exist.'), { code: -32601 });
+    };
+    const spec = {
+      review: {
+        chainId: 97,
+        account: EOA,
+        targetContract: ROUTER,
+        functionName: 'claim',
+        inputs: '1',
+        minOutput: '—',
+        fee: '—',
+        gasPayer: EOA,
+        authorizationChange: '—',
+        estimatedGas: '—',
+        nativeBalance: '—',
+      },
+      expectedChainId: 97,
+      batchCallData: '0xdeadbeef' as Hex,
+      quoteId: 'q',
+      minOutput: '—',
+      slippageBps: 0,
+      deadline: 0,
+      manifestVersion: 'v1-rc',
+      direct: { to: ROUTER, data: '0xcafef00d' as Hex },
+    } as unknown as WriteSpec;
+    const outcome = await runDirect(
+      spec as WriteSpec & { direct: { to: Hex; data: Hex } },
+      depsFor(wallet, events),
+    );
+    // The tx may still land: the machine keeps Confirming… (no terminal event) and the
+    // caller gets the existing pending outcome instead of a rejection.
+    expect(outcome).toBe('pending');
+    expect(wallet.requests.some((r) => r.method === 'eth_getTransactionReceipt')).toBe(true);
+    expect(events.map((e) => e.type)).toEqual([
+      'preflight-ok',
+      'authorization-requested',
+      'authorization-signed',
+      'simulation-ok',
+      'tx-signed',
+      'receipt-pending',
     ]);
   });
 });

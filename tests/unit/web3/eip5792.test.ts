@@ -197,13 +197,90 @@ describe('pollCallsStatus', () => {
     expect(request).toHaveBeenCalledTimes(2);
   });
 
-  it('fails fast on an unknown bundle id (5730)', async () => {
+  it('fails fast on a repeated unknown bundle id (5730)', async () => {
     const request = vi.fn().mockRejectedValue({ code: 5730 });
     expect(await pollCallsStatus(request, '0xbatch', { intervalMs: 0 })).toEqual({
       status: 'failure',
       statusCode: 5730,
     });
-    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledTimes(2);
+  });
+
+  it('retries once when the first status read is an unknown bundle id', async () => {
+    const request = vi
+      .fn()
+      .mockRejectedValueOnce({ code: 5730 })
+      .mockResolvedValueOnce({
+        status: 200,
+        receipts: [{ transactionHash: '0xhash', status: '0x1' }],
+      });
+    const result = await pollCallsStatus(request, '0xbatch', { intervalMs: 0 });
+    expect(result.status).toBe('success');
+    expect(request).toHaveBeenCalledTimes(2);
+  });
+
+  it('matches a long bundle id phrasing', async () => {
+    const longId = `Bundle 0x${'ab'.repeat(32)} not found`;
+    const request = vi
+      .fn()
+      .mockRejectedValueOnce(new Error(longId))
+      .mockRejectedValueOnce(new Error(longId));
+    expect(await pollCallsStatus(request, '0xbatch', { intervalMs: 0 })).toEqual({
+      status: 'failure',
+      statusCode: 5730,
+    });
+    expect(request).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not fail fast on a repeated malformed bundle id', async () => {
+    // The call count is terminated by this mock sequence, never by the poll deadline: a
+    // deadline-sized budget makes the assertion depend on event-loop scheduling and flakes
+    // under a loaded suite.
+    const malformed = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('invalid bundle id format'))
+      .mockRejectedValueOnce(new Error('invalid bundle id format'))
+      .mockRejectedValueOnce(new Error('invalid bundle id format'))
+      .mockRejectedValueOnce(new Error('invalid bundle id format'))
+      .mockRejectedValueOnce(new Error('invalid bundle id format'))
+      .mockResolvedValueOnce({
+        status: 200,
+        receipts: [{ transactionHash: '0xhash', status: '0x1' }],
+      });
+    const result = await pollCallsStatus(malformed, '0xbatch', { intervalMs: 0 });
+    expect(result.status).toBe('success');
+    expect(malformed).toHaveBeenCalledTimes(6);
+  });
+
+  it('times out when malformed responses outlast the poll deadline', async () => {
+    const malformed = vi.fn().mockRejectedValue(new Error('invalid bundle id format'));
+    // deadlineMs: 0 exhausts the budget at entry, so the timeout branch is reached on the first
+    // malformed read regardless of event-loop scheduling.
+    expect(await pollCallsStatus(malformed, '0xbatch', { intervalMs: 0, deadlineMs: 0 })).toEqual({
+      status: 'timeout',
+    });
+    expect(malformed).toHaveBeenCalledTimes(1);
+  });
+
+  it('matches unknown-bundle phrasings without matching malformed ids', async () => {
+    const request = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Unknown bundle'))
+      .mockRejectedValueOnce(new Error('Unknown bundle'));
+    expect(await pollCallsStatus(request, '0xbatch', { intervalMs: 0 })).toEqual({
+      status: 'failure',
+      statusCode: 5730,
+    });
+    expect(request).toHaveBeenCalledTimes(2);
+    const malformed = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('invalid bundle id format'))
+      .mockResolvedValueOnce({ status: 200 });
+    const result = await pollCallsStatus(malformed, '0xbatch', {
+      intervalMs: 1,
+      deadlineMs: 5,
+    });
+    expect(result.status === 'success' || result.status === 'timeout').toBe(true);
   });
 
   it('returns timeout when the deadline passes while still pending', async () => {

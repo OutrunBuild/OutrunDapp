@@ -13,15 +13,18 @@
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { chainConfigSchema, manifestSchema } from './deployment-schema.mjs';
+import { fileURLToPath } from 'node:url';
+import { chainConfigSchema, CURRENT_ABI_VERSION, manifestSchema } from './deployment-schema.mjs';
 
-const REPO = new URL('.', import.meta.url).pathname + '../';
+const REPO = fileURLToPath(new URL('.', import.meta.url)) + '../';
 const problems = [];
 const fail = (msg) => problems.push(msg);
 
 // The release directory is a property of the artifact set, not of this script: read the
 // manifest from the current release and locate its ABI directory from the version it declares.
-const manifest = JSON.parse(readFileSync(join(REPO, 'contracts/abi/v1-rc2/manifest.json'), 'utf8'));
+const manifest = JSON.parse(
+  readFileSync(join(REPO, 'contracts/abi', CURRENT_ABI_VERSION, 'manifest.json'), 'utf8'),
+);
 const abiDir = join(REPO, 'contracts/abi', manifest.abiVersion ?? '');
 const mParse = manifestSchema.safeParse(manifest);
 if (!mParse.success)

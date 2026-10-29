@@ -3,7 +3,7 @@
 // - authorization refusal returns to Connected EOA (B4: not an error, draft preserved)
 // - delegation standing is per-chain: chain-changed re-evaluates from Connected EOA
 // - capability detection follows the §6.5 1→4 order, including fail-closed mismatch
-// - a provider that cannot sign/send keeps read access plus an upgrade prompt
+// - a provider without 7702 abilities blocks only the standings that still need one
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -186,6 +186,27 @@ describe('resolveWriteCapability', () => {
     expect(resolveWriteCapability('other-contract', provider)).toEqual({
       capability: 'blocked-other-contract',
       upgradeHint: false,
+    });
+  });
+
+  it('keeps a kernel-delegated account ready even without 7702 provider abilities', () => {
+    expect(
+      resolveWriteCapability('kernel-delegated', {
+        canSignAuthorization: false,
+        canSendType4: false,
+      }),
+    ).toEqual({ capability: 'ready', upgradeHint: false });
+  });
+
+  it('still blocks standings that need a 7702 action on a limited provider', () => {
+    const limited = { canSignAuthorization: false, canSendType4: false };
+    expect(resolveWriteCapability('plain-eoa', limited)).toEqual({
+      capability: 'blocked-readonly',
+      upgradeHint: true,
+    });
+    expect(resolveWriteCapability('unsupported-delegation', limited)).toEqual({
+      capability: 'blocked-readonly',
+      upgradeHint: true,
     });
   });
 });

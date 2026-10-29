@@ -10,6 +10,7 @@
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   CURRENT_ABI_VERSION,
   chainConfigSchema,
@@ -17,7 +18,7 @@ import {
   toChecksumAddress,
 } from './deployment-schema.mjs';
 
-const REPO = new URL('.', import.meta.url).pathname + '../';
+const REPO = fileURLToPath(new URL('.', import.meta.url)) + '../';
 const full = JSON.parse(readFileSync('/tmp/outrun-deploy-full.json', 'utf8'));
 
 const COMMITS = {
@@ -42,7 +43,7 @@ const CHAINS = [
     env: 'ARB_SEPOLIA',
     explorer: 'https://sepolia.arbiscan.io',
     layerZeroEid: 40231, // ARBITRUM_SEPOLIA_EID from deployment .env
-    safeBlockLag: 24, // v1-rc engineering default (rollup); tunable
+    safeBlockLag: 24, // engineering default (rollup); tunable
     alchemyHost: 'arb-sepolia.g.alchemy.com',
     infuraHost: 'arbitrum-sepolia.infura.io',
   },
@@ -51,7 +52,7 @@ const CHAINS = [
     env: 'BASE_SEPOLIA',
     explorer: 'https://sepolia.basescan.org',
     layerZeroEid: 40245, // BASE_SEPOLIA_EID from deployment .env
-    safeBlockLag: 12, // v1-rc engineering default (rollup); tunable
+    safeBlockLag: 12, // engineering default (rollup); tunable
     alchemyHost: 'base-sepolia.g.alchemy.com',
     infuraHost: 'base-sepolia.infura.io',
   },
@@ -60,7 +61,7 @@ const CHAINS = [
     env: 'BSC_TESTNET',
     explorer: 'https://testnet.bscscan.com',
     layerZeroEid: 40102, // BSC_TESTNET_EID from deployment .env
-    safeBlockLag: 15, // v1-rc engineering default; tunable
+    safeBlockLag: 15, // engineering default; tunable
     alchemyHost: 'bnb-testnet.g.alchemy.com',
     infuraHost: 'bsc-testnet.infura.io',
   },

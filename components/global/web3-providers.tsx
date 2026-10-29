@@ -7,6 +7,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { WagmiProvider } from 'wagmi';
 
 import { buildPrivyConfig, buildWagmiConfig, getPrivyAppId } from '@/lib/web3/active-provider';
+import { AccountCenterProvider } from './account-center-provider';
 import { InjectedSessionRestore } from './injected-session-restore';
 import { LoginSessionRestore } from './login-session-restore';
 
@@ -33,7 +34,7 @@ export function Web3Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
   const wagmi = (
     <WagmiProvider config={config} reconnectOnMount={false}>
-      {children}
+      <AccountCenterProvider>{children}</AccountCenterProvider>
     </WagmiProvider>
   );
   if (!appId) {
@@ -45,7 +46,7 @@ export function Web3Providers({ children }: { children: ReactNode }) {
         <PrivyWagmiProvider config={config} reconnectOnMount>
           <LoginSessionRestore />
           <InjectedSessionRestore />
-          {children}
+          <AccountCenterProvider>{children}</AccountCenterProvider>
         </PrivyWagmiProvider>
       </PrivyProvider>
     </QueryClientProvider>

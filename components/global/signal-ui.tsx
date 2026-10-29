@@ -90,18 +90,19 @@ export function SourceRef(_: { value: string; id?: string }) {
  * tier is minutes (no seconds readout; the caller's unlock tick stays per-second).
  * A pending span never displays zero minutes. */
 export function formatCountdown(remainingMs: number, locale: Locale): string {
+  const t = getCopy(locale).common
   const left = Math.max(0, remainingMs)
   const days = Math.floor(left / 86_400_000)
   const hours = Math.floor((left % 86_400_000) / 3_600_000)
   const minutes = Math.floor((left % 3_600_000) / 60_000)
   if (days > 0) {
-    return locale === 'zh' ? `${days} 天 ${hours} 小时` : `${days}d ${hours}h`
+    return t.countdownDh.replace('{days}', String(days)).replace('{hours}', String(hours))
   }
   if (hours > 0) {
-    return locale === 'zh' ? `${hours} 小时 ${minutes} 分` : `${hours}h ${minutes}m`
+    return t.countdownHm.replace('{hours}', String(hours)).replace('{minutes}', String(minutes))
   }
   const minutesLeft = left <= 0 ? 0 : Math.max(1, minutes)
-  return locale === 'zh' ? `${minutesLeft} 分钟` : `${minutesLeft}m`
+  return t.countdownM.replace('{minutes}', String(minutesLeft))
 }
 
 export function StageBadge({ stage, locale }: { stage: VerseStage; locale: Locale }) {
@@ -173,9 +174,9 @@ export function ProgressMeter({
   amount: number
   threshold: number
   /** Quote unit: display the specific uAsset symbol (e.g. UETH), not the generic name;
-   * default = the generic name (used only by the design-system
-   * showcase) */
-  unit?: string
+   * null = raise asset unresolved (deployment-table miss) → the generic name; default =
+   * the generic name (used only by the design-system showcase) */
+  unit?: string | null
   locale: Locale
 }) {
   const bounded = Math.min(Math.max(value, 0), 100)
@@ -206,9 +207,4 @@ export function ProgressMeter({
       </div>
     </div>
   )
-}
-
-export function LayoutNotes(_: { locale: Locale; items: readonly string[] }) {
-  // Cross-page layout notes are prototype documentation, not product content.
-  return null
 }

@@ -3,7 +3,7 @@
 // - the six wagmi chains are exactly the §5 chain set
 // - transports carry no URLs: without an active wallet provider every chain fails closed;
 //   with one, calls delegate to it (server keys never enter the client path)
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   buildChainTransports,
@@ -13,8 +13,10 @@ import {
   getPrivyAppId,
   isWeb3Configured,
   setActiveEip1193Provider,
+  switchProviderChain,
   WALLET_CHAINS,
 } from '../../../lib/web3/active-provider';
+import { INTERNAL_ERROR, USER_REJECTION } from './fake-wallet';
 
 describe('getPrivyAppId', () => {
   it('returns null when missing or blank', () => {
@@ -91,5 +93,75 @@ describe('buildPrivyConfig', () => {
     expect(config.loginMethods).toEqual(['google', 'twitter', 'wallet']);
     expect(config.embeddedWallets?.ethereum?.createOnLogin).toBe('users-without-wallets');
     expect('appearance' in config).toBe(false);
+  });
+});
+
+describe('switchProviderChain', () => {
+  afterEach(() => {
+    setActiveEip1193Provider(null);
+  });
+
+  // Scripted fake wallet: routes each wallet_* method to a resolved value or a thrown
+  // error, and records the call order so tests can assert add is never reached.
+  function scripted(switchOutcome: unknown, addOutcome?: unknown): string[] {
+    const calls: string[] = [];
+    setActiveEip1193Provider({
+      request: async ({ method }: { method: string }) => {
+        calls.push(method);
+        const outcome = method === 'wallet_switchEthereumChain' ? switchOutcome : addOutcome;
+        if (outcome instanceof Error) throw outcome;
+        return outcome;
+      },
+    });
+    return calls;
+  }
+
+  const NOT_ADDED = Object.assign(new Error('Unrecognized chain ID.'), { code: 4902 });
+
+  it('reports no-provider with no wallet registered', async () => {
+    setActiveEip1193Provider(null);
+    await expect(switchProviderChain(97)).resolves.toBe('no-provider');
+  });
+
+  it('reports switched when the wallet accepts the switch', async () => {
+    const calls = scripted(null);
+    await expect(switchProviderChain(97)).resolves.toBe('switched');
+    expect(calls).toEqual(['wallet_switchEthereumChain']);
+  });
+
+  it('reports rejected on a declined switch prompt and never fires the add prompt', async () => {
+    const calls = scripted(USER_REJECTION);
+    await expect(switchProviderChain(97)).resolves.toBe('rejected');
+    expect(calls).toEqual(['wallet_switchEthereumChain']);
+  });
+
+  it('routes wallet-side switch failures to the wagmi fallback', async () => {
+    const calls = scripted(INTERNAL_ERROR);
+    await expect(switchProviderChain(97)).resolves.toBe('unsupported');
+    expect(calls).toEqual(['wallet_switchEthereumChain']);
+  });
+
+  it('adds an unknown chain on 4902 and reports switched', async () => {
+    const calls = scripted(NOT_ADDED, null);
+    await expect(switchProviderChain(97)).resolves.toBe('switched');
+    expect(calls).toEqual(['wallet_switchEthereumChain', 'wallet_addEthereumChain']);
+  });
+
+  it('reports rejected when the add prompt itself is declined', async () => {
+    const calls = scripted(NOT_ADDED, USER_REJECTION);
+    await expect(switchProviderChain(97)).resolves.toBe('rejected');
+    expect(calls).toEqual(['wallet_switchEthereumChain', 'wallet_addEthereumChain']);
+  });
+
+  it('routes wallet-side add failures to the wagmi fallback instead of swallowing them', async () => {
+    const calls = scripted(NOT_ADDED, INTERNAL_ERROR);
+    await expect(switchProviderChain(97)).resolves.toBe('unsupported');
+    expect(calls).toEqual(['wallet_switchEthereumChain', 'wallet_addEthereumChain']);
+  });
+
+  it('reports unsupported for a chain outside the app chainset (no add parameters exist)', async () => {
+    const calls = scripted(NOT_ADDED, null);
+    await expect(switchProviderChain(1)).resolves.toBe('unsupported');
+    expect(calls).toEqual(['wallet_switchEthereumChain']);
   });
 });

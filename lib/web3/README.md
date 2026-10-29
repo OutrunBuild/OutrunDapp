@@ -12,6 +12,7 @@
 - **统一执行面**：两轨连接后 `use-account-center` 把 `connector.getProvider()` 注册进 `setActiveEip1193Provider`（`lib/web3/active-provider.ts`）；一切客户端链上读/写只走 `getActiveEip1193Provider()`，不感知品牌。
   - 能力差异（type-4/7702 签名）走 `lib/web3/account.ts` 的 ProviderCapability 判定，禁止写品牌 if。
   - 存引用时必须绑定 request：Privy 内嵌 provider 的 request 在原型上读 this，解构即 TypeError。
+  - **单实例缝**：AccountCenter 由 `AccountCenterProvider`（`components/global/account-center-provider.tsx`，web3-providers 两条分支内各挂一次）每树提供一份，`useAccountCenter` 只读 Context——7s 恢复预算、账户 cookie、provider 注册每树各跑一份；shell 外裸挂直接报错（单测经 AccountCenterProvider 包裹挂载）。
 - **登出竞态**：`leave()` 先 `beginDisconnect()`（`lib/web3/disconnect-guard.ts`）再断全部 wagmi 连接 + Privy logout；两个自动回链 effect 都以该守卫为闸，否则断开会被旧会话「弹回」。Privy logout 仅在 `authenticated` 时调（MetaMask-only 会话调它会 400）。
-- **换链**：`switchProviderChain` 走 provider-direct `wallet_switchEthereumChain`，4902 时补 `wallet_addEthereumChain`。不走 connector 的原因：wagmi 缓存的 chainId 在钱包内切链后陈旧，connector 路径不可信。
+- **换链**：执行判定一律以 provider `eth_chainId` 直读为真源，禁用 wagmi 缓存 chainId 做执行判定（缓存陈旧窗口：链集外链 wagmi 不同步其 chainId、内嵌轨事件转发有间隙）。交易台错链 CTA 走 `switchProviderChain`（provider-direct `wallet_switchEthereumChain`，4902 时补 `wallet_addEthereumChain`；仅信 resolve、无回读）；链选择弹窗走 `switchChainAction`（wagmi connector 路径：vendor 订阅 `chainChanged`、切链自行回读 `eth_chainId`，并非不可信，但存在永不 settle 的残余——包装层以截止+回读定性兜底）。
 - **无 App ID 退化**：`NEXT_PUBLIC_PRIVY_APP_ID` 缺失（fixture/e2e 构建）时 `PrivyProvider` 整层不挂载，wagmi hooks 停在 Disconnected，钱包 UI 走 harness 路径——fixture 视觉基线因此不受钱包层影响。

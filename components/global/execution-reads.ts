@@ -1,13 +1,29 @@
 // Onchain execution reads: verse registry, pool keys, quotes and token state, all through
 // the active wallet provider (no server keys on the client path). The reader interface keeps
 // resolution logic unit-testable without a chain (§11.1).
-import { createPublicClient, custom, type Abi, type Chain, type Hex } from 'viem';
+import {
+  createPublicClient,
+  custom,
+  encodeAbiParameters,
+  type Abi,
+  type AbiParameter,
+  type Chain,
+  type Hex,
+} from 'viem';
 
-import { erc20ReadAbi, hookAbi, launcherAbi, polendAbi, psmAbi, splitterAbi, swapRouterAbi } from '@/lib/web3/abis';
+import {
+  erc20ReadAbi,
+  hookAbi,
+  launcherAbi,
+  polendAbi,
+  psmAbi,
+  registrationCenterAbi,
+  splitterAbi,
+  swapRouterAbi,
+} from '@/lib/web3/abis';
 import { preorderCapacityCeilingBase } from '@/lib/web3/contract-formulas';
 import { getClientChainConfig } from '@/lib/web3/chains';
 import type { Eip1193Request } from '@/lib/web3/active-provider';
-import { tracePhase } from '@/lib/web3/click-trace';
 import { poolIdOf, priceQuotePerBase } from '@/lib/web3/pool-quote';
 import type { PoolKey } from '@/lib/web3/session-actions';
 
@@ -98,7 +114,7 @@ export async function readGenesisLedger(
   };
 }
 
-/** 「您的参与」 single-value form: equivalent genesis funds. Normal genesis funds plus the
+/** 「你的参与」 single-value form: equivalent genesis funds. Normal genesis funds plus the
  *  leveraged interest converted at the on-chain rate — POLend's getUserLeveragedDebt does the
  *  conversion on-chain ((real+credit interest) × 1e18 ÷ interestRate, POLendUpgradeable.sol:
  *  700-712), so no client-side rate math. Preorder funds are not part of this stat. The market
@@ -121,12 +137,25 @@ export async function readGenesisParticipation(
 /** Verse-level genesis aggregates, all uAsset 18-dec base units. The post-write probe reads
  *  these through the wallet provider (same RPC that confirmed the receipt) so the panel's
  *  numbers refresh immediately instead of waiting out the server-side SWR caches. Sourced from
- *  launcher `totalNormalFunds` + `previewPreorderCapacity` and POLend `getLeveragedDebtInfo`
- *  (interest total / debt principal), mirroring what the subgraph aggregates for SSR. */
+ *  launcher `totalNormalFunds` + `previewPreorderCapacity` + `getLauncherParameters` (capacity
+ *  ratio) and POLend `getLeveragedDebtInfo` (interest total / debt principal), mirroring what
+ *  the subgraph aggregates for SSR. */
 export type VerseAggregatesLedger = {
   normalBase: bigint;
   interestBase: bigint;
   debtBase: bigint;
+  /** POLend's per-verse one-off interest rate (LeveragedDebtInfo.interestRate, 1e18-scaled) —
+   *  the rate operand the leverage gate converts with; the SSR overlay only carries the
+   *  canonical chain's copy, so wallet-chain conversion must use this field. */
+  interestRateBase: bigint;
+  /** POLend's per-verse debt cap (LeveragedDebtInfo.debtCap) — the exact operand the leverage
+   *  gate needs; the SSR overlay only serializes its float alias. */
+  debtCapBase: bigint;
+  /** Launcher's per-deployment preorder capacity ratio (getLauncherParameters.preorderCapRatio,
+   *  bps) — the operand the preorder cap gate and used reconstruction scale with; single-chain
+   *  onlyOwner storage, so wallet-chain scaling must use this field, not the canonical
+   *  overlay's copy. */
+  preorderCapRatioBps: bigint;
   remainingPreorderBase: bigint;
 };
 
@@ -136,18 +165,25 @@ export async function readVerseAggregates(
   polend: Hex,
   verseId: bigint,
 ): Promise<VerseAggregatesLedger> {
-  const [normal, remaining, debtInfo] = await Promise.all([
+  const [normal, remaining, debtInfo, launcherParams] = await Promise.all([
     reader.read({ address: launcher, abi: launcherAbi, functionName: 'totalNormalFunds', args: [verseId] }),
     reader.read({ address: launcher, abi: launcherAbi, functionName: 'previewPreorderCapacity', args: [verseId] }),
     reader.read({ address: polend, abi: polendAbi, functionName: 'getLeveragedDebtInfo', args: [verseId] }),
+    reader.read({ address: launcher, abi: launcherAbi, functionName: 'getLauncherParameters' }),
   ]);
-  // getLeveragedDebtInfo is one named struct: [totalLeveragedInterest, totalLeveragedDebt, …]
+  // getLeveragedDebtInfo is one named struct:
+  // [totalLeveragedInterest, totalLeveragedDebt, interestRate, debtCap, …]
+  // getLauncherParameters is one named struct:
+  // [executorRewardRate, preorderCapRatio, …] — the ratio sits at index 1 in both decode shapes
   const info = asTupleArray(debtInfo);
   return {
     normalBase: BigInt(String(normal)),
     interestBase: BigInt(String(info[0])),
     debtBase: BigInt(String(info[1])),
+    interestRateBase: BigInt(String(info[2])),
+    debtCapBase: BigInt(String(info[3])),
     remainingPreorderBase: BigInt(String(remaining)),
+    preorderCapRatioBps: BigInt(String(asTupleArray(launcherParams)[1])),
   };
 }
 
@@ -205,28 +241,26 @@ export async function readSwapQuote(
   trader: Hex,
 ): Promise<SwapQuote> {
   const tuple = asTupleArray(
-    await tracePhase('quote', () =>
-      reader.read({
-        address: router,
-        abi: swapRouterAbi,
-        functionName: 'quoteSwap',
-        args: [
-          {
-            currency0: key.currency0,
-            currency1: key.currency1,
-            fee: key.fee,
-            tickSpacing: key.tickSpacing,
-            hooks: key.hooks,
-          },
-          {
-            zeroForOne: params.zeroForOne,
-            amountSpecified: params.amountSpecified,
-            sqrtPriceLimitX96: params.sqrtPriceLimitX96,
-          },
-          trader,
-        ],
-      }),
-    ),
+    await reader.read({
+      address: router,
+      abi: swapRouterAbi,
+      functionName: 'quoteSwap',
+      args: [
+        {
+          currency0: key.currency0,
+          currency1: key.currency1,
+          fee: key.fee,
+          tickSpacing: key.tickSpacing,
+          hooks: key.hooks,
+        },
+        {
+          zeroForOne: params.zeroForOne,
+          amountSpecified: params.amountSpecified,
+          sqrtPriceLimitX96: params.sqrtPriceLimitX96,
+        },
+        trader,
+      ],
+    }),
   );
   return {
     feeBps: BigInt(String(tuple[0])),
@@ -236,6 +270,99 @@ export async function readSwapQuote(
     estimatedLpFeeAmount: BigInt(String(tuple[4] ?? 0)),
     protocolFeeOnInput: Boolean(tuple[5]),
   };
+}
+
+/** Registration fan-out message pre-encoding. The hub re-wraps the request into a MemeverseParam
+ *  with hub-derived uniqueId/endTime/unlockTime (MemeverseRegistrationCenterUpgradeable.sol:194-207);
+ *  those are fixed-width ABI slots, so zero placeholders here keep the payload byte-length identical
+ *  to the real message — and the LayerZero native fee, which prices payload length, quotes true. */
+const memeverseParamComponents: readonly AbiParameter[] = [
+  { type: 'string' },
+  { type: 'string' },
+  { type: 'string' },
+  { type: 'string' },
+  { type: 'string[]' },
+  { type: 'uint256' }, // uniqueId (hub-derived)
+  { type: 'uint64' }, // endTime (hub-derived)
+  { type: 'uint64' }, // unlockTime (hub-derived)
+  { type: 'uint32[]' },
+  { type: 'address' },
+  { type: 'bool' },
+];
+
+export type RegistrationQuoteShape = {
+  name: string;
+  symbol: string;
+  uri: string;
+  desc: string;
+  communities: readonly string[];
+  omnichainIds: readonly number[];
+  uAsset: Hex;
+  flashGenesis: boolean;
+};
+
+/** Live registration native fee: the center's own outbound LayerZero quote over the exact target
+ *  set registration() will fan out to (MemeverseRegistrationCenterUpgradeable.sol:127-167). Null
+ *  (unresolvable target, endpoint error) degrades the fee card — never a fabricated 0. */
+export async function quoteRegistrationFanOut(
+  reader: ContractReader,
+  center: Hex,
+  shape: RegistrationQuoteShape,
+): Promise<bigint | null> {
+  const message = encodeAbiParameters(
+    [{ type: 'tuple', components: memeverseParamComponents }],
+    [[
+      shape.name,
+      shape.symbol,
+      shape.uri,
+      shape.desc,
+      [...shape.communities],
+      0n,
+      0n,
+      0n,
+      [...shape.omnichainIds],
+      shape.uAsset,
+      shape.flashGenesis,
+    ]],
+  );
+  try {
+    // quoteSend returns (totalFee, fees[], eids[]) — unwrap the tuple and keep the total
+    const tuple = asTupleArray(
+      await reader.read({
+        address: center,
+        abi: registrationCenterAbi,
+        functionName: 'quoteSend',
+        args: [[...shape.omnichainIds], message],
+      }),
+    );
+    return BigInt(String(tuple[0]));
+  } catch {
+    return null;
+  }
+}
+
+/** Symbol occupancy probe: `previewRegistration` is the center's own view over
+ *  symbolRegistry[symbol].endTime (MemeverseRegistrationCenterUpgradeable.sol:112-118) — the same
+ *  comparison `registration` enforces at :180, so a false verdict is exactly the SymbolNotUnlock
+ *  revert. Null = unreadable (provider or endpoint error); an unreadable probe is never
+ *  "available", because the resolution is per-candidate and has no fallback source. */
+export async function readSymbolAvailable(
+  reader: ContractReader,
+  center: Hex,
+  symbol: string,
+): Promise<boolean | null> {
+  try {
+    return (
+      (await reader.read({
+        address: center,
+        abi: registrationCenterAbi,
+        functionName: 'previewRegistration',
+        args: [symbol],
+      })) === true
+    );
+  } catch {
+    return null;
+  }
 }
 
 /** PSM par-swap quote: the contract's mint/redeem preview, identical to execution output in
@@ -249,14 +376,12 @@ export async function readPsmQuote(
 ): Promise<bigint> {
   return BigInt(
     String(
-      await tracePhase('psm-quote', () =>
-        reader.read({
-          address: psm,
-          abi: psmAbi,
-          functionName: mode === 'mint' ? 'quoteMint' : 'quoteRedeem',
-          args: [amount],
-        }),
-      ),
+      await reader.read({
+        address: psm,
+        abi: psmAbi,
+        functionName: mode === 'mint' ? 'quoteMint' : 'quoteRedeem',
+        args: [amount],
+      }),
     ),
   );
 }
@@ -324,24 +449,19 @@ export async function readAllowances(
   owner: Hex,
   legs: readonly { token: Hex; spender: Hex }[],
 ): Promise<bigint[]> {
-  return tracePhase(
-    'allowance',
-    () =>
-      Promise.all(
-        legs.map(async (leg) =>
-          BigInt(
-            String(
-              await reader.read({
-                address: leg.token,
-                abi: erc20ReadAbi,
-                functionName: 'allowance',
-                args: [owner, leg.spender],
-              }),
-            ),
-          ),
+  return Promise.all(
+    legs.map(async (leg) =>
+      BigInt(
+        String(
+          await reader.read({
+            address: leg.token,
+            abi: erc20ReadAbi,
+            functionName: 'allowance',
+            args: [owner, leg.spender],
+          }),
         ),
       ),
-    `${legs.length} leg${legs.length === 1 ? '' : 's'}`,
+    ),
   );
 }
 
@@ -387,7 +507,9 @@ export async function resolvePoolTokens(
     if (kind === 'meme') return session.verse.memecoin;
     if (kind === 'uasset') return session.verse.uAsset;
     if (kind === 'pol') return session.verse.pol;
-    return readPTToken(reader, session.contracts.POLSplitter as Hex, verseId);
+    const splitter = session.contracts.POLSplitter as Hex | undefined;
+    if (!splitter) throw new Error('outrun: POLSplitter missing');
+    return readPTToken(reader, splitter, verseId);
   };
   const [base, quote] = await Promise.all([resolve(baseKind), resolve(quoteKind)]);
   return { base, quote };
@@ -440,9 +562,10 @@ export async function resolveVerseSession(input: {
   }
   const contracts = resolved.config.contracts.addresses;
   const launcher = contracts.MemeverseLauncher as Hex | undefined;
-  const hook = contracts.MemeverseUniswapHook as Hex;
+  const hook = contracts.MemeverseUniswapHook as Hex | undefined;
   const kernel = resolved.config.kernel7702Implementation as Hex;
   if (!launcher) throw new Error('outrun: launcher missing');
+  if (!hook) throw new Error('outrun: hook missing');
   const client = createPublicClient({
     chain: resolved.config.viemChain,
     transport: custom({ request: input.request }),

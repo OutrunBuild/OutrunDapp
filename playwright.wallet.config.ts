@@ -11,7 +11,14 @@ import { defineConfig } from '@playwright/test';
 //
 // BASE_URL must point at a running OUTRUN_DATA_SOURCE=onchain server (pnpm dev with the
 // onchain env); the suite does not manage server lifecycle.
-const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:3000';
+// Fail closed on a silent port-3000 fallback: with BASE_URL unset the suite would drive
+// whatever occupies 3000 (e.g. a leftover dev:fixture server) through onchain assertions.
+if (!process.env.BASE_URL) {
+  throw new Error(
+    'BASE_URL must point at a running OUTRUN_DATA_SOURCE=onchain server (see header comment for the invocation)',
+  );
+}
+const BASE = process.env.BASE_URL;
 
 export default defineConfig({
   testDir: 'e2e',

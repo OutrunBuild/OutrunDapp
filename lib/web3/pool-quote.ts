@@ -62,3 +62,49 @@ export function lpPerQuoteUnit(lpSupply: bigint, amountQuote: bigint): number | 
   const value = Number(lpSupply) / Number(amountQuote);
   return Number.isFinite(value) && value > 0 ? value : null;
 }
+
+/** amountMin floors for a full-range LP burn, from the router's burn quote in (base, quote)
+ *  order. The quote rounds each leg up (mint shape) while the burn settles round-down, so the
+ *  slippage-trimmed floor sits at/below the payout for any slippageBps >= 1 (the UI enforces
+ *  >= 0.01% before submit); at 0 the floor would equal the round-up quote and could exceed it.
+ *  Output follows pool currency order (currency0 = lower address). */
+export function burnFloorsFromQuote(input: {
+  quotedBase: bigint;
+  quotedQuote: bigint;
+  baseIsCurrency0: boolean;
+  slippageBps: number;
+}): { amount0Min: bigint; amount1Min: bigint } {
+  const scale = BigInt(10_000 - input.slippageBps);
+  const minBase = (input.quotedBase * scale) / 10_000n;
+  const minQuote = (input.quotedQuote * scale) / 10_000n;
+  return input.baseIsCurrency0
+    ? { amount0Min: minBase, amount1Min: minQuote }
+    : { amount0Min: minQuote, amount1Min: minBase };
+}
+
+/** Sorted remove-liquidity legs for a full-range LP burn, from semantic (base, quote)
+ *  tokens plus the router's burn quote in the same (base, quote) order.
+ *  Sort and floor mapping stay in one place so a caller cannot sort the tokens
+ *  one way and map the floors the other. Output follows pool currency order
+ *  (currency0 = lower address). */
+export function buildRemoveLiquidityLegs(input: {
+  base: Hex;
+  quote: Hex;
+  quotedBase: bigint;
+  quotedQuote: bigint;
+  slippageBps: number;
+}): { currency0: Hex; currency1: Hex; amount0Min: bigint; amount1Min: bigint } {
+  const baseIsCurrency0 = input.base.toLowerCase() < input.quote.toLowerCase();
+  const { amount0Min, amount1Min } = burnFloorsFromQuote({
+    quotedBase: input.quotedBase,
+    quotedQuote: input.quotedQuote,
+    baseIsCurrency0,
+    slippageBps: input.slippageBps,
+  });
+  return {
+    currency0: baseIsCurrency0 ? input.base : input.quote,
+    currency1: baseIsCurrency0 ? input.quote : input.base,
+    amount0Min,
+    amount1Min,
+  };
+}

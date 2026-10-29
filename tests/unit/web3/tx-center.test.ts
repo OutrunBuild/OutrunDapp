@@ -91,6 +91,26 @@ describe('reduceTx', () => {
     ]);
     expect(end.state).toBe('Cancelled');
     expect(end.errorKind).toBeNull();
+    // Refusal before broadcast: no hash exists, so "nothing was sent" stays true.
+    expect(end.txHash).toBeNull();
+  });
+
+  it('keeps the broadcast hash when a wallet cancel lands after send', () => {
+    const end = run([
+      { type: 'begin', review: REVIEW },
+      { type: 'preflight-ok' },
+      { type: 'authorization-requested' },
+      { type: 'authorization-signed' },
+      { type: 'simulation-ok' },
+      { type: 'tx-signed', hash: '0xabc' },
+      { type: 'receipt-pending' },
+      { type: 'user-rejected' },
+    ]);
+    expect(end.state).toBe('Cancelled');
+    // The display splits cancel-after-send on this hash; clearing it would silently bring
+    // the "nothing was sent" line back on a broadcast write.
+    expect(end.txHash).toBe('0xabc');
+    expect(txDisplayOf(end.state, end.txHash)).toBe('cancelled-after-send');
   });
 
   it('keeps cross-chain messages pending past the source receipt', () => {
@@ -147,6 +167,33 @@ describe('reduceTx', () => {
     expect(reduceTx(done, { type: 'user-rejected' }).state).toBe('Confirmed');
     expect(reduceTx(done, { type: 'scope-stale' }).state).toBe('Confirmed');
   });
+
+  it('lands replacement with the replaced error kind and the substitute hash', () => {
+    const replaced = run([
+      { type: 'begin', review: REVIEW },
+      { type: 'preflight-ok' },
+      { type: 'authorization-requested' },
+      { type: 'authorization-signed' },
+      { type: 'simulation-ok' },
+      { type: 'tx-signed', hash: '0xabc' },
+      { type: 'receipt-pending' },
+      { type: 'tx-replaced', hash: '0xsub' },
+    ]);
+    expect(replaced.state).toBe('Replaced');
+    expect(replaced.errorKind).toBe('replaced');
+    expect(replaced.txHash).toBe('0xsub');
+  });
+
+  it('clears a bundle id when the batch confirms without receipts (no explorer dead link)', () => {
+    const end = run([
+      { type: 'begin', review: REVIEW },
+      { type: 'preflight-ok' },
+      { type: 'calls-submitted', batchId: '0xbatch-1' },
+      { type: 'receipt-success', hash: null },
+    ]);
+    expect(end.state).toBe('Confirmed');
+    expect(end.txHash).toBeNull();
+  });
 });
 
 describe('wallet capability failure', () => {
@@ -182,13 +229,18 @@ describe('review gate', () => {
 
 describe('txDisplayOf', () => {
   it('projects onto the existing status strip', () => {
-    expect(txDisplayOf(null)).toBe('idle');
-    expect(txDisplayOf('Preparing…')).toBe('signing');
-    expect(txDisplayOf('Awaiting transaction signature…')).toBe('signing');
-    expect(txDisplayOf('Submitted')).toBe('confirming');
-    expect(txDisplayOf('Confirmed')).toBe('confirmed');
-    expect(txDisplayOf('Cancelled')).toBe('cancelled');
-    expect(txDisplayOf('Reverted')).toBe('reverted');
-    expect(txDisplayOf('Replaced')).toBe('reverted');
+    expect(txDisplayOf(null, null)).toBe('idle');
+    expect(txDisplayOf('Preparing…', null)).toBe('signing');
+    expect(txDisplayOf('Awaiting transaction signature…', null)).toBe('signing');
+    expect(txDisplayOf('Submitted', null)).toBe('confirming');
+    expect(txDisplayOf('Confirmed', null)).toBe('confirmed');
+    expect(txDisplayOf('Cancelled', null)).toBe('cancelled');
+    expect(txDisplayOf('Reverted', null)).toBe('reverted');
+    expect(txDisplayOf('Replaced', null)).toBe('reverted');
+  });
+
+  it('separates a pre-broadcast refusal from a cancel that landed after send', () => {
+    expect(txDisplayOf('Cancelled', null)).toBe('cancelled');
+    expect(txDisplayOf('Cancelled', '0xabc')).toBe('cancelled-after-send');
   });
 });

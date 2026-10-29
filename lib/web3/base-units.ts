@@ -17,12 +17,15 @@ const pow10 = (decimals: number): bigint => 10n ** BigInt(decimals);
 /**
  * User-typed decimal string -> base units, floored to the asset's decimals. Trailing dots and
  * empty input are zero; fraction digits beyond the asset's precision are truncated (the chain
- * cannot represent them), never rounded up.
+ * cannot represent them), never rounded up. More than one decimal point reads as zero (junk),
+ * never as the truncated prefix.
  */
 export function toBaseUnits(input: string, decimals: number): bigint {
   const clean = input.trim();
   if (clean === '' || clean === '.') return 0n;
-  const [wholeRaw, fracRaw = ''] = clean.split('.');
+  const segments = clean.split('.');
+  if (segments.length > 2) return 0n;
+  const [wholeRaw, fracRaw = ''] = segments;
   const whole = wholeRaw === '' ? '0' : wholeRaw;
   if (!/^\d*$/.test(whole) || !/^\d*$/.test(fracRaw)) return 0n;
   const frac = fracRaw.slice(0, decimals).padEnd(decimals, '0');

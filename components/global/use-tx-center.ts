@@ -31,16 +31,12 @@ import {
   type WriteSpec,
 } from '@/lib/web3/tx-executor';
 import { routeWrite, type WalletKind } from '@/lib/web3/write-route';
+import { ONCHAIN_BUILD } from '@/lib/data/source-flag';
 
 import { useAccountCenter } from './use-account-center';
 import { notifyVerseWrite } from './verse-write-signal';
 
 export type { WriteOutcome, WriteSpec } from '@/lib/web3/tx-executor';
-
-// NEXT_PUBLIC_ mirror is the client-inlinable projection; the server var covers SSR.
-const ONCHAIN_BUILD =
-  process.env.NEXT_PUBLIC_OUTRUN_DATA_SOURCE !== 'fixture' &&
-  process.env.OUTRUN_DATA_SOURCE !== 'fixture';
 
 export type WriteFlow = {
   context: TxContext;
@@ -153,10 +149,13 @@ function useRealTxCenter(): WriteFlow {
     [dispatch],
   );
 
-  /**
-   * One locked execution: resolves provider/chain, builds the injected deps, routes by
-   * wallet kind. The lock is released only when the wallet call actually settles.
-   */
+/**
+ * One locked execution: resolves provider/chain, builds the injected deps, routes by
+ * wallet kind. The per-instance lock stops re-entrant clicks in THIS dialog; concurrent
+ * flows across dialogs serialize on the executor's module session lock (per chain+eoa,
+ * prepare → broadcast) so two prepares cannot share one tx nonce. The lock is released
+ * only when the wallet call actually settles.
+ */
   const run = useCallback(
     async (spec: WriteSpec, kind: WalletKind): Promise<WriteOutcome> => {
       const provider = getActiveEip1193Provider();
@@ -236,7 +235,10 @@ function useRealTxCenter(): WriteFlow {
       // stale-numbers class of bug from reappearing on future write surfaces. The write's own
       // hash rides along so the freshness gate targets the receipt block (no overshoot past
       // the write into a perpetually head-trailing index).
-      if (outcome === 'confirmed' && spec.writeScope?.kind === 'verse') {
+      // A reset generation abandons the live flow: its settled outcome still goes back to
+      // the caller, but the central refresh must not fire on it — lastHashRef (written by
+      // tx-signed, which runCalls never dispatches) can still point at an earlier write.
+      if (outcome === 'confirmed' && !deps.isStale() && spec.writeScope?.kind === 'verse') {
         const scope = spec.writeScope;
         // Client-side twin of the central refresh: mounted personal-value probes re-read their
         // batch now (server data converges through refreshVerseAfterWrite below)
@@ -293,7 +295,7 @@ function useRealTxCenter(): WriteFlow {
 
   return {
     context,
-    display: txDisplayOf(active ? context.state : null),
+    display: txDisplayOf(active ? context.state : null, context.txHash),
     reviewing,
     active,
     executeDirect,

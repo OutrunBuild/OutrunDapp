@@ -144,8 +144,10 @@ export type Type4Ports = {
   signAuthorization(req: AuthorizationRequest, walletAddress: Hex): Promise<SignedAuthorization>;
   simulateType4(tx: UnsignedType4): Promise<{ ok: true } | { ok: false; revertData?: Hex }>;
   /**
-   * Broadcast the prepared fields. The wallet signs internally, so byte-identity is
-   * enforced on the way in: the sent fields must equal the simulated preparation.
+   * Broadcast the prepared fields. The same prepared object flows from simulation to
+   * broadcast (object identity), and the executor re-checks scope freshness (nonce,
+   * account code, chain) before calling — those two are the actual enforcement points.
+   * No second snapshot is compared here.
    */
   sendType4(tx: UnsignedType4): Promise<Hex>;
 };
@@ -237,11 +239,11 @@ export async function prepareType4(ports: Type4Ports, input: PrepareInput): Prom
   };
 }
 
-/** Broadcast only when the send fields equal the simulated preparation. */
+/**
+ * Broadcast the simulated preparation. The caller passes the same object that was
+ * simulated (object identity), and scope freshness (nonce, account code, chain) is
+ * re-checked before this call — no second snapshot is compared here.
+ */
 export async function sendPrepared(ports: Type4Ports, prepared: UnsignedType4): Promise<Hex> {
-  assertByteIdentical(prepared, {
-    ...prepared,
-    ...(prepared.authorizationList ? { authorizationList: [...prepared.authorizationList] } : {}),
-  });
   return ports.sendType4(prepared);
 }

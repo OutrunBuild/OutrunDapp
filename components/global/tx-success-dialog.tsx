@@ -1,8 +1,8 @@
 'use client'
 
 /**
- * Generic transaction-success dialog (2026-10-26 用户裁定: ONE success UI for every
- * transaction on the site). Anatomy is extracted from the participation-genesis receipt
+ * Generic transaction-success dialog: ONE success UI for every transaction on the site.
+ * Anatomy is extracted from the participation-genesis receipt
  * (participation-panel confirmed state, components.md 交易签名状态 row): green ✓ plate +
  * two-tone title head, receipt ledger rows, explorer hash link, one full-width CTA. The
  * shell header carries the flow's own done-title. Echo rows must be captured by the caller

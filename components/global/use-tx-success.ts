@@ -7,7 +7,7 @@ import type { WriteFlow } from './use-tx-center'
 export type TxReceipt = { hash: string | null; chainId: number | null }
 
 /**
- * Confirmed → success-dialog gate (2026-10-26 弹窗序列纪律): captures the receipt link
+ * Confirmed → success-dialog gate: captures the receipt link
  * before reset clears the tx context, opens the success dialog (the flow's last dialog)
  * and resets the write flow so the progress dialog never re-opens behind the receipt.
  * Echo rows stay each caller's click-time capture — they cannot be re-derived from flow

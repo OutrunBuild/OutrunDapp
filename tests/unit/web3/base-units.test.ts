@@ -30,6 +30,7 @@ describe('toBaseUnits', () => {
   it('rejects junk as zero instead of NaN', () => {
     expect(toBaseUnits('1e-7', 18)).toBe(0n);
     expect(toBaseUnits('abc', 18)).toBe(0n);
+    expect(toBaseUnits('1.2.3', 18)).toBe(0n);
   });
 });
 

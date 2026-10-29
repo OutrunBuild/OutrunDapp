@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   amountToInputString,
+  evaluateAmountBalance,
   sanitizeAmount,
   trimFractionZeros,
   typedAmountPositive,
@@ -86,9 +87,62 @@ describe('typedAmountPositive', () => {
     expect(typedAmountPositive('0', null)).toBe(false);
   });
 
+  it('the card passes the deployment decimals when the probe has not landed — sub-unit dust stays invalid', () => {
+    // Swap card fallback chain (exact → reserve Asset decimals → protocol 18): the typed amount
+    // must still parse to a nonzero base unit, or the quote layer resolves it to no context and
+    // the card would sit on its pending spinner forever.
+    expect(typedAmountPositive('0.0000000000000000001', { decimals: 18 })).toBe(false);
+    expect(typedAmountPositive('0.0000001', { decimals: 6 })).toBe(false);
+    expect(typedAmountPositive('0.0000001', { decimals: 18 })).toBe(true);
+  });
+
   it('non-finite / empty / non-positive input fails regardless of decimals', () => {
     expect(typedAmountPositive('abc', { decimals: 6 })).toBe(false);
     expect(typedAmountPositive('', { decimals: 18 })).toBe(false);
     expect(typedAmountPositive('0', { decimals: 6 })).toBe(false);
+  });
+});
+
+describe('evaluateAmountBalance', () => {
+  // Shared by AmountField's error row and the executable CTA gate: the exact read is the
+  // authority, the float sample is only the fallback, and an unknown balance blocks submit.
+  const exactUsdc = { base: 1_000_000n, decimals: 6 };
+
+  it('exact base-units comparison wins over the float sample', () => {
+    expect(evaluateAmountBalance('1.000001', 0.5, exactUsdc)).toEqual({
+      overBalance: true,
+      balanceUnknown: false,
+      blocked: true,
+    });
+    expect(evaluateAmountBalance('1', 0.5, exactUsdc)).toEqual({
+      overBalance: false,
+      balanceUnknown: false,
+      blocked: false,
+    });
+    // float64 rounding must not reject the exact Max fill (parsed float equals the read)
+    expect(evaluateAmountBalance('1', 1, { base: 1_000_000n, decimals: 6 }).blocked).toBe(false);
+  });
+
+  it('float sample is only the fallback when no exact read landed', () => {
+    expect(evaluateAmountBalance('1.5', 1, null).overBalance).toBe(true);
+    expect(evaluateAmountBalance('1', 1, null).overBalance).toBe(false);
+  });
+
+  it('unknown balance blocks submission (live read in flight or failed)', () => {
+    expect(evaluateAmountBalance('1', null, null)).toEqual({
+      overBalance: false,
+      balanceUnknown: true,
+      blocked: true,
+    });
+    expect(evaluateAmountBalance('1', null, exactUsdc).blocked).toBe(false);
+  });
+
+  it('empty / non-finite input never reports over-balance (positivity is the caller gate)', () => {
+    expect(evaluateAmountBalance('', 0, null)).toEqual({
+      overBalance: false,
+      balanceUnknown: false,
+      blocked: false,
+    });
+    expect(evaluateAmountBalance('abc', 0, null).blocked).toBe(false);
   });
 });

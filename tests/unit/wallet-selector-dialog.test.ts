@@ -97,6 +97,18 @@ describe('WalletSelectorDialog MetaMask connect', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
+  it('writes no session markers from the connect callback', () => {
+    // onSuccess only closes the dialog: link persistence is owned by the
+    // account-center effect, so a reintroduced dual-write must fail here.
+    hookState.connect.mockImplementation((_config: unknown, opts?: { onSuccess?: () => void }) =>
+      opts?.onSuccess?.(),
+    );
+    window.localStorage.clear();
+    clickMetamask();
+    expect(window.localStorage.getItem('outrun:wallet-link')).toBeNull();
+    expect(window.localStorage.getItem('outrun:last-login')).toBeNull();
+  });
+
   it('closes the dialog when the address lands without a success callback', async () => {
     // Queued -32002 retry path: wagmi can land connected without firing
     // onSuccess, so the dialog must close on address instead of the callback.

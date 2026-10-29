@@ -42,13 +42,15 @@ const ERC20 = parseAbi([
   'function balanceOf(address owner) view returns (uint256)',
 ]);
 
-const ROUTER_ABI = JSON.parse(
-  readFileSync(join(repo, 'contracts', 'abi', 'v1-rc', 'OutrunRouter.json'), 'utf8'),
-) as Abi;
-
 const deployment = JSON.parse(
   readFileSync(join(repo, 'deployments', `${CHAIN_ID}.json`), 'utf8'),
-) as { contracts: Record<string, string> };
+) as { abiVersion: string; contracts: Record<string, string> };
+
+// Decode baseline tracks the release the deployment table pins — the same version the
+// check-abi-manifest gate blesses; a version literal here gets silently stranded by release sweeps.
+const ROUTER_ABI = JSON.parse(
+  readFileSync(join(repo, 'contracts', 'abi', deployment.abiVersion, 'OutrunRouter.json'), 'utf8'),
+) as Abi;
 
 // Fork-testing whale: the funded testnet deployer this repo's operations use (see the
 // Layer-1 fork suite for the rationale — the faucet stock is drained on the live chain).

@@ -140,24 +140,31 @@ export type WriteCapabilityResolution = {
 };
 
 /**
- * Combine code standing with provider ability. A provider that cannot sign or send keeps
- * read access plus an upgrade prompt — it never hard-blocks into a dead end (§16); the
- * Privy embedded EOA remains the user's explicit alternative account entry.
+ * Combine code standing with provider ability, in §6.5 evaluation order. A provider
+ * that cannot sign an authorization or send a Type-4 blocks only the standings that
+ * still require those actions (first delegation / replacement); those keep read
+ * access plus an upgrade prompt, never a dead end (§16), and the Privy embedded EOA
+ * remains the user's explicit alternative account entry. A kernel-delegated account's
+ * later writes are plain type-2 self-executions (§6.3/§28), so they stay ready without
+ * either 7702 ability.
  */
 export function resolveWriteCapability(
   code: CodeCapability,
   provider: ProviderCapability,
 ): WriteCapabilityResolution {
-  if (!provider.canSignAuthorization || !provider.canSendType4) {
-    return { capability: 'blocked-readonly', upgradeHint: true };
-  }
+  const lacks7702Ability = !provider.canSignAuthorization || !provider.canSendType4;
   switch (code) {
     case 'kernel-delegated':
       return { capability: 'ready', upgradeHint: false };
     case 'plain-eoa':
-      return { capability: 'needs-delegation', upgradeHint: false };
     case 'unsupported-delegation':
-      return { capability: 'needs-replacement', upgradeHint: false };
+      // These standings still need a 7702 action (first delegation / replacement).
+      if (lacks7702Ability) {
+        return { capability: 'blocked-readonly', upgradeHint: true };
+      }
+      return code === 'plain-eoa'
+        ? { capability: 'needs-delegation', upgradeHint: false }
+        : { capability: 'needs-replacement', upgradeHint: false };
     case 'other-contract':
       // Never inferred compatible: Memeverse Swap stays disabled (§6.5 branch 4).
       return { capability: 'blocked-other-contract', upgradeHint: false };

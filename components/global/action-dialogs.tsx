@@ -4,8 +4,8 @@
  * Shared primitives for transaction dialogs:
  * ActionDialogShell (.pol-mint card shell) / AmountField (.swap-panel__field
  * family amount field) / DetailRows (detail row group) / DialogCta (disconnected =
- * clickable Connect; connected = action button disabled — the prototype ViewModel
- * does not fake on-chain execution). The CSS layer fully reuses the verse page's
+ * clickable Connect; disabled by default with a gating predicate; onAction arms the
+ * real pipeline — without it the button stays inert). The CSS layer fully reuses the verse page's
  * existing classes; the sole React implementation lives in this file;
  * consumers = portfolio dialog family + verse trade dialog family
  * (mint/add liquidity/remove liquidity/flash-swap/redeem LP/redeem PT-YT/split-merge/
@@ -18,12 +18,17 @@ import { X } from 'lucide-react'
 import { formatUnits } from 'viem'
 import type { Locale } from '@/lib/data/fixture-repository'
 
-import { toBaseUnits } from '@/lib/web3/base-units'
 import { getCopy } from './copy'
 import { fmtTokenAmountExact } from './amount-format'
 import { formatAmount } from './signal-ui'
 import { SwitchChainCta } from './switch-chain-cta'
-import { AMOUNT_MAX_CHARS, amountToInputString, sanitizeAmount, trimFractionZeros } from './amount-input'
+import {
+  AMOUNT_MAX_CHARS,
+  amountToInputString,
+  evaluateAmountBalance,
+  sanitizeAmount,
+  trimFractionZeros,
+} from './amount-input'
 import { Button } from '@/components/ui/button'
 import { DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { FieldError } from '@/components/ui/field'
@@ -115,12 +120,9 @@ export function AmountField({
 }) {
   const errorId = useId()
   // Insufficient balance: balance is known and input > balance; the error copy is one
-  // short line without numbers
-  const parsed = Number(value)
-  const overBalance =
-    exactBalance != null
-      ? toBaseUnits(value, exactBalance.decimals) > exactBalance.base
-      : balance != null && Number.isFinite(parsed) && parsed > balance
+  // short line without numbers. The predicate lives in amount-input so the CTA gate and
+  // this row cannot drift.
+  const { overBalance } = evaluateAmountBalance(value, balance, exactBalance)
   const balanceText =
     exactBalance != null
       ? fmtTokenAmountExact(exactBalance.base, exactBalance.decimals, locale)

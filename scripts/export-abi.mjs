@@ -9,16 +9,19 @@
 //   top-level `abi` array.
 // - Filters by the --repo key of the list file; names not in the list are skipped.
 // - A listed name with no artifact fails the run (no silent misses).
-// - Writes `contracts/abi/v1-rc/<Name>.json` (content = JSON.stringify(abi, null, 2) + "\n").
-//   Names shared by two repos in the list file go to `contracts/abi/v1-rc/<repo>/<Name>.json`
+// - Writes `contracts/abi/<abiVersion>/<Name>.json` (content = JSON.stringify(abi, null, 2) + "\n").
+//   Names shared by two repos in the list file go to `contracts/abi/<abiVersion>/<repo>/<Name>.json`
 //   with a stdout declaration; a flat-name collision at write time also falls back to the
 //   repo subdirectory.
 // - Prints one `sha256 <hash>  <path>` line per file (consumed by manifest generation).
-// - `--version <v1-rc|v1-rc2>` selects the release directory (defaults to the current one).
+// - `--version <abiVersion>` selects the release directory to write (registered releases are
+//   `ABI_VERSIONS` in `./deployment-schema.mjs`); `<abiVersion>` above resolves to that argument,
+//   else to `CURRENT_ABI_VERSION`.
 
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { CURRENT_ABI_VERSION } from './deployment-schema.mjs';
 
@@ -93,7 +96,10 @@ if (missing.length > 0) {
   throw new Error(`artifacts not found under ${srcDir}: ${missing.join(', ')}`);
 }
 
-const outRoot = resolve(new URL('.', import.meta.url).pathname, `../contracts/abi/${abiVersion}`);
+const outRoot = resolve(
+  fileURLToPath(new URL('.', import.meta.url)),
+  `../contracts/abi/${abiVersion}`,
+);
 mkdirSync(outRoot, { recursive: true });
 
 for (const [name, { abi }] of wanted) {

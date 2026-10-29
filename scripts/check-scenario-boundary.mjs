@@ -8,12 +8,14 @@
 //   banner/skeleton (onchain mode neither parses nor injects).
 //
 // Mode B: --self-test
-//   Injects fake HTML containing sentinels to verify the scanner catches them, and a clean file
-//   produces zero hits.
+//   Injects fake HTML containing sentinels into a private temp dir to verify the scanner catches
+//   them, and a clean file produces zero hits; the temp dir is removed afterwards (auto cleanup).
 //
 // The default build (non-onchain env) including selector code is expected behavior -- rendering
 // is gated server-side by OUTRUN_DATA_SOURCE, so no chunk scanning is done.
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 const args = process.argv.slice(2);
 
@@ -33,26 +35,25 @@ function scanHtml(file) {
 }
 
 if (args.includes('--self-test')) {
-  const fake = '/tmp/scenario-boundary-selftest.html';
-  writeFileSync(fake, '<div class="scenario-selector"><div class="degrade-banner">x</div></div>');
-  const hits = scanHtml(fake);
-  if (hits.length < 2) {
-    console.error('self-test FAIL: sentinel not intercepted');
-    process.exit(1);
+  // process.exit skips finally, so failures throw and the exit code is set after cleanup
+  const tmp = mkdtempSync(join(tmpdir(), 'scenario-boundary-'));
+  try {
+    const fake = join(tmp, 'selftest.html');
+    writeFileSync(fake, '<div class="scenario-selector"><div class="degrade-banner">x</div></div>');
+    if (scanHtml(fake).length < 2) throw new Error('sentinel not intercepted');
+    const cleanFile = join(tmp, 'selftest-clean.html');
+    writeFileSync(cleanFile, '<main><p>clean onchain-mode html</p></main>');
+    if (scanHtml(cleanFile).length > 0) throw new Error('false positive on the clean file');
+    console.log(
+      'scenario boundary self-test OK: sentinels intercepted, clean file zero false positives',
+    );
+  } catch (error) {
+    console.error(`self-test FAIL: ${error.message}`);
+    process.exitCode = 1;
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
   }
-  writeFileSync(
-    '/tmp/scenario-boundary-selftest-clean.html',
-    '<main><p>clean onchain-mode html</p></main>',
-  );
-  const clean = scanHtml('/tmp/scenario-boundary-selftest-clean.html');
-  if (clean.length > 0) {
-    console.error('self-test FAIL: false positive on the clean file');
-    process.exit(1);
-  }
-  console.log(
-    'scenario boundary self-test OK: sentinels intercepted, clean file zero false positives',
-  );
-  process.exit(0);
+  process.exit(process.exitCode);
 }
 
 const files = args.filter((a) => !a.startsWith('--'));

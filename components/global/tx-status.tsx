@@ -12,6 +12,7 @@ export type TxState =
   | 'confirming'
   | 'confirmed'
   | 'cancelled'
+  | 'cancelled-after-send'
   | 'reverted'
 
 const TX_ORDER = ['signing', 'confirming', 'confirmed'] as const
@@ -28,17 +29,23 @@ export function TxStatus({ locale, state }: { locale: Locale; state: TxState }) 
   const labels = [copy.verse.txSign, copy.verse.txSubmit, copy.verse.txDone]
 
   // Terminal states: rejected signature = Cancelled with a non-failure tone;
-  // revert = Reverted with a failure tone + reason placeholder
-  if (state === 'cancelled' || state === 'reverted') {
-    const cancelled = state === 'cancelled'
+  // revert = Reverted with a failure tone + reason placeholder. A cancel that lands after
+  // broadcast is still Cancelled, but the write WAS sent — its note says so.
+  if (state === 'cancelled' || state === 'cancelled-after-send' || state === 'reverted') {
+    const reverted = state === 'reverted'
+    const notes = {
+      cancelled: copy.verse.txCancelledNote,
+      'cancelled-after-send': copy.verse.txCancelledAfterSendNote,
+      reverted: copy.verse.txRevertedNote,
+    }
     return (
-      <div className="tx-status__outcome" data-outcome={state} role={cancelled ? 'status' : 'alert'}>
-        <strong>{cancelled ? copy.verse.txCancelled : copy.verse.txReverted}</strong>
-        <p>
-          {cancelled
-            ? copy.verse.txCancelledNote
-            : copy.verse.txRevertedNote}
-        </p>
+      <div
+        className="tx-status__outcome"
+        data-outcome={reverted ? 'reverted' : 'cancelled'}
+        role={reverted ? 'alert' : 'status'}
+      >
+        <strong>{reverted ? copy.verse.txReverted : copy.verse.txCancelled}</strong>
+        <p>{notes[state]}</p>
       </div>
     )
   }

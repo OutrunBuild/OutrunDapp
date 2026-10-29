@@ -2,12 +2,12 @@
 // - N/N+1 nonce relation, chain-specific authorization (chainId=0 forbidden), to=self EOA
 // - gas gate fires before any authorization/signature request (§6.4)
 // - simulation failure blocks sending (no silent retry, no broadcast)
-// - re-prepare triggers cover all nine scope fields; broadcast requires byte-identical fields
+// - re-prepare triggers cover all nine scope fields; broadcast carries the simulated
+//   preparation (object identity), with scope freshness re-checked before send
 import { describe, expect, it } from 'vitest';
 import type { Hex } from 'viem';
 
 import {
-  assertByteIdentical,
   buildAuthorizationRequest,
   needsReprepare,
   prepareType4,
@@ -183,7 +183,7 @@ describe('needsReprepare', () => {
   });
 });
 
-describe('assertByteIdentical + sendPrepared', () => {
+describe('sendPrepared', () => {
   const tx: UnsignedType4 = {
     to: EOA,
     eoa: EOA,
@@ -194,22 +194,9 @@ describe('assertByteIdentical + sendPrepared', () => {
     authorizationList: [AUTH],
   };
 
-  it('passes identical fields and names the drifted one', () => {
-    expect(() => assertByteIdentical(tx, { ...tx })).not.toThrow();
-    expect(() => assertByteIdentical(tx, { ...tx, nonce: 8 })).toThrow('nonce');
-    expect(() => assertByteIdentical(tx, { ...tx, authorizationList: [] })).toThrow(
-      'authorizationList',
-    );
-  });
-
-  it('broadcasts byte-identical preparations and never sends drifted ones', async () => {
+  it('broadcasts the simulated preparation unchanged', async () => {
     const { ports, log } = mockPorts();
     await expect(sendPrepared(ports, tx)).resolves.toBe('0xhash' as Hex);
-    expect(log).toEqual(['send']);
-    // A send-time snapshot that drifted from the simulated preparation must trip the
-    // gate before reaching the port, not after.
-    const drifted = { ...tx, data: '0x00' as Hex };
-    expect(() => assertByteIdentical(tx, drifted)).toThrow('data');
     expect(log).toEqual(['send']);
   });
 });

@@ -78,6 +78,8 @@ export type TxContext = {
   /** §6.4: insufficient native balance blocks authorization AND signature requests. */
   gasGate: 'ok' | 'insufficient';
   // B4: a rejected signature returns to the form; the dialog keeps its own input state.
+  // Non-null also means the write was broadcast: the cancelled display keys off it, so
+  // user-rejected must keep it rather than clear it.
   txHash: string | null;
   /** Source-chain receipt is not completion: the message stays pending to destination. */
   crossChain: { sourceHash: string; destinationConfirmed: boolean } | null;
@@ -106,7 +108,7 @@ export type TxEvent =
   | { type: 'calls-submitted'; batchId: string }
   | { type: 'source-confirmed'; hash: string }
   | { type: 'destination-confirmed' }
-  | { type: 'receipt-success'; hash: string }
+  | { type: 'receipt-success'; hash: string | null }
   | { type: 'tx-reverted'; kind: RevertKind }
   | { type: 'tx-replaced'; hash: string }
   | { type: 'wallet-unsupported' }
@@ -167,6 +169,9 @@ export function reduceTx(context: TxContext, event: TxEvent): TxContext {
       return {
         ...context,
         state: 'Confirming…',
+        // The source leg's landed hash is the only hash that exists on chain (a wallet
+        // speed-up settles a substitute); the receipt link must point at that one.
+        txHash: event.hash,
         crossChain: { sourceHash: event.hash, destinationConfirmed: false },
       };
     case 'destination-confirmed':
@@ -189,7 +194,7 @@ export function reduceTx(context: TxContext, event: TxEvent): TxContext {
     case 'tx-replaced':
       return isTxTerminal(context.state)
         ? context
-        : { ...context, state: 'Replaced', txHash: event.hash };
+        : { ...context, state: 'Replaced', txHash: event.hash, errorKind: 'replaced' };
     case 'wallet-unsupported':
       // No executable path for this wallet: keep the form/panel open and surface the
       // capability line instead of pretending the user cancelled.
@@ -208,15 +213,26 @@ export function reduceTx(context: TxContext, event: TxEvent): TxContext {
 }
 
 /** Display projection onto the existing TxStatus strip (component untouched). */
-export type TxDisplay = 'idle' | 'signing' | 'confirming' | 'confirmed' | 'cancelled' | 'reverted';
+export type TxDisplay =
+  | 'idle'
+  | 'signing'
+  | 'confirming'
+  | 'confirmed'
+  | 'cancelled'
+  | 'cancelled-after-send'
+  | 'reverted';
 
-export function txDisplayOf(state: TxState | null): TxDisplay {
+export function txDisplayOf(state: TxState | null, txHash: string | null): TxDisplay {
   if (state === null) return 'idle';
   if (state === 'Confirmed') return 'confirmed';
-  // A replaced transaction never settles in this app (speed-ups resolve through the
-  // replacement receipt); map it to the failure tone rather than a stuck spinner.
+  // Replaced means the wallet substituted a different transaction on the write's nonce, so
+  // the intent never executed (a speed-up is `repriced` and settles through the replacement
+  // receipt as Confirmed): map it to the failure tone rather than a stuck spinner.
   if (state === 'Reverted' || state === 'Replaced') return 'reverted';
-  if (state === 'Cancelled') return 'cancelled';
+  // A wallet "Cancel" after broadcast settles as a same-nonce self-send, so the write WAS
+  // sent and its gas spent: `txHash` (written by tx-signed, kept by user-rejected) separates
+  // that from a pre-broadcast refusal, where "nothing was sent" is true.
+  if (state === 'Cancelled') return txHash != null ? 'cancelled-after-send' : 'cancelled';
   if (state === 'Submitted' || state === 'Confirming…') return 'confirming';
   return 'signing';
 }
