@@ -27,7 +27,7 @@
 
 ### 1.2 数据边界
 
-`lib/data/fixture-repository.ts` 是 fixture 数据的唯一合法消费方，由 `check-fixture-boundary` 的 `--source` / `--graph production` / `--bundle .next` 三层拦截：
+`lib/data/fixture-repository.ts` 是 fixture 数据的唯一合法消费方，由 `check-fixture-boundary` 的 `--source` / `--graph onchain` / `--bundle .next` 三层拦截：
 
 - 页面与领域组件从 repository 取数，禁止直接 import `fixtures/`；生产代码禁止反向写入 fixture。`ui/` 与 `design-system/` 通用层不受此限。
 - 组件不自造领域数值：数值口径从产品真源取（§3），样本数据落 `fixtures/`（schema + sourceRef 齐全）。
@@ -220,6 +220,8 @@ Skill 路由：
 | `pnpm check:freeze`                                     | 交付前 | 设计冻结清单双向对账（改监视树先跑 write-design-artifact-manifest.mjs 重生成） |
 | `pnpm check:design-docs`                                | 交付前 | 登记文档闸（components.md §6 模式名重复 / 超长单行 / 叙事日期）                |
 | `pnpm check:cjk-font`                                   | 交付前 | 中文字体子集对账                                                               |
+| `pnpm check:cjk-copy`                                   | 交付前 | 组件内 CJK 字面量扫描——字典契约执行闸（copy-and-i18n.md §1）                   |
+| `pnpm check:copy-punctuation`                           | 交付前 | 文案分号扫描——语气规则执行闸（copy-and-i18n.md §2；入 vitest contract gates）  |
 | `pnpm test:e2e`                                         | 交付前 | Playwright 三视口视觉基线 + axe（NEXT_DIST_DIR=.next-e2e 独立构建）            |
 | `pnpm exec prettier --check .`                          | 交付前 | 格式检查                                                                       |
 | `pnpm build:cjk-font`                                   | 按需   | 改 copy.ts/fixtures 中文文案后必须跑，再过 `check:cjk-font`                    |
@@ -268,6 +270,20 @@ Skill 路由：
 - 测试 UI「跨链中/待到账」状态时，别等链上自动到账——先跑 relay 再断言余额变化。
 
 安全性：owner EOA 自签 = relay 脚本就是信任锚，仅测试网。主网必须配真 DVN（`requiredDVNs` = 各链 DVN 合约，同一个 `LzSetConfig.s.sol` 可接线）。
+
+### 9.3 Anvil fork 集成套件：变更触发式节奏
+
+`tests/integration/`（batch 形态 + Type-4 会话）默认被 `ANVIL_URL` 门控跳过，CI 与 pre-push 都不跑（CI 是先导子集，见 `docs/architecture.md` §12）。涉及 ABI、chain、account、Privy、external wallet、EIP-7702、Kernel、交易、subgraph 或 `deployments/` 的变更，以及发布候选，必须跑一次；普通样式 PR 不跑（无外部网络硬依赖，§11.3）。
+
+前置：Foundry `1.8.5`（`anvil` + `cast`；type4 用 `cast wallet sign-auth`），`deployments/<chainId>.json` 存在。
+
+```bash
+anvil --fork-url https://bsc-testnet-rpc.publicnode.com --port 8545
+TEST_CHAIN_ID=97 ANVIL_URL=http://localhost:8545 VERSE_ID=<id> \
+  pnpm exec vitest run tests/integration
+```
+
+`TEST_CHAIN_ID` 必须显式给（type4 缺省 0 会在 warm-up 处整文件报错，整组用例失败而非静默通过）。`VERSE_ID` 为空时创世/verse 流跳过（`it.skipIf`），PSM/USR 流照跑；421614 上 verse 流同样跳过。未设 `ANVIL_URL` 时整文件 skipped，这是 `pnpm test` 的常态，vitest 输出里显示为跳过而非失败。需要钉死链状态时在 fork 命令加 `--fork-block-number <区块号>`。
 
 <!-- BEGIN:nextjs-agent-rules -->
 

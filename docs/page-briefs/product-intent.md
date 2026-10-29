@@ -130,5 +130,5 @@
 - 交易中心：承载 A7–A12 交易状态 + 报价/滑点纪律（router.md:20-23 预览非保证、设最低到账保护线）
 - 跨链消息详情：三阶段状态机（发送/到账/落位 omnichain.md:31-43）+ 滞留手动恢复（:34）+ 份额 vs 裸币核验（:51）→ 归属 PD-10
 - 通知中心：v1 延后——待办提醒由 Portfolio ①可行动区 + 操作完成 toast 承接
-- 主网/测试网、查看链、钱包选择器、locale 切换：意图以 architecture §2/§5/§6 为准 + 治理链概念（omnichain.md:13）为查看链语境
+- 主网/测试网、链选择器（钱包链切换）、钱包选择器、locale 切换：意图以 architecture §2/§5/§6 为准 + 治理链概念（omnichain.md:13）为链感知语境（对齐 component-contract.md「链感知」口径）
 - 语言政策基线：「专有词保留英文，解释用中文」（OB:reference/glossary.md:3）+ 分层语气（PD-06）

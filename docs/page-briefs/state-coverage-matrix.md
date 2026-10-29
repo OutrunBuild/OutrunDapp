@@ -27,7 +27,7 @@
 | C2 Embedded EOA | – | – | ○ | ○ | ○ | ○ | ○ | ●(GS-3) |
 | C3 Unsupported delegation | – | – | ○ | ○（A4 语境三分支：先替换行内引导） | ○ | ○ | ○ | – |
 
-无冲突检查：同一状态跨页语义一致（A3=禁写+切换引导；B3=静默降级（无可见状态）且余额/授权/回执恒 RPC；B4=草稿保留；环境切换清空——GS-1 规则优先，见 global-interactions GS-4 草稿纪律）；A5 九态展开为架构层词汇（state-catalog §D），页面用 A 系规范名——词汇同源无漂移。
+无冲突检查：同一状态跨页语义一致（A3=禁写+切换引导；B3=静默降级（无可见状态）且余额/授权/回执恒 RPC；B4=草稿保留；环境切换清空——GS-1 规则优先，见 global-interactions GS-4 草稿纪律）；A5 九态展开为架构层词汇（state-catalog §D），页面用 A 系规范名——词汇同源于 state-catalog（编号即 catalog A 系；勿与 components/design-system/state-matrix.md 组件层编号互查，同语义对照见 state-catalog.md「与视觉/组件层的关系」）。
 
 ## 验收抽查行（可观察动作→期望结果）
 

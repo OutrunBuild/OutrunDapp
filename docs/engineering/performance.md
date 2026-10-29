@@ -11,7 +11,7 @@
   - 原因：服务端数据走 30s/60s stale-while-revalidate 缓存（`onchain-source.ts` 的 `cachedConfig`、`graph-repository.ts` 的 `cached()`）——TTL 内当次渲染重放交易前数值，TTL 外也是先发旧值、后台 revalidation 落地后无再渲染；subgraph 聚合另叠加索引滞后。
   - **显示链口径**：创世逐链结算，聚合类显示（阈值进度表/参与面板聚合/可预购余量）跟随钱包实链（限 verse 落地集内；越集或断连回退 canonical 副本链 SSR 值）。
     - 基线 = `getVerse` 逐链行 `chainAggregates`；非 canonical 链的余量等即时值只能来自客户端探针。
-    - 个人全链合计（「您的参与」）= 本链钱包 provider 读 + 兄弟链 on-demand server action（`lib/data/verse-reads.ts`）。
+    - 个人全链合计（「你的参与」）= 本链钱包 provider 读 + 兄弟链 on-demand server action（`lib/data/verse-reads.ts`）。
     - 参与地址 = omni 合计（逐链去重计数求和，跨链无身份可用）。
   - **即时层（客户端探针）**：触发 = 写确认（`tx.display === 'confirmed'`）或账号/链切换；数据源 = 钱包 provider（与 receipt 同链同源），定向重读本次写影响的项、直接更新显示位。
     - 参考实现 = `components/verse/genesis-live.tsx`（`VerseLiveProvider` + `writeNonce` 信号）与 faucet `probeRef`。
@@ -31,6 +31,3 @@
 - **数据齐了再开窗，一次渲染**：点确认先探 `eth_chainId`（错链闸门 + 执行链选址：钱包在 verse 落地集的哪条链就在哪条链执行），再组 spec（allowance）并取完弹窗要画的报价（网络费行），全部到手才 `setReviewing(true)`。
   - 原因：弹窗打开后出现的后到行/数值会把已渲染的卡片顶一下（Network Fee 后到最典型）。
   - 链路等待放在表单态：`resolving` 持续置位挡住重复提交，失败走降级错误行；禁止把等待搬进弹窗。
-- **实测开关**：`lib/web3/click-trace.ts` 记录点击链路的各相位（`chain.probe` / `session.*` / `allowance` / `quote` / `wallet.capabilities` / `wallet.sendCalls` / `wallet.sendTransaction`）耗时；默认关闭（每次埋点只有一次 `localStorage` 读取，不计时、不缓存行），`localStorage.setItem('outrun:click-trace','1')` 后重放点击，钱包调用返回时控制台打印表格。
-  - 一次点击一个窗口：点击（捕获阶段）会清空上一轮的记录，报价轮询等后台相位不会混进本次时间线。
-  - 用途：把「点按钮到钱包弹窗要几秒」拆到具体相位，再决定是并行、砍读还是归因钱包自身准备。

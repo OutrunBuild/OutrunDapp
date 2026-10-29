@@ -18,7 +18,7 @@
 |---|---|
 | 页面路由 ×7 | `/`、`/memeverse/explore`、`/memeverse/launch`、`/memeverse/[verseId]`（单页四标签 liquidity/pol/vault/dao）、`/portfolio`、`/referral`、`/faucet` |
 | 内部工具页 ×1 | `/design-system`（不进导航，e2e 基线承载页） |
-| 全局交互面 ×1 | 主网/测试网、查看链、钱包选择器、交易中心、跨链消息详情、通知中心（v1 延后）、locale 切换 |
+| 全局交互面 ×1 | 主网/测试网、链选择器（钱包链切换）、钱包选择器、交易中心、跨链消息详情、通知中心（v1 延后）、locale 切换 |
 | 嵌入型资产动线 ×4 | EF-1 创世质押铸 uAsset · EF-2 PSM 面值兑换 · EF-3 USR 储蓄 · EF-4 CDP 仓位管理与债务赎回 |
 
 ## 文档地图

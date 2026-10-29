@@ -23,7 +23,7 @@
 | 判定面板（threshold-panel） | 双门槛进度条：普通资金与杠杆利息**独立**判断（预购与债务本金不计入，lifecycle.md:35-49）；最低成功额度；**Fast Genesis 状态行**（fastGenesis 创世 verse 专属）：未达标=「任一门槛达标即可提前结束创世，无需等到截止时间」；达标=青色「已达标 · 待推进。已满足成功阈值——任何人都可以触发阶段推进」（state-machines:33-35/lifecycle.md:52-54） |
 | 当前操作卡（action-panel） | 当前阶段开放的操作集（创世期：参与+预购；退款态：退款领取——按 SPEC-M9 状态机门控，**读链判定不前端硬编码**）；`data-stage` 阶段色 |
 | 参与面板 | **完整规范见 [asset-flows.md](asset-flows.md) §0**（普通创世默认+杠杆切换+预购分配器；直接参与/质押参与）——本页为 EF-1/EF-2 挂载节点 |
-| 统计面板（stats-panel） | 全链筹集（omniRaised 跨链合计）/参与地址（omni 合计）/预计市值（`marketCapUsd` 分阶段：创世=全链筹集×2×uAsset 美元样本价、已部署=现价×总供应、退款不渲染；`MC:` 标签为 Explore 卡头格式）/您的参与（零参与=未参与文案）；截止行已撤——截止时间只落推进钮倒计时（分钟级，<72h 黄/<24h 红） |
+| 统计面板（stats-panel） | 全链筹集（omniRaised 跨链合计）/参与地址（omni 合计）/预计市值（`marketCapUsd` 分阶段：创世=全链筹集×2×uAsset 美元样本价、已部署=现价×总供应、退款不渲染；`MC:` 标签为 Explore 卡头格式）/你的参与（零参与=未参与文案）；截止行已撤——截止时间只落推进钮倒计时（分钟级，<72h 黄/<24h 红） |
 | 触发费分发 | **permissionless 入口**（锁定期起）：任何人触发手续费分发、获执行奖励（主池 uAsset 费 0.25% 当前默认——lifecycle.md:75/playbooks.md:102）；显示可触发状态+预估奖励+手续费提示 |
 | 触发阶段推进 | **permissionless 入口**：阶段推进需链上交易触发、不随时间自动发生（lifecycle.md:51/state-machines:69）——显示当前可推进阶段+触发按钮（手续费由触发者承担；到点未触发则后续操作阻塞，此入口即出口） |
 | 四池概览 | 主池（Memecoin/uAsset）+三辅助池；资金流向 70/30 与 POL 2:3:2、PT 1:2（four-pools.md:22-23）；剩余资金去向不展示（决议 C2） |
@@ -47,7 +47,7 @@ Verse 元数据/阶段=RPC（阶段变更需链上交易触发——lifecycle.md
 
 ## 6. 全状态标注
 
-A1 rendered-here（只读完整；参与面板引导连接）；A2 delegated-to-global-surface（钱包选择器）；A3 rendered-here（错链禁写：参与/领取禁用+说明）；A4 rendered-here（首次写前启用引导；**三分支**：code 为空→启用引导；code 非空但不匹配（C3）→「检测到其他应用的启用，需先替换」行内引导；已启用→直付）；A5–A12 delegated（交易中心；参与/领取交易状态）；A13 rendered-here（阶段/进度骨架）；A14 rendered-here（未参与→统计面板「未参与」文案+入口；退款态无记录→说明）；A15 rendered-here（数据失败重试）；B1 rendered-here（Verse 暂停位/池暂停→写操作禁用）；B2 rendered-here（该 Verse 未在当前查看链部署→引导切换链）；B3 rendered-here（静默降级，阶段以 RPC）；B4 rendered-here（回面板草稿保留）。
+A1 rendered-here（只读完整；参与面板引导连接）；A2 delegated-to-global-surface（钱包选择器）；A3 rendered-here（错链禁写：参与/领取禁用+说明）；A4 rendered-here（首次写前启用引导；**三分支**：code 为空→启用引导；code 非空但不匹配（C3）→「检测到其他应用的启用，需先替换」行内引导；已启用→直付）；A5–A12 delegated（交易中心；参与/领取交易状态）；A13 rendered-here（阶段/进度骨架）；A14 rendered-here（未参与→统计面板「未参与」文案+入口；退款态无记录→说明）；A15 rendered-here（数据失败重试）；B1 rendered-here（Verse 暂停位/池暂停→写操作禁用）；B2 rendered-here（该 Verse 未在当前钱包链部署→引导切换链）；B3 rendered-here（静默降级，阶段以 RPC）；B4 rendered-here（回面板草稿保留）。
 
 ## 7. 可点击主流程（写操作——已接 useTxCenter 真实写路径，type-4 直签 + EIP-1559）
 

@@ -19,14 +19,14 @@
 |---|---|---|---|---|---|
 | A1 | `Disconnected` | 未连接钱包；只读内容可见，写操作入口引导连接 | 点击「连接钱包」→ 钱包选择器（GS） | polite（状态条） | 全局（钱包选择器）+ 各页 |
 | A2 | `Connecting` | 连接中过渡态；不得重复触发弹窗 | 自动完成或失败落 A1/Error；无用户动作 | polite | 钱包选择器 |
-| A3 | `Wrong network`（与 B2 叠加时 **B2 优先**：先引导到已部署链，再对齐钱包链） | 当前查看链与钱包链不一致；**禁写**（写操作禁用并说明原因） | 用户切换钱包链或切换查看链（GS 查看链选择器） | assertive | 全局（各页写操作处） |
+| A3 | `Wrong network`（与 B2 叠加时 **B2 优先**：先引导到已部署链，再对齐钱包链） | 当前钱包链不在部署链集或与目标操作链不一致；**禁写**（写操作禁用并说明原因） | 用户切换钱包链（GS-2 链选择器，仅切钱包链） | assertive | 全局（各页写操作处） |
 | A4 | `Connected EOA` | 钱包已连接但本链未启用智能账户 | 发起 EIP-7702 启用（首次写操作前行内引导） | polite | 首次写操作（行内引导） |
 | A5 | `Smart account enabling` | 智能账户启用流程中（对应 §6.2 Authorization requested/signed、Delegation pending） | 完成签名→待上链确认；失败给出重试与原因 | assertive（进行中提示） | 交易中心 |
 | A6 | `Kernel delegated` | 本链已启用智能账户（Kernel V3.3）；写操作走 Type-4 | 无需恢复；可替换/撤销（账户面，待实装） | polite | 各写操作（行内状态） |
 | A7 | `Authorization` | EIP-7702 authorization 签名请求呈现（外部钱包弹窗或 Privy embedded signer） | 用户签署/拒绝；拒绝→`User rejected` | assertive | 交易中心（前置步骤） |
 | A8 | `Signing` | 交易待签名（钱包内） | 用户签署/拒绝 | assertive | 交易中心 |
 | A9 | `Submitting` | 已签名、广播提交中 | 自动流转；长时间无回执→重试查询入口 | polite | 交易中心 |
-| A10 | `Confirming` | 链上确认中（含跨链源链确认，见 D8 之前不得称完成） | 自动流转；可查看交易详情 | polite | 交易中心 |
+| A10 | `Confirming` | 链上确认中（含跨链源链确认，跨链操作在目标链最终事件前不得称完成） | 自动流转；可查看交易详情 | polite | 交易中心 |
 | A11 | `Success` | 操作成功；跨链操作=目标链最终事件后（区分源链回执） | 关闭/查看详情/回到发起页出口 | polite | 交易中心 + 发起页 toast |
 | A12 | `Failure` | 操作失败；展示解码后的错误与原因 | 按错误模型给出的恢复动作（重试/调整参数/反馈） | assertive | 交易中心 + 发起页 |
 | A13 | `Loading…` | 数据/页面加载中（骨架或占位，不假造数据） | 自动完成；超时→Error+重试 | polite | 各页 |
@@ -62,5 +62,6 @@
 
 ## 与视觉/组件层的关系
 
-- `components/design-system/state-matrix.md` 的路由×状态适用表继续有效（视觉/组件层）；本目录是 brief 的**词汇与语义**唯一源；两者状态名一致，冲突时以本目录+architecture 原文为准。
+- `components/design-system/state-matrix.md` 的路由×状态适用表继续有效（视觉/组件层）；本目录是 brief 的**词汇与语义**唯一源，A 系编号忠于 architecture §1 十五态原序；冲突时以本目录+architecture 原文为准。
+- 组件层编号与本目录**不同、勿按编号互查**（组件层为 A/T/D 三系分类）。同语义对照（本目录↔组件层）：A1↔A1、A2↔A2、**A3 Wrong network↔A8 错误网络**、A4 Connected EOA↔A3 普通外部 EOA、A5↔A5、A6↔A6、A7 Authorization↔T2、A8 Signing↔T4、A9 Submitting/A10 Confirming↔T5、A11 Success↔T6、A12 Failure↔T7/T8、A13↔D1、A14↔D2、A15↔D3、B1↔D4、B2↔D5、B3↔D6、B4 User rejected↔T9、C1 External EOA↔A3、C2 Embedded EOA↔A4、C3 Unsupported delegation↔A7；组件层细分态不一一映射。
 - 跨页可观察性由 `state-coverage-matrix.md` 统一证明（每个状态至少一个可观察承载面）。

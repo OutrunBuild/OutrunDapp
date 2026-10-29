@@ -11,7 +11,7 @@ fixtures/**  →  lib/data/fixture-repository.ts  →  components/**（ui/design
 - `lib/data/fixture-repository.ts` 是 fixtures 的**唯一**消费方（哨兵 `OUTRUN_FIXTURE_ONLY_v1` 随 `fixtures/index.ts` 导出）。
 - 核心源码目录 `app/`、`features/`、`entities/`、`components/`（含 ui/design-system 通用层）、`lib/`（fixture-repository 除外）**禁止**直接 import、re-export、或经 import 图间接到达 `fixtures/**`。
 - onchain resolver（`lib/data/source-resolver.ts` + `lib/data/repository.ts`）禁含字面量：`fixture-repository`、`OUTRUN_FIXTURE_ONLY_v1`、`scenario`；onchain 数据源只返回真实 repository 或结构化 unavailable（`undeployed|rpc-error|not-configured`），**永不回退原型数据**。
-- 三层共用基础类型（`FixtureChain`/`Locale`/`VerseStage`）声明于 `lib/data/types.ts`——零依赖叶子（禁止 import `fixtures/**` 与 `fixture-repository`），`fixture-repository` re-export 维持既有消费方；通用层与 `lib/**` 需要这些类型必须引 `types`（`design-system/showcase` 与 `lib/locale` 亦不例外，禁止越界引桥取类型）。
+- 三层共用基础类型（`ChainInfo`/`Locale`/`VerseStage`）声明于 `lib/data/types.ts`——零依赖叶子（禁止 import `fixtures/**` 与 `fixture-repository`），`fixture-repository` re-export 维持既有消费方；通用层与 `lib/**` 需要这些类型必须引 `types`（`design-system/showcase` 与 `lib/locale` 亦不例外，禁止越界引桥取类型）。
 - 非字面量动态 `import()`/`require()`（动态 source resolver）在核心源码目录视为违规。
 
 ## 检查器与模式

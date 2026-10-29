@@ -17,10 +17,10 @@
 | 证据 | 值/路径 | 校验 |
 |---|---|---|
 | ZeroDev Kernel V3.3 tag commit | `cd697c7e21715d015e0643af22310a99aa17433b`（`v3.3`） | `docs/architecture/kernel-v3.3-evidence.md`（sha256 `01e0ebc67c9e9662…`） |
-| CSP 机器可读基准 | `docs/security/csp-origins.json` | sha256 `5827107a69ae0b0e…`（v3：增 BSC dataseed origin，Origin 先登记再放行 §14） |
-| 唯一架构真相 | `docs/architecture.md` | sha256 `9b3abf0cbfedfdad…`（§30 版本/目录漂移对齐轮） |
+| CSP origin 注册表 | `docs/security/csp-origins.json` | sha256 `57ac1e5e42a09e4a…`（v4：`directives` 收缩为 proxy 实际消费的三组 connect/frame/child，其余指令以 `proxy.ts` 为唯一所有者；v3 曾增 BSC dataseed origin，Origin 先登记再放行 §14） |
+| 唯一架构真相 | `docs/architecture.md` | sha256 `3471c5992af31fd3…`（§32 CSP origin 注册表收敛轮） |
 | pnpm-lock | `pnpm-lock.yaml` | `docs/page-briefs/pnpm-lock.sha256`（`scripts/write-file-hash.mjs` 重出） |
-| ABI 冻结 manifest（阶段 4） | `contracts/abi/v1-rc/manifest.json`（37 份 ABI + 三链合约/codehash/Kernel） | sha256 `92f47e4f0da93158…`（`scripts/write-file-hash.mjs`；CI=check-abi-manifest.mjs） |
+| ABI 冻结 manifest（阶段 4） | `contracts/abi/v1-rc2/manifest.json`（37 份 ABI + 三链合约/codehash/Kernel） | sha256 `00823b06a53e2630…`（`scripts/write-file-hash.mjs`；CI=check-abi-manifest.mjs；v1-rc/ 为 §30 冻结历史目录） |
 | deployments 链配置（阶段 4） | `deployments/{421614,84532,97}.json` | sha256 `ef5c8456…`(421614)/`0283009f…`(84532)/`8b6f3755…`(97)（`scripts/write-file-hash.mjs`） |
 
 ## 3. 引用规则（brief 强制）

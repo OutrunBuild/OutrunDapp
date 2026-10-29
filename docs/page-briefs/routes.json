@@ -231,7 +231,7 @@
       "id": "GS-01",
       "kind": "global-surface",
       "path": null,
-      "responsibility": "全局交互面（非 URL 路由）：主网/测试网模式、查看链选择器、钱包选择器、交易中心、跨链消息详情、通知中心（v1 延后）、中英文切换",
+      "responsibility": "全局交互面（非 URL 路由）：主网/测试网模式、链选择器（钱包链切换）、钱包选择器、交易中心、跨链消息详情、通知中心（v1 延后）、中英文切换",
       "dynamicParams": [],
       "fixturePath": null,
       "sources": [

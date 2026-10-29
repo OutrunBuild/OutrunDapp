@@ -21,7 +21,7 @@ meta:
 
 ## 主路径摘要
 
-原型用 v0 Plus 与仓库设计 Skills 生成覆盖 7 条产品路由（另含 `/design-system` 工具页）、双语响应式、全状态的 Next.js 原型，验收前不进入业务开发。栈为 Next.js 16、React 19、TypeScript、Tailwind CSS、shadcn/ui、TanStack Query、wagmi 3、viem、Privy 和 Kernel V3.3。Privy 接入 embedded EOA 及 MetaMask、OKX Wallet、Coinbase Wallet、WalletConnect 外部 EOA。Memeverse 写操作由 EOA 发送 EIP-7702 Type-4，在 Kernel 中原子执行 `approval? → beginAccountSession → Router → endAccountSession`；gas 由用户支付。数据走直接 RPC 与六链 The Graph，ABI 从固定合约 commit 冻结；测试含 Vitest、Playwright、Anvil fork 和测试网，部署 Vercel，监控 Sentry。
+原型用 v0 Plus 与仓库设计 Skills 生成覆盖 7 条产品路由（另含 `/design-system` 工具页）、双语响应式、全状态的 Next.js 原型，验收前不进入业务开发。栈为 Next.js 16、React 19、TypeScript、Tailwind CSS、shadcn/ui、TanStack Query、wagmi 3、viem、Privy 和 Kernel V3.3。Privy 接入 embedded EOA 及 MetaMask、OKX Wallet、Coinbase Wallet、WalletConnect 外部 EOA（外部钱包支持面的实现状态见 §7、§31）。Memeverse 写操作由 EOA 发送 EIP-7702 Type-4，在 Kernel 中原子执行 `approval? → beginAccountSession → Router → endAccountSession`；gas 由用户支付。数据走直接 RPC 与六链 The Graph，ABI 从固定合约 commit 冻结；测试含 Vitest、Playwright、Anvil fork 和测试网，部署 Vercel，监控 Sentry。
 
 ## 1. 产品目标、术语与阶段门
 
@@ -72,7 +72,7 @@ URL 方案：zh 路径带 `/zh` 前缀；en 为无前缀 canonical（`proxy.ts` 
 | `/referral`             | 推荐返佣         | 邀请链接（/ref/短码样式）、返佣 KPI（累计/待领/人数/费率）、逐币种领取、分账说明（65/25/10）、流水与朋友表 |
 | `/faucet`               | 测试网水龙头     | 三 mock 代币领取（逐 token 24h 冷却/批量）、Get UUSD（PSM 面值 1:1）、生息资产直达创世入口 |
 
-全局交互面包含主网/测试网模式、查看链选择器、钱包选择器、交易中心、跨链消息详情、通知中心和中英文切换。跨链消息详情由交易中心承载（决议 007）；通知中心 v1 延后——待办提醒由 `/portfolio` 可行动区与操作完成 toast 承接（决议 007，2026-09-17，条目保留供后续版本）。全局交互面与页面一并进入高保真验收。
+全局交互面包含主网/测试网模式、链选择器（钱包链切换）、钱包选择器、交易中心、跨链消息详情、通知中心和中英文切换。跨链消息详情由交易中心承载（决议 007）；通知中心 v1 延后——待办提醒由 `/portfolio` 可行动区与操作完成 toast 承接（决议 007，2026-09-17，条目保留供后续版本）。全局交互面与页面一并进入高保真验收。
 
 > **产品裁定（2026-09-14）**：OutStake 模块与品牌对最终用户隐藏，用户仅通过参与 Memeverse 间接使用 OutStake 能力。据此 `/outstake`、`/outstake/[market]`、`/positions` 三条路由撤出页面清单：uAsset 获取（创世质押铸造、PSM 面值兑换）、USR 储蓄、仓位管理与债务赎回作为**嵌入型资产动线**进入 Memeverse 参与流程与 `/portfolio`，以组件级 brief 定义，不设独立品牌页面。导航与文案不得出现 OutStake 字样；uAsset、suToken 等可作为用户资产命名，SY、CDP、PSM、Kernel 等机制词汇仅必要时出现且须经术语表定稿。后续路由演进：详情页四子路由（trade/yield/stake/governance）并入单页四标签（2026-09-23 裁定）；创建/发现页并入 `/memeverse/*` 域（2026-09-23 裁定）；跨链功能并入 `/portfolio`、无独立 bridge 页（2026-10-02 裁定）；新增 `/referral`（2026-10-07）与 `/faucet`（2026-10-09）。
 
@@ -147,7 +147,7 @@ tests/               unit、integration、e2e 和 visual
 
 状态所有权固定如下：
 
-- URL 保存 locale、查看链、筛选、排序、分页、Verse 和 market 标识。
+- URL 保存 locale、筛选、排序、分页、Verse 和 market 标识（discovery 的 `?chain=` 属该页自有筛选参数；header 链选择器不写 URL）。
 - TanStack Query 保存 RPC、GraphQL、交易回执和异步服务状态。
 - wagmi 保存钱包连接、活动账户和钱包链。
 - Privy 保存用户会话、linked wallets 和 embedded wallet 状态。
@@ -196,7 +196,7 @@ RPC 使用 Alchemy 主端点和 Infura fallback。公共 RPC 只用于本地开�
 
 生产域名默认只显示三条主网。测试网由明确的 Testnet 模式开启，并持续显示测试网标识。切换主网/测试网会清空当前交易草稿和目标链，禁止跨环境复用签名或报价。
 
-“查看链”和“钱包链”相互独立。未连接用户可以查看任意支持链；写操作要求钱包或智能账户处于目标链。应用只在用户点击确认后请求切链，不自动切换钱包网络。
+未连接用户可以查看任意支持链；写操作要求钱包或智能账户处于目标链。header 链选择器仅切换钱包链、不写 URL（2026-09-24 用户裁定）；应用只在用户点击确认后请求切链，不自动切换钱包网络。
 
 合约地址只来自 `deployments/{chainId}.json`。未部署地址使用结构化 `undeployed` 状态，禁止零地址或占位地址进入生产构建。构建阶段校验地址、ABI 版本、部署块、实现 codehash 和代理实现。
 
@@ -238,12 +238,14 @@ Hook.endAccountSession()
 
 Privy 同时提供以下账户入口：
 
-- 外部 EOA：MetaMask、OKX Wallet、Coinbase Wallet，以及通过 WalletConnect 或 EIP-6963 发现的兼容 EVM 钱包。
+- 外部 EOA：MetaMask、OKX Wallet、Coinbase Wallet，以及通过 WalletConnect 或 EIP-6963 发现的兼容 EVM 钱包（实现状态见 §7、§31）。
 - Privy embedded EOA：邮箱、社交账号或无兼容外部钱包的用户。
 
 Privy 负责登录、连接、linked wallets 和活动钱包选择。`useSign7702Authorization` 按活动钱包地址请求 authorization；外部钱包由自身 provider 展示并确认签名，embedded EOA 由 Privy signer 完成签名。wagmi 读取 Privy connector 暴露的活动 EIP-1193 provider，viem WalletClient 使用同一 provider 发送带 `authorizationList` 的 Type-4 交易。
 
 外部 EOA 直接在原地址启用 delegation，不创建新账户、不迁移资产。Kernel 只作为挂载到该 EOA 的执行代码。每个钱包品牌和版本必须通过 authorization 签名与 Type-4 发送能力检测；能力不满足时保留读取功能并提示升级钱包，Privy embedded EOA 作为用户主动选择的独立账户入口。
+
+> **实现状态**：能力门未接线——纯函数 `resolveWriteCapability`（按 §6.5 站位分档，`lib/web3/account.ts`）与九态机已就位并有单测，但 `AccountCenter` 不投影能力结果，CTA 门控只看 `connected`/`chainSupported`，运行时仅有 session 写路径 `providerLimited` 反应式兜底（`lib/web3/tx-executor.ts`）；「提示升级钱包」文案随公开面收缩移除（`components/global/copy.ts` wallet.account）。主动探测与 UI 接线为待拍板项（2026-10-29 裁决：先收缩公开面，接线另立项）。
 
 连接钱包不等于启用智能账户。账户状态固定为：
 
@@ -295,6 +297,8 @@ Type-4 交易由活动 EOA 支付目标链原生 gas。交易中心在签名前�
 3. 代码以 `0xef0100` 开头但 implementation 不匹配：Unsupported delegation，先替换 delegation。
 4. 其他非空代码：允许连接和读取；Memeverse Swap 默认禁用，不自动推断兼容性。
 
+§6.2 的钱包能力门只挡仍需 7702 动作的站位：plain EOA / 不支持的委托在 provider 缺 authorization 签名或 Type-4 发送能力时落 blocked-readonly 并提示升级钱包；已委托（Kernel delegated）账户的后续写为普通 type-2 自执行（§6.3/§28），不受两项 7702 能力约束、保持可执行。
+
 报价和 Type-4 simulation 必须使用最终执行账户作为 `account`、交易 sender 和 trader。账户状态、钱包地址或链发生变化时，已有报价和 simulation 立即失效。
 
 ## 7. 钱包与交易 UX
@@ -308,6 +312,8 @@ Type-4 交易由活动 EOA 支付目标链原生 gas。交易中心在签名前�
 3. 创建或恢复 Privy embedded wallet。
 
 同一钱包按 provider UUID/RDNS 去重。发现具体钱包后不再显示笼统的 “Injected Wallet”。连接必须由用户动作触发；页面加载只允许恢复用户此前授权的会话，禁止自动弹窗、自动请求账户或自动签名。
+
+> **实现状态**：发现组与 WalletConnect 行未实现——登录面只有 X / Google / MetaMask 三行（`components/global/wallet-selector-dialog.tsx:324-328`），EIP-6963 发现收窄为 MetaMask 单钱包（同文件 `:87`）。清理与待裁定事项见 §31。
 
 所有写操作使用统一交易中心，状态固定为：
 
@@ -338,9 +344,11 @@ Cancelled
 高保真原型通过后，从固定合约 commit 导出前端 ABI release candidate：
 
 ```text
-contracts/abi/v1-rc/*.json
-contracts/abi/v1-rc/manifest.json
+contracts/abi/<abiVersion>/*.json
+contracts/abi/<abiVersion>/manifest.json
 ```
+
+`<abiVersion>` 由 `scripts/deployment-schema.mjs` 的 `CURRENT_ABI_VERSION` 决定（取值随该常量，本节不重复登记）；初版产物落在 `v1-rc/`，该目录已按 §30 冻结不再变更。
 
 manifest 记录：
 
@@ -450,7 +458,7 @@ GitHub Actions 是唯一 CI。所有 PR 必须通过：
 
 涉及 ABI、chain、account、Privy、external wallet、EIP-7702、Kernel、交易或 subgraph 的变更增加 Anvil fork 和真实测试网套件。
 
-机器闸门为 `.githooks` + GitHub Actions 双轨。`.githooks` 已入库（`git config core.hooksPath .githooks` 挂载）：pre-commit 对 staged blob 跑 prettier 与 eslint（staged-blob 语义，`--no-verify` 绕过后须补跑全量）；pre-push 跑全仓 typecheck 与 vitest 全量（vitest 内含 fixture 边界与设计三 checker）。CI 现状为上列契约的先导子集：typecheck、lint、format、vitest、冻结清单完整性与 ABI manifest 校验（`scripts/check-abi-manifest.mjs`）已接线（lint 存量债已清偿、阻断已恢复，见 §25）；生产构建与 Playwright 原型期走本地 `pnpm build` / `pnpm test:e2e`，未进 CI。
+机器闸门为 `.githooks` + GitHub Actions 双轨。`.githooks` 已入库（`git config core.hooksPath .githooks` 挂载）：pre-commit 对 staged blob 跑 prettier 与 eslint（staged-blob 语义，`--no-verify` 绕过后须补跑全量）；pre-push 跑全仓 typecheck 与 vitest 全量（vitest 内含 fixture 边界与全部契约门禁 checker，清单见 `tests/unit/fixtures/boundary.test.ts` 与 `tests/unit/contract-gates.test.ts`）。CI 现状为上列契约的先导子集：typecheck、lint、format、vitest、冻结清单完整性与 ABI manifest 校验（`scripts/check-abi-manifest.mjs`）已接线（lint 存量债已清偿、阻断已恢复，见 §25）；生产构建与 Playwright 原型期走本地 `pnpm build` / `pnpm test:e2e`，未进 CI。
 
 Vercel 环境固定为：
 
@@ -498,8 +506,8 @@ Sentry 中的钱包地址默认哈希化；只有用户主动复制或进入区�
 - Type-4 交易固定由活动 EOA 支付原生 gas；余额不足时禁止进入签名阶段。
 - 所有写操作先 simulation；免审阅的简单直调（直接 EOA 写）例外——不做站内 eth_call，失败面=钱包自身预检与链上 revert（2026-10-22 用户裁定）。Kernel 路径按第 6.3 节标准 Type-4 pipeline 执行，禁止脱离 session batch 模拟 Router。账户、链、EOA nonce、authorization、报价、callData 或 deployment manifest 变化时重新准备；签名后任一交易字段变化必须废弃签名。
 - Approval 默认使用精确额度；只有用户明确选择时才允许无限授权，并提供撤销入口。
-- 内容安全策略（Content Security Policy，CSP）使用 Next.js App Router 的每请求 nonce 模式。Next.js 16 `proxy.ts` 必须用 Web Crypto 为每次请求生成独立高熵 nonce，将同一 nonce 写入 request 的 `x-nonce`、request CSP header 和 response CSP header；`script-src` 固定包含 `'self'`、`'nonce-<request-value>'`、`'strict-dynamic'` 与已登记的 Cloudflare challenge origin，生产环境禁止 `'unsafe-inline'`/`'unsafe-eval'`。根 locale layout 读取 `x-nonce` 并传给显式 `next/script`；Next.js 从 request CSP 自动为 framework/page scripts 附 nonce。Nonce 页面全部动态渲染，明确放弃静态优化、ISR、PPR 和默认 Edge CDN 页面缓存；这一安全取舍不得在实现阶段改回静态模式或 SRI。
-- CSP 的机器可读基准是 `docs/security/csp-origins.json`：`frame-src`/`child-src` 允许 `auth.privy.io`、WalletConnect verify 域名和 Cloudflare challenge；`connect-src` 允许 Privy auth/RPC、WalletConnect relay/explorer 以及 `'self'`。六条 RPC 和 Graph endpoint 必须以精确 origin 从 Zod 链配置注入，Sentry 只允许从配置 DSN 解析出的 origin；Vercel/其他分析域名默认不加入，启用前必须更新该文件并重新审查。禁止未登记的 bare `*` 或任意第三方脚本源。CI 必须对两次独立 production 请求证明 nonce 形状有效且互不相同、response CSP 中恰有一个 nonce，并用 Playwright 证明每个可执行 `<script>` 的 DOM `nonce` 与该响应一致；只校验 JSON、只发 `Content-Security-Policy-Report-Only` 或复用 nonce 均失败。
+- 内容安全策略（Content Security Policy，CSP）使用 Next.js App Router 的每请求 nonce 模式。Next.js 16 `proxy.ts` 必须用 Web Crypto 为每次请求生成独立高熵 nonce，将同一 nonce 写入 request 的 `x-nonce`、request CSP header 和 response CSP header；`script-src` 固定包含 `'self'`、`'nonce-<request-value>'`、`'strict-dynamic'` 与已登记的 Cloudflare challenge origin，生产环境禁止 `'unsafe-inline'`/`'unsafe-eval'`。根 layout（`app/layout.tsx`）读取 `x-nonce` 并传给显式 `next/script`；Next.js 从 request CSP 自动为 framework/page scripts 附 nonce。Nonce 页面全部动态渲染，明确放弃静态优化、ISR、PPR 和默认 Edge CDN 页面缓存；这一安全取舍不得在实现阶段改回静态模式或 SRI。
+- CSP 的 origin 注册表是 `docs/security/csp-origins.json`，且**只承载三组**被 `proxy.ts` 消费的指令：`frame-src`/`child-src` 允许 `auth.privy.io`、WalletConnect verify 域名和 Cloudflare challenge；`connect-src` 允许 Privy auth/RPC、WalletConnect relay/explorer 以及 `'self'`。其余指令（`script-src`/`style-src`/`img-src`/`font-src`/`object-src`/`base-uri`/`form-action`/`frame-ancestors`）以 `proxy.ts` 为唯一所有者，禁止在 JSON 里另写一份（两份取值曾出现 `font-src` 不一致且 JSON 侧从不生效）。六条 RPC 和 Graph endpoint 必须以精确 origin 从 Zod 链配置注入，Sentry 只允许从配置 DSN 解析出的 origin；Vercel/其他分析域名默认不加入，启用前必须先在该文件登记 origin 并重新审查。当前 header 未下发 `default-src`/`worker-src`/`manifest-src`（未列指令因此不受约束），该缺口登记在 `docs/review/findings.md`，补齐前不得在 JSON 里保留这三项造成"已配置"的错觉。JSON 的 `noncePolicy`/`version`/`runtimeOrigins` 为登记性字段：`noncePolicy.minimumEncodedLength` 是 nonce 形状下界的单一来源、由 `check-csp-policy.mjs` 消费，其余字段仅登记不设运行时消费，`version` 作收缩轮次标记与 `docs/page-briefs/source-map.md` 的 sha256 登记呼应。禁止未登记的 bare `*` 或任意第三方脚本源。CI 必须对两次独立 production 请求证明 nonce 形状有效且互不相同、response CSP 中恰有一个 nonce，并用 Playwright 证明每个可执行 `<script>` 的 DOM `nonce` 与该响应一致；只校验 JSON、只发 `Content-Security-Policy-Report-Only` 或复用 nonce 均失败。
 - 前端不得根据 `tx.origin`、URL 地址或客户端参数推断链上权限。
 
 ## 15. 模块完成标准
@@ -724,3 +732,33 @@ MemeverseYTFlashSwapRouter 三测试网补部署（阶段 4「未部署」遗留
 - 失败面：`decodeNestedRevert` 新增 `psm-cap-exceeded` / `psm-reserve-short` / `psm-dust` / `reserve-leg-unavailable` 四类，文案中英各四条；这四类都在 `tx-copy.ts` 映射，不会落到通用「未知错误」。
 - 部署（2026-10-28）：三链已重部署 `swaprouter` 批，Router 同址 `0x416315158C6779DCbAFc14869FF55921D30DE7fa`、Lens `0x350D7b9096Ba127B22189e78953272fb708E1f80`，nonce 为 256-bit 随机值（记录见 `DEPLOYMENT.md` §1「局部换代」）。只换这两个合约：uAsset/PSM/launcher/hook/POLend/SP 仍是 nonce-4 地址。launcher 的 `memeverseSwapRouter` 与 hook 的 `poolInitializer` 已重指向新 Router。
 - 链上验证：用 BSC 上真实 OSMK verse（`52837714424155436352242994144496188832833587031649586216523996295503828439311`）跑 fork 测试，两个方向都通过——卖出 100 OSMK → 0.003181 USDC（返回值=实际到账，Router 零 uAsset 残留）；买入 10 USDC → 9.99 UUSD（0.1% 费）→ 307.46 OSMK（无 UUSD 残留）。测试同时暴露两条前端必须满足的前置条件：hook 要求 `beginAccountSession` 的调用方有代码（EIP-7702 委托或部署账户），且 swap 必须在 session 窗口内——这正是 `buildSessionWrite` 的 `swapSession: true` 路径。
+
+## 31. 架构修订记录（2026-10-28，钱包列表死模块清理轮）
+
+§7 钱包列表的发现组与 WalletConnect 行从未接线，原实现 `lib/web3/wallets.ts`（`orderWalletOptions` / `WalletListEntry` / `DiscoveredWallet` + 5 条单测）自 `f04daec` 引入起生产零消费——唯一 importer 是它自己的单测；登录弹窗只渲染 X / Google / MetaMask 三行（`components/global/wallet-selector-dialog.tsx:324-328`），EIP-6963 发现收窄为 MetaMask 单钱包（同文件 `:87`），全仓无 WalletConnect 集成。本轮删除该模块与其单测，未实现状态由 §7 的实现状态行承载（唯一更新位），`components/design-system/component-contract.md` §9 触发行同步加指针。
+
+- 未做接线：§7 第 1 项（多钱包发现组）与 `AGENTS.md` §2.3「两种连接方式（MetaMask 与 Privy）」的冲突未对账裁定，裁定前不按 §7 接线；接线时以 §7 条文为规格重写实现与测试。
+- §6.2 与主路径摘要仍按 Privy 账户能力描述外部 EOA 支持面，其实现状态以 §7 为准。
+
+## 32. 架构修订记录（2026-10-29，CSP origin 注册表收敛轮）
+
+`docs/security/csp-origins.json` 与 `proxy.ts` 曾各写一份指令值：JSON 承载 14 条，proxy 只 join `connect-src`/`frame-src`/`child-src` 三组，其余 11 条硬编码在 `cspHeader()` 里从未被读取——`font-src` 因此长期两值并存（JSON `'self'` / header `'self' data:`），而 proxy 注释又指示"新 origin 先登记 JSON"，按该指示改 `script-src`/`style-src`/`img-src`/`font-src` 会静默不生效。本轮把 JSON 收缩为被消费的三组（version 3→4），并钉死唯一所有者：origin 三组归 JSON，其余指令归 `proxy.ts`（§14 同步改写）。最终 header 逐字节不变（三个 `join()` 输入未动，`data:` 一直由 proxy 自带）；`tests/unit/csp-registry.test.ts` 锁住「注册表键集 == 被消费键集」。
+
+- 已知缺口（不在本轮修）：header 未下发 `default-src`/`worker-src`/`manifest-src`，未列指令因此不受约束、同源 Worker 会被 `child-src` 回落拦截；当前零消费面，登记见 `docs/review/findings.md` B1-ADJ-P3-005。
+- 同轮相邻修正：§14 的「根 locale layout」改为「根 layout（`app/layout.tsx`）」——仓库只有根 layout，不存在 `app/[locale]/layout.tsx`。
+- 同轮前端面（非架构级，仅登记）：6 个深页补页级 metadata（title 复用既有页面标题键、详情页按 verse 名动态取），根 `<html lang>` 改由 `getDisplayLocale()` 派生。
+
+## 33. 架构修订记录（2026-10-29，check-csp-policy 建成补录轮）
+
+登记滞后补录：`check-csp-policy.mjs` 已随 `f04daec`（2026-10-23）建成入仓，自带 `--self-test` 本地自证——§24 勘误「§4 移除未建的 `check-csp-policy.mjs`」的「未建」表述就此翻旧（该表述对勘误当日为真，脚本建成在其后十三天，当时未按 §25「既成事实补录」惯例回写，本轮补上）。运行面两种跑法：`node scripts/check-csp-policy.mjs --base-url http://localhost:4175 [--path /]`（验收 onchain build，脚本自带三条判据，非零退出即失败）与 `node scripts/check-csp-policy.mjs --self-test`（本地自证）；CI 接线按脚本头注计划待 §12 stage-8 轮，届时由该轮登记。
+
+## 34. 架构修订记录（2026-10-29，B1-ADJ-P3-005/006 裁决修复轮）
+
+两条 CSP 配置面 finding 经 adjudicate standard 三层裁决（3 sampler + coverage-diff，均 TRUE/high）后同轮收口：
+
+- B1-ADJ-P3-006（阈值漂移）：`check-csp-policy.mjs` 的 nonce 形状下界不再硬编码 20，改为从 `csp-origins.json` 的 `noncePolicy.minimumEncodedLength` 读取并加正整数守卫——脚本注释所述阈值来源自此为真，改 JSON 即时生效；脚本头注声明取舍：阈值源自工作区注册表、校验对象是部署产物，树/构建偏斜只影响形状下界、不影响 origin 裁决（header 仍是唯一策略面）。`noncePolicy` 其余字段、`version`、`runtimeOrigins` 按 §14 明示为登记性字段，不设运行时消费。
+- B1-ADJ-P3-005（指令缺口登记维持）：header 维持不下发 `default-src`/`worker-src`/`manifest-src`，补齐推迟至首个 Worker/manifest/media 消费面落地同轮；`tests/unit/csp-registry.test.ts` 追加 header 指令全集反向断言——`cspHeader()` 必须精确输出既定 11 条指令，未按触发轮纪律的静默增删即刻失败（此前仅锁 nonce/strict-dynamic 与 JSON 三组键集，无全集锁）。补齐前禁止把三条写回 JSON 的纪律不变（§14 措辞 + 注册表键集锁双轨强制）。
+
+## 35. 架构修订记录（2026-10-29，品红小字号禁令放宽轮）
+
+B6-FR-P3-002（首页生命周期段 14px 品红信号标题与「正文与小字号全层禁用」字面冲突，复核 UNPROVEN 待拍板）经用户裁定收口：品红三层管辖保留，删除「正文与小字号全层禁用」统一禁令——阶段色等数据语义文本不再受字号下限约束，StageBadge 14px locked 品红与生命周期段 14px 信号标题同口径合法；品牌铬层回声纪律（1–2px 线/徽章/≥20px 大字或图形）与「不与黄/青争语义」不变。同步口径：README §3.4 第 4 条删禁令句；token-contract §2.3 第 3 条删「正文与小字号禁用（对比 5.19~5.89:1 档）」；tokens.css `--accent-echo` 注释、globals.css 生命周期段注释与 verse-lifecycle-tokens.test.ts 头注改为陈述本组件阶段色范围（测试断言不变，12px meta/node 中性化继续锁定）。按 decision-log 极简收录标准（裁定完全落地于文档条文），不入册。

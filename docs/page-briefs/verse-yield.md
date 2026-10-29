@@ -22,7 +22,7 @@
 | YT 闪电兑换面板 | 用 POL 买 YT / 卖 YT 换回 POL（复用 PT/POL 池）；**买入=精确到量**（设 100 预算、YT 实得即指定数量，实付 POL 按实际成本结算、未用预算留在钱包——yt-flash-swap.md:66）；仅锁定期；价格保护线（大单建议紧保护+尽快成交） |
 | 收益库面板（vault） | Memecoin 收益库质押：Stake + Redeem（等待期条目，秒级倒计时）/Withdraw（成熟条目）两页签；赎回=两步异步（发起→等待→领取）；委托（代他人/被委托）；跨链 banner（他链仓位引导）；Portfolio 金库表 Stake 深链 `?tab=vault` 落本页签 |
 | 保护期完整退出（六步） | 落位=Portfolio 保护期 Exit 弹窗（`protection-exit-dialog.tsx` 多步向导；六步=OB 用户文档口径 genesis.md:60-67，spec 层为动作集+门控、无步骤计数——lifecycle-details:179-185）：领权益→撤辅助池→赎 PT（按结算锚定比率）→烧 POL（须设最低到账+截止）→赎 YT（结算剩余）→确认完成；警示「领到 LP/POL/PT/YT ≠ 完成 uAsset 本金退出」；步骤进度 URL 化=未实装规范项 |
-| GenesisCredit 付息 | 付息入口=本 verse 参与面板杠杆模式（credit 路由）；余额行=Portfolio 资产区 Credit 清单；领取=Portfolio 待办区就地（限主链，非主链查看链禁用+切链提示——GCredit 为 uAsset 族全局资产，跨 Verse 通用；领取规则基线 spec 无条文，标 pending-manifest）；跨链→Portfolio BridgeDialog |
+| GenesisCredit 付息 | 付息入口=本 verse 参与面板杠杆模式（credit 路由）；余额行=Portfolio 资产区 Credit 清单；领取=Portfolio 待办区就地（限主链，钱包链非主链时禁用+切链提示——GCredit 为 uAsset 族全局资产，跨 Verse 通用；领取规则基线 spec 无条文，标 pending-manifest）；跨链→Portfolio BridgeDialog |
 | 头寸总览 | 杠杆份额/债务额度/市场债务上限余量（SPEC-M13 读链）/付息记录（uAsset/积分分列）——落位=参与面板杠杆模式（asset-flows.md §0.3） |
 | 风险披露区 | 损失上限=利息、无清算、失败全额退（playbooks.md:63）；利率=一次性比例非年化（polend.md:24-28） |
 
