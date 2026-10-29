@@ -2,6 +2,10 @@
 // Basis: base volume + volatility amplification (the larger |Δc/o|, the larger the volume); fake data
 // same as prices -- for prototype visuals.
 // Idempotent: candles that already have v are skipped. Usage: pnpm node scripts/gen-candle-volumes.mjs
+// Determinism: mulberry32 with FNV-1a seeding (2166136261/16777619) -- a DIFFERENT seeding variant from
+// the price-candle generators (gen-verse-market-ext / gen-verse-fixture-coverage / gen-fine-candles,
+// murmur-style 1779033703). The two streams are not interchangeable; do not switch the seeding variant
+// on either side without a repo-wide canonicalization decision (variants logged in fixtures/README.md).
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const marketsPath = new URL('../fixtures/data/markets.json', import.meta.url);

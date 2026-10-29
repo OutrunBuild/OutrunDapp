@@ -422,7 +422,7 @@ async function selfTest() {
     }
     console.log(results.join('\n'));
     const ok = results.every((r) => r.includes('✓'));
-    if (!ok) exit(1);
+    if (!ok) throw new Error('un-intercepted violations');
   } finally {
     rmSync(tmp, { recursive: true, force: true });
     console.log('self-test temp copy cleaned up');
@@ -430,8 +430,14 @@ async function selfTest() {
 }
 
 if (args.has('--self-test')) {
-  await selfTest();
-  exit(0);
+  // process.exit skips finally, so failures throw and the exit code is set after cleanup
+  try {
+    await selfTest();
+  } catch (error) {
+    console.error(`self-test FAIL: ${error.message}`);
+    process.exitCode = 1;
+  }
+  process.exit(process.exitCode);
 }
 runAll();
 report();

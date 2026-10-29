@@ -11,10 +11,9 @@
 // (slightly stale) aggregates unchanged, with no degraded/stale marker anywhere in the payload.
 // An unreachable safe-block reader does not take aggregates down with it.
 import { getChainConfig, type ResolvedChain } from '../../web3/chains';
-import { resolveDataSource } from '../source-resolver';
 import type { DataResult } from '../repository';
 import { createHttpGraphPort, type GraphPort } from './graph-port';
-import { readSeed, writeSeed, deleteSeed } from '../persisted-swr';
+import { readSeed, writeSeed, deleteSeed, deleteSeedsMatching } from '../persisted-swr';
 
 const unavailable = <T>(
   reason: 'rpc-error' | 'not-configured' | 'undeployed',
@@ -105,21 +104,29 @@ type GenesisRow = { verseId: string; payer: string; depositer: string; amount: s
 type PreorderRow = { verseId: string; caller: string; user: string; amountInUAsset: string };
 type LeveragedRow = { verseId: string; payer: string; user: string; amount: string };
 
-type VerseAggregateData = {
-  verses: VerseRow[];
-  genesisParticipations: GenesisRow[];
-  preorderParticipations: PreorderRow[];
-  leveragedGenesisParticipations: LeveragedRow[];
-};
-
+/** Chain-wide aggregate: raised/participant figures come from the mapping-accumulated totals
+ * riding the verses rows — O(verse) and immune to participation volume. Row-summing the full
+ * participation tables here would silently truncate at the first:1000 window once a chain
+ * passes it, with no signal; null-totals rows fall back to verse-scoped legs instead
+ * (VERSE_AGGREGATE_LEGS_QUERY). */
 const VERSE_AGGREGATE_QUERY = `query VerseAggregates {
   verses(first: 1000, orderBy: verseId) {
     verseId name symbol stage flashGenesis uAsset memecoin pol yieldVault governor incentivizer
     endTime unlockTime omnichainIds communities registeredAtTimestamp
+    totalGenesisFunds totalLeveragedInterest totalPreorderFunds participantCount
   }
-  genesisParticipations(first: 1000) { verseId payer depositer amount }
-  preorderParticipations(first: 1000) { verseId caller user amountInUAsset }
-  leveragedGenesisParticipations(first: 1000) { verseId payer user amount }
+  ${META_FRAGMENT}
+}`;
+
+/** Null-totals rows only (hasStoredTotals: null is "unknown", never "zero raised") — a state
+ * only a schema-validating endpoint can produce (mid-redeploy window); an old deployment
+ * fails validation on the totals fields outright and the chain degrades to unavailable, same
+ * as detail/page/sums. Legs are scoped verseId_in, so the row window is bounded by the verse
+ * set, not the chain. */
+const VERSE_AGGREGATE_LEGS_QUERY = `query VerseAggregateLegs($ids: [BigInt!]) {
+  genesisParticipations(first: 1000, where: { verseId_in: $ids }) { verseId payer depositer amount }
+  preorderParticipations(first: 1000, where: { verseId_in: $ids }) { verseId caller user amountInUAsset }
+  leveragedGenesisParticipations(first: 1000, where: { verseId_in: $ids }) { verseId payer user amount }
   ${META_FRAGMENT}
 }`;
 
@@ -330,7 +337,54 @@ export interface GraphOnchainRepository {
 }
 
 type ConfigResolver = (chainId: number) => ResolvedChain;
-type SafeBlockResolver = (chainId: number) => Promise<DataResult<number>>;
+
+/** Verse-scoped documents with the variables shape each is queried with at its only
+ *  construction site — the single match table for post-write invalidation. List/aggregate
+ *  documents (VerseAggregates / VersePageRows / page & aggregate legs) deliberately stay out:
+ *  one verse's write must not flush whole-chain list caches (§ invalidateVerse contract). */
+const VERSE_DOC_VARIABLE_SHAPES: ReadonlyArray<readonly [prefix: string, shape: 'id' | 'ids']> = [
+  ['query VerseDetail(', 'id'],
+  ['query VerseDetailLegs(', 'ids'],
+  ['query VerseRaisedSums(', 'ids'],
+];
+
+/** Match a `endpoint|document|variables` cache/seed key against one verse id. Shared by the
+ *  in-memory Map pass and the disk-seed pass so both layers drop exactly the same keys. */
+function isVerseScopedKey(key: string, id: string): boolean {
+  const sep = key.indexOf('|');
+  const sep2 = key.indexOf('|', sep + 1);
+  if (sep < 0 || sep2 < 0) return false;
+  const shape = VERSE_DOC_VARIABLE_SHAPES.find(([prefix]) =>
+    key.slice(sep + 1, sep2).startsWith(prefix),
+  )?.[1];
+  if (!shape) return false;
+  try {
+    const variables = JSON.parse(key.slice(sep2 + 1)) as { id?: string; ids?: string[] };
+    return shape === 'id'
+      ? variables.id === id
+      : Array.isArray(variables.ids) && variables.ids.includes(id);
+  } catch {
+    return false;
+  }
+}
+
+/** Failure class for the one-line monitoring record (architecture.md §13), derived from the
+ *  port's error-message prefixes (graph-port throws HTTP-status, GraphQL-errors and no-data;
+ *  fetch aborts surface as timeout/abort messages). */
+function graphFailureClass(detail: string): string {
+  const http = /^graph endpoint HTTP (\d+)$/.exec(detail);
+  if (http) return `http-${http[1]}`;
+  if (detail.startsWith('graph query errors:')) return 'graphql-errors';
+  if (detail === 'graph response carried no data') return 'no-data';
+  if (/abort|timed? ?out/i.test(detail)) return 'timeout';
+  return 'unknown';
+}
+
+/** Query name off a document's first line — keeps the record one line despite multi-line
+ *  GraphQL documents. */
+function graphQueryName(document: string): string {
+  return /^query ([A-Za-z0-9_]+)/.exec(document)?.[1] ?? 'unnamed';
+}
 
 class GraphRepository implements GraphOnchainRepository {
   private cache = new Map<string, CacheEntry>();
@@ -338,12 +392,10 @@ class GraphRepository implements GraphOnchainRepository {
   constructor(
     private readonly port: GraphPort,
     private readonly configFor: ConfigResolver = getChainConfig,
-    private readonly safeBlockFor: SafeBlockResolver = (chainId) =>
-      resolveDataSource().getSafeBlockNumber(chainId),
     // Graph list/aggregate TTL (verse summaries, home metrics): low churn, 60s.
     private readonly ttlMs = 60_000,
     private readonly now = () => Date.now(),
-    /** cross-process seed namespace; null (tests) keeps the cache memory-only */
+    /** disk-seed namespace; null (tests) keeps the cache memory-only */
     private readonly persistNs: string | null = null,
   ) {}
 
@@ -351,7 +403,7 @@ class GraphRepository implements GraphOnchainRepository {
    * Short-TTL cache + in-flight dedup + stale-while-revalidate (§9): keyed by
    * endpoint+document+variables. Within TTL the settled value returns as-is; past TTL the last
    * ok value is served IMMEDIATELY while the refresh runs in background — a lagging or slow
-   * graph never blocks page render, and the staleness stays server-observed only (§24). A
+   * graph never blocks page render, and the staleness never becomes user-visible (§24). A
    * failed refresh expires the entry but keeps the settled value, so the next call retries and
    * readers keep seeing the last good data instead of a cached failure.
    */
@@ -365,7 +417,7 @@ class GraphRepository implements GraphOnchainRepository {
     let created = this.cache.get(key);
     if (created === undefined) {
       created = { at: 0, settled: null, inflight: null };
-      // cold process: seed from the cross-process store so the first hit serves the last ok
+      // cold process: seed from the disk seed store so the first hit serves the last ok
       // value instantly (stale) instead of paying the network round trip
       if (this.persistNs) {
         const seed = readSeed<DataResult<never>>(this.persistNs, key);
@@ -378,10 +430,20 @@ class GraphRepository implements GraphOnchainRepository {
 
     if (!fresh && entry.inflight === null) {
       const refreshing = run()
-        .catch((e: unknown) =>
-          unavailable<T>('rpc-error', e instanceof Error ? e.message : String(e)),
-        )
+        .catch((e: unknown) => {
+          // §13: the fold to unavailable below is the only surface a transport failure gets,
+          // and a warm entry (settled non-null) never shows it to callers — this record is
+          // the failure's only retrievable trace.
+          const detail = e instanceof Error ? e.message : String(e);
+          console.warn(
+            `[graph] query failed class=${graphFailureClass(detail)} query=${graphQueryName(document)} endpoint=${endpoint} detail=${detail}`,
+          );
+          return unavailable<T>('rpc-error', detail);
+        })
         .then((value: DataResult<T>) => {
+          // A post-write invalidation detaches this entry (Map delete + deleteSeed); a detached
+          // settle must not re-publish pre-write data into the disk seed.
+          if (this.cache.get(key) !== entry) return value;
           entry.inflight = null;
           if (value.status === 'ok') {
             entry.at = this.now();
@@ -402,10 +464,8 @@ class GraphRepository implements GraphOnchainRepository {
   }
 
   /**
-   * Silent-degrade query runner (§9 + §24): reads the graph `_meta` block AND the RPC safe block
-   * side by side, then DISCARDS the comparison — a lagging index returns its (slightly stale)
-   * aggregates unchanged, with no marker field anywhere. An unreachable safe-block reader must
-   * not take aggregates down with it either.
+   * Silent-degrade query runner (§9 + §24): a lagging index returns its (slightly stale)
+   * aggregates unchanged — index lag has no user-visible state, no marker field anywhere.
    */
   private async querySilently<T>(
     chainId: number,
@@ -418,88 +478,30 @@ class GraphRepository implements GraphOnchainRepository {
     const endpoint = resolved.config.subgraphEndpoint;
     return this.cached<T>(endpoint, document, variables, async () => {
       const response = await this.port.query<T>(endpoint, document, variables);
-      const safeBlock = await this.safeBlockFor(chainId).catch(() => null);
-      // §24: index lag is server-observed only — no user-visible state, ever
-      if (safeBlock !== null && safeBlock.status === 'ok') {
-        console.debug(
-          `[graph] chain ${chainId} index at ${response.meta.block.number}, safe block ${safeBlock.data} (silent degrade, §9/§24)`,
-        );
-      }
       return ok<T>(response.data);
     });
   }
 
   async getVerseSummaries(chainId: number): Promise<DataResult<VerseSummaryView[]>> {
-    const r = await this.querySilently<VerseAggregateData>(chainId, VERSE_AGGREGATE_QUERY, {});
+    const r = await this.querySilently<{ verses: VersePageRow[] }>(
+      chainId,
+      VERSE_AGGREGATE_QUERY,
+      {},
+    );
     if (r.status !== 'ok') return r;
-    const d = r.data;
-    const sumBy = (rows: Array<Record<string, string>>, field: string) => {
-      const map = new Map<string, bigint>();
-      for (const row of rows) {
-        const cur = map.get(row.verseId!) ?? 0n;
-        map.set(row.verseId!, cur + BigInt(row[field]!));
-      }
-      return map;
-    };
-    const addressesBy = (rows: Array<Record<string, string>>, field: string) => {
-      const map = new Map<string, Set<string>>();
-      for (const row of rows) {
-        const cur = map.get(row.verseId!) ?? new Set<string>();
-        cur.add(row[field]!);
-        map.set(row.verseId!, cur);
-      }
-      return map;
-    };
-    const genesisSum = sumBy(
-      d.genesisParticipations as unknown as Array<Record<string, string>>,
-      'amount',
-    );
-    const preorderSum = sumBy(
-      d.preorderParticipations as unknown as Array<Record<string, string>>,
-      'amountInUAsset',
-    );
-    const leveragedSum = sumBy(
-      d.leveragedGenesisParticipations as unknown as Array<Record<string, string>>,
-      'amount',
-    );
-    const genesisAddr = addressesBy(
-      d.genesisParticipations as unknown as Array<Record<string, string>>,
-      'depositer',
-    );
-    const preorderAddr = addressesBy(
-      d.preorderParticipations as unknown as Array<Record<string, string>>,
-      'user',
-    );
-    return ok(
-      d.verses.map<VerseSummaryView>((verse) => ({
+    const verses = r.data.verses;
+    const missing = verses.filter((verse) => !hasStoredTotals(verse));
+    let sums = new Map<string, { raised: VerseSummaryView['raised']; participantCount: number }>();
+    if (missing.length > 0) {
+      const legs = await this.querySilently<Omit<VersePageData, 'verses'>>(
         chainId,
-        verseId: BigInt(verse.verseId),
-        name: verse.name,
-        symbol: verse.symbol,
-        stage: verse.stage as VerseSummaryView['stage'],
-        flashGenesis: verse.flashGenesis,
-        uAsset: verse.uAsset,
-        memecoin: verse.memecoin,
-        pol: verse.pol,
-        yieldVault: verse.yieldVault,
-        governor: verse.governor,
-        incentivizer: verse.incentivizer,
-        endTime: BigInt(verse.endTime),
-        unlockTime: BigInt(verse.unlockTime),
-        omnichainIds: verse.omnichainIds.map((v) => BigInt(v)),
-        communities: verse.communities,
-        registeredAt: BigInt(verse.registeredAtTimestamp),
-        raised: {
-          genesis: genesisSum.get(verse.verseId) ?? 0n,
-          leveraged: leveragedSum.get(verse.verseId) ?? 0n,
-          preorder: preorderSum.get(verse.verseId) ?? 0n,
-        },
-        participantCount: new Set([
-          ...(genesisAddr.get(verse.verseId) ?? []),
-          ...(preorderAddr.get(verse.verseId) ?? []),
-        ]).size,
-      })),
-    );
+        VERSE_AGGREGATE_LEGS_QUERY,
+        { ids: missing.map((verse) => verse.verseId) },
+      );
+      if (legs.status !== 'ok') return legs;
+      sums = sumPageRows(missing, { verses: missing, ...legs.data });
+    }
+    return ok(verses.map((verse) => toSummaryView(chainId, verse, sums.get(verse.verseId))));
   }
 
   async getVerseDetail(
@@ -691,24 +693,37 @@ class GraphRepository implements GraphOnchainRepository {
         participationTotal: BigInt(stats.participationTotal),
       });
     }
-    const r = await this.querySilently<VerseAggregateData>(chainId, VERSE_AGGREGATE_QUERY, {});
+    const r = await this.querySilently<{ verses: VersePageRow[] }>(
+      chainId,
+      VERSE_AGGREGATE_QUERY,
+      {},
+    );
     if (r.status !== 'ok') return r;
-    const d = r.data;
-    const total =
-      d.genesisParticipations.reduce((sum, row) => sum + BigInt(row.amount), 0n) +
-      d.leveragedGenesisParticipations.reduce((sum, row) => sum + BigInt(row.amount), 0n) +
-      d.preorderParticipations.reduce((sum, row) => sum + BigInt(row.amountInUAsset), 0n);
-    const addresses = new Set<string>([
-      ...d.genesisParticipations.map((row) => row.depositer),
-      ...d.preorderParticipations.map((row) => row.user),
-      ...d.leveragedGenesisParticipations.map((row) => row.user),
-    ]);
+    const verses = r.data.verses;
+    const missing = verses.filter((verse) => !hasStoredTotals(verse));
+    let sums = new Map<string, { raised: VerseSummaryView['raised']; participantCount: number }>();
+    if (missing.length > 0) {
+      const legs = await this.querySilently<Omit<VersePageData, 'verses'>>(
+        chainId,
+        VERSE_AGGREGATE_LEGS_QUERY,
+        { ids: missing.map((verse) => verse.verseId) },
+      );
+      if (legs.status !== 'ok') return legs;
+      sums = sumPageRows(missing, { verses: missing, ...legs.data });
+    }
+    const views = verses.map((verse) => toSummaryView(chainId, verse, sums.get(verse.verseId)));
     return ok({
-      verseCount: d.verses.length,
-      deployedVerseCount: d.verses.filter((v) => v.stage === 'locked' || v.stage === 'unlocked')
+      verseCount: views.length,
+      deployedVerseCount: views.filter((v) => v.stage === 'locked' || v.stage === 'unlocked')
         .length,
-      participantCount: addresses.size,
-      participationTotal: total,
+      // Σ per-verse figures: participation totals stay exact (event-accumulated); per-verse
+      // participantCounts can double-count one address across verses — chain-level
+      // distinctness only exists in ProtocolStats, and this branch runs while it is missing.
+      participantCount: views.reduce((sum, view) => sum + view.participantCount, 0),
+      participationTotal: views.reduce(
+        (sum, view) => sum + view.raised.genesis + view.raised.leveraged + view.raised.preorder,
+        0n,
+      ),
     });
   }
 
@@ -843,7 +858,12 @@ class GraphRepository implements GraphOnchainRepository {
       if (r.status !== 'ok') return null;
       const ts = Number(r.data.verseStageChanges[0]?.blockTimestamp);
       return Number.isFinite(ts) && ts > 0 ? ts : null;
-    } catch {
+    } catch (e) {
+      // §13: a failure folded to null here must still leave a retrievable record
+      const detail = e instanceof Error ? e.message : String(e);
+      console.warn(
+        `[graph] locked-at read failed class=${graphFailureClass(detail)} chain=${chainId} detail=${detail}`,
+      );
       return null;
     }
   }
@@ -859,49 +879,42 @@ class GraphRepository implements GraphOnchainRepository {
       );
       const block = Number(response.meta?.block?.number);
       return Number.isFinite(block) ? block : null;
-    } catch {
+    } catch (e) {
+      // §13: the freshness gate treats null as unknown — the failure itself must not vanish
+      const detail = e instanceof Error ? e.message : String(e);
+      console.warn(
+        `[graph] meta read failed class=${graphFailureClass(detail)} chain=${chainId} detail=${detail}`,
+      );
       return null;
     }
   }
 
   invalidateVerse(verseId: bigint): void {
     const id = String(verseId);
+    const matches = (key: string) => isVerseScopedKey(key, id);
     for (const key of this.cache.keys()) {
       // Key layout is endpoint|document|variables; only verse-scoped documents carry the id
       // in their variables — list/aggregate queries keep their TTL.
-      const sep = key.indexOf('|');
-      const sep2 = key.indexOf('|', sep + 1);
-      if (sep < 0 || sep2 < 0) continue;
-      const document = key.slice(sep + 1, sep2);
-      const variablesText = key.slice(sep2 + 1);
-      const isVerseDoc =
-        document.startsWith('query VerseDetail(') || document.startsWith('query VerseDetailLegs(');
-      const isSumsDoc = document.startsWith('query VerseRaisedSums(');
-      if (!isVerseDoc && !isSumsDoc) continue;
-      let matches = false;
-      try {
-        const variables = JSON.parse(variablesText) as { id?: string; ids?: string[] };
-        if (isVerseDoc) matches = variables.id === id;
-        else matches = Array.isArray(variables.ids) && variables.ids.includes(id);
-      } catch {
-        matches = false;
-      }
-      if (!matches) continue;
+      if (!matches(key)) continue;
       // Deleting the Map key detaches any in-flight refresh: its settle writes the detached
       // entry and cannot resurrect the key, so the next read is a cold blocking fetch.
       this.cache.delete(key);
       if (this.persistNs) deleteSeed(this.persistNs, key);
     }
+    // Seeds survive restarts, so the seed file holds verse-scoped keys this process's Map
+    // never materialized (nothing read here since the last boot). Enumerate the disk
+    // keyspace with the same predicate — Map-borrowed deletion would leave those seeds in
+    // place and the next cold start would serve the pre-write value.
+    if (this.persistNs) deleteSeedsMatching(this.persistNs, matches);
   }
 }
 
 let cachedRepo: GraphOnchainRepository | null = null;
 
 export function getGraphRepository(): GraphOnchainRepository {
-  // 'graph' namespace: settled values seed across render-worker processes and restarts
+  // 'graph' namespace: settled values seed across restarts and coexisting same-machine processes
   return (cachedRepo ??= new GraphRepository(
     createHttpGraphPort(),
-    undefined,
     undefined,
     undefined,
     undefined,
@@ -909,14 +922,13 @@ export function getGraphRepository(): GraphOnchainRepository {
   ));
 }
 
-/** Test seam: build with injected port/config/safe-block resolvers (no env dependence) */
+/** Test seam: build with injected port/config resolvers (no env dependence) */
 export function buildGraphRepository(
   port: GraphPort,
   configFor?: ConfigResolver,
-  safeBlockFor?: SafeBlockResolver,
   ttlMs?: number,
   now?: () => number,
   persistNs?: string | null,
 ): GraphOnchainRepository {
-  return new GraphRepository(port, configFor, safeBlockFor, ttlMs, now, persistNs ?? null);
+  return new GraphRepository(port, configFor, ttlMs, now, persistNs ?? null);
 }

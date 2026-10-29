@@ -5,7 +5,7 @@
 // (architecture.md §4); the forbidden-word list is enforced literally by the onchain-resolver
 // token rule in scripts/check-fixture-boundary.mjs (none of the listed words may appear here).
 //
-// RPC facts come from the frozen ABI set (contracts/abi/v1-rc) + deployments/{chainId}.json
+// RPC facts come from the frozen ABI set (contracts/abi/<abiVersion>) + deployments/{chainId}.json
 // addresses via lib/web3; the RpcPort seam is the interface-level mock point for unit tests
 // (§11.1: mock the RPC edge, never the domain mapping rules).
 import type { Abi } from 'viem';
@@ -285,7 +285,7 @@ export interface OnchainRepository {
     account: string,
   ): Promise<DataResult<GenesisEntitlementsView>>;
   /** R-04 verse: account's equivalent genesis funds on one chain (normal + leveraged debt
-   *  principal) in uAsset base units — the per-chain leg of the all-chain 「您的参与」 sum.
+   *  principal) in uAsset base units — the per-chain leg of the all-chain 「你的参与」 sum.
    *  Mirrors the client-side readGenesisParticipation (launcher + POLend multicall). */
   getAccountGenesisFunds(
     chainId: number,
@@ -924,43 +924,45 @@ class RpcOnchainRepository implements OnchainRepository {
           return { name, sp, uAsset: meta[0] as string, sy: meta[1] as string };
         }),
       );
-      const sources: StakeSourceView[] = [];
-      for (const source of bound.filter(
-        (row) => row.uAsset.toLowerCase() === uAsset.toLowerCase(),
-      )) {
-        const tokensIn = (
-          (await port.call(spec(source.sy, syReadAbi, 'getTokensIn'))) as string[]
-        ).filter((token) => token !== ZERO);
-        const tokens = await Promise.all(
-          tokensIn.map(async (address) => {
-            const meta = await port.multicall([
-              spec(address, erc20ReadAbi, 'symbol'),
-              spec(address, erc20ReadAbi, 'decimals'),
-            ]);
-            return { address, symbol: meta[0] as string, decimals: meta[1] as number };
+      // Sources are independent — each one's SY→tokens→previews chain closes internally — so the
+      // family fans out concurrently; serial sources were the measured cold-path wall driver
+      return Promise.all(
+        bound
+          .filter((row) => row.uAsset.toLowerCase() === uAsset.toLowerCase())
+          .map(async (source) => {
+            const tokensIn = (
+              (await port.call(spec(source.sy, syReadAbi, 'getTokensIn'))) as string[]
+            ).filter((token) => token !== ZERO);
+            const tokens = await Promise.all(
+              tokensIn.map(async (address) => {
+                const meta = await port.multicall([
+                  spec(address, erc20ReadAbi, 'symbol'),
+                  spec(address, erc20ReadAbi, 'decimals'),
+                ]);
+                return { address, symbol: meta[0] as string, decimals: meta[1] as number };
+              }),
+            );
+            // Anchor preview: uAsset minted for exactly one display token — the same math the UI
+            // multiplies the input by; a failed preview degrades to null (face value 1), never blocks
+            const anchored = await Promise.all(
+              tokens.map(async (token) => {
+                try {
+                  const preview = (await port.call(
+                    spec(router.data, outrunRouterAbi, 'previewStakeFromToken', [
+                      source.sp,
+                      token.address,
+                      10n ** BigInt(token.decimals),
+                    ]),
+                  )) as bigint;
+                  return { ...token, anchorValue: Number(preview) / 1e18, previewBase: preview };
+                } catch {
+                  return { ...token, anchorValue: null, previewBase: null };
+                }
+              }),
+            );
+            return { ...source, tokens: anchored };
           }),
-        );
-        // Anchor preview: uAsset minted for exactly one display token — the same math the UI
-        // multiplies the input by; a failed preview degrades to null (face value 1), never blocks
-        const anchored = await Promise.all(
-          tokens.map(async (token) => {
-            try {
-              const preview = (await port.call(
-                spec(router.data, outrunRouterAbi, 'previewStakeFromToken', [
-                  source.sp,
-                  token.address,
-                  10n ** BigInt(token.decimals),
-                ]),
-              )) as bigint;
-              return { ...token, anchorValue: Number(preview) / 1e18, previewBase: preview };
-            } catch {
-              return { ...token, anchorValue: null, previewBase: null };
-            }
-          }),
-        );
-        sources.push({ ...source, tokens: anchored });
-      }
-      return sources;
+      );
     });
   }
 

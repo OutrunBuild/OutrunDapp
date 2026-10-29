@@ -13,6 +13,10 @@ import { createPublicClient, http, type PublicClient } from 'viem';
 import { bscTestnet } from 'viem/chains';
 
 import { launcherAbi } from '../../../lib/web3/abis';
+import {
+  preorderSettlementTimestampSlot,
+  preorderVestingDurationSlot,
+} from '../../../components/verse/claim-slots';
 
 const RPC = process.env.CLAIM_NET_RPC ?? 'https://bsc-testnet-rpc.publicnode.com';
 const LAUNCHER = (process.env.CLAIM_NET_LAUNCHER ??
@@ -84,20 +88,17 @@ d('claim center scoped-read regression (network)', () => {
 
   it('keeps the schedule slots sane (vesting duration > 0, settlement in the past)', async () => {
     client ??= createPublicClient({ chain: bscTestnet, transport: http(RPC) });
-    // LAUNCHER_BASE + mapping entry mirror components/verse/claim-center.tsx exactly
-    // (OZ SlotDerivation double keccak; entry = keccak(abi.encodePacked(key, slot))).
-    const { encodePacked, keccak256, toHex } = await import('viem');
-    const h1 = BigInt(keccak256(toHex('outrun.storage.MemeverseLauncher')));
-    const inner = toHex((h1 - 1n) % (1n << 256n), { size: 32 });
-    const base = BigInt(keccak256(inner)) & ~0xffn;
+    // Slots come from the component's own derivation (components/verse/claim-slots) — the
+    // previous copy of the double-keccak formula could drift without any test noticing.
+    const { toHex } = await import('viem');
     const [durRaw, settledRaw] = await Promise.all([
-      client.getStorageAt({ address: LAUNCHER, slot: toHex(base + 11n, { size: 32 }) }),
       client.getStorageAt({
         address: LAUNCHER,
-        slot: toHex(
-          BigInt(keccak256(encodePacked(['uint256', 'uint256'], [VERSE, base + 18n]))) + 2n,
-          { size: 32 },
-        ),
+        slot: toHex(preorderVestingDurationSlot(), { size: 32 }),
+      }),
+      client.getStorageAt({
+        address: LAUNCHER,
+        slot: toHex(preorderSettlementTimestampSlot(VERSE), { size: 32 }),
       }),
     ]);
     const duration = Number(BigInt(durRaw ?? '0x0'));

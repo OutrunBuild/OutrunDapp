@@ -5,11 +5,14 @@
 //    graph-sourced views — indexed data structurally cannot override them
 //  ③ graph transport/query failures collapse to structured unavailable (rpc-error), never throw
 // Plus cache/dedup behavior (single port hit for concurrent and TTL-window calls).
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { buildGraphRepository } from '../../../lib/data/graph/graph-repository';
 import type { GraphPort, GraphResponse } from '../../../lib/data/graph/graph-port';
+import { readSeed, writeSeed } from '../../../lib/data/persisted-swr';
 import { resolveOutrunChain } from '../../../lib/web3/chains';
-import type { DataResult } from '../../../lib/data/repository';
 
 const ENV = {
   ALCHEMY_KEY_ARB_SEPOLIA: 'k',
@@ -42,17 +45,26 @@ const AGGREGATE_DATA = {
       omnichainIds: ['40231', '40245'],
       communities: ['x'],
       registeredAtTimestamp: '1768000000',
+      totalGenesisFunds: '3000000000000000000',
+      totalLeveragedInterest: '250000000000000000',
+      totalPreorderFunds: '500000000000000000',
+      participantCount: 4,
     },
   ],
   genesisParticipations: [
-    { verseId: '1', payer: '0xa', depositer: '0xa', amount: '1000000000000000000' },
-    { verseId: '1', payer: '0xb', depositer: '0xb', amount: '2000000000000000000' },
+    { verseId: '1', payer: '0xc', depositer: '0xa', amount: '1000000000000000000' },
+    { verseId: '1', payer: '0xc', depositer: '0xb', amount: '2000000000000000000' },
   ],
   preorderParticipations: [
-    { verseId: '1', caller: '0xc', user: '0xc', amountInUAsset: '500000000000000000' },
+    { verseId: '1', caller: '0xa', user: '0xc', amountInUAsset: '500000000000000000' },
   ],
+  // payer/caller deliberately collide with already-counted addresses (the contracts emit
+  // payer and user as independent params — POLend natspec: "may differ from the payer"),
+  // so the shape stays swap-sensitive should row-summing ever consume these legs; the live
+  // detection case is the pre-totals test below (these verse rows serve stored totals,
+  // where a same-address row keeps every count equal and stays blind).
   leveragedGenesisParticipations: [
-    { verseId: '1', payer: '0xd', user: '0xd', amount: '250000000000000000' },
+    { verseId: '1', payer: '0xa', user: '0xd', amount: '250000000000000000' },
   ],
 };
 
@@ -126,45 +138,28 @@ class StubGraphPort implements GraphPort {
   }
 }
 
-const setup = (safeBlock: number = 1_000) => {
+const setup = () => {
   const port = new StubGraphPort();
-  const repo = buildGraphRepository(
-    port,
-    (chainId) => resolveOutrunChain(chainId, ENV),
-    async () => ({ status: 'ok', data: safeBlock }) as DataResult<number>,
-  );
+  const repo = buildGraphRepository(port, (chainId) => resolveOutrunChain(chainId, ENV));
   return { repo, port };
 };
 
 describe('① silent degrade: index lag never changes the payload', () => {
   it('returns identical aggregates whether the index is at head or 500 blocks behind', async () => {
-    const fresh = setup(1_000);
+    const fresh = setup();
     const freshResult = await fresh.repo.getVerseSummaries(421614);
-    const stale = setup(1_500); // safe block 500 ahead of the index position
+    const stale = setup();
     const staleResult = await stale.repo.getVerseSummaries(421614);
     expect(freshResult).toEqual(staleResult);
     expect(freshResult.status).toBe('ok');
   });
 
   it('injects no lag/degrade/sync marker anywhere in the result', async () => {
-    const { repo } = setup(9_999);
+    const { repo } = setup();
     const r = await repo.getVerseSummaries(421614);
     expect(r.status).toBe('ok');
     const serialized = JSON.stringify(r, (_k, v) => (typeof v === 'bigint' ? v.toString() : v));
     expect(serialized).not.toMatch(/lag|degrad|stale|sync|pending|outofdate/i);
-  });
-
-  it('keeps aggregates alive when the safe-block reader itself fails', async () => {
-    const port = new StubGraphPort();
-    const repo = buildGraphRepository(
-      port,
-      (chainId) => resolveOutrunChain(chainId, ENV),
-      async () => ({ status: 'unavailable', reason: 'rpc-error', detail: 'rpc down' }),
-    );
-    const r = await repo.getHomeMetrics(421614);
-    expect(r.status).toBe('ok');
-    if (r.status !== 'ok') return;
-    expect(r.data.verseCount).toBe(1);
   });
 });
 
@@ -186,14 +181,56 @@ describe('② RPC-authoritative fields never come from the graph', () => {
 
 describe('③ failures collapse to structured unavailable', () => {
   it('transport failure → rpc-error, never a throw', async () => {
-    const { repo, port } = setup();
-    port.failNext = true;
-    const r = await repo.getVerseSummaries(421614);
-    expect(r).toMatchObject({
-      status: 'unavailable',
-      reason: 'rpc-error',
-      detail: expect.stringContaining('502'),
-    });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const { repo, port } = setup();
+      port.failNext = true;
+      const r = await repo.getVerseSummaries(421614);
+      expect(r).toMatchObject({
+        status: 'unavailable',
+        reason: 'rpc-error',
+        detail: expect.stringContaining('502'),
+      });
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('a transport failure leaves a one-line structured record (§13)', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const { repo, port } = setup();
+      port.failNext = true;
+      await repo.getVerseSummaries(421614);
+      expect(warn).toHaveBeenCalledTimes(1);
+      const line = String(warn.mock.calls[0]![0]);
+      expect(line).toContain('class=http-502');
+      expect(line).toContain('query=VerseAggregates');
+      expect(line).toContain('endpoint=https://api.thegraph.com/deployments/id/arb');
+      expect(line).toContain('detail=graph endpoint HTTP 502');
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('a config-resolution failure leaves a one-line locked-at record (§13)', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      // The locked-at warn site sits one level above the cached() fold: the fault must enter
+      // through querySilently itself, not through the port — a port throw collapses to
+      // unavailable at the query-failed site and this catch never runs.
+      const repo = buildGraphRepository(new StubGraphPort(), () => {
+        throw new Error('config resolver down');
+      });
+      expect(await repo.getVerseLockedAt(97, 1n)).toBeNull();
+      expect(warn).toHaveBeenCalledTimes(1);
+      const line = String(warn.mock.calls[0]![0]);
+      expect(line).toContain('locked-at read failed');
+      expect(line).toContain('chain=97');
+      expect(line).toContain('detail=config resolver down');
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it('missing subgraph endpoint → not-configured', async () => {
@@ -221,8 +258,15 @@ describe('mapping correctness (interface-mocked port)', () => {
       leveraged: 250_000_000_000_000_000n,
       preorder: 500_000_000_000_000_000n,
     });
-    expect(verse.participantCount).toBe(3); // 0xa, 0xb via genesis + 0xc via preorder
+    expect(verse.participantCount).toBe(4); // 0xa 0xb via genesis + 0xc via preorder + 0xd via leveraged
     expect(verse.omnichainIds).toEqual([40231n, 40245n]);
+    // Detail must agree with the summaries row for the same verse; on a totals-bearing
+    // endpoint both reads serve stored values, so divergence here is view-mapping drift.
+    const detail = await repo.getVerseDetail(421614, 1n);
+    expect(detail.status).toBe('ok');
+    if (detail.status === 'ok' && detail.data) {
+      expect(detail.data.participantCount).toBe(verse.participantCount);
+    }
   });
 
   it('detail lookup finds by numeric verseId or returns null', async () => {
@@ -247,6 +291,98 @@ describe('mapping correctness (interface-mocked port)', () => {
       },
     });
   });
+
+  it('pre-totals endpoint: summaries, detail and home metrics fall back to verse-scoped legs', async () => {
+    const E = 10n ** 18n;
+    const calls: Array<{ document: string; variables?: Record<string, unknown> }> = [];
+    const port: GraphPort = {
+      async query<T>(_endpoint: string, document: string, variables?: Record<string, unknown>) {
+        calls.push({ document, variables });
+        if (!document.includes('Legs')) {
+          return {
+            data: {
+              verses: [
+                {
+                  verseId: '1',
+                  name: 'Moon',
+                  symbol: 'MOON',
+                  stage: 'genesis',
+                  flashGenesis: false,
+                  uAsset: '0xuusd',
+                  memecoin: null,
+                  pol: null,
+                  yieldVault: null,
+                  governor: null,
+                  incentivizer: null,
+                  endTime: '1770000000',
+                  unlockTime: '1801536000',
+                  omnichainIds: ['40231'],
+                  communities: [],
+                  registeredAtTimestamp: '1768000000',
+                  totalGenesisFunds: null,
+                  totalLeveragedInterest: null,
+                  totalPreorderFunds: null,
+                  participantCount: null,
+                },
+              ],
+            } as unknown as T,
+            meta: { block: { number: 1_000, hasIndexingErrors: false } },
+          };
+        }
+        return {
+          data: {
+            // Same collision-payer shape as AGGREGATE_DATA: this dataset is what actually
+            // exercises sumPageRows field selection (AGGREGATE_DATA's verse rows take the
+            // stored path), so a user→payer / depositer→payer / user→caller swap must drop
+            // the count below the anchors.
+            genesisParticipations: [
+              { verseId: '1', payer: '0xc', depositer: '0xa', amount: String(3n * E) },
+            ],
+            preorderParticipations: [
+              { verseId: '1', caller: '0xa', user: '0xc', amountInUAsset: String(1n * E) },
+            ],
+            leveragedGenesisParticipations: [
+              { verseId: '1', payer: '0xa', user: '0xd', amount: String(1n * E) },
+            ],
+          } as unknown as T,
+          meta: { block: { number: 1_000, hasIndexingErrors: false } },
+        };
+      },
+    };
+    const repo = buildGraphRepository(port, (chainId) => resolveOutrunChain(chainId, ENV));
+    const summaries = await repo.getVerseSummaries(421614);
+    expect(summaries.status).toBe('ok');
+    if (summaries.status !== 'ok') return;
+    expect(summaries.data[0]!.raised).toEqual({
+      genesis: 3n * E,
+      leveraged: 1n * E,
+      preorder: 1n * E,
+    });
+    expect(summaries.data[0]!.participantCount).toBe(3); // 0xa genesis + 0xc preorder + 0xd leveraged
+    // aggregate + verse-scoped legs: two round trips, legs carry verseId_in
+    expect(calls).toHaveLength(2);
+    expect(calls[1]!.variables).toMatchObject({ ids: ['1'] });
+    const metrics = await repo.getHomeMetrics(421614);
+    expect(metrics).toEqual({
+      status: 'ok',
+      data: {
+        verseCount: 1,
+        deployedVerseCount: 0,
+        participantCount: 3,
+        participationTotal: 5n * E,
+      },
+    });
+    // Detail on the same null-totals endpoint: point read + its own scoped legs (VerseDetailLegs)
+    const detail = await repo.getVerseDetail(421614, 1n);
+    expect(detail.status).toBe('ok');
+    if (detail.status !== 'ok') return;
+    expect(detail.data).not.toBeNull();
+    expect(detail.data!.raised).toEqual({ genesis: 3n * E, leveraged: 1n * E, preorder: 1n * E });
+    expect(detail.data!.participantCount).toBe(3);
+    // aggregate + legs (cached above) + home-metrics probe + detail point read + detail legs
+    expect(calls).toHaveLength(5);
+    expect(calls[4]!.document).toContain('VerseDetailLegs');
+  });
 });
 
 describe('short cache + in-flight dedup (§9)', () => {
@@ -268,7 +404,6 @@ describe('short cache + in-flight dedup (§9)', () => {
     const repo = buildGraphRepository(
       port,
       (chainId) => resolveOutrunChain(chainId, ENV),
-      async () => ({ status: 'ok', data: 1 }) as DataResult<number>,
       1_000,
       () => clock,
     );
@@ -287,14 +422,13 @@ describe('short cache + in-flight dedup (§9)', () => {
       buildGraphRepository(
         port,
         (chainId) => resolveOutrunChain(chainId, ENV),
-        async () => ({ status: 'ok', data: 1 }) as DataResult<number>,
         60_000,
         () => 0,
         ns,
       );
     const first = await make().getVerseSummaries(421614); // populates memory + disk seed
     expect(first.status).toBe('ok');
-    // a second instance (≈ another render-worker process) serves the seed instantly…
+    // a second instance (≈ a cold process after restart) serves the seed instantly…
     const second = await make().getVerseSummaries(421614);
     expect(second).toEqual(first);
     // …while its background refresh still lands on the port
@@ -376,11 +510,7 @@ describe('④ paged verse listing (no full pulls at any volume)', () => {
 
   const paged = (rows: ReturnType<typeof row>[]) => {
     const port = new PagePort(rows);
-    const repo = buildGraphRepository(
-      port,
-      (chainId) => resolveOutrunChain(chainId, ENV),
-      async () => ({ status: 'ok', data: 1_000 }) as DataResult<number>,
-    );
+    const repo = buildGraphRepository(port, (chainId) => resolveOutrunChain(chainId, ENV));
     return { repo, port };
   };
 
@@ -451,9 +581,16 @@ describe('post-write refresh support (invalidateVerse / getIndexedBlock)', () =>
   });
 
   it('a failing meta read degrades to null (gate treats it as unknown)', async () => {
-    const { repo, port } = setup();
-    port.failNext = true;
-    expect(await repo.getIndexedBlock(97)).toBeNull();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const { repo, port } = setup();
+      port.failNext = true;
+      expect(await repo.getIndexedBlock(97)).toBeNull();
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(String(warn.mock.calls[0]![0])).toContain('meta read failed');
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it('invalidateVerse drops that verse’s detail entries — the next read is a cold fetch', async () => {
@@ -476,5 +613,93 @@ describe('post-write refresh support (invalidateVerse / getIndexedBlock)', () =>
     await repo.getVerseDetail(97, 2n);
     await repo.getVerseSummaries(97);
     expect(port.calls).toBe(before); // both still served from cache
+  });
+
+  it('invalidation also clears verse seeds this process never materialized (restart leftover)', () => {
+    const ns = 'test-graph-invalidate-seed';
+    const seedFile = join(tmpdir(), 'outrun-dapp-swr', `${ns}.json`);
+    rmSync(seedFile, { force: true });
+    const key = (document: string, variables: string) =>
+      `${ENV.SUBGRAPH_ENDPOINT_BSC_TESTNET}|${document}|${variables}`;
+    const detail1 = key('query VerseDetail($id: BigInt!)', '{"id":"1"}');
+    const legs1 = key('query VerseDetailLegs($ids: [BigInt!])', '{"ids":["1"]}');
+    const detail2 = key('query VerseDetail($id: BigInt!)', '{"id":"2"}');
+    const sums2 = key('query VerseRaisedSums($ids: [BigInt!])', '{"ids":["2"]}');
+    const listAgg = key('query VerseAggregates', '{}');
+    for (const k of [detail1, legs1, detail2, sums2, listAgg]) writeSeed(ns, k, 0, { ok: true });
+
+    // This instance's Map is empty (no read ever happened here) — exactly the restart state
+    // where Map-borrowed seed deletion dropped nothing and a later cold start would serve
+    // the pre-write value
+    const repo = buildGraphRepository(
+      new StubGraphPort(),
+      (chainId) => resolveOutrunChain(chainId, ENV),
+      60_000,
+      () => 0,
+      ns,
+    );
+    repo.invalidateVerse(1n);
+
+    expect(readSeed(ns, detail1)).toBeNull();
+    expect(readSeed(ns, legs1)).toBeNull();
+    expect(readSeed(ns, detail2)).not.toBeNull(); // other verse survives
+    expect(readSeed(ns, sums2)).not.toBeNull(); // other verse's sums survive
+    expect(readSeed(ns, listAgg)).not.toBeNull(); // list aggregates keep their TTL
+    rmSync(seedFile, { force: true });
+  });
+
+  it('invalidateVerse drops the pre-totals VerseDetailLegs entry too (next read refetches legs)', async () => {
+    const calls: Array<{ document: string; variables?: Record<string, unknown> }> = [];
+    const nullTotalsRow = {
+      verseId: '1',
+      name: 'Moon',
+      symbol: 'MOON',
+      stage: 'genesis',
+      flashGenesis: false,
+      uAsset: '0xuusd',
+      memecoin: null,
+      pol: null,
+      yieldVault: null,
+      governor: null,
+      incentivizer: null,
+      endTime: '1770000000',
+      unlockTime: '1801536000',
+      omnichainIds: ['40231'],
+      communities: [],
+      registeredAtTimestamp: '1768000000',
+      totalGenesisFunds: null,
+      totalLeveragedInterest: null,
+      totalPreorderFunds: null,
+      participantCount: null,
+    };
+    const port: GraphPort = {
+      async query<T>(_endpoint: string, document: string, variables?: Record<string, unknown>) {
+        void variables;
+        calls.push({ document, variables });
+        const data = document.includes('VerseDetailLegs')
+          ? {
+              genesisParticipations: [
+                { verseId: '1', payer: '0xa', depositer: '0xa', amount: '1000000000000000000' },
+              ],
+              preorderParticipations: [],
+              leveragedGenesisParticipations: [],
+            }
+          : { verses: [nullTotalsRow] };
+        return {
+          data: data as unknown as T,
+          meta: { block: { number: 1_000, hasIndexingErrors: false } },
+        };
+      },
+    };
+    const repo = buildGraphRepository(port, (chainId) => resolveOutrunChain(chainId, ENV));
+    await repo.getVerseDetail(97, 1n); // detail point read + VerseDetailLegs follow-up
+    await repo.getVerseDetail(97, 1n); // both warm: no new calls
+    const warm = calls.length;
+    repo.invalidateVerse(1n);
+    await repo.getVerseDetail(97, 1n);
+    // Both the detail key and the legs key must be cold again — a surviving legs key would
+    // answer the post-write read from pre-write participation rows for one TTL window
+    expect(calls.length).toBe(warm + 2);
+    expect(calls[calls.length - 1]!.document).toContain('VerseDetailLegs');
   });
 });

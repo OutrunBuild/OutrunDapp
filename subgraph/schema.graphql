@@ -1,9 +1,10 @@
 # Outrun DApp event-indexing schema (architecture.md §9.2).
 # Hard rule: EVERY entity primary key embeds the originating chainId ("{chainId}-<natural key>"),
 # and every entity also carries an explicit chainId field for filtering. Cross-chain address-only
-# keys are forbidden. Event shapes come from the frozen ABI set contracts/abi/v1-rc (frozen-commit
-# exports); the UniswapV4 PoolManager Swap fragment is the v4-core standard event (verified against
-# v4-core/src/interfaces/IPoolManager.sol).
+# keys are forbidden. Event shapes come from the frozen ABI set under contracts/abi/<abiVersion>
+# (frozen-commit exports; <abiVersion> is governed by CURRENT_ABI_VERSION in
+# scripts/deployment-schema.mjs); the UniswapV4 PoolManager Swap fragment is the v4-core standard
+# event (verified against v4-core/src/interfaces/IPoolManager.sol).
 
 # --- Verse registration / lifecycle / listing -----------------------------------
 
@@ -128,7 +129,7 @@ type ParticipationRefund @entity(immutable: true) {
   id: ID! # {chainId}-{verseId}-{blockNumber}-{logIndex}
   chainId: Int!
   verseId: BigInt!
-  kind: String! # genesis | preorder | leveraged-credit
+  kind: String! # genesis | preorder | leveraged | leveraged-credit
   receiver: Bytes!
   amount: BigInt!
   blockTimestamp: BigInt!

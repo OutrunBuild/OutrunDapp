@@ -11,6 +11,10 @@
       "chainId": 1, "kind": "kernel-batch", "state": "awaiting-signature", "nonce": "41"
     },
     {
+      "id": "tx-008", "scenario": ["normal"], "sourceRef": "docs/architecture.md#7",
+      "chainId": 1, "kind": "kernel-batch", "state": "signing", "nonce": "41"
+    },
+    {
       "id": "tx-003", "scenario": ["normal"], "sourceRef": "docs/architecture.md#7",
       "chainId": 8453, "kind": "type4-first-delegation", "state": "submitting", "nonce": "12",
       "submittedAt": "2026-09-16T11:55:00Z"

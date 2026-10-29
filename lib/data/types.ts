@@ -18,6 +18,3 @@ export type VerseStage = 'genesis' | 'locked' | 'unlocked' | 'refund';
 // client components import it here; fixture-repository and the onchain adapter re-export from
 // this single source.
 export const PROTECTION_WINDOW_MS = 24 * 60 * 60 * 1000;
-
-// Backward-compatible alias (fixture-era name)
-export type FixtureChain = ChainInfo;

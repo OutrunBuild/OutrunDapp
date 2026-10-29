@@ -12,8 +12,9 @@ import {
   usrVaultsFile, bridgeMessagesFile, transactionsFile, governanceFile,
   stakingFile, polPositionsFile,
   accountsFile, notificationsFile, participationsFile, yieldSourcesFile,
-  createConfigFile, balancesFile, referralFile, faucetFile, scenariosFile, scenarioIdSchema, fixtureAddressSchema, CHAIN_IDS,
+  createConfigFile, balancesFile, referralFile, faucetFile, scenariosFile, scenarioIdSchema, fixtureAddressSchema, CHAIN_IDS as FIXTURE_CHAIN_IDS,
 } from '../../../fixtures/schema';
+import { CHAIN_IDS as CHAIN_IDS_REGISTRY, TESTNET_CHAIN_IDS, MAINNET_CHAIN_IDS } from '../../../lib/web3/chains';
 
 const fx = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'fixtures');
 const load = (p: string) => JSON.parse(readFileSync(join(fx, p), 'utf8'));
@@ -120,7 +121,13 @@ describe('numeric relations and guards (machine-checkable subset of the invarian
   it('chainId whitelist: all data uses only the six chains', () => {
     const used = new Set<number>();
     for (const c of load('data/chains.json').items as Array<{ chainId: number }>) used.add(c.chainId);
-    expect([...used].every((c) => (CHAIN_IDS as readonly number[]).includes(c))).toBe(true);
+    expect([...used].every((c) => (FIXTURE_CHAIN_IDS as readonly number[]).includes(c))).toBe(true);
+  });
+  it('chainId registry consistency: fixture schema, chains.ts, and onchain-source TESTNETS are in sync', () => {
+    expect(FIXTURE_CHAIN_IDS).toEqual(CHAIN_IDS_REGISTRY);
+    expect(TESTNET_CHAIN_IDS).toEqual(
+      (CHAIN_IDS_REGISTRY as readonly number[]).filter((id) => !(MAINNET_CHAIN_IDS as readonly number[]).includes(id)),
+    );
   });
   it('balances: every assetId exists in assets.json; no duplicate (chain,asset) pairs', () => {
     const assetIds = new Set(
@@ -145,5 +152,29 @@ describe('numeric relations and guards (machine-checkable subset of the invarian
     }
     // Bare addresses (no fixtureOnly wrapper) are rejected outright
     expect(fixtureAddressSchema.safeParse({ value: '0xaaaaaaa000000000000000000000000000000001' }).success).toBe(false);
+  });
+  it('verse temporal invariants: createdAt < endsAt, unlocked aligns to endsAt+365d, duration in [1,3] days', () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const YEAR = 365 * DAY;
+    const anchor = Date.parse('2026-09-16T12:00:00Z');
+    const verses = load('data/verses.json').items as Array<{
+      id: string; stage: string; createdAt: string;
+      genesis: { endsAt: string };
+      unlock?: { unlockedAtTx: string };
+    }>;
+    for (const v of verses) {
+      const created = Date.parse(v.createdAt);
+      const ended = Date.parse(v.genesis.endsAt);
+      const durationDays = (ended - created) / DAY;
+      expect(durationDays).toBeGreaterThanOrEqual(1);
+      expect(durationDays).toBeLessThanOrEqual(3);
+      expect(created).toBeLessThan(ended);
+      if (v.stage === 'unlocked') {
+        expect(v.unlock).toBeDefined();
+        const expectedUnlock = new Date(ended + YEAR).toISOString().replace('.000Z', 'Z');
+        expect(v.unlock!.unlockedAtTx).toBe(expectedUnlock);
+        expect(ended + YEAR).toBeLessThanOrEqual(anchor);
+      }
+    }
   });
 });

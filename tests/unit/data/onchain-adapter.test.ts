@@ -51,7 +51,7 @@ describe('onchain adapter seam', () => {
       'getStaking',
       'getPolPosition',
       'getGovernanceState',
-      'getAssetUsdSample',
+      'getAssetUsdPrice',
       'getWalletAssets',
       'getReserveBalances',
       'getWalletBalances',
@@ -63,6 +63,9 @@ describe('onchain adapter seam', () => {
       'getParticipationRows',
       'getPortfolioSignals',
       'getParticipations',
+      'getAssets',
+      'getDisplayAccount',
+      'getHomeMetrics',
     ];
     for (const name of surface) {
       expect(adapter, `adapter export ${name}`).toHaveProperty(name);
@@ -158,6 +161,18 @@ describe('getChainVerses chain-scoped rows', () => {
     }
   });
 
+  it('snapshot: a failed chain read leaves the omni total unknown (never a partial sum)', async () => {
+    const adapter = await import('../../../lib/data/onchain-source');
+    perChain({
+      421614: [view(421614, 1n, { genesis: 1n * E, leveraged: 0n, preorder: 0n }, 1)],
+      84532: null,
+      97: [view(97, 1n, { genesis: 3n * E, leveraged: 0n, preorder: 0n }, 1)],
+    });
+    const rows = await adapter.getChainVerses();
+    expect(rows[0]!.omniRaised).toBeNull();
+    expect(rows[0]!.omniParticipantCount).toBeNull();
+  });
+
   it('snapshot keeps one canonical row per verse (governance chain); chain ids list the indexed chains', async () => {
     const adapter = await import('../../../lib/data/onchain-source');
     perChain({
@@ -176,6 +191,23 @@ describe('getChainVerses chain-scoped rows', () => {
     expect(snapshot.verses[0]!.participantCount).toBe(1);
     expect(snapshot.verses[1]!.preorderRaised).toBe(2);
     expect(await adapter.getVerseChainIds()).toEqual([97, 421614]);
+  });
+
+  it('an unrepresentable timestamp degrades its own slot instead of failing the list', async () => {
+    const adapter = await import('../../../lib/data/onchain-source');
+    // 8_640_000_000_001s is the first value past Date's ±8.64e15 ms range — toISOString
+    // would throw and take the whole getter with it; the row must keep the rest of its data.
+    perChain({
+      421614: null,
+      84532: null,
+      97: [view(97, 7n, { genesis: 1n * E, leveraged: 0n, preorder: 0n }, 1, 8_640_000_000_001n)],
+    });
+    const rows = await adapter.getChainVerses();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.endsAt).toBeNull();
+    expect(rows[0]!.unlockTimeAt).toBeNull();
+    expect(rows[0]!.normalRaised).toBe(1);
+    expect(rows[0]!.createdAt).toBe(new Date(1_790_000_000_000).toISOString());
   });
 });
 
@@ -238,6 +270,24 @@ describe('getChainVersePage server page', () => {
     expect(page.rows[0]!.deployedChainIds).toEqual([421614, 97]);
     expect(page.hasMore).toBe(true);
     expect(page.chainIds).toEqual([421614, 84532, 97]);
+  });
+
+  it('any sibling leg unread → omniRaised null, never a partial sum', async () => {
+    const adapter = await import('../../../lib/data/onchain-source');
+    graphMock.getVersePage.mockResolvedValue(
+      ok({ chainId: 97, verses: [summary(97, 7n, 3n * E, 2)], hasMore: false }),
+    );
+    graphMock.getRaisedSums.mockImplementation((chainId: number) =>
+      Promise.resolve(
+        chainId === 421614
+          ? { status: 'unavailable' as const, reason: 'rpc-error' as const, detail: 'timeout' }
+          : ok({ sums: new Map(), present: new Set() }),
+      ),
+    );
+    const page = await adapter.getChainVersePage(97, { stage: 'genesis' }, 24, 0);
+    expect(page.rows[0]!.omniRaised).toBeNull();
+    expect(page.rows[0]!.marketCapUsd).toBeNull();
+    // The paged row keeps its chain-local count by design; only the cross-chain total degrades.
   });
 
   it('chain-0 probe returns the static option set with zero reads', async () => {
@@ -320,5 +370,30 @@ describe('getVerse wallet-chain rows + omni participant count', () => {
     const adapter = await import('../../../lib/data/onchain-source');
     const verse = await adapter.getVerse('77');
     expect(verse!.omniParticipantCount).toBe(7);
+    // A chain that answered ok(null) has simply not landed the verse — absence is a valid 0,
+    // never a failure that voids the cross-chain totals.
+    expect(verse!.omniRaised).toBe(7);
+  });
+
+  it('a failed chain read makes the omni total unknown (never a partial sum)', async () => {
+    const adapter = await import('../../../lib/data/onchain-source');
+    graphMock.getVerseDetail.mockImplementation((chainId: number, id: bigint) =>
+      Promise.resolve(
+        String(id) === '77' && chainId === 421614
+          ? { status: 'unavailable' as const, reason: 'rpc-error' as const, detail: 'timeout' }
+          : {
+              status: 'ok' as const,
+              data:
+                String(id) === '77' && chainId !== 421614
+                  ? chainId === 97
+                    ? detailView(97, { genesis: 1n * E, leveraged: 0n, preorder: 0n }, 2)
+                    : detailView(84532, { genesis: 4n * E, leveraged: 2n * E, preorder: 0n }, 5)
+                  : null,
+            },
+      ),
+    );
+    const verse = await adapter.getVerse('77');
+    expect(verse!.omniRaised).toBeNull();
+    expect(verse!.omniParticipantCount).toBeNull();
   });
 });

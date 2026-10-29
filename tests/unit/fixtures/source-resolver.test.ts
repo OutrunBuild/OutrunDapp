@@ -35,7 +35,7 @@ describe('onchain source-resolver', () => {
   });
   it('the fixture branch exists and is independent (consumes fixtures; unreachable from the onchain graph -- see boundary.test)', async () => {
     const proto = await import('../../../lib/data/fixture-repository');
-    expect(proto.FIXTURE_ONLY_SENTINEL).toBe('OUTRUN_FIXTURE_ONLY_v1');
+    expect(proto.DATA_SOURCE_MARKER).toBe('OUTRUN_FIXTURE_ONLY_v1');
     expect(proto.fixtureRepository.verses().length).toBeGreaterThan(0);
   });
 });

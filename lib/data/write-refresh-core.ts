@@ -29,7 +29,7 @@ export type WriteRefreshDeps = {
   getIndexedBlock: (chainId: number) => Promise<number | null>;
   /** Drop the graph-tier verse-scoped cache entries (all chains). */
   invalidateVerse: (verseId: bigint) => void;
-  /** Drop the config-tier verse-financials overlay entries (`verse-fin-<chain>-<id>`). */
+  /** Drop the config-tier per-verse entries (fin/trade/split/gov/vault groups + supply sum). */
   invalidateVerseConfig: (verseId: string) => void;
   /** Re-read the verse detail so the fresh values are warm in every cache the page reads. */
   primeVerse: (verseId: string) => Promise<unknown>;

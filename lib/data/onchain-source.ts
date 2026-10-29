@@ -34,11 +34,12 @@ import type { DataResult } from '@/lib/data/repository';
 import { getOnchainRepository } from '@/lib/data/repository';
 import { getGraphRepository } from '@/lib/data/graph/graph-repository';
 import type { VerseSummaryView } from '@/lib/data/graph/graph-repository';
-import { readSeed, writeSeed, deleteSeed } from '@/lib/data/persisted-swr';
+import { readSeed, writeSeed, deleteSeed, deleteSeedsMatching } from '@/lib/data/persisted-swr';
 import { CHAIN_IDS, MAINNET_CHAIN_IDS, resolveOutrunChain } from '@/lib/web3/chains';
 import { getPublicClient } from '@/lib/web3/public-client';
 import { readNativeUsdPrice } from '@/lib/web3/native-price';
 import { hookPoolKey, lpPerQuoteUnit, poolIdOf, priceQuotePerBase } from '@/lib/web3/pool-quote';
+import { cache } from 'react';
 import type { Hex } from 'viem';
 import type { ChainInfo } from '@/lib/data/types';
 
@@ -47,10 +48,19 @@ export { PROTECTION_WINDOW_MS } from '@/lib/data/types';
 
 const rpc = () => getOnchainRepository();
 const graph = () => getGraphRepository();
-const TESTNETS = [421614, 84532, 97];
+const TESTNETS = (CHAIN_IDS as readonly number[]).filter(
+  (id) => !(MAINNET_CHAIN_IDS as readonly number[]).includes(id),
+);
 const REGISTRATION_HUB = 97;
 const E18 = 1e18;
-const iso = (seconds: bigint) => new Date(Number(seconds) * 1000).toISOString();
+/** Date's representable range is ±8.64e15 ms. A graph row outside it is dirty data and
+ *  toISOString() would throw out of the row projection (one bad row killing the whole
+ *  getter) — out of range reads as a null slot instead. */
+const ISO_MAX_SECONDS = 8_640_000_000_000n;
+const iso = (seconds: bigint): string | null =>
+  seconds > ISO_MAX_SECONDS || seconds < -ISO_MAX_SECONDS
+    ? null
+    : new Date(Number(seconds) * 1000).toISOString();
 
 function unwrap<T>(r: DataResult<T>): T | null {
   return r.status === 'ok' ? r.data : null;
@@ -83,32 +93,52 @@ const CONFIG_TTL_MS = 30_000;
 type ConfigEntry = { at: number; value: unknown; inflight: Promise<unknown> | null };
 const configCache = new Map<string, ConfigEntry>();
 
-/** Post-write invalidation: drop the verse-financials overlay entries (`verse-fin-<chain>-<id>`,
- *  the 30s config cache holding the runtime overlay incl. `previewPreorderCapacity`) for one
- *  verse across every chain, in memory and on the seed disk. Paired with the graph-tier
- *  `invalidateVerse` — together they force the next detail render onto fresh blocking reads. */
+/** Post-write invalidation: drop every verse-scoped config-cache group for one verse across
+ *  every chain — `verse-fin|trade|split|gov|vault-<chain>-<id>` (runtime overlay, trade-desk
+ *  composition, splitter info, governance snapshot, vault state) plus the omnichain supply
+ *  sum — in memory and on the seed disk. Paired with the graph-tier `invalidateVerse` —
+ *  together they force the next detail render onto fresh blocking reads. */
 export function invalidateVerseConfig(verseId: string): void {
-  // verse-fin-<chain>-<id> overlays + the per-verse omnichain supply sum (both rerun after
-  // a confirmed verse write; the supply moves at settlement and on cross-chain bridges)
-  dropConfigKeys((key) => /^verse-fin-\d+-/.test(key) && key.endsWith(`-${verseId}`));
-  dropConfigKeys((key) => key === `verse-meme-supply-${verseId}`);
+  // The id arrives in whatever surface spelling the write flow carried (hand-typed URLs can
+  // be zero-padded or verse-prefixed); the keys hold loadVerse's canonical decimal, so fold
+  // the input to the same form before matching or every group silently misses
+  const match = /^(?:verse-)?(\d+)$/i.exec(verseId);
+  if (!match) return;
+  const id = match[1].replace(/^0+(?=\d)/, '');
+  // All five per-verse cachedConfig groups rerun after a confirmed verse write: swaps/LP
+  // move the trade composition, stakes move vault totals, POL moves the split legs
+  dropConfigKeys(
+    (key) => /^verse-(fin|trade|split|gov|vault)-\d+-/.test(key) && key.endsWith(`-${id}`),
+  );
+  dropConfigKeys((key) => key === `verse-meme-supply-${id}`);
 }
+
+// Seed namespace carries a schema version: v1 files hold the old encoding where a failed
+// supply/reserve read was persisted as 0n legs; v2 reads 0n as an honestly empty pool, so v1
+// seeds are deliberately orphaned (one background cold fetch per key) instead of being re-read
+// under the new semantics. Read/write/invalidate must switch together.
+export const CONFIG_SEED_NS = 'adapter-config-v2';
 
 function dropConfigKeys(matches: (key: string) => boolean): void {
   for (const key of configCache.keys()) {
     if (!matches(key)) continue;
     configCache.delete(key);
-    deleteSeed('adapter-config', key);
+    deleteSeed(CONFIG_SEED_NS, key);
   }
+  // Seeds survive restarts, so the seed file holds matching keys this process's Map never
+  // materialized (nothing read here since the last boot). Run the same predicate over the
+  // disk keyspace directly — Map-borrowed deletion would leave those seeds in place and a
+  // later cold start would serve the pre-write value.
+  deleteSeedsMatching(CONFIG_SEED_NS, matches);
 }
 
 function cachedConfig<T>(key: string, run: () => Promise<T | null>): Promise<T | null> {
   let created = configCache.get(key);
   if (created === undefined) {
     created = { at: 0, value: undefined, inflight: null };
-    // cold render-worker process: seed the last ok value from disk (null seeds are skipped —
+    // cold process (fresh boot or restart): seed the last ok value from disk (null seeds are skipped —
     // a degraded read must not stick across restarts)
-    const seed = readSeed<T | null>('adapter-config', key);
+    const seed = readSeed<T | null>(CONFIG_SEED_NS, key);
     if (seed?.value != null) created.value = seed.value;
     configCache.set(key, created);
   }
@@ -117,10 +147,13 @@ function cachedConfig<T>(key: string, run: () => Promise<T | null>): Promise<T |
   if (!fresh && entry.inflight === null) {
     entry.inflight = run().then(
       (value) => {
+        // A post-write invalidation detaches this entry (Map delete + deleteSeed); a detached
+        // settle must not re-publish pre-write data into the disk seed.
+        if (configCache.get(key) !== entry) return value;
         entry.inflight = null;
         entry.value = value;
         entry.at = value == null ? 0 : Date.now();
-        if (value != null) writeSeed('adapter-config', key, entry.at, value);
+        if (value != null) writeSeed(CONFIG_SEED_NS, key, entry.at, value);
         return value;
       },
       () => {
@@ -135,8 +168,11 @@ function cachedConfig<T>(key: string, run: () => Promise<T | null>): Promise<T |
   return entry.inflight as Promise<T | null>;
 }
 
-/** uAsset address -> symbol via the deployment contract tables (UAsset.<SYM> keys) */
-function uAssetSymbol(address: string): string {
+/** uAsset address -> symbol via the deployment contract tables (UAsset.<SYM> keys). Unknown
+ *  addresses resolve to null — never to a known symbol: a known-symbol sentinel would ride
+ *  that symbol's real price sample (getAssetUsdPrice) and fabricate USD values downstream.
+ *  null degrades every raise-asset slot instead (caps/labels hide, lookups fail closed). */
+function uAssetSymbol(address: string): string | null {
   for (const chainId of TESTNETS) {
     const resolved = resolveOutrunChain(chainId);
     if (resolved.status !== 'ok' || resolved.config.contracts.status !== 'deployed') continue;
@@ -146,7 +182,7 @@ function uAssetSymbol(address: string): string {
       }
     }
   }
-  return 'UUSD';
+  return null;
 }
 
 function deployedContracts(chainId: number): Record<string, string> {
@@ -187,10 +223,10 @@ function chainNameOf(chainId: number): string {
  *  per-row calls in the row builders are cheap. */
 async function verseMarketCapUsd(
   stage: string,
-  raiseAsset: string,
-  omniRaised: number,
+  raiseAsset: string | null,
+  omniRaised: number | null,
 ): Promise<number | null> {
-  if (stage !== 'genesis') return null;
+  if (stage !== 'genesis' || raiseAsset == null || omniRaised == null) return null;
   const usd = await getAssetUsdPrice(raiseAsset);
   return usd != null ? omniRaised * 2 * usd : null;
 }
@@ -318,6 +354,14 @@ let snapshotViews = new Map<string, VerseSummaryView>();
 // supply sum reads each landed chain's own token contract (same-lifecycle map as snapshotViews)
 const landedMemecoins = new Map<string, Array<{ chainId: number; memecoin: Hex }>>();
 
+/** Global supply is all-or-nothing: one unread leg collapses the total to null. A partial sum
+ *  would under-report circulation with no downstream signal that a leg went missing. */
+export function sumCompleteSupplies(rows: ReadonlyArray<bigint | null>): bigint | null {
+  if (rows.length === 0) return null;
+  if (!rows.every((row): row is bigint => row != null)) return null;
+  return rows.reduce((sum, row) => sum + row, 0n);
+}
+
 /** Omnichain memecoin supply: the OFT burns on the source chain and mints on the
  *  destination, so each chain's totalSupply() is that chain's local circulation — the
  *  global total is the sum over the landed set. Any leg unread → null (never a partial
@@ -331,8 +375,7 @@ async function omniMemecoinSupply(
     const rows = await Promise.all(
       legs.map((leg) => rpc().getTokenTotalSupply(leg.chainId, leg.memecoin).then(unwrap)),
     );
-    if (!rows.every((row): row is bigint => row != null)) return null;
-    return rows.reduce((sum, row) => sum + row, 0n);
+    return sumCompleteSupplies(rows);
   });
 }
 
@@ -364,6 +407,9 @@ async function buildChainRows(): Promise<{
 }> {
   // three per-chain subgraph round trips are independent — fan out instead of serializing
   const results = await Promise.all(TESTNETS.map((chainId) => graph().getVerseSummaries(chainId)));
+  // A failed chain read is not "this chain has no verse" — the cross-chain totals below are
+  // unknown unless every chain answered.
+  const allChainsRead = results.every((result) => result.status === 'ok');
   const byVerseId = new Map<string, VerseSummaryView[]>();
   for (const result of results) {
     const list = unwrap(result);
@@ -383,15 +429,20 @@ async function buildChainRows(): Promise<{
   // across every view so cards with raised funds never render 0%.
   const flatViews = [...byVerseId.values()].flat();
   const thresholds = await thresholdByAsset(flatViews);
-  for (const [id, group] of byVerseId) {
+  // Per-verse price reads are independent and deduped per symbol by the cached feed — fan out
+  // like the per-chain reads above so the per-symbol feed round trips overlap.
+  const buildVerseRows = async ([id, group]: [string, VerseSummaryView[]]) => {
     const canonicalView = canonicalViewOf(group);
-    views.set(id, canonicalView);
-    const omniRaised = group.reduce(
-      (sum, view) =>
-        sum + Number(view.raised.genesis + view.raised.leveraged + view.raised.preorder) / E18,
-      0,
-    );
-    const omniParticipantCount = group.reduce((sum, view) => sum + view.participantCount, 0);
+    const omniRaised = allChainsRead
+      ? group.reduce(
+          (sum, view) =>
+            sum + Number(view.raised.genesis + view.raised.leveraged + view.raised.preorder) / E18,
+          0,
+        )
+      : null;
+    const omniParticipantCount = allChainsRead
+      ? group.reduce((sum, view) => sum + view.participantCount, 0)
+      : null;
     // The group is exactly the set of chains whose subgraph holds this verse — the landed set.
     // The requested omnichainIds can name chains that never received the registration message.
     const deployedChainIds = group.map((view) => view.chainId);
@@ -400,27 +451,31 @@ async function buildChainRows(): Promise<{
       uAssetSymbol(canonicalView.uAsset),
       omniRaised,
     );
+    const groupRows: Verse[] = [];
     let canonicalRow: Verse | null = null;
     for (const view of group) {
       const row = withListProgress(
         { ...toVerse(view), omniRaised, omniParticipantCount, deployedChainIds, marketCapUsd },
         thresholds.get(`${view.chainId}:${view.uAsset.toLowerCase()}`),
       );
-      rows.push(row);
+      groupRows.push(row);
       if (view === canonicalView) canonicalRow = row;
     }
     const fallbackRow = toVerse(canonicalView);
-    canonical.push(
-      canonicalRow ?? {
-        ...fallbackRow,
-        deployedChainIds,
-        marketCapUsd: await verseMarketCapUsd(
-          fallbackRow.stage,
-          fallbackRow.raiseAsset,
-          fallbackRow.omniRaised,
-        ),
-      },
-    );
+    const canonicalVerse = canonicalRow ?? {
+      ...fallbackRow,
+      omniRaised,
+      deployedChainIds,
+      marketCapUsd: await verseMarketCapUsd(fallbackRow.stage, fallbackRow.raiseAsset, omniRaised),
+    };
+    return { id, canonicalView, groupRows, canonicalVerse };
+  };
+  const built = await Promise.all([...byVerseId].map(buildVerseRows));
+  // Promise.all preserves input order, so rows keep the byVerseId order.
+  for (const { id, canonicalView, groupRows, canonicalVerse } of built) {
+    views.set(id, canonicalView);
+    rows.push(...groupRows);
+    canonical.push(canonicalVerse);
   }
   snapshotViews = views;
   return {
@@ -502,14 +557,17 @@ export async function getChainVersePage(
   const rows = await Promise.all(
     list.verses.map(async (view) => {
       const own = Number(view.raised.genesis + view.raised.leveraged + view.raised.preorder) / E18;
-      const omniRaised =
-        own +
-        siblings.reduce((sum, { sidecar }) => {
-          const raised = sidecar?.sums.get(String(view.verseId));
-          return (
-            sum + (raised ? Number(raised.genesis + raised.leveraged + raised.preorder) / E18 : 0)
-          );
-        }, 0);
+      // A null sidecar is a failed sibling read, not an absent verse (an absent verse answers ok
+      // with no sum) — the all-chain total is unknown, never a partial sum.
+      const omniRaised = siblings.some(({ sidecar }) => sidecar == null)
+        ? null
+        : own +
+          siblings.reduce((sum, { sidecar }) => {
+            const raised = sidecar?.sums.get(String(view.verseId));
+            return (
+              sum + (raised ? Number(raised.genesis + raised.leveraged + raised.preorder) / E18 : 0)
+            );
+          }, 0);
       // Landed set = this chain plus every sibling whose subgraph returned a Verse row for the id.
       const deployedChainIds = TESTNETS.filter(
         (id) =>
@@ -541,7 +599,7 @@ export async function getChainVersePage(
   };
 }
 
-export async function getVerse(verseId: string): Promise<Verse | null> {
+async function loadVerse(verseId: string): Promise<Verse | null> {
   const match = /^(?:verse-)?(\d+)$/i.exec(verseId);
   if (!match) return null;
   // uint256 ids exceed Number precision — compare normalized decimal strings
@@ -550,14 +608,18 @@ export async function getVerse(verseId: string): Promise<Verse | null> {
   // Point reads: the same id on every indexed chain, one query each (never the full list).
   // The governance-chain (omnichainIds[0]) copy supplies the canonical metadata; when that
   // chain's subgraph has no record, the first landed copy stands in.
-  const found = (
-    await Promise.all(
-      TESTNETS.map(async (chainId) => ({
-        chainId,
-        view: unwrap(await graph().getVerseDetail(chainId, id)),
-      })),
-    )
-  ).filter((entry): entry is { chainId: number; view: VerseSummaryView } => entry.view != null);
+  const details = await Promise.all(
+    TESTNETS.map(async (chainId) => ({
+      chainId,
+      result: await graph().getVerseDetail(chainId, id),
+    })),
+  );
+  // Absence is ok(null); a non-ok status is a failed read. The latter leaves the landed set
+  // and the omni totals unknown — never a silently shorter sum.
+  const allChainsRead = details.every((entry) => entry.result.status === 'ok');
+  const found = details
+    .map((entry) => ({ chainId: entry.chainId, view: unwrap(entry.result) }))
+    .filter((entry): entry is { chainId: number; view: VerseSummaryView } => entry.view != null);
   if (found.length === 0) return null;
   const governanceChain = Number(found[0]!.view.omnichainIds[0] ?? REGISTRATION_HUB);
   const canonical = found.find((entry) => entry.chainId === governanceChain) ?? found[0]!;
@@ -569,12 +631,13 @@ export async function getVerse(verseId: string): Promise<Verse | null> {
       .map(async (entry) => entry.view.raised),
   );
   const own = Number(view.raised.genesis + view.raised.leveraged + view.raised.preorder) / E18;
-  const omniRaised =
-    own +
-    siblings.reduce(
-      (sum, raised) => sum + Number(raised.genesis + raised.leveraged + raised.preorder) / E18,
-      0,
-    );
+  const omniRaised = allChainsRead
+    ? own +
+      siblings.reduce(
+        (sum, raised) => sum + Number(raised.genesis + raised.leveraged + raised.preorder) / E18,
+        0,
+      )
+    : null;
   // Per-chain rows power the wallet-chain-following displays (meters, panel aggregates) —
   // found already holds every landed chain's copy, so this adds no round trip. The omni
   // participant count sums per-chain distinct counts (cross-chain dedup needs an identity the
@@ -588,27 +651,14 @@ export async function getVerse(verseId: string): Promise<Verse | null> {
       participantCount: entry.view.participantCount,
     };
   }
-  const verse: Verse = {
-    ...toVerse(view),
-    omniRaised,
-    omniParticipantCount: found.reduce((sum, entry) => sum + entry.view.participantCount, 0),
-    deployedChainIds: found.map((entry) => entry.chainId).sort((a, b) => a - b),
-    chainAggregates,
-    marketCapUsd: await verseMarketCapUsd(view.stage, uAssetSymbol(view.uAsset), omniRaised),
-  };
-  snapshotViews.set(verse.id, view);
-  landedMemecoins.set(
-    verse.id,
-    found.flatMap((entry) =>
-      entry.view.memecoin ? [{ chainId: entry.chainId, memecoin: entry.view.memecoin as Hex }] : [],
-    ),
-  );
   // Genesis financial params (preorder ratio / leverage rate+cap / min success) have on-chain
   // getters but no subgraph field — detail-only RPC overlay so the fixture-mode constraint UI
   // (preorder capacity meter, real-time preorder cap, leverage preview, success threshold)
   // survives the onchain build; config-like reads ride the SWR cache (§9); a failed read
-  // leaves the null slots exactly as before (never fixture samples)
-  const fin = await cachedConfig(`verse-fin-${view.chainId}-${view.verseId}`, async () => {
+  // leaves the null slots exactly as before (never fixture samples).
+  // Started before the verse literal: the USD market-cap sample inside that literal is an
+  // independent round, so awaiting the literal first would serialize two RPC rounds.
+  const finPromise = cachedConfig(`verse-fin-${view.chainId}-${view.verseId}`, async () => {
     // Same cached round: the launcher's own remaining-preorder-capacity preview is the
     // authoritative gate input (the panel must not re-derive capacity from float aggregates).
     const [r, runtime] = await Promise.all([
@@ -638,6 +688,24 @@ export async function getVerse(verseId: string): Promise<Verse | null> {
         remaining != null ? remaining.remainingPreorderCapacity.toString() : null,
     };
   });
+  const verse: Verse = {
+    ...toVerse(view),
+    omniRaised,
+    omniParticipantCount: allChainsRead
+      ? found.reduce((sum, entry) => sum + entry.view.participantCount, 0)
+      : null,
+    deployedChainIds: found.map((entry) => entry.chainId).sort((a, b) => a - b),
+    chainAggregates,
+    marketCapUsd: await verseMarketCapUsd(view.stage, uAssetSymbol(view.uAsset), omniRaised),
+  };
+  snapshotViews.set(verse.id, view);
+  landedMemecoins.set(
+    verse.id,
+    found.flatMap((entry) =>
+      entry.view.memecoin ? [{ chainId: entry.chainId, memecoin: entry.view.memecoin as Hex }] : [],
+    ),
+  );
+  const fin = await finPromise;
   if (!fin) return verse;
   // Progress bars share the fixture semantics (fixture-repository progress()): each raised
   // pool vs the min success threshold, percent, unclamped — the meter bounds display
@@ -651,6 +719,11 @@ export async function getVerse(verseId: string): Promise<Verse | null> {
     preorderProgress: pct(verse.preorderRaised),
   };
 }
+
+/** Per-request dedupe: the four id-keyed detail getters below each need the verse record —
+ *  React.cache() collapses their repeated executions into one within a render (the graph/RPC
+ *  layers already dedupe the network reads; this removes the repeated assembly too). */
+export const getVerse = cache(loadVerse);
 
 // --- chains / registration --------------------------------------------------------------
 
@@ -715,24 +788,37 @@ export async function getCreateConfig(): Promise<CreateConfig | null> {
       minDurationDays: preview.minDurationDays,
       maxDurationDays: preview.maxDurationDays,
       lockupDays: preview.lockupDays,
-      // cross-chain fee quotes need the registration calldata (stage-6 tx pipeline); slots quote at submit
-      remoteDeployFee: 0,
-      remoteSendFee: 0,
+      // cross-chain fees are live quoteSend reads on the client submit path (execution-reads), not config
       sourceRef: `rpc:${preview.hubChainId}:MemeverseRegistrationCenter`,
     };
   });
 }
 
+/** Symbol occupancy has no enumerable on-chain source: `symbolRegistry` is a mapping
+ *  (MemeverseRegistrationCenterUpgradeable.sol:55) and occupancy is the per-candidate,
+ *  time-relative `previewRegistration(symbol)` view at :112-118, so it can only be answered for
+ *  the symbol the user is typing. The create form probes it on the client — debounced while
+ *  typing and again at submit, where a false verdict fails the send closed instead of letting
+ *  registration() revert with SymbolNotUnlock.
+ *  This getter exists to keep the repository contract's shape, which the fixture build fills from
+ *  its verses snapshot. It returns the empty set here and MUST NOT be read as "no symbol is
+ *  occupied" — the authoritative answer is the client probe, never this list. */
 export async function getOccupiedSymbols(): Promise<string[]> {
   return [];
 }
 
 export async function getParticipationOptions(
-  raiseAssetSymbol: string,
+  raiseAssetSymbol: string | null,
   execChainId?: number,
 ): Promise<ParticipationOptions> {
+  // Unknown raise asset (address outside the deployment tables) — every participation
+  // route fails closed; empty options keep the panel's direct-pay toggle disabled instead
+  // of borrowing a deployed family's contracts
+  if (raiseAssetSymbol == null) {
+    return { raiseAsset: null, reserves: [], yieldSourceRegistry: [], creditAsset: null };
+  }
   // Config-tier read (low churn, accountless) — cachedConfig serves the last good value across
-  // the 30s TTL and across render-worker restarts (§9).
+  // the 30s TTL and across process restarts (§9).
   const options = await cachedConfig(
     `participation:${raiseAssetSymbol}:${execChainId ?? 0}`,
     async (): Promise<ParticipationOptions> => {
@@ -881,10 +967,10 @@ export async function getReferral(): Promise<Referral | null> {
       ),
     ),
   );
-  const ratePercent = snapshot?.ratePercent ?? 0;
+  const ratePercent = snapshot?.ratePercent ?? null;
   return {
     owner: '',
-    referralCode: '',
+    referralCode: null,
     ratePercent,
     totalEarnedUsd: 0,
     pendingUsd: 0,
@@ -922,7 +1008,7 @@ function emptyVerseTrade(verse: Verse): VerseTrade {
       price: null,
       change24h: null,
       marketCap: null,
-      liquidity: 0,
+      liquidity: null,
       volume24h: null,
       holders: null,
       totalSupply: null,
@@ -938,7 +1024,14 @@ type VersePoolComposition = {
   /** lowercased token address -> decimals (plain record: the composition rides the JSON seed) */
   decimals: Record<string, number>;
   polSupply: bigint | null;
-  legs: Array<{ kind: PoolKind; supply: bigint; amountBase: bigint; amountQuote: bigint }>;
+  /** supply/amounts null = the read failed (unknown); a zero-LP pool reads exactly 0n —
+   *  unknown degrades its price/TVL slot to null, empty keeps the honest 0 */
+  legs: Array<{
+    kind: PoolKind;
+    supply: bigint | null;
+    amountBase: bigint | null;
+    amountQuote: bigint | null;
+  }>;
 };
 
 /** Governance contracts (vault/governor/incentivizer) off the Verse row. The row is rewritten
@@ -960,7 +1053,9 @@ function governanceContractsOf(view: VerseSummaryView): {
 
 /** One verse's four pool legs off the canonical chain: LP supply (hook cache) per locally
  *  computed pool id, then the full-range reserve amounts through the router quote. A pool
- *  without LP settles at zero reserves — its price/TVL slots degrade, never block the others. */
+ *  without LP settles at zero reserves (amounts 0n) — its price/TVL slots degrade, never
+ *  block the others. A failed supply/reserve read is UNKNOWN, not empty: it keeps null
+ *  amounts so downstream slots hide instead of printing a fabricated $0.00. */
 async function readVersePoolComposition(
   chainId: number,
   view: VerseSummaryView,
@@ -1001,12 +1096,13 @@ async function readVersePoolComposition(
       const quote = tokens[quoteKind];
       const poolId = poolIdOf(hookPoolKey(base, quote, hook as Hex));
       const supply = unwrap(await rpc().getPoolLpSupply(chainId, hook, poolId));
-      if (supply == null || supply <= 0n)
-        return { kind, supply: 0n, amountBase: 0n, amountQuote: 0n };
+      // supply read failed -> unknown; supply 0 -> a genuinely empty pool
+      if (supply == null) return { kind, supply: null, amountBase: null, amountQuote: null };
+      if (supply <= 0n) return { kind, supply, amountBase: 0n, amountQuote: 0n };
       const amounts = unwrap(
         await rpc().getPoolReserveAmounts(chainId, router, base, quote, supply),
       );
-      if (!amounts) return { kind, supply, amountBase: 0n, amountQuote: 0n };
+      if (!amounts) return { kind, supply, amountBase: null, amountQuote: null };
       return { kind, supply, amountBase: amounts[0], amountQuote: amounts[1] };
     }),
   );
@@ -1017,18 +1113,29 @@ async function readVersePoolComposition(
  *  desk and the POL position — the reserve ratio is the pool's live price, no extra read. */
 function poolPriceOf(comp: VersePoolComposition, kind: PoolKind): number | null {
   const leg = comp.legs.find((entry) => entry.kind === kind);
-  if (!leg) return null;
+  if (!leg || leg.amountBase == null || leg.amountQuote == null) return null;
   const [baseKind, quoteKind] = POOL_SIDES[kind];
   const dec = (tokenKind: VerseTokenKind) =>
     comp.decimals[comp.tokens[tokenKind].toLowerCase()] ?? 18;
   return priceQuotePerBase(leg.amountBase, dec(baseKind), leg.amountQuote, dec(quoteKind));
 }
 
+/** POL-position unit price: an honestly empty pool (no LP / both sides 0) reads as 0 — the
+ *  gauge shows full deviation rather than a fake mid — while a failed read is unknown, not
+ *  worthless, and stays null so the gauge slots instead of printing a fabricated $0. */
+function polPricePerPol(comp: VersePoolComposition, kind: PoolKind): number | null {
+  const leg = comp.legs.find((entry) => entry.kind === kind);
+  if (!leg || leg.amountBase == null || leg.amountQuote == null) return null;
+  if (leg.amountBase <= 0n && leg.amountQuote <= 0n) return 0;
+  return poolPriceOf(comp, kind);
+}
+
 /** Price/TVL mapping over the raw composition. Every display value derives from the pool
  *  reserves: pool price = quote/base reserve ratio; TVL = uAsset leg at face + other leg
  *  converted through its own pool's price (PT/POL pool legs convert via the PT and POL
- *  uAsset pools). USD scale multiplies by the uAsset USD sample — absent sample keeps uAsset
- *  units (the fixture convention for $-prefixed TVL/market-cap slots). */
+ *  uAsset pools). USD scale multiplies by the uAsset USD sample; an absent sample (failed
+ *  feed / unresolved raise asset) nulls the $-prefixed slots — they hide, never render
+ *  uAsset-unit numbers with a $ prefix. */
 function buildVerseTrade(
   verse: Verse,
   comp: VersePoolComposition,
@@ -1040,18 +1147,23 @@ function buildVerseTrade(
   const priceMeme = poolPriceOf(comp, 'main');
   const pricePol = poolPriceOf(comp, 'pol-uasset');
   const pricePt = poolPriceOf(comp, 'pt-uasset');
-  const uAssetEq = (kind: PoolKind): number => {
-    const [baseKind, quoteKind] = POOL_SIDES[kind];
+  const uAssetEq = (kind: PoolKind): number | null => {
     const leg = legOf(kind);
+    // A failed read is unknown, not an empty pool — hide the slot, never print a fake $0
+    if (leg.amountBase == null || leg.amountQuote == null) return null;
+    const [baseKind, quoteKind] = POOL_SIDES[kind];
     const base = Number(leg.amountBase) / 10 ** dec(baseKind);
     const quote = Number(leg.amountQuote) / 10 ** dec(quoteKind);
-    if (kind === 'main') return quote + base * (priceMeme ?? 0);
-    if (kind === 'pol-uasset') return quote + base * (pricePol ?? 0);
-    if (kind === 'pt-uasset') return quote + base * (pricePt ?? 0);
-    // pt-pol: base=PT via the PT/uAsset price, quote=POL via the POL/uAsset price
-    return base * (pricePt ?? 0) + quote * (pricePol ?? 0);
+    // main/pol-uasset/pt-uasset price their base off their OWN pool and value the quote side
+    // (uAsset) at face; pt-pol converts both sides through the PT and POL uAsset pools.
+    const basePrice = kind === 'pt-pol' ? pricePt : poolPriceOf(comp, kind);
+    const quotePrice = kind === 'pt-pol' ? pricePol : 1;
+    // Only a zero side may read 0; a non-zero side whose conversion price is unknown leaves
+    // the leg value unknown (a drained backing pool must not halve this pool's TVL).
+    if ((base > 0 && basePrice == null) || (quote > 0 && quotePrice == null)) return null;
+    return base * (basePrice ?? 0) + quote * (quotePrice ?? 0);
   };
-  const usdFactor = uAssetUsd ?? 1;
+  const liquidityEq = uAssetEq('main');
   // Market cap rides the OMNICHAIN supply (per-chain totalSupply summed by the caller) —
   // the OFT model splits circulation across chains, so any single chain's read understates
   const totalSupply = omniSupply != null ? Number(omniSupply) / 10 ** dec('memecoin') : null;
@@ -1062,22 +1174,28 @@ function buildVerseTrade(
         ? `POL-${verse.symbol}`
         : kind === 'pt'
           ? `PT-${verse.symbol}`
-          : verse.raiseAsset;
+          : // unknown raise asset: the uAsset pool side renders symbol-less (slot degrade);
+            // its price read is null so USD-derived stats stay null too
+            (verse.raiseAsset ?? '');
   const pools: VerseTrade['pools'] = comp.legs.map((leg) => {
     const [baseKind, quoteKind] = POOL_SIDES[leg.kind];
+    const uAssetValue = uAssetEq(leg.kind);
     return {
       id: `${verse.id}-${leg.kind}`,
       sourceRef: `rpc:${comp.chainId}:${leg.kind}`,
       verseId: verse.id,
       pool: leg.kind,
-      tvl: uAssetEq(leg.kind) * usdFactor,
+      tvl: uAssetValue != null && uAssetUsd != null ? uAssetValue * uAssetUsd : null,
       // dynamic fee is swap-context dependent; 24h volume and APR need the indexed PoolSwap
       // history — all three stay slotted until those reads land
       feeState: 'normal',
       feeRate: null,
       volume24h: null,
       apr7d: null,
-      lpPerQuote: lpPerQuoteUnit(leg.supply, leg.amountQuote),
+      lpPerQuote:
+        leg.supply != null && leg.amountQuote != null
+          ? lpPerQuoteUnit(leg.supply, leg.amountQuote)
+          : null,
       baseSymbol: symbolOf(baseKind),
       quoteSymbol: symbolOf(quoteKind),
     };
@@ -1089,8 +1207,10 @@ function buildVerseTrade(
       price: priceMeme,
       change24h: null,
       marketCap:
-        priceMeme != null && totalSupply != null ? priceMeme * totalSupply * usdFactor : null,
-      liquidity: uAssetEq('main') * usdFactor,
+        priceMeme != null && totalSupply != null && uAssetUsd != null
+          ? priceMeme * totalSupply * uAssetUsd
+          : null,
+      liquidity: liquidityEq != null && uAssetUsd != null ? liquidityEq * uAssetUsd : null,
       volume24h: null,
       holders: null,
       totalSupply,
@@ -1186,12 +1306,11 @@ export async function getPolPosition(verseId: string): Promise<PolPosition | nul
   const polDecimals = comp.decimals[comp.tokens.pol.toLowerCase()] ?? 18;
   return {
     polAddress: view.pol,
-    polSupply: comp.polSupply != null ? Number(comp.polSupply) / 10 ** polDecimals : 0,
+    polSupply: comp.polSupply != null ? Number(comp.polSupply) / 10 ** polDecimals : null,
     uAssetPerPol,
     nominalValuePerPol: uAssetPerPol * 2,
-    // Empty-pool edge (no LP) reads as 0 — the gauge shows full deviation rather than a fake mid
-    marketPricePerPol: poolPriceOf(comp, 'pol-uasset') ?? 0,
-    ptPricePerPol: poolPriceOf(comp, 'pt-pol') ?? 0,
+    marketPricePerPol: polPricePerPol(comp, 'pol-uasset'),
+    ptPricePerPol: polPricePerPol(comp, 'pt-pol'),
     // The flash fee is swap-context dependent (dynamic fee on the PT full-leg notional) — no
     // static view exists; the dialog's fee row slots until an execution-time quote lands
     flashUserFeeRate: null,
@@ -1302,7 +1421,9 @@ export async function getGovernanceState(verseId: string): Promise<GovernanceSta
     cycleNumber: String(gov.snapshot.currentCycleId),
     cycleDurationDays: Number(gov.snapshot.cycleDurationSecs) / 86_400,
     cycleEndsAt: iso(gov.snapshot.current.endTime),
-    finalized: status?.finalized ?? false,
+    // Subgraph failure → null (degrade, never fabricate); query-ok-but-unindexed still reads
+    // false per the getGovernanceStatus contract
+    finalized: status?.finalized ?? null,
     claimWindowEndsAt: null,
     governorAddress: governor,
     incentivizerAddress: incentivizer,
@@ -1318,9 +1439,9 @@ export async function getGovernanceState(verseId: string): Promise<GovernanceSta
     lastCycle: gov.snapshot.previous
       ? {
           number: String(gov.snapshot.currentCycleId - 1n),
-          treasuryUAsset: previousTreasury.usdTotal ?? 0,
+          treasuryUAsset: previousTreasury.usdTotal,
           treasuryAssets: previousTreasury.rows,
-          remainingRewards: rewards.usdTotal ?? 0,
+          remainingRewards: rewards.usdTotal,
           totalVotes: Number(gov.snapshot.previous.totalVotes) / 1e18,
           myVotes: null,
           myClaimable: null,
@@ -1328,10 +1449,8 @@ export async function getGovernanceState(verseId: string): Promise<GovernanceSta
           unclaimedAssets: null,
         }
       : null,
-    proposalCount: {
-      total: status?.proposalTotal ?? 0,
-      active: status?.proposalActive ?? 0,
-    },
+    // Subgraph failure → null: a fabricated 0 would render as a certain "no proposals" row
+    proposalCount: status ? { total: status.proposalTotal, active: status.proposalActive } : null,
   };
 }
 
@@ -1342,7 +1461,8 @@ export async function getGovernanceState(verseId: string): Promise<GovernanceSta
  *  A stale or failed feed reads as null → the USD rows simply hide. */
 const NATIVE_USD_FEED_CHAIN: Record<string, number> = { UETH: 421614, UBNB: 97 };
 
-export async function getAssetUsdPrice(symbol: string): Promise<number | null> {
+export async function getAssetUsdPrice(symbol: string | null): Promise<number | null> {
+  if (symbol == null) return null;
   if (symbol === 'UUSD') return 1;
   const feedChain = NATIVE_USD_FEED_CHAIN[symbol];
   if (!feedChain) return null;
@@ -1427,10 +1547,6 @@ export async function getParticipations(): Promise<Participation[]> {
   return [];
 }
 
-export async function getBridgeMessages(): Promise<never[]> {
-  return [];
-}
-
 // Warm the cold caches at server boot so the first navigation doesn't pay the network round
 // trips (fire-and-forget; failures degrade silently per §9/§24). Only in the onchain runtime
 // (the default — fixture test processes set OUTRUN_DATA_SOURCE=fixture) and never during
@@ -1441,4 +1557,3 @@ if (
 ) {
   void Promise.allSettled([getSnapshot(), getFaucet(), getReferral(), getCreateConfig()]);
 }
-export const getAssetUsdSample = getAssetUsdPrice;

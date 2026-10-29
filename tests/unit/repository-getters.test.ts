@@ -3,7 +3,7 @@
 // would otherwise only be locked indirectly via e2e visual baselines.
 // Ledger values come from fixtures/data/{participations,referral,assets,chains}.json;
 // number changes must update this test in sync.
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   getPortfolioActions,
@@ -12,6 +12,32 @@ import {
   getVaultRows,
   getParticipationRows,
 } from '../../lib/data/fixture-repository';
+import { PROTECTION_WINDOW_MS } from '../../lib/data/types';
+
+// All shipped unlockedAtTx values sit past the 24h protection window, so getPortfolioActions
+// emits zero protection rows against shipped fixture data; verse-003's unlock is pulled 12h
+// inside the window (anchor 2026-09-16T12:00:00Z) to give the same-source assertions a live row.
+const { SYNTH_UNLOCKED_AT } = vi.hoisted(() => ({ SYNTH_UNLOCKED_AT: '2026-09-16T00:00:00Z' }));
+
+type VersesJson = typeof import('../../fixtures/data/verses.json');
+
+vi.mock('../../fixtures/data/verses.json', async (importOriginal) => {
+  const actual = await importOriginal<VersesJson>();
+  // JSON namespaces expose the payload both as named exports and as default; normalize once so
+  // the override does not depend on which module shape vitest hands back.
+  const source = (actual as VersesJson & { default?: VersesJson }).default ?? actual;
+  return {
+    ...source,
+    default: {
+      ...source,
+      items: source.items.map((verse) =>
+        verse.id === 'verse-003'
+          ? { ...verse, unlock: { unlockedAtTx: SYNTH_UNLOCKED_AT } }
+          : verse,
+      ),
+    },
+  };
+});
 
 describe('getVaultRows: yield inventory (staking x verse join)', () => {
   const rows = getVaultRows();
@@ -83,6 +109,21 @@ describe('getPortfolioActions: todo aggregation', () => {
         6,
       );
     }
+  });
+
+  it('protection row: deadline/remainingMs share one derivation from unlockedAt + window', () => {
+    const anchorMs = Date.parse(getSnapshot().timeAnchor);
+    const row = actions.find(
+      (action) => action.kind === 'protection' && action.verse?.id === 'verse-003',
+    );
+    // against shipped fixture data the protection list is empty, so a missing synthetic row
+    // would make the two derivation assertions below pass vacuously
+    expect(row).toBeDefined();
+    expect(row?.deadline).not.toBeNull();
+    expect(row?.deadline).toBe(
+      new Date(Date.parse(SYNTH_UNLOCKED_AT) + PROTECTION_WINDOW_MS).toISOString(),
+    );
+    expect(row?.remainingMs).toBe(Date.parse(row?.deadline ?? '') - anchorMs);
   });
 });
 

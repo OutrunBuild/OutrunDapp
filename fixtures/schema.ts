@@ -265,9 +265,9 @@ export const governanceSchema = recordSchema.extend({
   }).optional(),
   lastCycle: z.object({
     number: uintString,
-    treasuryUAsset: amountSchema, // Previous cycle's end-of-cycle treasury
+    treasuryUAsset: amountSchema.optional(), // Previous cycle's end-of-cycle treasury (null=pricing unavailable -> row not rendered)
     treasuryAssets: z.array(governanceAssetSchema).optional(), // Previous cycle's end-of-cycle treasury composition sample (treasury breakdown dialog)
-    remainingRewards: amountSchema, // Unclaimed rewards (after the window passes, merged into the treasury without reissue)
+    remainingRewards: amountSchema.optional(), // Unclaimed rewards (after the window passes, merged into the treasury without reissue; null=pricing unavailable -> row not rendered)
     unclaimedAssets: z.array(governanceAssetSchema).optional(), // Unclaimed-reward composition sample (treasury breakdown dialog)
     totalVotes: amountSchema,
     myVotes: amountSchema,
@@ -423,11 +423,6 @@ export const createConfigSchema = recordSchema
     maxDurationDays: z.number().int().positive(),
     /** Fixed lockup: FIXED_LOCKUP_DURATION=365 days, a contract constant not a parameter */
     lockupDays: z.literal(365),
-    /** Cross-chain fan-out fee sample per remote chain (LayerZero quote; fee=0 for hub-chain targets); no registration fee */
-    remoteDeployFee: amountSchema,
-    /** LayerZero send fee sample for origin-chain -> registration-hub-chain when registering from a remote chain (quoteRegister;
-     *  same-chain origin=0). Governance chain = registration hub chain is a sample-scenario assumption */
-    remoteSendFee: amountSchema,
   })
   .refine((config) => config.minDurationDays < config.maxDurationDays, 'minDurationDays < maxDurationDays');
 export const createConfigFile = fixtureFile(createConfigSchema);

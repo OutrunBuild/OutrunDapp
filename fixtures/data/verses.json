@@ -13,7 +13,7 @@
       "symbol": "MOON",
       "stage": "genesis",
       "governanceChain": 1,
-      "createdAt": "2026-08-20T08:00:00Z",
+      "createdAt": "2026-09-18T12:00:00Z",
       "participants": 1204,
       "description": "The original launchpad economy: community-owned liquidity, zero team allocation, fair launch from block one.",
       "socials": [
@@ -71,7 +71,7 @@
       "symbol": "PEPE2",
       "stage": "locked",
       "governanceChain": 8453,
-      "createdAt": "2025-08-20T08:00:00Z",
+      "createdAt": "2025-09-29T12:00:00Z",
       "participants": 876,
       "description": "The sequel to the frogpocalypse — deeper liquidity, faster pools, same degen energy.",
       "socials": [
@@ -147,9 +147,9 @@
       "symbol": "WOJAK",
       "stage": "unlocked",
       "governanceChain": 56,
-      "createdAt": "2025-06-15T08:00:00Z",
+      "createdAt": "2025-08-30T12:00:00Z",
       "participants": 2109,
-      "description": "A feelsgoodman economy for the perpetually downtrodden; owns its liquidity, not its sadness.",
+      "description": "A feelsgoodman economy for the perpetually downtrodden. Owns its liquidity, not its sadness.",
       "socials": [
         {
           "kind": "website",
@@ -208,7 +208,7 @@
         }
       },
       "unlock": {
-        "unlockedAtTx": "2026-09-16T11:30:00Z"
+        "unlockedAtTx": "2026-09-01T12:00:00Z"
       }
     },
     {
@@ -222,7 +222,7 @@
       "symbol": "FLOP",
       "stage": "refund",
       "governanceChain": 1,
-      "createdAt": "2026-07-11T08:00:00Z",
+      "createdAt": "2026-09-08T12:00:00Z",
       "participants": 431,
       "description": "Failed raises deserve second chances. FLOP refunds in full and relaunches with community treasury.",
       "socials": [
@@ -278,7 +278,7 @@
       "symbol": "CDOGE",
       "stage": "genesis",
       "governanceChain": 8453,
-      "createdAt": "2026-09-10T09:00:00Z",
+      "createdAt": "2026-09-15T08:00:00Z",
       "participants": 342,
       "description": "The chain-dog runs on six chains at once — one economy, omnichain from day zero.",
       "socials": [
@@ -339,9 +339,9 @@
       "symbol": "NKOI",
       "stage": "genesis",
       "governanceChain": 56,
-      "createdAt": "2026-09-12T10:00:00Z",
+      "createdAt": "2026-09-20T18:00:00Z",
       "participants": 1287,
-      "description": "Neon koi swimming through four pools; calm mechanics, aggressive yields.",
+      "description": "Neon koi swimming through four pools. Calm mechanics, aggressive yields.",
       "socials": [
         {
           "kind": "website",
@@ -404,7 +404,7 @@
       "symbol": "RWOLF",
       "stage": "genesis",
       "governanceChain": 1,
-      "createdAt": "2026-09-14T08:00:00Z",
+      "createdAt": "2026-09-17T12:00:00Z",
       "participants": 156,
       "description": "The pack hunts together: stake, mint, and farm in one coordinated economy.",
       "socials": [
@@ -461,9 +461,9 @@
       "symbol": "VBUN",
       "stage": "genesis",
       "governanceChain": 8453,
-      "createdAt": "2026-09-08T12:00:00Z",
+      "createdAt": "2026-09-22T12:00:00Z",
       "participants": 2104,
-      "description": "Volt-charged bunny hop across chains; principal-protected genesis with upside hops.",
+      "description": "Volt-charged bunny hop across chains. Principal-protected genesis with upside hops.",
       "socials": [
         {
           "kind": "website",
@@ -526,7 +526,7 @@
       "symbol": "MAPE",
       "stage": "locked",
       "governanceChain": 1,
-      "createdAt": "2026-08-01T12:00:00Z",
+      "createdAt": "2026-08-18T12:00:00Z",
       "participants": 3187,
       "description": "Maple-leaf memecoin with four-pool syrup: main market, POL, PT and yield all flowing.",
       "socials": [
@@ -597,7 +597,7 @@
       "symbol": "GPXL",
       "stage": "locked",
       "governanceChain": 56,
-      "createdAt": "2026-08-20T12:00:00Z",
+      "createdAt": "2026-08-31T09:00:00Z",
       "participants": 874,
       "description": "Pixel-perfect launch economics — every reserve on-chain, every pool composable.",
       "socials": [
@@ -668,9 +668,9 @@
       "symbol": "SSHB",
       "stage": "locked",
       "governanceChain": 8453,
-      "createdAt": "2026-08-28T12:00:00Z",
+      "createdAt": "2026-09-08T12:00:00Z",
       "participants": 493,
-      "description": "Static shock therapy for dead liquidity; POL keeps the heart beating.",
+      "description": "Static shock therapy for dead liquidity. POL keeps the heart beating.",
       "socials": [
         {
           "kind": "website",
@@ -739,7 +739,7 @@
       "symbol": "LCAT",
       "stage": "unlocked",
       "governanceChain": 1,
-      "createdAt": "2026-06-30T12:00:00Z",
+      "createdAt": "2025-07-13T12:00:00Z",
       "participants": 2689,
       "description": "Laser cat eyes on the exit liquidity — no rugs, funds locked, POL owned by the economy.",
       "socials": [
@@ -777,7 +777,7 @@
           "raw": "150000",
           "decimals": 18
         },
-        "endsAt": "2026-07-15T12:00:00Z",
+        "endsAt": "2025-07-15T12:00:00Z",
         "leverageInterestRate": {
           "raw": "0.2",
           "unit": "ratio",
@@ -804,7 +804,7 @@
         }
       },
       "unlock": {
-        "unlockedAtTx": "2026-09-16T09:30:00Z"
+        "unlockedAtTx": "2026-07-15T12:00:00Z"
       }
     },
     {
@@ -817,9 +817,9 @@
       "symbol": "CFROG",
       "stage": "unlocked",
       "governanceChain": 56,
-      "createdAt": "2026-07-20T12:00:00Z",
+      "createdAt": "2025-08-03T12:00:00Z",
       "participants": 1544,
-      "description": "Chain-frog bridging six ecosystems; genesis stakes mint at par, refunds in full.",
+      "description": "Chain-frog bridging six ecosystems. Genesis stakes mint at par, refunds in full.",
       "socials": [
         {
           "kind": "website",
@@ -847,7 +847,7 @@
           "raw": "60000",
           "decimals": 18
         },
-        "endsAt": "2026-08-05T12:00:00Z",
+        "endsAt": "2025-08-05T12:00:00Z",
         "leverageInterestRate": {
           "raw": "0.2",
           "unit": "ratio",
@@ -874,7 +874,7 @@
         }
       },
       "unlock": {
-        "unlockedAtTx": "2026-08-05T14:30:00Z"
+        "unlockedAtTx": "2026-08-05T12:00:00Z"
       }
     },
     {
@@ -887,9 +887,9 @@
       "symbol": "APIG",
       "stage": "unlocked",
       "governanceChain": 8453,
-      "createdAt": "2026-05-28T12:00:00Z",
+      "createdAt": "2025-06-10T12:00:00Z",
       "participants": 933,
-      "description": "Anon piggy bank with transparent reserves; the first pig that lets you audit the sty.",
+      "description": "Anon piggy bank with transparent reserves. The first pig that lets you audit the sty.",
       "socials": [
         {
           "kind": "website",
@@ -925,7 +925,7 @@
           "raw": "25000",
           "decimals": 18
         },
-        "endsAt": "2026-06-12T12:00:00Z",
+        "endsAt": "2025-06-12T12:00:00Z",
         "leverageInterestRate": {
           "raw": "0.2",
           "unit": "ratio",
@@ -952,7 +952,7 @@
         }
       },
       "unlock": {
-        "unlockedAtTx": "2026-06-12T10:00:00Z"
+        "unlockedAtTx": "2026-06-12T12:00:00Z"
       }
     },
     {
@@ -965,7 +965,7 @@
       "symbol": "RRAD",
       "stage": "refund",
       "governanceChain": 56,
-      "createdAt": "2026-08-25T12:00:00Z",
+      "createdAt": "2026-09-03T12:00:00Z",
       "participants": 388,
       "description": "Radiation-proof launch: principal conservation and a 24-hour protection window.",
       "socials": [
@@ -1021,7 +1021,7 @@
       "symbol": "DPNY",
       "stage": "refund",
       "governanceChain": 1,
-      "createdAt": "2026-08-15T12:00:00Z",
+      "createdAt": "2026-08-26T12:00:00Z",
       "participants": 201,
       "description": "Doomed pony, undoomed economics — refunds in full if the herd does not show up.",
       "socials": [
@@ -1077,9 +1077,9 @@
       "symbol": "MTOAD",
       "stage": "genesis",
       "governanceChain": 56,
-      "createdAt": "2026-09-13T09:30:00Z",
+      "createdAt": "2026-09-19T15:00:00Z",
       "participants": 621,
-      "description": "Magma toad sits on four pools of liquidity; touches fire, keeps principal.",
+      "description": "Magma toad sits on four pools of liquidity. Touches fire, keeps principal.",
       "socials": [
         {
           "kind": "website",
@@ -1138,7 +1138,7 @@
       "symbol": "SAPE",
       "stage": "genesis",
       "governanceChain": 8453,
-      "createdAt": "2026-09-11T14:00:00Z",
+      "createdAt": "2026-09-21T09:00:00Z",
       "participants": 1102,
       "description": "A monad-sporting ape with composability credentials and omnichain minting.",
       "socials": [
@@ -1203,9 +1203,9 @@
       "symbol": "PFAL",
       "stage": "genesis",
       "governanceChain": 1,
-      "createdAt": "2026-09-13T18:00:00Z",
+      "createdAt": "2026-09-18T18:00:00Z",
       "participants": 487,
-      "description": "Pink falcon dives into genesis at par value; wings out at unlock with the four-pool wind.",
+      "description": "Pink falcon dives into genesis at par value. Wings out at unlock with the four-pool wind.",
       "socials": [
         {
           "kind": "website",
@@ -1260,7 +1260,7 @@
       "symbol": "CBULL",
       "stage": "genesis",
       "governanceChain": 56,
-      "createdAt": "2026-09-09T10:00:00Z",
+      "createdAt": "2026-09-23T12:00:00Z",
       "participants": 1755,
       "description": "Chrome bull charges through thresholds — Fast Mode enabled, ends when the herd is big enough.",
       "socials": [
@@ -1326,7 +1326,7 @@
       "symbol": "VFOX",
       "stage": "genesis",
       "governanceChain": 8453,
-      "createdAt": "2026-09-15T08:00:00Z",
+      "createdAt": "2026-09-24T12:00:00Z",
       "participants": 98,
       "description": "Void fox farms the gaps between six chains: stake any yield source, mint uAsset at par, and let dual thresholds end genesis early. Collateral keeps earning while the herd gathers, principal stays protected after unlock, liquidity is fully community-owned.",
       "socials": [
@@ -1387,7 +1387,7 @@
       "symbol": "BWOT",
       "stage": "genesis",
       "governanceChain": 1,
-      "createdAt": "2026-09-12T16:00:00Z",
+      "createdAt": "2026-09-16T20:00:00Z",
       "participants": 842,
       "description": "Bitwolf of thestreet: dual-threshold genesis, community-owned POL, no team bags.",
       "socials": [
@@ -1444,7 +1444,7 @@
       "symbol": "TTOAD",
       "stage": "locked",
       "governanceChain": 8453,
-      "createdAt": "2026-09-01T12:00:00Z",
+      "createdAt": "2026-08-28T12:00:00Z",
       "participants": 821,
       "description": " Turbo toad treasury: leveraged genesis without liquidation risk.",
       "socials": [
@@ -1515,9 +1515,9 @@
       "symbol": "GRUN",
       "stage": "locked",
       "governanceChain": 1,
-      "createdAt": "2026-08-18T12:00:00Z",
+      "createdAt": "2026-08-30T12:00:00Z",
       "participants": 1930,
-      "description": "Grundoon digs deep into PT and YT; settlement residual flows to the patient.",
+      "description": "Grundoon digs deep into PT and YT. Settlement residual flows to the patient.",
       "socials": [
         {
           "kind": "website",
@@ -1590,7 +1590,7 @@
       "symbol": "MCAN",
       "stage": "locked",
       "governanceChain": 56,
-      "createdAt": "2026-08-25T12:00:00Z",
+      "createdAt": "2026-09-06T12:00:00Z",
       "participants": 664,
       "description": "Mechanical can on six wheels — omnichain OFT with shared depth on day one.",
       "socials": [
@@ -1657,7 +1657,7 @@
       "symbol": "PPIX",
       "stage": "locked",
       "governanceChain": 8453,
-      "createdAt": "2026-09-05T12:00:00Z",
+      "createdAt": "2026-09-10T12:00:00Z",
       "participants": 1452,
       "description": "Portrait pixel art economy where the DAO owns the canvas and the liquidity.",
       "socials": [
@@ -1732,9 +1732,9 @@
       "symbol": "NRDR",
       "stage": "locked",
       "governanceChain": 1,
-      "createdAt": "2026-08-08T12:00:00Z",
+      "createdAt": "2026-08-23T12:00:00Z",
       "participants": 2276,
-      "description": "Neon raider with transparent treasuries; every pool quote auditable on-chain.",
+      "description": "Neon raider with transparent treasuries. Every pool quote auditable on-chain.",
       "socials": [
         {
           "kind": "website",
@@ -1803,9 +1803,9 @@
       "symbol": "CCRB",
       "stage": "locked",
       "governanceChain": 56,
-      "createdAt": "2026-09-03T12:00:00Z",
+      "createdAt": "2026-09-04T12:00:00Z",
       "participants": 539,
-      "description": "Carbon-crab walks sideways through volatility; principal stays forward-facing.",
+      "description": "Carbon-crab walks sideways through volatility. Principal stays forward-facing.",
       "socials": [
         {
           "kind": "website",
@@ -1874,7 +1874,7 @@
       "symbol": "SHAM",
       "stage": "unlocked",
       "governanceChain": 8453,
-      "createdAt": "2026-06-20T12:00:00Z",
+      "createdAt": "2025-07-06T12:00:00Z",
       "participants": 2011,
       "description": "The sham that is not a sham: fully collateralized, fully refundable, fully on-chain.",
       "socials": [
@@ -1908,7 +1908,7 @@
           "raw": "140000",
           "decimals": 18
         },
-        "endsAt": "2026-07-08T12:00:00Z",
+        "endsAt": "2025-07-08T12:00:00Z",
         "leverageInterestRate": {
           "raw": "0.2",
           "unit": "ratio",
@@ -1935,7 +1935,7 @@
         }
       },
       "unlock": {
-        "unlockedAtTx": "2026-07-08T16:00:00Z"
+        "unlockedAtTx": "2026-07-08T12:00:00Z"
       }
     },
     {
@@ -1948,9 +1948,9 @@
       "symbol": "DDINO",
       "stage": "unlocked",
       "governanceChain": 1,
-      "createdAt": "2026-05-30T12:00:00Z",
+      "createdAt": "2025-06-16T12:00:00Z",
       "participants": 2874,
-      "description": "Dedicated dino staked through genesis; collateral keeps earning while it sleeps.",
+      "description": "Dedicated dino staked through genesis. Collateral keeps earning while it sleeps.",
       "socials": [
         {
           "kind": "website",
@@ -1986,7 +1986,7 @@
           "raw": "110000",
           "decimals": 18
         },
-        "endsAt": "2026-06-18T12:00:00Z",
+        "endsAt": "2025-06-18T12:00:00Z",
         "leverageInterestRate": {
           "raw": "0.2",
           "unit": "ratio",
@@ -2013,7 +2013,7 @@
         }
       },
       "unlock": {
-        "unlockedAtTx": "2026-06-18T15:00:00Z"
+        "unlockedAtTx": "2026-06-18T12:00:00Z"
       }
     },
     {
@@ -2026,7 +2026,7 @@
       "symbol": "RRAC",
       "stage": "unlocked",
       "governanceChain": 56,
-      "createdAt": "2026-07-10T12:00:00Z",
+      "createdAt": "2025-07-31T12:00:00Z",
       "participants": 1188,
       "description": "Raccoon racetrack economics: four pools, one finish line, zero hidden fees.",
       "socials": [
@@ -2056,7 +2056,7 @@
           "raw": "38000",
           "decimals": 18
         },
-        "endsAt": "2026-08-02T12:00:00Z",
+        "endsAt": "2025-08-02T12:00:00Z",
         "leverageInterestRate": {
           "raw": "0.2",
           "unit": "ratio",
@@ -2083,7 +2083,7 @@
         }
       },
       "unlock": {
-        "unlockedAtTx": "2026-08-02T18:30:00Z"
+        "unlockedAtTx": "2026-08-02T12:00:00Z"
       }
     },
     {
@@ -2096,7 +2096,7 @@
       "symbol": "NNEWT",
       "stage": "unlocked",
       "governanceChain": 8453,
-      "createdAt": "2026-04-18T12:00:00Z",
+      "createdAt": "2025-05-08T12:00:00Z",
       "participants": 1697,
       "description": "Newtinance is inevitable — slow, steady, principal-conserving.",
       "socials": [
@@ -2134,7 +2134,7 @@
           "raw": "80000",
           "decimals": 18
         },
-        "endsAt": "2026-05-10T12:00:00Z",
+        "endsAt": "2025-05-10T12:00:00Z",
         "leverageInterestRate": {
           "raw": "0.2",
           "unit": "ratio",
@@ -2161,7 +2161,7 @@
         }
       },
       "unlock": {
-        "unlockedAtTx": "2026-05-10T20:00:00Z"
+        "unlockedAtTx": "2026-05-10T12:00:00Z"
       }
     },
     {
@@ -2174,7 +2174,7 @@
       "symbol": "LLAM",
       "stage": "unlocked",
       "governanceChain": 1,
-      "createdAt": "2026-03-25T12:00:00Z",
+      "createdAt": "2025-04-18T12:00:00Z",
       "participants": 3320,
       "description": "The llama carries yield across bridges so you do not have to.",
       "socials": [
@@ -2208,7 +2208,7 @@
           "raw": "260000",
           "decimals": 18
         },
-        "endsAt": "2026-04-20T12:00:00Z",
+        "endsAt": "2025-04-20T12:00:00Z",
         "leverageInterestRate": {
           "raw": "0.2",
           "unit": "ratio",
@@ -2235,7 +2235,7 @@
         }
       },
       "unlock": {
-        "unlockedAtTx": "2026-04-21T09:00:00Z"
+        "unlockedAtTx": "2026-04-20T12:00:00Z"
       }
     },
     {
@@ -2248,7 +2248,7 @@
       "symbol": "BBST",
       "stage": "unlocked",
       "governanceChain": 56,
-      "createdAt": "2026-06-05T12:00:00Z",
+      "createdAt": "2025-06-26T12:00:00Z",
       "participants": 942,
       "description": "Boosted beast economy with Fast Mode: thresholds end the genesis early.",
       "socials": [
@@ -2282,7 +2282,7 @@
           "raw": "26000",
           "decimals": 18
         },
-        "endsAt": "2026-06-28T12:00:00Z",
+        "endsAt": "2025-06-28T12:00:00Z",
         "leverageInterestRate": {
           "raw": "0.2",
           "unit": "ratio",
@@ -2309,7 +2309,7 @@
         }
       },
       "unlock": {
-        "unlockedAtTx": "2026-06-28T17:00:00Z"
+        "unlockedAtTx": "2026-06-28T12:00:00Z"
       }
     },
     {
@@ -2322,7 +2322,7 @@
       "symbol": "SWHL",
       "stage": "refund",
       "governanceChain": 1,
-      "createdAt": "2026-07-02T12:00:00Z",
+      "createdAt": "2026-07-31T12:00:00Z",
       "participants": 512,
       "description": "Slow whale surfaces only for audited launches and full refunds.",
       "socials": [
@@ -2378,9 +2378,9 @@
       "symbol": "FFROG",
       "stage": "refund",
       "governanceChain": 56,
-      "createdAt": "2026-07-20T12:00:00Z",
+      "createdAt": "2026-08-13T12:00:00Z",
       "participants": 344,
-      "description": "Fortune frog flips four pools; settlement residual shared pro rata.",
+      "description": "Fortune frog flips four pools. Settlement residual shared pro rata.",
       "socials": [
         {
           "kind": "website",
@@ -2438,7 +2438,7 @@
       "symbol": "CFUS",
       "stage": "refund",
       "governanceChain": 8453,
-      "createdAt": "2026-06-28T12:00:00Z",
+      "createdAt": "2026-07-28T12:00:00Z",
       "participants": 276,
       "description": "Confused fusion of memes with very clear mechanics — read the briefs.",
       "socials": [
@@ -2490,7 +2490,7 @@
       "symbol": "DPXL",
       "stage": "refund",
       "governanceChain": 1,
-      "createdAt": "2026-06-10T12:00:00Z",
+      "createdAt": "2026-07-10T12:00:00Z",
       "participants": 187,
       "description": "Deprecated pixel, revived economy: community POL, locked liquidity, live counts.",
       "socials": [
@@ -2550,9 +2550,9 @@
       "symbol": "LTIDE",
       "stage": "refund",
       "governanceChain": 56,
-      "createdAt": "2026-05-15T12:00:00Z",
+      "createdAt": "2026-06-18T12:00:00Z",
       "participants": 233,
-      "description": "Low tide reveals the liquidity; high tide rides the four-pool current.",
+      "description": "Low tide reveals the liquidity. High tide rides the four-pool current.",
       "socials": [
         {
           "kind": "website",

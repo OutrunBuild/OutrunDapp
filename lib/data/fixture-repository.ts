@@ -9,7 +9,6 @@ import type { VerseStage } from './types';
 import { PROTECTION_WINDOW_MS } from './types';
 
 export const DATA_SOURCE_MARKER = OUTRUN_FIXTURE_ONLY_v1;
-export const FIXTURE_ONLY_SENTINEL = DATA_SOURCE_MARKER;
 
 export const fixtureRepository = {
   marker: DATA_SOURCE_MARKER,
@@ -20,7 +19,6 @@ export const fixtureRepository = {
   positions: () => fixtureData.positions.items,
   psm: () => fixtureData.psm.items,
   usrVaults: () => fixtureData.usrVaults.items,
-  bridgeMessages: () => fixtureData.bridgeMessages.items,
   transactions: () => fixtureData.transactions.items,
   governance: () => fixtureData.governance.items,
   staking: () => fixtureData.staking.items,
@@ -39,7 +37,6 @@ export const fixtureRepository = {
 // Chain/Locale/VerseStage live in lib/data/types.ts; this re-export keeps existing
 // consumers (components domain components etc.) untouched.
 export type { ChainInfo, Locale, VerseStage } from './types';
-import type { ChainInfo as ChainInfoType } from './types';
 
 // Shared ViewModel types live in the neutral leaf ./view-models (re-exported here so existing
 // component consumers stay untouched; the onchain RPC/Graph repository imports the same shapes)
@@ -48,10 +45,7 @@ import type {
   CreateConfig,
   Referral,
   ReferralAssetAmount,
-  ReferralTransaction,
-  ReferralFriend,
   Faucet,
-  FaucetToken,
 } from './view-models';
 
 export type {
@@ -64,14 +58,6 @@ export type {
   FaucetToken,
   Faucet,
 } from './view-models';
-export type FixtureCreateConfig = CreateConfig;
-export type FixtureReferralAssetAmount = ReferralAssetAmount;
-export type FixtureReferralTransaction = ReferralTransaction;
-export type FixtureReferralFriend = ReferralFriend;
-export type FixtureReferral = Referral;
-export type FixtureFaucetToken = FaucetToken;
-export type FixtureFaucet = Faucet;
-export type FixtureChain = ChainInfoType;
 
 export type Market = SourceRecord & {
   verseId: string;
@@ -121,9 +107,14 @@ export type Verse = SourceRecord & {
   chainName: string;
   /** Cross-chain totals for the fact row (same uAsset denomination on every chain): the verse's
    * raised sums across all registered chains. Single-chain Progress/Success-threshold meters
-   * never use these — each chain settles its own genesis independently. */
-  omniRaised: number;
-  omniParticipantCount: number;
+   * never use these — each chain settles its own genesis independently. null = at least one
+   * chain's read failed, so the total is unknown; the fact-row slot degrades instead of
+   * presenting the known legs as the all-chain total. */
+  omniRaised: number | null;
+  /** Same completeness contract as omniRaised: null = at least one chain's read failed, so the
+   *  all-chain count is unknown; the participants slot degrades instead of showing a partial
+   *  sum as the cross-chain total. */
+  omniParticipantCount: number | null;
   /** Registered omnichain chain ids, first = governance chain (on-chain registration truth).
    * This is the registration request set — not every chain necessarily landed the verse. */
   omnichainIds: number[] | null;
@@ -135,7 +126,9 @@ export type Verse = SourceRecord & {
    *  rows by the connected wallet's chain. null/absent = single-row sources (fixture build)
    *  keep the canonical props. Keyed by chain id as string (RSC-serializable). */
   chainAggregates?: Record<string, VerseChainAggregates> | null;
-  createdAt: string;
+  /** null = the source timestamp is outside the representable date range (dirty index row):
+   *  the slot does not render instead of failing the whole row */
+  createdAt: string | null;
   participantCount: number;
   /** One-line description (registration-phase metadata); fixture missing=null -> UI does not render */
   description: string | null;
@@ -151,11 +144,16 @@ export type Verse = SourceRecord & {
   leverageInterest: number;
   preorderRaised: number;
   participationSize: number;
-  raiseAsset: string;
+  /** Raise uAsset symbol resolved from the on-chain address via the deployment tables
+   *  (onchain build); null = address outside the tables — every raise-asset slot degrades
+   *  (cap/labels hide, participation and swap lookups fail closed) instead of borrowing a
+   *  known symbol with a real price */
+  raiseAsset: string | null;
   normalProgress: number;
   leverageProgress: number;
   preorderProgress: number;
-  endsAt: string;
+  /** null = the source timestamp is outside the representable date range (dirty index row) */
+  endsAt: string | null;
   /** Preorder capacity ratio snapshot (capacity=(normal funds + leverage debt principal)×70%×capacity ratio); fixture missing=null -> UI does not render */
   preorderCapacityRatio: number | null;
   /** Leverage one-time interest rate snapshot (locked at registration, not annualized; debt allowance=interest÷rate); fixture missing=null -> UI does not render */
@@ -170,8 +168,9 @@ export type Verse = SourceRecord & {
   preorderRemainingBase: string | null;
   /** Fast Mode: genesis ends early once any threshold is met (false when the fixture does not mark it) */
   fastGenesis: boolean;
-  /** Unlock time = genesis deadline + FIXED_LOCKUP_DURATION(365d); shown on locked/unlocked cards */
-  unlockTimeAt: string;
+  /** Unlock time = genesis deadline + FIXED_LOCKUP_DURATION(365d); shown on locked/unlocked cards.
+   *  null = the source timestamp is outside the representable date range (dirty index row) */
+  unlockTimeAt: string | null;
   /** 24h four-pool volume snapshot (in uAsset); fixture missing=null -> UI shows an unavailable slot */
   volume24h: number | null;
   /** Staking APY snapshot (percentage value, 5.688 ratio -> 568.8); fixture missing=null -> UI shows an unavailable slot */
@@ -302,7 +301,7 @@ function buildSnapshot(): Snapshot {
     const raiseAsset = `U${chainMeta.get(verse.governanceChain)?.nativeSymbol ?? 'Asset'}`;
     const raiseAssetUsd =
       fixtureData.assets.items.find((asset) => asset.symbol === raiseAsset)?.usdPrice ?? null;
-    // Market cap per stage: genesis = raised × 2 × uAsset USD sample (user-ruled formula);
+    // Market cap per stage: genesis = raised × 2 × uAsset USD sample;
     // deployed = candle close × tokenStats total supply (the trade-desk MC convention);
     // refund never deployed a memecoin → null
     const deployedSupply = mainMarket?.tokenStats
@@ -436,8 +435,11 @@ function buildSnapshot(): Snapshot {
   };
 }
 
+let _snapshot: Snapshot | null = null;
+
 export function getSnapshot() {
-  return buildSnapshot();
+  if (!_snapshot) _snapshot = buildSnapshot();
+  return _snapshot;
 }
 
 /** Home KPI band. Onchain twin: lib/data/onchain-source.ts getHomeMetrics — ProtocolStats
@@ -559,9 +561,15 @@ export type ParticipationOptions = {
  *  @param execChainId wallet-execution chain — fixture samples are chain-agnostic so it is unused
  *  here; the on-chain twin scopes its stake-source reads by it (signature parity across builds). */
 export function getParticipationOptions(
-  raiseAssetSymbol: string,
+  raiseAssetSymbol: string | null,
   _execChainId?: number,
 ): ParticipationOptions {
+  // Unknown raise asset (onchain build: address outside the deployment tables) — every
+  // participation route fails closed; empty options also keep the panel's direct-pay
+  // toggle disabled instead of borrowing a deployed family's contracts
+  if (raiseAssetSymbol == null) {
+    return { raiseAsset: null, reserves: [], yieldSourceRegistry: [], creditAsset: null };
+  }
   const raiseAsset = fixtureData.assets.items.find(
     (asset) => asset.kind === 'uasset' && asset.symbol === raiseAssetSymbol,
   );
@@ -664,8 +672,6 @@ export function getCreateConfig(): CreateConfig | null {
     minDurationDays: config.minDurationDays,
     maxDurationDays: config.maxDurationDays,
     lockupDays: config.lockupDays,
-    remoteDeployFee: amount(config.remoteDeployFee.raw),
-    remoteSendFee: amount(config.remoteSendFee.raw),
     sourceRef: config.sourceRef,
   };
 }
@@ -718,8 +724,9 @@ export type VerseTrade = {
     change24h: number | null;
     /** Market cap = current price × total supply (derived); null=any input missing */
     marketCap: number | null;
-    /** Main-pool TVL (stats-bar convention; the four-pool total is computed by the Liquidity tab itself) */
-    liquidity: number;
+    /** Main-pool TVL (stats-bar convention; the four-pool total is computed by the Liquidity tab itself).
+     *  null = uAsset USD sample missing (feed failure / unresolved raise asset) -> the $ slot hides */
+    liquidity: number | null;
     /** Main-pool 24h volume; null=main-pool volume missing */
     volume24h: number | null;
     holders: number | null;
@@ -728,7 +735,10 @@ export type VerseTrade = {
     tokenAddress: string | null;
   };
   pools: Array<
-    Market & {
+    Omit<Market, 'tvl'> & {
+      /** USD-denominated pool TVL; null = uAsset USD sample missing — the uAsset-unit raw value
+       *  is deliberately NOT rendered with a $ prefix (never a constant-ratio stand-in) */
+      tvl: number | null;
       /** Both-side asset symbols of the pool (display order: MEME first); uAsset side = the verse's raise asset */
       baseSymbol: string;
       quoteSymbol: string;
@@ -743,8 +753,15 @@ const HISTORY_TOTAL_HOURLY = 8760;
  *  === fixture first candle's open), a deterministic random walk toward the past extends it to ~1 year -- drift accumulates
  *  only in the seam-less far end, with zero jump at the seam (anchor at the newest end so the seam stays continuous);
  *  results are constant for a given verseId; onchain mode defers to data-source pagination */
+const _historyCache = new Map<string, Candle[]>();
+
 function extendHourlyHistory(candles: Candle[], seedKey: string): Candle[] {
   if (candles.length === 0 || candles.length >= HISTORY_TOTAL_HOURLY) return candles;
+  const cached = _historyCache.get(seedKey);
+  if (cached) return cached;
+  // FNV-1a seeding, the variant shared with scripts/gen-candle-volumes.mjs; price-candle generators
+  // use murmur-style seeding (1779033703) instead -- the two variants are not interchangeable
+  // (variant registry in fixtures/README.md).
   let seed = 2166136261;
   for (const ch of seedKey) seed = Math.imul(seed ^ ch.charCodeAt(0), 16777619);
   const rnd = () => {
@@ -773,7 +790,9 @@ function extendHourlyHistory(candles: Candle[], seedKey: string): Candle[] {
     price = open;
   }
   older.reverse();
-  return [...older, ...candles];
+  const result = [...older, ...candles];
+  _historyCache.set(seedKey, result);
+  return result;
 }
 
 export function getVerseTrade(verseId: string): VerseTrade | null {
@@ -820,9 +839,9 @@ export function getVerseTrade(verseId: string): VerseTrade | null {
     const polSymbol = `POL-${verse.symbol}`;
     const ptSymbol = `PT-${verse.symbol}`;
     const pair: Record<Market['pool'], [string, string]> = {
-      main: [verse.symbol, verse.raiseAsset],
-      'pol-uasset': [polSymbol, verse.raiseAsset],
-      'pt-uasset': [ptSymbol, verse.raiseAsset],
+      main: [verse.symbol, verse.raiseAsset ?? ''],
+      'pol-uasset': [polSymbol, verse.raiseAsset ?? ''],
+      'pt-uasset': [ptSymbol, verse.raiseAsset ?? ''],
       'pt-pol': [ptSymbol, polSymbol],
     };
     return { ...market, baseSymbol: pair[market.pool][0], quoteSymbol: pair[market.pool][1] };
@@ -877,7 +896,8 @@ export type Staking = {
 };
 
 /** uAsset USD sample price (fixture dummy data; missing returns null -> UI hides the USD conversion row) */
-export function getAssetUsdPrice(symbol: string): number | null {
+export function getAssetUsdPrice(symbol: string | null): number | null {
+  if (symbol == null) return null;
   const asset = fixtureData.assets.items.find((item) => item.symbol === symbol);
   return asset?.usdPrice ?? null;
 }
@@ -913,15 +933,16 @@ export function getStaking(verseId: string): Staking | null {
 
 export type PolPosition = {
   polAddress: string;
-  polSupply: number;
+  /** POL totalSupply; 0=honestly zero supply, null=totalSupply read failed (unknown) */
+  polSupply: number | null;
   /** uAsset-side amount of the main pool per 1 POL */
   uAssetPerPol: number;
   /** Nominal value = 2 × uAssetPerPol (full-range simplification; derived) */
   nominalValuePerPol: number;
-  /** POL/uAsset pool market price */
-  marketPricePerPol: number;
-  /** PT/POL pool market price per 1 PT (YT implied price=1−this value, from the "1 POL=1 PT+1 YT" identity) */
-  ptPricePerPol: number;
+  /** POL/uAsset pool market price; 0=honestly empty pool (no LP), null=pool read failed (unknown, not worthless — gauge slots) */
+  marketPricePerPol: number | null;
+  /** PT/POL pool market price per 1 PT (YT implied price=1−this value, from the "1 POL=1 PT+1 YT" identity); 0=empty pool, null=read failed */
+  ptPricePerPol: number | null;
   /** Flash Swap user fee-rate sample (sample band 0.3%-85% of the user's payment; spectrum <1% to very high); null=no static sample → the dialog's fee row slots */
   flashUserFeeRate: number | null;
   /** Connected-account balances; null=accountless/unknown → '--' slots (never fake zeros: a 0 would gate dialogs' input checks) */
@@ -1012,8 +1033,12 @@ export type GovernanceAsset = {
 export type GovernanceState = {
   cycleNumber: string;
   cycleDurationDays: number;
-  cycleEndsAt: string;
-  finalized: boolean;
+  /** null = the source timestamp is outside the representable date range (dirty index row) */
+  cycleEndsAt: string | null;
+  /** Cycle finalized (subgraph read; query ok but cycle unindexed reads false). null = subgraph
+   *  unreadable (fault/unconfigured) — the settle banner and cycle chip degrade, never masquerade
+   *  as "not finalized" */
+  finalized: boolean | null;
   claimWindowEndsAt: string | null;
   governorAddress: string | null;
   incentivizerAddress: string | null;
@@ -1031,10 +1056,12 @@ export type GovernanceState = {
   estimatedClaimable: number | null;
   lastCycle: {
     number: string;
-    treasuryUAsset: number;
+    /** Previous cycle's end-of-cycle treasury USD (null=pricing unavailable -> row not rendered) */
+    treasuryUAsset: number | null;
     /** Previous cycle's end-of-cycle treasury composition sample (null=no sample -> breakdown entry not rendered) */
     treasuryAssets: GovernanceAsset[] | null;
-    remainingRewards: number;
+    /** Unclaimed previous-cycle rewards USD (null=pricing unavailable -> row not rendered) */
+    remainingRewards: number | null;
     totalVotes: number;
     myVotes: number | null;
     myClaimable: number | null;
@@ -1043,7 +1070,9 @@ export type GovernanceState = {
     /** Unclaimed-reward composition sample (null=no sample -> breakdown entry not rendered) */
     unclaimedAssets: GovernanceAsset[] | null;
   } | null;
-  proposalCount: { total: number; active: number };
+  /** Governor's proposal totals (subgraph read). null = subgraph unreadable — the proposals row
+   *  is not rendered rather than showing a fabricated 0 */
+  proposalCount: { total: number; active: number } | null;
 };
 
 /** DAO governance cycle state sample (locked/unlocked verse; null=no governance sample for this verse -> DAO tab shows only the heading) */
@@ -1096,9 +1125,13 @@ export function getGovernanceState(verseId: string): GovernanceState | null {
     lastCycle: record.lastCycle
       ? {
           number: record.lastCycle.number,
-          treasuryUAsset: amount(record.lastCycle.treasuryUAsset.raw),
+          treasuryUAsset: record.lastCycle.treasuryUAsset
+            ? amount(record.lastCycle.treasuryUAsset.raw)
+            : null,
           treasuryAssets: mapAssets(record.lastCycle.treasuryAssets),
-          remainingRewards: amount(record.lastCycle.remainingRewards.raw),
+          remainingRewards: record.lastCycle.remainingRewards
+            ? amount(record.lastCycle.remainingRewards.raw)
+            : null,
           totalVotes: amount(record.lastCycle.totalVotes.raw),
           myVotes: amount(record.lastCycle.myVotes.raw),
           myClaimable: amount(record.lastCycle.myClaimable.raw),
@@ -1245,38 +1278,6 @@ export function getPsmPair(uAssetSymbol: string): PsmPair | null {
   };
 }
 
-/** Cross-chain message view (section (2) in-transit/stranded; no cross-chain history is shown) */
-export type BridgeMessageView = {
-  id: string;
-  fromChainId: number;
-  fromChainName: string;
-  toChainId: number;
-  toChainName: string;
-  assetSymbol: string;
-  amount: number;
-  sentAt: string;
-  stage: 'sent' | 'delivered' | 'settled' | 'stranded';
-  /** 6-decimal remainder left on the source chain; null=no remainder */
-  remainder: number | null;
-};
-
-export function getBridgeMessages(): BridgeMessageView[] {
-  const chainMeta = new Map(fixtureData.chains.items.map((chain) => [chain.chainId, chain]));
-  const assetMeta = new Map(fixtureData.assets.items.map((asset) => [asset.id, asset]));
-  return fixtureData.bridgeMessages.items.map((row) => ({
-    id: row.id,
-    fromChainId: row.fromChain,
-    fromChainName: chainMeta.get(row.fromChain)?.name ?? String(row.fromChain),
-    toChainId: row.toChain,
-    toChainName: chainMeta.get(row.toChain)?.name ?? String(row.toChain),
-    assetSymbol: assetMeta.get(row.assetId)?.symbol ?? '',
-    amount: amount(row.amount.raw),
-    sentAt: row.sentAt,
-    stage: row.stage as BridgeMessageView['stage'],
-    remainder: row.remainderOnSource ? amount(row.remainderOnSource.raw) : null,
-  }));
-}
-
 /** CDP position view (section (3)): debt unit derived via the yield-sources registry anchor family (Lido->ETH->UETH) */
 export type CdpPosition = {
   id: string;
@@ -1420,7 +1421,7 @@ export type PortfolioActionKind = 'protection' | 'incentive' | 'vault-ready' | '
 export type PortfolioAction = {
   kind: PortfolioActionKind;
   /** Single-verse target (aggregate card=null) */
-  verse: { id: string; symbol: string; name: string; raiseAsset: string } | null;
+  verse: { id: string; symbol: string; name: string; raiseAsset: string | null } | null;
   /** Deep-link target for the action row; null when the action has no single-verse destination (currently unconsumed -- incentive rows carry their own verse) */
   focusVerseId: string | null;
   /** Aggregate count (null=single card) */
@@ -1543,7 +1544,7 @@ export function getPortfolioActions(): PortfolioAction[] {
       (
         row,
       ): row is {
-        verse: { id: string; symbol: string; name: string; raiseAsset: string };
+        verse: { id: string; symbol: string; name: string; raiseAsset: string | null };
         total: number;
       } => row !== null,
     );
@@ -1577,10 +1578,11 @@ export type ParticipationRow = {
     symbol: string;
     name: string;
     stage: VerseStage;
-    raiseAsset: string;
-    endsAt: string;
+    raiseAsset: string | null;
+    /** null = the source timestamp is outside the representable date range (dirty index row) */
+    endsAt: string | null;
     /** Genesis deadline + 365d fixed lockup (contract constant) = expected unlock date for locked rows */
-    unlockAt: string;
+    unlockAt: string | null;
     unlockedAt: string | null;
   };
   /** Genesis-stage participation total (split by kind) + staking participation route flag */
@@ -1622,16 +1624,23 @@ export function getParticipationRows(): ParticipationRow[] {
       unlockedAt: verse.unlockedAt,
     };
     if (verse.stage === 'genesis' && mine.length > 0) {
+      // Leverage leg on the participation basis: the snapshot rate converts interest to its
+      // debt principal (verse-stat parity); a rate-null snapshot counts the interest as itself
+      const leverageRate = verse.leverageInterestRate;
+      const leveragedFunds = (amount: number) => (leverageRate ? amount / leverageRate : amount);
       rows.push({
         verse: head,
         genesis: {
-          total: mine.reduce((sum, row) => sum + row.amount, 0),
+          total: mine.reduce(
+            (sum, row) => sum + (row.kind === 'leverage' ? leveragedFunds(row.amount) : row.amount),
+            0,
+          ),
           normal: mine
             .filter((row) => row.kind === 'normal')
             .reduce((sum, row) => sum + row.amount, 0),
           leverage: mine
             .filter((row) => row.kind === 'leverage')
-            .reduce((sum, row) => sum + row.amount, 0),
+            .reduce((sum, row) => sum + leveragedFunds(row.amount), 0),
           preorder: mine
             .filter((row) => row.kind === 'preorder')
             .reduce((sum, row) => sum + row.amount, 0),
@@ -1768,61 +1777,3 @@ export function getFaucet(): Faucet | null {
     },
   };
 }
-
-// Backward-compatible aliases (fixture-era names; new code uses the prefix-free names).
-// TODO: remove after all component imports migrate to the new names.
-export type FixtureMarket = Market;
-export type FixtureSocial = Social;
-export type FixtureVerse = Verse;
-export type FixtureAsset = Asset;
-export type FixtureSnapshot = Snapshot;
-export type FixtureParticipation = Participation;
-export type FixtureYieldSource = YieldSource;
-export type FixtureParticipationOptions = ParticipationOptions;
-export type FixtureCandle = Candle;
-export type FixtureFineCandles = FineCandles;
-export type FixtureVerseTrade = VerseTrade;
-export type FixtureStaking = Staking;
-export type FixturePolPosition = PolPosition;
-export type FixtureGovernanceAsset = GovernanceAsset;
-export type FixtureGovernanceState = GovernanceState;
-export type FixtureWalletAsset = WalletAsset;
-export type FixturePsmPair = PsmPair;
-export type FixtureBridgeMessageView = BridgeMessageView;
-export type FixtureCdpPosition = CdpPosition;
-export type FixtureUsrSavings = UsrSavings;
-export type FixtureVaultRow = VaultRow;
-export type FixturePortfolioAction = PortfolioAction;
-export type FixtureParticipationRow = ParticipationRow;
-
-export {
-  getSnapshot as getFixtureSnapshot,
-  getChainVerses as getFixtureChainVerses,
-  getVerseChainIds as getFixtureVerseChainIds,
-  getChainVersePage as getFixtureChainVersePage,
-  getVerse as getFixtureVerse,
-  getParticipationOptions as getFixtureParticipationOptions,
-  getParticipations as getFixtureParticipations,
-  getCreateConfig as getFixtureCreateConfig,
-  getOccupiedSymbols as getFixtureOccupiedSymbols,
-  getChains as getFixtureChains,
-  getVerseTrade as getFixtureVerseTrade,
-  getAssetUsdPrice as getFixtureAssetUsdSample,
-  getStaking as getFixtureStaking,
-  getPolPosition as getFixturePolPosition,
-  getGovernanceState as getFixtureGovernanceState,
-  getWalletAssets as getFixtureWalletAssets,
-  getReserveBalances as getFixtureReserveBalances,
-  getWalletBalances as getFixtureWalletBalances,
-  getPsmPair as getFixturePsmPair,
-  getBridgeMessages as getFixtureBridgeMessages,
-  getCdpPositions as getFixtureCdpPositions,
-  getUsrSavings as getFixtureUsrSavings,
-  getVaultRows as getFixtureVaultRows,
-  getPortfolioActions as getFixturePortfolioActions,
-  getParticipationRows as getFixtureParticipationRows,
-  getPortfolioSignals as getFixturePortfolioSignals,
-  getReferral as getFixtureReferral,
-  getFaucet as getFixtureFaucet,
-};
-export const getAssetUsdSample = getAssetUsdPrice;

@@ -499,3 +499,113 @@ describe('structured unavailable states (never throws, never falls back)', () =>
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Governance cycle rows: the body multicall drops the previous-cycle legs when cycleId is 0,
+// so treasury/rewards sit at different indices per branch. A fixed index would silently serve
+// the previous cycle's timing row as this cycle's treasury.
+// ---------------------------------------------------------------------------
+
+describe('getGovernanceSnapshot (hasPrevious row indexing)', () => {
+  const INCENTIVIZER = '0x3333333333333333333333333333333333333333';
+
+  it('maps a genesis cycle (cycleId 0) with the previous-less layout', async () => {
+    const { repo, port } = setup();
+    const p = port(97);
+    p.enqueue('currentCycleId', 0n);
+    p.enqueue('CYCLE_DURATION', 86_400n);
+    // body = [cycleInfo(0), getTreasuryBalances(0), getRemainingClaimableRewards]
+    p.enqueue('cycleInfo', [11n, 22n, 33n]);
+    p.enqueue('getTreasuryBalances', [['0xt0'], [7n]]);
+    p.enqueue('getRemainingClaimableRewards', [['0xr0'], [9n]]);
+
+    const r = await repo.getGovernanceSnapshot(97, INCENTIVIZER);
+    expect(r).toMatchObject({
+      status: 'ok',
+      data: {
+        currentCycleId: 0n,
+        cycleDurationSecs: 86_400n,
+        current: { startTime: 11n, endTime: 22n, totalVotes: 33n },
+        previous: null,
+        treasury: { tokens: ['0xt0'], balances: [7n] },
+        previousTreasury: null,
+        rewards: { tokens: ['0xr0'], amounts: [9n] },
+      },
+    });
+  });
+
+  it('shifts treasury/rewards indices when a previous cycle exists', async () => {
+    const { repo, port } = setup();
+    const p = port(97);
+    p.enqueue('currentCycleId', 2n);
+    p.enqueue('CYCLE_DURATION', 86_400n);
+    // body = [cycleInfo(2), cycleInfo(1), treasury(2), treasury(1), rewards]
+    p.enqueue('cycleInfo', [100n, 200n, 300n]);
+    p.enqueue('cycleInfo', [10n, 20n, 30n]);
+    p.enqueue('getTreasuryBalances', [['0xcur'], [5n]]);
+    p.enqueue('getTreasuryBalances', [['0xprev'], [6n]]);
+    p.enqueue('getRemainingClaimableRewards', [['0xrw'], [7n]]);
+
+    const r = await repo.getGovernanceSnapshot(97, INCENTIVIZER);
+    expect(r).toMatchObject({
+      status: 'ok',
+      data: {
+        current: { startTime: 100n, endTime: 200n, totalVotes: 300n },
+        previous: { startTime: 10n, endTime: 20n, totalVotes: 30n },
+        treasury: { tokens: ['0xcur'], balances: [5n] },
+        previousTreasury: { tokens: ['0xprev'], balances: [6n] },
+        rewards: { tokens: ['0xrw'], amounts: [7n] },
+      },
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Stake sources: the registry is chain-read, so an SP bound to another uAsset family must be
+// filtered out; a failed anchor preview degrades that token to null instead of blocking the row.
+// ---------------------------------------------------------------------------
+
+describe('getStakeSources (family binding + preview degradation)', () => {
+  const UUSD = '0x00000000000000000000000000000000000000aa';
+  const UETH = '0x00000000000000000000000000000000000000bb';
+  const SY_USDS = '0x00000000000000000000000000000000000000c1';
+  const SY_AUSDC = '0x00000000000000000000000000000000000000c2';
+  const SY_LISBNB = '0x00000000000000000000000000000000000000c3';
+  const TOKEN_A = '0x00000000000000000000000000000000000000d1';
+  const TOKEN_B = '0x00000000000000000000000000000000000000d2';
+  const ZERO = '0x0000000000000000000000000000000000000000';
+
+  it('keeps only the requested family and nulls a failed preview leg', async () => {
+    const { repo, port } = setup();
+    const p = port(97);
+    // deployment order in deployments/97.json: sUSDS, aUSDC, slisBNB
+    p.enqueue('uAsset', UUSD, UETH, UUSD);
+    p.enqueue('SY', SY_USDS, SY_AUSDC, SY_LISBNB);
+    // kept sources in deployment order: sUSDS then slisBNB (one zero placeholder dropped)
+    p.enqueue('getTokensIn', [TOKEN_A, ZERO]);
+    p.enqueue('getTokensIn', [TOKEN_B]);
+    p.enqueue('symbol', 'USDS', 'LISBNB');
+    p.enqueue('decimals', 18, 18);
+    p.enqueue('previewStakeFromToken', 2n * 10n ** 18n, new Error('preview reverted'));
+
+    const r = await repo.getStakeSources(97, UUSD);
+    expect(r.status).toBe('ok');
+    const rows = r.status === 'ok' ? r.data : [];
+    expect(rows.map((row) => row.name)).toEqual([
+      'OutrunStakingPosition.sUSDS',
+      'OutrunStakingPosition.slisBNB',
+    ]);
+    expect(rows[0].tokens).toEqual([
+      {
+        address: TOKEN_A,
+        symbol: 'USDS',
+        decimals: 18,
+        anchorValue: 2,
+        previewBase: 2n * 10n ** 18n,
+      },
+    ]);
+    expect(rows[1].tokens).toEqual([
+      { address: TOKEN_B, symbol: 'LISBNB', decimals: 18, anchorValue: null, previewBase: null },
+    ]);
+  });
+});

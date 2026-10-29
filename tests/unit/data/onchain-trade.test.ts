@@ -28,7 +28,7 @@ const E = 10n ** 18n;
 const ok = <T>(data: T) => ({ status: 'ok' as const, data });
 const unavailable = { status: 'unavailable' as const, reason: 'rpc-error', detail: 'test' };
 
-function view(verseId: bigint) {
+function view(verseId: bigint, uAsset: string = UUSD) {
   return {
     chainId: 97,
     verseId,
@@ -36,7 +36,7 @@ function view(verseId: bigint) {
     symbol: 'OSMK',
     stage: 'locked' as const,
     flashGenesis: false,
-    uAsset: UUSD,
+    uAsset,
     memecoin: MEMECOIN,
     pol: POL,
     yieldVault: null,
@@ -98,10 +98,13 @@ const QUOTE_OF: Record<string, string> = {
   'pt-pol': POL,
 };
 
-async function wireComposition(verseId: bigint, opts?: { zeroMain?: boolean }) {
+async function wireComposition(
+  verseId: bigint,
+  opts?: { zeroMain?: boolean; zeroKinds?: string[]; failKinds?: string[]; uAsset?: string },
+) {
   const { hookPoolKey, poolIdOf } = await import('../../../lib/web3/pool-quote');
   graphMock.getVerseDetail.mockImplementation((chainId: number, id: bigint) =>
-    Promise.resolve(chainId === 97 && id === verseId ? ok(view(verseId)) : ok(null)),
+    Promise.resolve(chainId === 97 && id === verseId ? ok(view(verseId, opts?.uAsset)) : ok(null)),
   );
   rpcMock.getVerseFinancials.mockResolvedValue(unavailable);
   rpcMock.getVerseRuntime.mockResolvedValue(unavailable);
@@ -119,11 +122,13 @@ async function wireComposition(verseId: bigint, opts?: { zeroMain?: boolean }) {
   rpcMock.getTokenTotalSupply.mockResolvedValue(ok(1_000_000n * E));
   rpcMock.getPoolLpSupply.mockImplementation((_chainId: number, _hook: string, poolId: string) => {
     const kind = poolKindOf(poolId);
-    return Promise.resolve(ok(kind === 'main' && opts?.zeroMain ? 0n : 1_000n * E));
+    const zero = (kind === 'main' && opts?.zeroMain) || opts?.zeroKinds?.includes(kind);
+    return Promise.resolve(ok(zero ? 0n : 1_000n * E));
   });
   rpcMock.getPoolReserveAmounts.mockImplementation(
     (_chainId: number, _router: string, base: string, _quote: string, liquidity: bigint) => {
       const kind = baseKindOf(base, _quote);
+      if (opts?.failKinds?.includes(kind)) return Promise.resolve(unavailable);
       const [amountBase, amountQuote] = PAIRS[kind]!;
       return Promise.resolve(ok(liquidity <= 0n ? [0n, 0n] : [amountBase, amountQuote]));
     },
@@ -201,6 +206,33 @@ describe('getVerseTrade onchain composition', () => {
     expect(trade!.tokenStats.liquidity).toBe(0);
   });
 
+  it('a drained backing pool nulls the cross-priced leg instead of halving its TVL', async () => {
+    // PT/uAsset LP fully burned: the PT side of pt-pol has no conversion price, so that
+    // pool's value is unknown — never the POL half dressed up as the whole pool.
+    await wireComposition(9005n, { zeroKinds: ['pt-uasset'] });
+    const adapter = await import('../../../lib/data/onchain-source');
+    const trade = await adapter.getVerseTrade('9005');
+    const byKind = new Map(trade!.pools.map((pool) => [pool.pool, pool]));
+    expect(byKind.get('pt-uasset')!.tvl).toBe(0);
+    expect(byKind.get('pt-pol')!.tvl).toBeNull();
+    // self-priced legs stay intact
+    expect(byKind.get('main')!.tvl).toBeCloseTo(2000, 6);
+    expect(byKind.get('pol-uasset')!.tvl).toBeCloseTo(2000, 6);
+    expect(trade!.tokenStats.liquidity).toBeCloseTo(2000, 6);
+  });
+
+  it('a failed reserve read is unknown, not an empty pool', async () => {
+    await wireComposition(9006n, { failKinds: ['pol-uasset'] });
+    const adapter = await import('../../../lib/data/onchain-source');
+    const trade = await adapter.getVerseTrade('9006');
+    const byKind = new Map(trade!.pools.map((pool) => [pool.pool, pool]));
+    expect(byKind.get('pol-uasset')!.tvl).toBeNull();
+    expect(byKind.get('pol-uasset')!.lpPerQuote).toBeNull();
+    // pt-pol's POL side loses its price -> whole leg unknown
+    expect(byKind.get('pt-pol')!.tvl).toBeNull();
+    expect(byKind.get('main')!.tvl).toBeCloseTo(2000, 6);
+  });
+
   it('a failed PT resolution collapses to the empty trade shape (never throws)', async () => {
     await wireComposition(9003n);
     rpcMock.getVersePtAddress.mockResolvedValue(unavailable);
@@ -220,7 +252,23 @@ describe('getVerseTrade onchain composition', () => {
     const adapter = await import('../../../lib/data/onchain-source');
     const trade = await adapter.getVerseTrade('9004');
     expect(trade!.pools).toEqual([]);
-    expect(trade!.tokenStats.liquidity).toBe(0);
+    expect(trade!.tokenStats.liquidity).toBeNull();
+  });
+
+  it('a missing USD sample nulls the $ slots (tvl/liquidity/marketCap) — never a ×1 stand-in', async () => {
+    // out-of-table uAsset -> raiseAsset null -> getAssetUsdPrice null: the same shape a
+    // UETH/UBNB feed failure produces (null sample entering buildVerseTrade)
+    await wireComposition(9301n, { uAsset: '0x0000000000000000000000000000000000000uasset' });
+    const adapter = await import('../../../lib/data/onchain-source');
+    const trade = await adapter.getVerseTrade('9301');
+    expect(trade).not.toBeNull();
+    expect(trade!.tokenStats.liquidity).toBeNull();
+    expect(trade!.tokenStats.marketCap).toBeNull();
+    expect(trade!.pools).toHaveLength(4);
+    expect(trade!.pools.every((pool) => pool.tvl === null)).toBe(true);
+    // non-USD slots stay: the uAsset-denominated pool price and the pool rows themselves
+    expect(trade!.tokenStats.price).toBeCloseTo(0.005, 12);
+    expect(trade!.pools.every((pool) => pool.baseSymbol.length > 0)).toBe(true);
   });
 });
 
@@ -310,6 +358,37 @@ describe('getPolPosition onchain', () => {
     wireSplit(9103n, { backingFails: true });
     const adapter = await import('../../../lib/data/onchain-source');
     expect(await adapter.getPolPosition('9103')).toBeNull();
+  });
+
+  it('a failed pool-leg read slots the prices (unknown, not 0) and keeps the position', async () => {
+    await wireComposition(9105n, { failKinds: ['pol-uasset'] });
+    wireSplit(9105n);
+    const adapter = await import('../../../lib/data/onchain-source');
+    const pol = await adapter.getPolPosition('9105');
+    expect(pol).not.toBeNull();
+    expect(pol!.marketPricePerPol).toBeNull();
+    expect(pol!.ptPricePerPol).toBeCloseTo(0.8, 12);
+  });
+
+  it('a failed totalSupply read slots polSupply null (unknown, not 0) and keeps the position', async () => {
+    await wireComposition(9107n);
+    rpcMock.getTokenTotalSupply.mockResolvedValue(unavailable);
+    wireSplit(9107n);
+    const adapter = await import('../../../lib/data/onchain-source');
+    const pol = await adapter.getPolPosition('9107');
+    expect(pol).not.toBeNull();
+    expect(pol!.polSupply).toBeNull();
+    expect(pol!.marketPricePerPol).toBeCloseTo(1.25, 12);
+  });
+
+  it('an honestly empty pool reads as price 0 (full gauge deviation), never unknown', async () => {
+    await wireComposition(9106n, { zeroKinds: ['pol-uasset'] });
+    wireSplit(9106n);
+    const adapter = await import('../../../lib/data/onchain-source');
+    const pol = await adapter.getPolPosition('9106');
+    expect(pol).not.toBeNull();
+    expect(pol!.marketPricePerPol).toBe(0);
+    expect(pol!.ptPricePerPol).toBeCloseTo(0.8, 12);
   });
 
   it('genesis verses have no POL position', async () => {
@@ -484,6 +563,9 @@ describe('getGovernanceState onchain', () => {
     expect(gov!.lastCycle).not.toBeNull();
     expect(gov!.lastCycle!.number).toBe('2');
     expect(gov!.lastCycle!.myVotes).toBeNull();
+    // previous treasury = 1000 UUSD (par 1); remaining rewards = 2e8 meme at main-pool 0.005
+    expect(gov!.lastCycle!.treasuryUAsset).toBeCloseTo(1_000, 0);
+    expect(gov!.lastCycle!.remainingRewards).toBeCloseTo(1_000_000, 0);
     expect(gov!.proposalCount).toEqual({ total: 3, active: 1 });
   });
 
@@ -512,6 +594,37 @@ describe('getGovernanceState onchain', () => {
     expect(gov!.cycleNumber).toBe('0');
   });
 
+  it('unpriced last-cycle treasury and rewards null the totals instead of a fabricated 0', async () => {
+    wireGov(9303n);
+    // Meme pricing dead (pool composition unavailable) → memecoin legs carry no USD total
+    rpcMock.getPoolLpSupply.mockResolvedValue(unavailable);
+    rpcMock.getGovernanceSnapshot.mockResolvedValue(
+      ok({
+        currentCycleId: 3n,
+        cycleDurationSecs: 90n * 86_400n,
+        current: {
+          startTime: 1_790_000_000n,
+          endTime: 1_790_000_000n + 90n * 86_400n,
+          totalVotes: 100n * E,
+        },
+        previous: {
+          startTime: 1_790_000_000n - 90n * 86_400n,
+          endTime: 1_790_000_000n,
+          totalVotes: 115n * E,
+        },
+        treasury: { tokens: [UUSD], balances: [2_000n * E] },
+        previousTreasury: { tokens: [MEMECOIN], balances: [500_000_000n * E] },
+        rewards: { tokens: [MEMECOIN], amounts: [200_000_000n * E] },
+      }),
+    );
+    const adapter = await import('../../../lib/data/onchain-source');
+    const gov = await adapter.getGovernanceState('9303');
+    expect(gov).not.toBeNull();
+    expect(gov!.lastCycle).not.toBeNull();
+    expect(gov!.lastCycle!.treasuryUAsset).toBeNull();
+    expect(gov!.lastCycle!.remainingRewards).toBeNull();
+  });
+
   it('a Verse row without governance addresses has no DAO state', async () => {
     // Row fields are settlement-deploy-event-written; missing/zero = none deployed → null
     wireGov(9303n);
@@ -521,6 +634,18 @@ describe('getGovernanceState onchain', () => {
     const adapter = await import('../../../lib/data/onchain-source');
     expect(await adapter.getGovernanceState('9303')).toBeNull();
     expect(rpcMock.getGovernanceSnapshot).not.toHaveBeenCalled();
+  });
+
+  it('subgraph failure degrades finalized/proposalCount to null instead of fabricated values', async () => {
+    wireGov(9304n);
+    graphMock.getGovernanceStatus.mockResolvedValue(unavailable);
+    const adapter = await import('../../../lib/data/onchain-source');
+    const gov = await adapter.getGovernanceState('9304');
+    expect(gov).not.toBeNull();
+    // RPC-side facts stay intact; only the unread graph slots go null (degrade, never fabricate)
+    expect(gov!.cycleNumber).toBe('3');
+    expect(gov!.finalized).toBeNull();
+    expect(gov!.proposalCount).toBeNull();
   });
 });
 

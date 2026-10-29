@@ -10,11 +10,6 @@ export type CreateConfig = {
   maxDurationDays: number;
   /** Fixed lockup: unlockTime = endTime + 365 days (FIXED_LOCKUP_DURATION contract constant, not a registration parameter) */
   lockupDays: number;
-  /** Cross-chain fan-out fee sample per remote chain (in governance-chain native asset; fee=0 for hub-chain targets); no registration fee */
-  remoteDeployFee: number;
-  /** LayerZero send fee sample for origin-chain -> registration-hub-chain when registering from a remote chain (quoteRegister;
-   *  same-chain origin=0); sample scenario assumption = governance chain is the registration hub chain */
-  remoteSendFee: number;
   sourceRef: string;
 };
 
@@ -47,9 +42,13 @@ export type ReferralFriend = {
 export type Referral = {
   /** Link owner=sample account (owner is not in referral.json, derived from accounts to prevent drift between the two) */
   owner: string;
-  referralCode: string;
-  /** Rebate rate (percentage of total fees; onchain mode reads hook referrerRebateBps()) */
-  ratePercent: number;
+  /** Invite short code (fixture sample slot; on-chain has no code→address registry yet).
+   *  null=onchain mode → the whole link panel renders nothing (never an empty-code link) */
+  referralCode: string | null;
+  /** Rebate rate (percentage of total fees; onchain mode reads hook referrerRebateBps()).
+   *  null=snapshot read failed (unknown, never 0%) → rate cell / split you+protocol /
+   *  {rate} step render no slot */
+  ratePercent: number | null;
   /** Cumulative earned USD (sum of earned × usdPrice; rows without a sample price count as 0) */
   totalEarnedUsd: number;
   /** Claimable USD (same convention) */
@@ -77,7 +76,9 @@ export type Faucet = {
   chainName: string;
   tokens: FaucetToken[];
   swap: {
-    uAssetSymbol: string;
+    /** uAsset side of the faucet swap; null = address unresolved from the deployment tables
+     *  (PSM lookup fails closed, symbol slots hide) */
+    uAssetSymbol: string | null;
     reserveSymbol: string;
     /** mint fee rate (ratio, 10bps->0.001) — display only; money math uses the wad below */
     feeIn: number;
@@ -95,12 +96,3 @@ export type Faucet = {
     myReserve: number;
   };
 };
-
-// Backward-compatible aliases (fixture-era names; new code uses the prefix-free names)
-export type FixtureCreateConfig = CreateConfig;
-export type FixtureReferralAssetAmount = ReferralAssetAmount;
-export type FixtureReferralTransaction = ReferralTransaction;
-export type FixtureReferralFriend = ReferralFriend;
-export type FixtureReferral = Referral;
-export type FixtureFaucetToken = FaucetToken;
-export type FixtureFaucet = Faucet;
