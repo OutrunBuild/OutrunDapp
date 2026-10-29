@@ -97,4 +97,11 @@ describe('sortVerses', () => {
     sortVerses(verses, 'size', 'asc');
     expect(verses.map((verse) => verse.id)).toEqual(before);
   });
+
+  it('an unrepresentable date key sinks to the end instead of poisoning the comparator', () => {
+    const [target, ...rest] = pick('verse-002', 'verse-026', 'verse-001');
+    const verses = [{ ...target!, endsAt: null }, ...rest];
+    expect(sortVerses(verses, 'endtime', 'asc').at(-1)!.id).toBe(target!.id);
+    expect(sortVerses(verses, 'endtime', 'desc').at(-1)!.id).toBe(target!.id);
+  });
 });

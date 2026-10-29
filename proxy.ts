@@ -10,10 +10,13 @@ function buildNonce(): string {
   return Buffer.from(crypto.randomUUID()).toString('base64');
 }
 
-// connect-src / frame-src / child-src come from docs/security/csp-origins.json (the §14
-// machine-readable baseline) — never hardcode new origins here; register them in the JSON
-// first. Six-chain RPC/Graph exact origins stay server-side (wallet provider path serves
-// browser calls), so the browser policy only carries the JSON's wallet/auth origins.
+// The browser policy is assembled here; docs/security/csp-origins.json (the §14 registry) owns
+// exactly three directive groups: connect-src / frame-src / child-src. Everything else
+// (script/style/img/font/object/base-uri/form-action/frame-ancestors) is declared only in this
+// function — never mirror it into the JSON, and register any new browser origin there first.
+// Six-chain RPC/Graph exact origins stay server-side (the wallet provider serves browser calls);
+// the registry's connect-src also carries the BSC-testnet dataseed origin that
+// wallet_addEthereumChain hands to the wallet.
 function cspHeader(nonce: string, dev: boolean): string {
   const scriptSrc = [
     "'self'",
@@ -46,11 +49,7 @@ function cspHeader(nonce: string, dev: boolean): string {
 // (Googlebot has no cookie, so the canonical English content at '/' is unaffected).
 const LOCALE_COOKIE = 'OUTRUN_LOCALE';
 
-function localeRouting(
-  request: NextRequest,
-  requestHeaders: Headers,
-  csp: string,
-): NextResponse | null {
+function localeRouting(request: NextRequest, requestHeaders: Headers, csp: string): NextResponse {
   const { pathname, search } = request.nextUrl;
 
   // zh prefix: internally also rewritten to /en/**,
@@ -105,12 +104,7 @@ export function proxy(request: NextRequest) {
   requestHeaders.set('x-nonce', nonce);
   requestHeaders.set('Content-Security-Policy', csp);
 
-  const routed = localeRouting(request, requestHeaders, csp);
-  if (routed) return routed;
-
-  const response = NextResponse.next({ request: { headers: requestHeaders } });
-  response.headers.set('Content-Security-Policy', csp);
-  return response;
+  return localeRouting(request, requestHeaders, csp);
 }
 
 export const config = {

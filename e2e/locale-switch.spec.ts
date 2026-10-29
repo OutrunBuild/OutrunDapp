@@ -29,11 +29,15 @@ test('switch to zh: URL prefix flips + form input state fully preserved (zero si
   await amount.fill('0.42');
   await expect(amount).toHaveValue('0.42');
   await expect(page.locator('.outrun-site')).toHaveAttribute('lang', 'en');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
 
   await switchLocale(page);
 
   await expect(page).toHaveURL(/\/zh\/memeverse\/2$/);
   await expect(page.locator('.outrun-site')).toHaveAttribute('lang', 'zh-CN');
+  // Document-level language must follow the switch too: body-mounted portals and the shell-less
+  // not-found/error surfaces inherit <html lang>, not the .outrun-site subtree declaration
+  await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN');
   // Core: after soft navigation + refresh the input value survives (page tree not remounted)
   await expect(amount).toBeVisible();
   await expect(amount).toHaveValue('0.42');

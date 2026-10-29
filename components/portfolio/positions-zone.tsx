@@ -323,7 +323,7 @@ export function VaultZone({ locale, vaultRows }: { locale: Locale; vaultRows: Va
           <table className="pf-table">
             <thead>
               <tr>
-                <th scope="col">Verse</th>
+                <th scope="col">{copy.colVerse}</th>
                 <th scope="col" data-numeric className="pf-vault__col-shares">
                   <span className="pf-vault__num">{copy.shares}</span>
                 </th>

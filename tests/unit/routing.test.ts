@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  localeFromPathname,
   localePath,
   narrowVerseQuery,
   parseVerseIdParam,
@@ -25,6 +26,19 @@ describe('localePath', () => {
     expect(localePath('zh', '/')).toBe('/zh');
     expect(localePath('zh', '/memeverse')).toBe('/zh/memeverse');
     expect(localePath('zh', '/memeverse/21')).toBe('/zh/memeverse/21');
+  });
+});
+
+// Client-side read arm (app/error.tsx / app/global-error.tsx): the x-locale request
+// header is unreadable on the client, so fallback surfaces derive the language from the
+// visible URL prefix — same branch semantics as the proxy's zh rewrite arm.
+describe('localeFromPathname (client fallback read side)', () => {
+  it('URL prefix is the sole source: /zh and /zh/** resolve zh, everything else resolves en', () => {
+    expect(localeFromPathname('/zh')).toBe('zh');
+    expect(localeFromPathname('/zh/memeverse/21')).toBe('zh');
+    expect(localeFromPathname('/')).toBe('en');
+    expect(localeFromPathname('/memeverse/explore')).toBe('en');
+    expect(localeFromPathname('/en/memeverse/21')).toBe('en');
   });
 });
 

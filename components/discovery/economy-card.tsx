@@ -242,20 +242,30 @@ export function EconomyCard({ locale, verse, chains, onOpen }: EconomyCardProps)
           </div>
           <div>
             <dt>{copy.discovery.unlockTime}</dt>
-            <dd data-numeric>{formatStamp(verse.unlockTimeAt)} UTC+8</dd>
+            <dd data-numeric={verse.unlockTimeAt != null ? true : undefined}>
+              {verse.unlockTimeAt != null
+                ? `${formatStamp(verse.unlockTimeAt)} UTC+8`
+                : copy.discovery.unavailable}
+            </dd>
           </div>
         </dl>
       ) : (
         <dl className="economy-card__facts">
           <div>
             <dt>{copy.discovery.omniRaised}</dt>
-            <dd data-numeric>
-              {formatAmount(verse.omniRaised, locale, true)} {verse.raiseAsset}
-            </dd>
+            {verse.omniRaised == null ? (
+              <dd>{copy.discovery.unavailable}</dd>
+            ) : (
+              <dd data-numeric>
+                {formatAmount(verse.omniRaised, locale, true)} {verse.raiseAsset}
+              </dd>
+            )}
           </div>
           <div>
             <dt>{copy.discovery.genesisEndtime}</dt>
-            <dd data-numeric>{formatStamp(verse.endsAt)} UTC+8</dd>
+            <dd data-numeric={verse.endsAt != null ? true : undefined}>
+              {verse.endsAt != null ? `${formatStamp(verse.endsAt)} UTC+8` : copy.discovery.unavailable}
+            </dd>
           </div>
         </dl>
       )}

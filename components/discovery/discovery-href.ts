@@ -17,10 +17,11 @@ export type DiscoveryQueryState = {
 }
 
 /** Single construction point for param merging + serialization: unspecified axes inherit the
- *  current values; chain is mandatory (no 'all': each chain settles its own genesis, so a
- *  cross-chain view has no defined progress) and always written; page >1 written as ?page=;
- *  other defaults stay out of the URL (order=desc / query empty; mode written only in the
- *  genesis stage). Any filter-axis change resets the page to 1 (callers pass page: 1
+ *  current values; chain/stage/sort are mandatory context (no 'all' stage, each chain settles
+ *  its own genesis so a cross-chain view has no defined progress, and the sort default stays
+ *  explicit so a shared URL restores the exact view) and always written; page >1 written as
+ *  ?page=; other defaults stay out of the URL (order=desc / query empty; mode written only in
+ *  the genesis stage). Any filter-axis change resets the page to 1 (callers pass page: 1
  *  explicitly). */
 export function discoveryHref(
   pathname: string,
@@ -59,4 +60,19 @@ export function clearFiltersHref(pathname: string, current: DiscoveryQueryState)
 /** Next server page (infinite-scroll anchor): keeps every filter axis, advances page only */
 export function nextPageHref(pathname: string, current: DiscoveryQueryState) {
   return discoveryHref(pathname, current, { page: current.page + 1 })
+}
+
+/** Remount key for the discovery browser: filter axes only, never the page. Keeping the
+ *  page out preserves the client's accumulated rows and reveal progress across ?page=+1
+ *  navigations; any filter-axis change still remounts and resets the accumulation. */
+export function discoveryBrowserKey(input: {
+  stage: VerseStage;
+  sort: string;
+  order: 'asc' | 'desc';
+  chain: string;
+  mode: string;
+  query: string;
+  scenario?: string | null;
+}) {
+  return `${input.stage}-${input.sort}-${input.order}-${input.chain}-${input.mode}-${input.query}-${input.scenario ?? ''}`;
 }

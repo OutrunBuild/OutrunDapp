@@ -11,7 +11,7 @@
  * (hairline, equal-height pinned bottom); one yellow primary button per screen.
  */
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import type { PortfolioAction, Locale } from '@/lib/data/fixture-repository'
 import { PROTECTION_WINDOW_MS } from '@/lib/data/types'
@@ -24,27 +24,47 @@ import { ProtectionExitDialog, type ProtectionExitContext } from './protection-e
 
 const HOUR_MS = 3_600_000
 
-/** Per-second countdown (for <24h cases; anchored to the snapshot's remaining ms, a display-only
- *  tick) */
-function DeadlineClock({ remainingMs, template }: { remainingMs: number; template: string }) {
+/** Per-second countdown (for <24h cases): the timeline origin freezes exactly once (deadline −
+ *  snapshot remaining at first render), so a post-write refresh delivering a freshly dated
+ *  remainingMs cannot move a countdown already on screen (performance.md: display countdowns
+ *  store the deadline, not "remaining + probe time") */
+function DeadlineClock({
+  deadline,
+  remainingMs,
+  template,
+}: {
+  /** Absolute window end (ISO); rows without one fall back to the snapshot-relative tick */
+  deadline: string | null
+  remainingMs: number
+  template: string
+}) {
+  const deadlineMs = deadline == null ? null : Date.parse(deadline)
+  const originRef = useRef(
+    deadlineMs != null && Number.isFinite(deadlineMs) ? deadlineMs - remainingMs : null,
+  )
   const [elapsed, setElapsed] = useState(0)
   useEffect(() => {
     const start = Date.now()
     const id = setInterval(() => setElapsed(Date.now() - start), 1000)
     return () => clearInterval(id)
   }, [])
-  const left = Math.max(0, remainingMs - elapsed)
+  const origin = originRef.current
+  const left =
+    origin == null || deadlineMs == null
+      ? Math.max(0, remainingMs - elapsed)
+      : Math.max(0, deadlineMs - origin - elapsed)
   const pad = (n: number) => String(n).padStart(2, '0')
   const time = `${pad(Math.floor(left / HOUR_MS))}:${pad(Math.floor((left % HOUR_MS) / 60_000))}:${pad(Math.floor((left % 60_000) / 1000))}`
   return <span data-numeric>{template.replace('{t}', time)}</span>
 }
 
-/** Badge duration for ≥24h: en compact d/h, zh Chinese unit words */
+/** Badge duration for ≥24h: day/hour tier of the shared countdown template */
 function staticDuration(remainingMs: number, locale: Locale) {
   const days = Math.floor(remainingMs / (24 * HOUR_MS))
   const hours = Math.floor((remainingMs % (24 * HOUR_MS)) / HOUR_MS)
-  if (locale === 'zh') return `${days} 天 ${hours} 小时`
-  return `${days}d ${hours}h`
+  return getCopy(locale)
+    .common.countdownDh.replace('{days}', String(days))
+    .replace('{hours}', String(hours))
 }
 
 type Tone = 'danger' | 'warning' | 'normal'
@@ -125,7 +145,11 @@ export function ActionZone({
             const windowLeft = Math.min(100, Math.round((remainingMs / PROTECTION_WINDOW_MS) * 100))
             const clock =
               remainingMs < PROTECTION_WINDOW_MS ? (
-                <DeadlineClock remainingMs={remainingMs} template={copy.deadlineWithin} />
+                <DeadlineClock
+                  deadline={action.deadline}
+                  remainingMs={remainingMs}
+                  template={copy.deadlineWithin}
+                />
               ) : (
                 <span data-numeric>
                   {copy.deadlineWithin.replace('{t}', staticDuration(remainingMs, locale))}

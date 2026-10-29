@@ -45,7 +45,9 @@ function cooldownText(remainingMs: number, locale: Locale) {
   const totalMinutes = Math.ceil(remainingMs / 60_000)
   const hours = Math.floor(totalMinutes / 60)
   const minutes = totalMinutes % 60
-  return locale === 'zh' ? `${hours} 小时 ${minutes} 分` : `${hours}h ${minutes}m`
+  return getCopy(locale)
+    .common.countdownHm.replace('{hours}', String(hours))
+    .replace('{minutes}', String(minutes))
 }
 
 /** Faucet.tokenInfos mapping base slot (forge inspect storage-layout: _owner=0, tokenInfos=1) */
@@ -54,7 +56,7 @@ const FAUCET_TOKEN_INFOS_SLOT = 1n
 const FAUCET_COOLDOWN_S = 24 * 60 * 60
 
 /** Solidity mapping slot: keccak256(abi.encode(key, slot)) */
-function mappingSlot(key: Hex, slot: bigint): Hex {
+export function mappingSlot(key: Hex, slot: bigint): Hex {
   const keyPadded = pad(key.toLowerCase() as Hex, { size: 32 })
   const slotPadded = pad(toHex(slot), { size: 32 })
   return keccak256(`0x${keyPadded.slice(2)}${slotPadded.slice(2)}` as Hex)
@@ -64,7 +66,7 @@ function mappingSlot(key: Hex, slot: bigint): Hex {
  * tokenInfos[token].lastClaimed[user] storage slot. TokenInfo = { dailyLimit @base+0,
  * lastClaimed mapping @base+1 } where base = keccak256(token . 1).
  */
-function faucetLastClaimedSlot(tokenAddr: Hex, user: Hex): Hex {
+export function faucetLastClaimedSlot(tokenAddr: Hex, user: Hex): Hex {
   const tokenBase = BigInt(mappingSlot(tokenAddr, FAUCET_TOKEN_INFOS_SLOT))
   return mappingSlot(user, tokenBase + 1n)
 }
@@ -91,6 +93,10 @@ export function FaucetClaims({ locale, faucet }: { locale: Locale; faucet: Fauce
   // Rows whose post-claim re-read is still in flight: keep them non-clickable without
   // blanking their last value.
   const [refreshing, setRefreshing] = useState<ReadonlySet<string>>(() => new Set())
+  // Symbols whose latest probe attempt failed (timeout/RPC error/missing address): the
+  // cooldown slot renders a degraded status + retry instead of the blank unprobed look.
+  // Rows stay unclaimable either way — no ready value means no claim (gate unchanged).
+  const [probeFailed, setProbeFailed] = useState<ReadonlySet<string>>(() => new Set())
   // Installed by the probe effect below: re-reads the given symbols through the provider
   // captured for the current account/chain.
   const probeRef = useRef<((symbols: readonly string[]) => Promise<void>) | null>(null)
@@ -113,12 +119,14 @@ export function FaucetClaims({ locale, faucet }: { locale: Locale; faucet: Fauce
   useEffect(() => {
     if (center.source !== 'real' || !connected || center.chainId == null || center.address == null) {
       setReadyAt({})
+      setProbeFailed(new Set())
       probeRef.current = null
       return
     }
     const provider = activeProvider ?? getActiveEip1193Provider()
     if (!provider) {
       setReadyAt({})
+      setProbeFailed(new Set())
       probeRef.current = null
       return
     }
@@ -127,6 +135,7 @@ export function FaucetClaims({ locale, faucet }: { locale: Locale; faucet: Fauce
     const resolved = getClientChainConfig(chainId)
     if (resolved.status !== 'ok' || resolved.config.contracts.status !== 'deployed') {
       setReadyAt({})
+      setProbeFailed(new Set())
       probeRef.current = null
       return
     }
@@ -134,6 +143,7 @@ export function FaucetClaims({ locale, faucet }: { locale: Locale; faucet: Fauce
     const faucetAddr = contracts.Faucet as Hex | undefined
     if (!faucetAddr) {
       setReadyAt({})
+      setProbeFailed(new Set())
       probeRef.current = null
       return
     }
@@ -168,7 +178,7 @@ export function FaucetClaims({ locale, faucet }: { locale: Locale; faucet: Fauce
       const probed = await Promise.all(
         symbols.map(async (symbol) => {
           const tokenAddr = tokenAddresses.get(symbol)
-          if (!tokenAddr) return null
+          if (!tokenAddr) return { symbol, ready: null, failed: true }
           try {
             const raw = await withTimeout(
               client.getStorageAt({
@@ -176,30 +186,39 @@ export function FaucetClaims({ locale, faucet }: { locale: Locale; faucet: Fauce
                 slot: faucetLastClaimedSlot(tokenAddr, eoa),
               }),
             )
-            if (raw == null) return null
+            if (raw == null) return { symbol, ready: null, failed: true }
             const lastClaimedSec = Number(BigInt(raw))
             const ready =
               lastClaimedSec === 0 ? null : (lastClaimedSec + FAUCET_COOLDOWN_S) * 1000
-            return { symbol, ready }
+            return { symbol, ready, failed: false }
           } catch {
-            // Unreadable row keeps its previous value (never blanked into "unprobed").
-            return null
+            // Unreadable row keeps its previous value (never blanked into "unprobed"); the
+            // failure itself lands in probeFailed so a never-probed row gets a retry.
+            return { symbol, ready: null, failed: true }
           }
         }),
       )
-      const updated = probed.filter(
-        (entry): entry is { symbol: string; ready: number | null } => entry !== null,
-      )
-      if (cancelled || updated.length === 0) return
+      if (cancelled) return
+      setProbeFailed((prev) => {
+        const next = new Set(prev)
+        for (const { symbol, failed } of probed) {
+          if (failed) next.add(symbol)
+          else next.delete(symbol)
+        }
+        return next
+      })
       setReadyAt((prev) => {
         const next = { ...prev }
-        for (const { symbol, ready } of updated) next[symbol] = ready
+        for (const { symbol, ready, failed } of probed) {
+          if (!failed) next[symbol] = ready
+        }
         return next
       })
     }
     probeRef.current = read
     // Full reset + full read: no stale clickable row survives an account/chain/provider change.
     setReadyAt({})
+    setProbeFailed(new Set())
     void read(faucet.tokens.map((token) => token.symbol))
     return () => {
       cancelled = true
@@ -352,7 +371,20 @@ export function FaucetClaims({ locale, faucet }: { locale: Locale; faucet: Fauce
                 {connected
                   ? token.cooldownRemainingMs == null
                     ? ready === undefined
-                      ? null
+                      ? probeFailed.has(token.symbol)
+                        ? (
+                            <>
+                              <FieldError>{copy.probeFailed}</FieldError>
+                              <Button
+                                variant="ghost"
+                                size="xs"
+                                onClick={() => void probeRef.current?.([token.symbol])}
+                              >
+                                {copy.probeRetry}
+                              </Button>
+                            </>
+                          )
+                        : null
                       : liveMs != null && liveMs > 0
                         ? (
                             <span className="fc-claims__cooling" data-numeric>
@@ -486,7 +518,7 @@ export function FaucetClaims({ locale, faucet }: { locale: Locale; faucet: Fauce
             (flex collapses them: end-of-item/start-of-item white space is dropped, so the live
             spacing stays the 4px --space-1 gap on both sides of the icon) */}
         <span className="fc-claims__uusd">
-          <TokenIconMark symbol={faucet.swap.uAssetSymbol} size={18} aria-hidden="true" />
+          <TokenIconMark symbol={faucet.swap.uAssetSymbol ?? ''} size={18} aria-hidden="true" />
           <strong>{faucet.swap.uAssetSymbol}</strong>
           <span className="fc-claims__from">
             {swapFromBefore}

@@ -5,10 +5,11 @@
  * The shell and field primitives (ActionDialogShell/AmountField/DetailRows/
  * DialogCta) live in components/global/action-dialogs.tsx, shared with the verse tx dialog
  * family (CSS language unchanged); CTAs follow the same semantics as VaultActions: disconnected =
- * a clickable Connect Wallet toggles connection, connected = the action button is
- * disabled, no faked on-chain success.
+ * a clickable Connect Wallet toggles connection, connected = the action arms the real
+ * pipeline (prepare → review → Type-4 / wallet_sendCalls), disabled until execution
+ * conditions hold (connection, chain, balance/allowance predicates).
  */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { X } from 'lucide-react'
 import type { Locale } from '@/lib/data/fixture-repository'
@@ -25,7 +26,7 @@ import {
   readErc20Meta,
   type ContractReader,
 } from '../global/execution-reads'
-import { getClientChainConfig } from '@/lib/web3/chains'
+import { executionChainId, getClientChainConfig } from '@/lib/web3/chains'
 import { stakingPositionAbi, uAssetOftAbi, usrVaultAbi } from '@/lib/web3/abis'
 import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
 import {
@@ -45,10 +46,65 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 import { Sheet, SheetClose, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 
+/** Amount field gate shared by the bridge and PSM-convert dialogs: a typed amount is
+ *  actionable only when finite/positive, and an over-balance entry must never reach the wallet
+ *  (it would only revert on-chain). */
+export function amountGate(
+  amount: string,
+  balance: number | null,
+): { parsed: number; valid: boolean; overBalance: boolean } {
+  const parsed = Number(amount)
+  const valid = Number.isFinite(parsed) && parsed > 0
+  const overBalance = balance != null && Number.isFinite(parsed) && parsed > balance
+  return { parsed, valid, overBalance }
+}
+
+/** Each convert direction pays a different token, so a carried-over amount would be read
+ *  against the other side's balance and fee — switching clears the field. */
+export function modeSwitch(
+  current: 'mint' | 'redeem',
+  next: 'mint' | 'redeem',
+): { mode: 'mint' | 'redeem'; clearAmount: boolean } {
+  return next === current ? { mode: current, clearAmount: false } : { mode: next, clearAmount: true }
+}
+
+/** Mint headroom is a hard stop: a depleted credit line disables the CTA; redeem is unaffected. */
+export function mintBlockedByHeadroom(mode: 'mint' | 'redeem', headroom: number | null): boolean {
+  return mode === 'mint' && headroom != null && headroom <= 0
+}
+
+/** USR vault share conversion: deposit divides assets by the share index, withdraw multiplies. */
+export function shareAmount(parsed: number, index: number, mode: 'deposit' | 'withdraw'): number {
+  return mode === 'deposit' ? parsed / index : parsed * index
+}
+
 // ---------------------------------------------------------------------------
 // Bridge send (a pure transfer in two phases: send → arrival; send ≠ done, the done color
 // belongs only to the arrival terminal state)
 // ---------------------------------------------------------------------------
+
+/** Bridge CTA readiness: the OFT send executes on the wallet chain, so the selected
+ *  from-chain carries the governance id (mainnet family) and must map onto the wallet's
+ *  execution twin while mainnets are undeployed (executionChainId). */
+export function bridgeExecutionReady(
+  center: {
+    source: string
+    connected: boolean
+    chainSupported: boolean
+    chainId: number | null | undefined
+    address: string | null | undefined
+  },
+  fromChain: number,
+): boolean {
+  return (
+    center.source === 'real' &&
+    center.connected &&
+    center.chainSupported &&
+    center.chainId != null &&
+    center.address != null &&
+    center.chainId === executionChainId(fromChain)
+  )
+}
 
 export function BridgeDialog({
   locale,
@@ -63,7 +119,9 @@ export function BridgeDialog({
   /** Selectable chains (mainnet family) */
   chains: Array<{ chainId: number; name: string }>;
   /** This asset's per-chain balances (source for the From-side Max; chains without balance are
-   *  selectable but Max is unavailable) */
+   *  selectable but Max is unavailable). Rows must stay in the governance-id domain (mainnet
+   *  family) so the initial From pick and Max lookup line up with the chips; stage-6 wallet
+   *  reads must normalize twin ids back before feeding rows here. */
   balancesByChain: Array<{ chainId: number; name: string; amount: number }>;
 }) {
   const copy = getCopy(locale).portfolio.assets
@@ -77,9 +135,10 @@ export function BridgeDialog({
       1,
   )
   const [amount, setAmount] = useState('')
-  const fromBalance = balancesByChain.find((row) => row.chainId === fromChain)?.amount ?? 0
-  const parsed = Number(amount)
-  const valid = Number.isFinite(parsed) && parsed > 0
+  const fromBalance = balancesByChain.find((row) => row.chainId === fromChain)?.amount ?? null
+  // Sibling guard from ConvertDialog: the CTA is reachable on testnet twins now, so an
+  // over-balance typed amount must not reach the wallet (it would only revert on-chain).
+  const { parsed, valid, overBalance } = amountGate(amount, fromBalance)
   const center = useAccountCenter()
   const { connected, connectAction: toggle } = center
   const tx = useTxCenter()
@@ -90,14 +149,89 @@ export function BridgeDialog({
   const [resolving, setResolving] = useState(false)
   const [resolveFailed, setResolveFailed] = useState(false)
   useClearOnConfirmed(tx.display, () => setAmount(''))
-  // OFT send executes on the wallet chain; the from-chain selector must match it (AC-2-adjacent).
-  const executionReady =
-    center.source === 'real' &&
-    connected &&
-    center.chainSupported &&
-    center.chainId != null &&
-    center.address != null &&
-    center.chainId === fromChain
+  const executionReady = bridgeExecutionReady(center, fromChain)
+  // Live bridge fee, create-form's registration-quote discipline (contract: fee quotes are
+  // form-shaped panel data — the row renders once a real quote lands, no post-click backfill):
+  // debounced re-quote whenever the send shape moves, gated on the dialog being open so a
+  // closed dialog never spends RPC. The quote rides the wallet provider — only meaningful on
+  // the from chain, the same gate that arms execution. The click path re-quotes and funds
+  // msg.value with that fresh quote only.
+  const [bridgeOpen, setBridgeOpen] = useState(false)
+  const [bridgeFeeText, setBridgeFeeText] = useState<string | null>(null)
+  useEffect(() => {
+    if (!bridgeOpen || !executionReady || !valid) {
+      setBridgeFeeText(null)
+      return
+    }
+    let cancelled = false
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const provider = getActiveEip1193Provider()
+          const src = center.chainId != null ? getClientChainConfig(center.chainId) : null
+          if (provider == null || src?.status !== 'ok' || src.config.contracts.status !== 'deployed') {
+            // Same discipline as the dst guard below: an unquotable source shape drops
+            // any row standing for the previous send shape.
+            if (!cancelled) setBridgeFeeText(null)
+            return
+          }
+          const uAsset = src.config.contracts.addresses[`UAsset.${assetSymbol}`] as Hex | undefined
+          const dst = getClientChainConfig(executionChainId(toChain))
+          if (uAsset == null || dst.status !== 'ok' || dst.config.contracts.status !== 'deployed') {
+            // A guard hit leaves the current send shape unquotable: drop any fee row quoted
+            // for the previous shape instead of letting it dangle (the row renders only
+            // while a real quote stands for the current shape).
+            if (!cancelled) setBridgeFeeText(null)
+            return
+          }
+          const client = createPublicClient({
+            chain: src.config.viemChain,
+            transport: custom({ request: provider.request }),
+          })
+          const reader: ContractReader = {
+            read: (readParams) => client.readContract(readParams) as Promise<unknown>,
+          }
+          const { decimals } = await readErc20Meta(reader, uAsset)
+          const amountLD = toBaseUnits(amount, decimals)
+          if (amountLD === 0n) {
+            if (!cancelled) setBridgeFeeText(null)
+            return
+          }
+          const sendParam = {
+            dstEid: dst.config.layerZeroEid,
+            to: padHex(center.address as Hex, { size: 32 }),
+            amountLD,
+            minAmountLD: amountLD,
+            extraOptions: '0x' as Hex,
+            composeMsg: '0x' as Hex,
+            oftCmd: '0x' as Hex,
+          }
+          // quoteSend returns the MessagingFee struct (a single named tuple) — viem decodes
+          // it to { nativeFee, lzTokenFee }; a positional destructure reads undefined off
+          // the struct object.
+          const { nativeFee } = (await reader.read({
+            address: uAsset,
+            abi: uAssetOftAbi,
+            functionName: 'quoteSend',
+            args: [sendParam, false],
+          })) as unknown as { nativeFee: bigint }
+          if (!cancelled) {
+            setBridgeFeeText(
+              nativeFee > 0n
+                ? `${formatUnits(nativeFee, 18)} ${src.config.viemChain.nativeCurrency.symbol}`
+                : null,
+            )
+          }
+        } catch {
+          if (!cancelled) setBridgeFeeText(null)
+        }
+      })()
+    }, 400)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [bridgeOpen, executionReady, valid, fromChain, toChain, amount, assetSymbol, center.chainId, center.address])
 
   async function startBridgeReview(): Promise<void> {
     if (!executionReady || !valid || resolving) return
@@ -115,13 +249,16 @@ export function BridgeDialog({
     const chainId = center.chainId
     if (!provider || !eoa || chainId == null) return
     const resolved = getClientChainConfig(chainId)
-    if (resolved.status !== 'ok' || resolved.config.contracts.status !== 'deployed') return
+    if (resolved.status !== 'ok' || resolved.config.contracts.status !== 'deployed') {
+      setResolveFailed(true)
+      return
+    }
     const contracts = resolved.config.contracts.addresses
     const uAsset = contracts[`UAsset.${assetSymbol}`] as Hex | undefined
-    const hook = contracts.MemeverseUniswapHook as Hex
+    const hook = contracts.MemeverseUniswapHook as Hex | undefined
     const kernel = resolved.config.kernel7702Implementation as Hex
-    const dst = getClientChainConfig(toChain)
-    if (!uAsset || dst.status !== 'ok') {
+    const dst = getClientChainConfig(executionChainId(toChain))
+    if (!uAsset || !hook || dst.status !== 'ok' || dst.config.contracts.status !== 'deployed') {
       setResolveFailed(true)
       return
     }
@@ -149,12 +286,12 @@ export function BridgeDialog({
         oftCmd: '0x' as Hex,
       }
       // OFT approvalRequired() is false (token() = address(this)): no approval leg.
-      const [nativeFee] = (await reader.read({
+      const { nativeFee } = (await reader.read({
         address: uAsset,
         abi: uAssetOftAbi,
         functionName: 'quoteSend',
         args: [sendParam, false],
-      })) as unknown as [bigint, bigint]
+      })) as unknown as { nativeFee: bigint }
       const action = oftSendCall(uAsset, sendParam, nativeFee, eoa, nativeFee)
       const { calls, calldata: batch } = buildSessionWrite({ hook, action })
       const spec: WriteSpec = {
@@ -193,7 +330,7 @@ export function BridgeDialog({
 
   return (
     <>
-      <Dialog>
+      <Dialog open={bridgeOpen} onOpenChange={setBridgeOpen}>
       <DialogTrigger data-slot="button" render={<Button variant="outline" size="xs" />}>
         {triggerLabel}
       </DialogTrigger>
@@ -253,7 +390,9 @@ export function BridgeDialog({
                 '--'
               ),
             ],
-            [copy.bridgeFee, '--'],
+            ...(bridgeFeeText != null
+              ? [[copy.bridgeFee, <span data-numeric>{bridgeFeeText}</span>] as [string, ReactNode]]
+              : []),
           ]}
         />
         <DialogCta
@@ -262,7 +401,7 @@ export function BridgeDialog({
           onConnect={toggle}
           onAction={() => void startBridgeReview()}
           label={copy.bridgeSend}
-          disabled={!valid || !executionReady || resolving || tx.running}
+          disabled={!valid || overBalance || !executionReady || resolving || tx.running}
         />
         {resolveFailed ? (
           <p role="alert">{getCopy(locale).common.degrade.errorBody}</p>
@@ -333,18 +472,17 @@ export function ConvertDialog({
   // Each mode pays a different token, so a carried-over amount would be read against the
   // other side's balance and fee; switching direction clears the field.
   const switchMode = (next: 'mint' | 'redeem') => {
-    if (next === mode) return
-    setMode(next)
+    const effect = modeSwitch(mode, next)
+    if (!effect.clearAmount) return
+    setMode(effect.mode)
     setAmount('')
   }
   useClearOnConfirmed(tx.display, () => setAmount(''))
-  const parsed = Number(amount)
-  const valid = Number.isFinite(parsed) && parsed > 0
   const fee = mode === 'mint' ? feeIn : feeOut
   const balance = mode === 'mint' ? reserveBalance : uAssetBalance
   const balanceSymbol = mode === 'mint' ? reserveSymbol : uAssetSymbol
-  const mintBlocked = mode === 'mint' && headroom != null && headroom <= 0
-  const overBalance = balance != null && Number.isFinite(parsed) && parsed > balance
+  const { parsed, valid, overBalance } = amountGate(amount, balance)
+  const mintBlocked = mintBlockedByHeadroom(mode, headroom)
 
   return (
     <>
@@ -531,10 +669,10 @@ export function CdpRedeemDialog({
     const resolved = getClientChainConfig(chainId)
     if (resolved.status !== 'ok' || resolved.config.contracts.status !== 'deployed') return
     const contracts = resolved.config.contracts.addresses
-    const hook = contracts.MemeverseUniswapHook as Hex
+    const hook = contracts.MemeverseUniswapHook as Hex | undefined
     const kernel = resolved.config.kernel7702Implementation as Hex
     const uAsset = contracts[`UAsset.${uAssetSymbol}`] as Hex | undefined
-    if (!uAsset) {
+    if (!hook || !uAsset) {
       setResolveFailed(true)
       return
     }
@@ -762,7 +900,7 @@ export function UsrSavingsDialog({
       },
       {
         label: getCopy(locale).common.txReceived,
-        value: `≈ ${formatAmount(mode === 'deposit' ? parsed / index : parsed * index, locale)}`,
+        value: `≈ ${formatAmount(shareAmount(parsed, index, mode), locale)}`,
         symbol: mode === 'deposit' ? vault.shareSymbol : vault.uAssetSymbol,
       },
     ])
@@ -775,9 +913,9 @@ export function UsrSavingsDialog({
     const contracts = resolved.config.contracts.addresses
     const vaultAddr = contracts[vaultKey] as Hex | undefined
     const uAssetAddr = contracts[`UAsset.${vault.uAssetSymbol}`] as Hex | undefined
-    const hook = contracts.MemeverseUniswapHook as Hex
+    const hook = contracts.MemeverseUniswapHook as Hex | undefined
     const kernel = resolved.config.kernel7702Implementation as Hex
-    if (!vaultAddr || !uAssetAddr) {
+    if (!hook || !vaultAddr || !uAssetAddr) {
       setResolveFailed(true)
       return
     }
@@ -893,8 +1031,8 @@ export function UsrSavingsDialog({
         {valid ? (
           <p className="panel-note" data-numeric>
             {mode === 'deposit'
-              ? `≈ ${formatAmount(parsed / index, locale)} ${vault.shareSymbol}`
-              : `≈ ${formatAmount(parsed * index, locale)} ${vault.uAssetSymbol}`}
+              ? `≈ ${formatAmount(shareAmount(parsed, index, 'deposit'), locale)} ${vault.shareSymbol}`
+              : `≈ ${formatAmount(shareAmount(parsed, index, 'withdraw'), locale)} ${vault.uAssetSymbol}`}
           </p>
         ) : null}
         <DialogCta

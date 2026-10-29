@@ -46,19 +46,31 @@ export async function ReferralPage({ locale, host }: { locale: Locale; host: str
   const displayAccount = await getDisplayAccount()
 
   // Link URL: fixed at SSR from the host header (no hydration flicker); /ref/<shortcode> is
-  // locale-independent, shared by both languages
+  // locale-independent, shared by both languages. Onchain mode has no code source (null) →
+  // the link panel renders nothing (never an empty-code /ref/ link)
   const origin = host
     ? host.startsWith('localhost') || host.startsWith('127.')
       ? `http://${host}`
       : `https://${host}`
     : ''
-  const linkUrl = `${origin}/ref/${referral.referralCode}`
+  const linkUrl =
+    referral.referralCode != null ? `${origin}/ref/${referral.referralCode}` : null
 
-  // Split bar: LP 65 fixed; the rebate rate is carved out of the protocol's 35 for "you"
+  // Split bar: LP 65 fixed; the rebate rate is carved out of the protocol's 35 for "you".
+  // Rate unread (null) → the protocol cut (35 − rate) is unknown with it: only the fixed LP
+  // segment stays, you/protocol slots degrade — never a fabricated 0% split
   const lpShare = 65
-  const youShare = referral.ratePercent
-  const protocolShare = 35 - youShare
-  const splitAria = `${copy.split.lp} ${lpShare}% · ${copy.split.protocol} ${protocolShare}% · ${copy.split.you} ${youShare}%`
+  const splitShares =
+    referral.ratePercent != null
+      ? { you: referral.ratePercent, protocol: 35 - referral.ratePercent }
+      : null
+  const splitAria = splitShares
+    ? `${copy.split.lp} ${lpShare}% · ${copy.split.protocol} ${splitShares.protocol}% · ${copy.split.you} ${splitShares.you}%`
+    : `${copy.split.lp} ${lpShare}%`
+  // The rate-bearing step claim can't render without the rate; the rest of the intro stays
+  const steps = splitShares
+    ? copy.steps
+    : copy.steps.filter((step) => !step.title.includes('{rate}'))
 
   return (
     <OutrunShell locale={locale} current="referral" accountAddress={displayAccount.address}>
@@ -94,10 +106,12 @@ export async function ReferralPage({ locale, host }: { locale: Locale; host: str
               <span className="ref-stats__label">{copy.stats.friends}</span>
               <strong className="ref-stats__value">{referral.friendsCount}</strong>
             </div>
-            <div>
-              <span className="ref-stats__label">{copy.stats.rate}</span>
-              <strong className="ref-stats__value">{referral.ratePercent}%</strong>
-            </div>
+            {referral.ratePercent != null ? (
+              <div>
+                <span className="ref-stats__label">{copy.stats.rate}</span>
+                <strong className="ref-stats__value">{referral.ratePercent}%</strong>
+              </div>
+            ) : null}
           </div>
         </section>
       </UserDataGate>
@@ -105,7 +119,7 @@ export async function ReferralPage({ locale, host }: { locale: Locale; host: str
       {/* Link → how it works → pending (each card keeps the page's space-6 rhythm); the link =
           the user's own shortcode, hidden along with the data cards */}
       <UserDataGate>
-        <ReferralLinkPanel locale={locale} url={linkUrl} />
+        {linkUrl != null ? <ReferralLinkPanel locale={locale} url={linkUrl} /> : null}
       </UserDataGate>
 
       {/* How it works: right after the link, understand the mechanism before
@@ -118,7 +132,7 @@ export async function ReferralPage({ locale, host }: { locale: Locale; host: str
         </header>
         <div className="pf-panel__body">
           <ol className="ref-how__steps">
-            {copy.steps.map((step, index) => (
+            {steps.map((step, index) => (
               <li key={step.title}>
                 <span className="ref-how__index" aria-hidden="true">
                   {String(index + 1).padStart(2, '0')}
@@ -134,25 +148,40 @@ export async function ReferralPage({ locale, host }: { locale: Locale; host: str
             <span className="ref-split__label">{copy.splitLabel}</span>
             <div className="ref-split__bar" role="img" aria-label={splitAria}>
               <span className="ref-split__seg ref-split__seg--lp" style={{ flexGrow: lpShare }} />
-              <span
-                className="ref-split__seg ref-split__seg--protocol"
-                style={{ flexGrow: protocolShare }}
-              />
-              <span className="ref-split__seg ref-split__seg--you" style={{ flexGrow: youShare }} />
+              {splitShares ? (
+                <>
+                  <span
+                    className="ref-split__seg ref-split__seg--protocol"
+                    style={{ flexGrow: splitShares.protocol }}
+                  />
+                  <span
+                    className="ref-split__seg ref-split__seg--you"
+                    style={{ flexGrow: splitShares.you }}
+                  />
+                </>
+              ) : (
+                // Blank filler keeps the LP segment at its honest share (a lone flexGrow
+                // segment would stretch to the full bar)
+                <span aria-hidden="true" style={{ flexGrow: 100 - lpShare }} />
+              )}
             </div>
             <p className="ref-split__legend">
               <span>
                 <i className="ref-split__dot ref-split__dot--lp" aria-hidden="true" />
                 {copy.split.lp} <span data-numeric>{lpShare}%</span>
               </span>
-              <span>
-                <i className="ref-split__dot ref-split__dot--protocol" aria-hidden="true" />
-                {copy.split.protocol} <span data-numeric>{protocolShare}%</span>
-              </span>
-              <span>
-                <i className="ref-split__dot ref-split__dot--you" aria-hidden="true" />
-                {copy.split.you} <span data-numeric>{youShare}%</span>
-              </span>
+              {splitShares ? (
+                <span>
+                  <i className="ref-split__dot ref-split__dot--protocol" aria-hidden="true" />
+                  {copy.split.protocol} <span data-numeric>{splitShares.protocol}%</span>
+                </span>
+              ) : null}
+              {splitShares ? (
+                <span>
+                  <i className="ref-split__dot ref-split__dot--you" aria-hidden="true" />
+                  {copy.split.you} <span data-numeric>{splitShares.you}%</span>
+                </span>
+              ) : null}
             </p>
           </div>
         </div>
@@ -189,8 +218,8 @@ export async function ReferralPage({ locale, host }: { locale: Locale; host: str
                   ) : null}
                 </div>
                 <div className="pf-claim-row__actions">
-                  {/* The prototype does not fake settlement: Claim is permanently disabled (same
-                      contract as PolMintDialog/VerseShare) */}
+                  {/* The prototype does not fake settlement: the claimRebate hook is per-currency
+                      pull, no session builder wired — Claim stays permanently disabled */}
                   <Button variant="outline" disabled>
                     {copy.claim}
                   </Button>

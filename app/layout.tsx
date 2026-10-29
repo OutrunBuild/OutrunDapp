@@ -42,7 +42,6 @@ export async function generateMetadata(): Promise<Metadata> {
     icons: {
       icon: '/brand/BRAND-04-symbol-color-512.png',
     },
-    generator: 'v0.app',
   };
 }
 
@@ -63,9 +62,19 @@ export default async function RootLayout({
   // so reading headers here changes nothing about the rendering mode. When missing, the inline script has no nonce and is
   // blocked by CSP; PaintSkin's __paintBooted guard falls back to the useEffect registration path
   const nonce = (await headers()).get('x-nonce') ?? undefined;
+  // Document-level language: zh traffic is internally rewritten onto the /en tree, so the [locale]
+  // segment is always 'en' and x-locale is the only display-language source. Body-level portals
+  // (dialogs mount on document.body), app/not-found.tsx and the route-level app/error.tsx have no
+  // closer declaration and inherit this value (global-error replaces the whole document and
+  // declares its own); the .outrun-site subtree re-declares it for the language-specific CSS hooks.
+  const locale = await getDisplayLocale();
 
   return (
-    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
+    <html
+      lang={locale === 'zh' ? 'zh-CN' : 'en'}
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
+    >
       <body className={productFontClassName}>
         <FontPreloadLinks />
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: PAINT_BOOT_JS }} />

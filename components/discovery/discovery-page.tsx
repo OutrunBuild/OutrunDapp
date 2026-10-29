@@ -11,9 +11,9 @@ import { applyScenarioToVerses, parseScenarioParam } from '../global/scenario-vi
 import { OutrunShell } from '../global/app-shell'
 import { getCopy } from '../global/copy'
 import { DiscoveryBrowser } from './discovery-browser'
-import { DISCOVERY_PAGE_SIZE } from './discovery-href'
+import { DISCOVERY_PAGE_SIZE, discoveryBrowserKey } from './discovery-href'
 import { legalSortForStage } from './sort-options'
-import { LayoutNotes, SourceRef } from '../global/signal-ui'
+import { SourceRef } from '../global/signal-ui'
 
 type QueryValue = string | string[] | undefined
 
@@ -100,7 +100,15 @@ export async function DiscoveryPage({ locale, searchParams }: DiscoveryPageProps
         <SourceRef value="docs/page-briefs/memeverse-discovery.md#2" />
       </header>
       <DiscoveryBrowser
-        key={`${stage}-${sort}-${order}-${chainId}-${mode}-${query}-${pageValue}-${scenario ?? ''}`}
+        key={discoveryBrowserKey({
+          stage,
+          sort,
+          order,
+          chain: String(chainId),
+          mode,
+          query,
+          scenario,
+        })}
         scenario={scenario}
         locale={locale}
         verses={verses}
@@ -115,7 +123,6 @@ export async function DiscoveryPage({ locale, searchParams }: DiscoveryPageProps
         initialMode={mode}
         initialQuery={query}
       />
-      <LayoutNotes locale={locale} items={copy.discovery.notes} />
     </OutrunShell>
   )
 }

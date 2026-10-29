@@ -63,8 +63,9 @@ export type ProtectionExitContext = {
  * uAsset = amount×uAssetPerPol; memecoin = amount×uAssetPerPol÷main pool price (derived from the
  * pool price ratio pro-rata); the ≈$ echo shares PolRedeemPtYtDialog's conversion source; missing
  * sample → the row is not rendered. CTA discipline follows the ActionDialogShell family:
- * disconnected = a clickable Connect, connected = the action button is disabled (no faked
- * settlement); the amount defaults to empty; the insufficient-balance short
+ * disconnected = a clickable Connect, connected = Exit now arms the real pipeline
+ * (prepare → review → Type-4 / wallet_sendCalls), disabled until execution conditions
+ * hold; the amount defaults to empty; the insufficient-balance short
  * sentence is handled by AmountField.
  */
 export function ProtectionExitDialog({
@@ -104,8 +105,9 @@ export function ProtectionExitDialog({
   useClearOnConfirmed(tx.display, () => setAmount(''))
 
   const polSymbol = `POL-${verse.symbol}`
-  // Main pool LP pair semantics (same as PolRedeemLpDialog: {MEME}/{uAsset} LP)
-  const lpSymbol = `${verse.symbol}/${verse.raiseAsset} LP`
+  // Main pool LP pair semantics (same as PolRedeemLpDialog: {MEME}/{uAsset} LP); an unresolved
+  // raise asset renders the meme side alone — no "X/ LP" wreckage
+  const lpSymbol = verse.raiseAsset ? `${verse.symbol}/${verse.raiseAsset} LP` : `${verse.symbol} LP`
   const parsed = Number(amount)
   const valid = Number.isFinite(parsed) && parsed > 0
   const executionReady =
@@ -127,7 +129,7 @@ export function ProtectionExitDialog({
           ? {
               label: common.txReceived,
               value: formatAmount(uOut, locale),
-              symbol: verse.raiseAsset,
+              symbol: verse.raiseAsset ?? undefined,
             }
           : null,
       ].filter((row) => row != null),
@@ -149,7 +151,7 @@ export function ProtectionExitDialog({
         eoa,
         verseId: BigInt(verseId),
       })
-      const launcher = session.contracts.MemeverseLauncher as Hex
+      const launcher = session.launcher
       const decimals = await getTokenDecimals(session.reader, chainId, session.verse.pol)
       const amountBase = toBaseUnits(amount, decimals)
       if (amountBase === 0n) throw new Error('typed amount below one base unit')
@@ -166,7 +168,7 @@ export function ProtectionExitDialog({
       if (mode === 'lp') {
         action = redeemMemecoinLiquidityCall(launcher, { verseId: BigInt(verseId), amountInPOL: amountBase })
         functionName = 'redeemMemecoinLiquidity'
-        minOutput = `${formatUnits(amountBase, decimals)} ${verse.symbol}/${verse.raiseAsset} LP`
+        minOutput = `${formatUnits(amountBase, decimals)} ${lpSymbol}`
       } else {
         // currency0/1 order follows the sorted main-pool pair.
         const sorted =
@@ -193,7 +195,7 @@ export function ProtectionExitDialog({
         functionName = 'redeemMemecoinLiquidity(unwrap)'
         minOutput = [
           minM != null ? `${minM} ${verse.symbol}` : null,
-          minU != null ? `${minU} ${verse.raiseAsset}` : null,
+          minU != null ? `${minU} ${verse.raiseAsset ?? ''}` : null,
         ]
           .filter(Boolean)
           .join(' + ')
@@ -295,7 +297,7 @@ export function ProtectionExitDialog({
             data-selected={mode === 'split' || undefined}
             onClick={() => setMode('split')}
           >
-            {action.exitModeSplit.replace('{m}', verse.symbol).replace('{u}', verse.raiseAsset)}
+            {action.exitModeSplit.replace('{m}', verse.symbol).replace('{u}', verse.raiseAsset ?? '')}
           </button>
         </div>
 
@@ -355,7 +357,7 @@ export function ProtectionExitDialog({
               <output
                 className="swap-panel__output numeric-input"
                 data-numeric
-                aria-label={`${action.exitReceive} ${verse.raiseAsset}`}
+                aria-label={`${action.exitReceive} ${verse.raiseAsset ?? ''}`}
               >
                 {uOut != null ? formatAmount(uOut, locale) : '0.00'}
               </output>
@@ -381,7 +383,7 @@ export function ProtectionExitDialog({
                   {minM != null || minU != null
                     ? [
                         minM != null ? `${formatAmount(minM, locale)} ${verse.symbol}` : null,
-                        minU != null ? `${formatAmount(minU, locale)} ${verse.raiseAsset}` : null,
+                        minU != null ? `${formatAmount(minU, locale)} ${verse.raiseAsset ?? ''}` : null,
                       ]
                         .filter(Boolean)
                         .join(' + ')

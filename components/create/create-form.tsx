@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   useId,
@@ -45,13 +46,20 @@ import { DiscordIcon, TelegramIcon, XIcon } from '../global/brand-icons'
 import { getCopy } from '../global/copy'
 import { useAccountCenter } from '../global/use-account-center'
 import { useTxCenter, type WriteSpec } from '../global/use-tx-center'
+import { SwitchChainCta } from '../global/switch-chain-cta'
 import { verseHref } from '../global/routes'
 import { SourceRef, formatAmount } from '../global/signal-ui'
+import {
+  quoteRegistrationFanOut,
+  readSymbolAvailable,
+  type ContractReader,
+} from '../global/execution-reads'
 import { TxStatus } from '../global/tx-status'
-import { getClientChainConfig } from '@/lib/web3/chains'
+import { executionChainId, getClientChainConfig } from '@/lib/web3/chains'
 import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
-import { buildSessionWrite, registerAtCenterCall, registerAtSpokeCall } from '@/lib/web3/session-actions'
-import { parseEther, type Hex } from 'viem'
+import { buildSessionWrite, registerAtCenterCall } from '@/lib/web3/session-actions'
+import { formatBaseUnits } from '@/lib/web3/base-units'
+import { createPublicClient, custom, type Hex } from 'viem'
 
 // Registration param scope = durationDays/name/symbol/uri/desc/uAsset/
 // omnichainIds; initial pricing / minimum success amount are not registration params;
@@ -74,22 +82,85 @@ const LOGO_ACCEPTED_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp'])
 // receipt — jump to the fixture sample verse (production = verseId returned by the registration event)
 const SAMPLE_VERSE_ID = 'verse-021'
 
-/** Mainnet chainId → wallet testnet stand-in mapping (testnet stand-in shim, not domain values; same
- *  pattern as the vault card's GOVERNANCE_TESTNET): the quote decides "is the origin chain the
- *  governance chain" by comparing the wallet chainId against the governance chain's testnet
- *  counterpart */
-const GOVERNANCE_TESTNET: Record<number, number> = { 1: 421614, 8453: 84532, 56: 97 }
-
 const encoder = new TextEncoder()
 
-function byteLength(value: string) {
+export function byteLength(value: string) {
   return encoder.encode(value).length
 }
 
 /** Help copy template fill: {min}/{max} = genesis duration range, {days} = lockup period,
  *  {count} = remote chain count */
-function fill(template: string, values: Record<string, string>) {
+export function fill(template: string, values: Record<string, string>) {
   return template.replace(/\{(\w+)\}/g, (match, key: string) => values[key] ?? match)
+}
+
+/** Live hub read handle. Client chain reads ride the active wallet provider (§2.3) — client chain
+ *  configs carry no RPC endpoints — so the fee quote and the symbol probe resolve their reader
+ *  through this one construction. Null while the provider or the RegistrationCenter address is
+ *  unavailable; `addresses` carries the deployed contract map for extra lookups (uAsset). */
+function createHubReader(
+  execChainId: number | null,
+): { reader: ContractReader; center: Hex; addresses: Record<string, string> } | null {
+  const provider = getActiveEip1193Provider()
+  const exec = execChainId != null ? getClientChainConfig(execChainId) : null
+  if (provider == null || exec?.status !== 'ok' || exec.config.contracts.status !== 'deployed') {
+    return null
+  }
+  const addresses = exec.config.contracts.addresses
+  const center = addresses.MemeverseRegistrationCenter as Hex | undefined
+  if (center == null) return null
+  const client = createPublicClient({
+    chain: exec.config.viemChain,
+    transport: custom({ request: provider.request }),
+  })
+  return {
+    reader: { read: (params) => client.readContract(params) as Promise<unknown> },
+    center,
+    addresses,
+  }
+}
+
+/** Genesis duration gate: an integer inside the chain config's [min,max] window. A missing
+ *  config leaves the field unjudged — the submit button is already disabled in that state. */
+export function durationInRange(
+  duration: number,
+  config: { minDurationDays: number; maxDurationDays: number } | null,
+): boolean {
+  return (
+    config != null &&
+    Number.isInteger(duration) &&
+    duration >= config.minDurationDays &&
+    duration <= config.maxDurationDays
+  )
+}
+
+/** Submit-time registration gate: trimmed identity fields, byte limits, symbol occupancy and
+ *  the duration window (the same predicate the CTA and the submit handler read). */
+export function registrationInputsOk(input: {
+  hasLogo: boolean
+  name: string
+  symbol: string
+  desc: string
+  occupiedSymbols: string[]
+  /** Live hub verdict for `symbol` (previewRegistration). Optional so the fixture path is
+   *  unchanged; null = not probed or unreadable, which must not be read as "available" — the
+   *  async submit path re-probes and fails closed instead. */
+  symbolAvailable?: boolean | null
+  duration: number
+  config: { minDurationDays: number; maxDurationDays: number } | null
+}): boolean {
+  return (
+    input.hasLogo &&
+    input.name.length >= 1 &&
+    byteLength(input.name) <= NAME_SYMBOL_MAX_BYTES &&
+    input.symbol.length >= 1 &&
+    byteLength(input.symbol) <= NAME_SYMBOL_MAX_BYTES &&
+    !input.occupiedSymbols.includes(input.symbol) &&
+    input.symbolAvailable !== false &&
+    input.desc.length >= 1 &&
+    byteLength(input.desc) <= DESC_MAX_BYTES &&
+    durationInRange(input.duration, input.config)
+  )
 }
 
 /** ⊙ info icon beside a label: shows the explanation on hover, takes no layout space.
@@ -184,7 +255,8 @@ export function CreateForm({
   // Wallet connected chain = the quote's "origin chain" dimension (no cross-chain notice shown —
   // cross-chain is the norm for registration,
   // a notice would imply "cross-chain happens only in this case")
-  const { connected, chainId: walletChainId, connectAction: toggleWallet } = useAccountCenter()
+  const center = useAccountCenter()
+  const { connected, chainId: walletChainId, connectAction: toggleWallet } = center
   // Error association: the id is only referenced back by aria-describedby while the error renders,
   // avoiding references to non-existent nodes
   const logoErrorId = useId()
@@ -220,11 +292,27 @@ export function CreateForm({
   // Tx pipeline (replaces the retired timer simulation): review card → TxReviewPanel →
   // Type-4 session registration(). Spoke fan-out rides the same session batch (payable legs
   // carry the quoted native fees); the center generates uniqueId on-chain (§M8 protocol).
-  const center = useAccountCenter()
   const tx = useTxCenter()
   const [resolving, setResolving] = useState(false)
-  const [resolveFailed, setResolveFailed] = useState(false)
+  // Confirm-block reason for the review card's error slot: 'occupied' is deterministic (the
+  // symbol stays taken until the genesis window ends — retry refails), 'unavailable' is transient
+  const [resolveFailed, setResolveFailed] = useState<null | 'occupied' | 'unavailable'>(null)
+  // Latest-wins token for resolve rounds: bumped on every handleSubmit/Revise, snapshotted at
+  // buildAndStart entry — a round whose epoch moved on owns nothing anymore (neither the verdict
+  // slot nor the wallet send it would trigger). Same stale-continuation class as useTxCenter's
+  // runSeqRef, which cannot see this component-level promise chain.
+  const resolveEpochRef = useRef(0)
   const [realFlow, setRealFlow] = useState(false)
+  // Live hub fan-out quote (native base units); null = no quote yet or quote unavailable —
+  // while a re-quote is in flight the previous shape's value stays on display until replaced
+  const [fanOutFee, setFanOutFee] = useState<bigint | null>(null)
+  // Live symbol occupancy, keyed by the probed symbol: a verdict for a symbol the user has
+  // already edited past must not gate the current one. available=null = the probe has not landed
+  // or cannot run, which is an unresolved verdict and never reads as "free".
+  const [symbolProbe, setSymbolProbe] = useState<{
+    symbol: string
+    available: boolean | null
+  } | null>(null)
   // object URL lifetime = component lifetime: replace/remove/unmount all reclaim it here in one
   // place (cleanup runs after the DOM image swap, so the old URL has no remaining references);
   // pickLogo/removeLogo no longer scatter revoke calls
@@ -254,19 +342,25 @@ export function CreateForm({
     nameBytes > NAME_SYMBOL_MAX_BYTES || ((nameTouched || invalid) && nameBytes < 1)
   // Occupancy is judged on the raw value: value-driven like the byte limit, reported during typing;
   // submit interception uses the trimmed cleanSymbol (same source as the actual registration param),
-  // so trailing whitespace only counts as a hit at submit time
-  const symbolTaken = occupiedSymbols.includes(symbol)
+  // so trailing whitespace only counts as a hit at submit time.
+  // Two sources feed it: the fixture sample set, and the hub's own previewRegistration verdict.
+  // The onchain term only counts inside the contract's length window — previewRegistration mirrors
+  // registration's InvalidLength gate (.sol:115) and answers false for an empty or over-long
+  // symbol, which the byte-limit error already reports and must not surface as "taken".
+  const probeSymbol = symbol.trim()
+  const probeInWindow =
+    probeSymbol.length >= 1 && byteLength(probeSymbol) <= NAME_SYMBOL_MAX_BYTES
+  const probeFresh = symbolProbe != null && symbolProbe.symbol === probeSymbol
+  // null = unresolved (not probed, no wallet on the gov exec chain, or an unreadable probe)
+  const probeVerdict = probeInWindow && probeFresh ? (symbolProbe?.available ?? null) : null
+  const symbolTaken = occupiedSymbols.includes(symbol) || probeVerdict === false
   const symbolInvalid =
     symbolTaken ||
     symbolBytes > NAME_SYMBOL_MAX_BYTES ||
     ((symbolTouched || invalid) && symbolBytes < 1)
   const descInvalid =
     descBytes > DESC_MAX_BYTES || ((descTouched || invalid) && descBytes < 1)
-  const durationRangeOk =
-    config != null &&
-    Number.isInteger(numericDuration) &&
-    numericDuration >= config.minDurationDays &&
-    numericDuration <= config.maxDurationDays
+  const durationRangeOk = durationInRange(numericDuration, config)
   // With config=null the submit button is already disabled; blur must not misreport "params
   // unavailable" as a user input error
   const durationInvalid = (durationTouched || invalid) && config != null && !durationRangeOk
@@ -275,52 +369,144 @@ export function CreateForm({
   // Spoke chains = deployment chains other than the governance chain (the governance chain no longer
   // appears in the dropdown); each spoke costs one cross-chain fan-out fee
   const spokeOptions = chains.filter((chain) => String(chain.chainId) !== govChain)
-  const selectedChains = chains.filter((chain) => selectedChainIds.includes(String(chain.chainId)))
-  // Quote semantics: Total = per-remote-chain
-  // fan-out (hub-chain quoteSend; the "local-chain fee=0" rule applies to the hub-chain target,
-  // not the governance chain) + when originating off-chain, an origin→hub send
-  // fee (RegistrarOmnichain quoteRegister). Whether cross-chain applies is decided by the
-  // deployment target, not the origin — a governance chain target is free iff it equals the hub
-  // chain. "Governance chain = hub chain" is a sample-scenario assumption
-  // (hub chain ownership is unknown); hence the origin-fee test = wallet
-  // connected chain ≠ governance chain; when not connected, treat as originating on the local chain
-  // (same precedent as the vault card). Fees are paid in one payment in the origin chain's native
-  // asset → the fee's native currency (its symbol) follows the origin chain
+  // Stable identity across renders: the quote effect keys on selectedChains, and a fresh filter
+  // array every render would restart the debounce on unrelated interactions
+  const selectedChains = useMemo(
+    () => chains.filter((chain) => selectedChainIds.includes(String(chain.chainId))),
+    [chains, selectedChainIds],
+  )
+  // Fee semantics: the registration tx pays the hub fan-out in one payment with msg.value, priced
+  // by the live center quoteSend (see the quote effect below); the fee's native symbol therefore
+  // follows the governance exec chain. Submission is gated to the governance exec chain — the
+  // origin only decides which chain the wallet sits on ("governance chain = hub chain" remains a
+  // sample-scenario assumption; hub chain ownership is unknown)
   const govWalletChainId = govChainOption
-    ? (GOVERNANCE_TESTNET[govChainOption.chainId] ?? govChainOption.chainId)
+    ? executionChainId(govChainOption.chainId)
     : undefined
   const offGovChain =
     connected && govWalletChainId !== undefined && walletChainId !== govWalletChainId
-  const remoteCount = config ? selectedChains.length : 0
-  const crossChainFee = config
-    ? config.remoteDeployFee * remoteCount + (offGovChain ? config.remoteSendFee : 0)
-    : 0
   const connectedChain = offGovChain
     ? (walletChains.find((chain) => chain.chainId === walletChainId) ?? null)
     : null
   const nativeSymbol =
     (offGovChain ? connectedChain?.nativeSymbol : undefined) ?? govChainOption?.nativeSymbol ?? ''
-  // Zero state (fee truly 0 = local-chain origin and no Spoke selected): hide the whole cross-chain
-  // fee block, keep only the launch button
-  const showFee = config != null && govChainOption != null && crossChainFee > 0
+  // Zero state (fee truly 0 = local-chain origin and no Spoke selected; also while the live quote
+  // is in flight or unavailable): hide the whole cross-chain fee block, keep only the launch button
+  const showFee = config != null && govChainOption != null && fanOutFee != null && fanOutFee > 0n
 
   // Onchain registration (RegistrationCenter.registration; uniqueId is center-generated, §M8):
   // execution chain = gov testnet (mainnet gov maps to its testnet stand-in, §26 chainset).
-  const MAINNET_TO_TESTNET: Record<number, number> = { 1: 421614, 8453: 84532, 56: 97 }
   const govChainId = govChainOption != null ? govChainOption.chainId : null
-  const execChainId =
-    govChainId != null ? (MAINNET_TO_TESTNET[govChainId] ?? govChainId) : null
+  const execChainId = govChainId != null ? executionChainId(govChainId) : null
   const uAssetKey = `UAsset.${fundType}`
-  const executionReady =
-    center.source === 'real' &&
+  // One chain gate for everything gov-exec-chain-scoped: the fee quote and the symbol probe arm
+  // on it, the submit gate derives from it — tightening here must reach all three.
+  const quoteOnGovExecChain =
     connected &&
+    center.source === 'real' &&
     center.chainSupported &&
     execChainId != null &&
-    center.chainId === execChainId &&
-    govChainOption != null
+    center.chainId === execChainId
+  const executionReady = quoteOnGovExecChain && govChainOption != null
+  // One predicate for both confirm-gate halves: the review button's disabled state and
+  // buildAndStart's first-line guard must not drift apart (a diverged pair leaves either a
+  // dead button or a click that silently no-ops).
+  const confirmGated = !executionReady || resolving
+  // Wrong-chain wallet parked on the review card: the fee block is hidden without a gov-exec-
+  // chain quote, so a disabled Confirm alone reads as a dead end — the confirm slot becomes the
+  // network switch instead, same in-place escape as the participation dialog. Real builds only;
+  // harness/fixture keeps both buttons for the prototype baseline.
+  const reviewWrongChain = center.source === 'real' && offGovChain
+
+  // Targets travel in the contract's chain-id domain: quoteSend/registration compare
+  // uint32(block.chainid) and the LzEndpointRegistry keys by chain id — never the LayerZero eid.
+  function registrationTargets(): number[] {
+    const ids: number[] = []
+    for (const id of [govChainOption?.chainId, ...selectedChains.map((chain) => chain.chainId)]) {
+      if (id == null) continue
+      const entry = getClientChainConfig(id)
+      if (entry.status === 'ok') ids.push(executionChainId(id))
+    }
+    return ids
+  }
+
+  // Live registration fee (page brief: 费用报价=RPC 参数联动刷新): re-quote the center's own
+  // fan-out price whenever the registration shape moves; the fee card stays hidden until a real
+  // quote lands. The quote rides the wallet provider — only meaningful on the gov exec chain,
+  // the same gate that arms submission.
+  useEffect(() => {
+    if (!quoteOnGovExecChain) {
+      setFanOutFee(null)
+      return
+    }
+    let cancelled = false
+    const timer = setTimeout(() => {
+      void (async () => {
+        const hub = createHubReader(execChainId)
+        if (hub == null) return
+        const uAsset = hub.addresses[uAssetKey] as Hex | undefined
+        if (uAsset == null) return
+        const fee = await quoteRegistrationFanOut(hub.reader, hub.center, {
+          name: name.trim(),
+          symbol: symbol.trim(),
+          uri: '',
+          desc: desc.trim(),
+          communities: [],
+          omnichainIds: registrationTargets(),
+          uAsset,
+          flashGenesis: fast,
+        })
+        if (!cancelled) setFanOutFee(fee)
+      })()
+    }, 400)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [
+    quoteOnGovExecChain,
+    execChainId,
+    uAssetKey,
+    govChainOption,
+    selectedChains,
+    name,
+    symbol,
+    desc,
+    fast,
+  ])
+
+  // Live symbol occupancy (page brief: symbol 占用校验=RPC 实时防抖): re-probe the hub whenever the
+  // symbol moves. Occupancy is per-candidate and time-relative
+  // (block.timestamp > symbolRegistry[symbol].endTime, .sol:112-118), so it can only be answered
+  // for the symbol the user is typing — there is no enumerable occupied set for the page to
+  // snapshot at render time, which is why the onchain repository hands down no occupancy list.
+  useEffect(() => {
+    // Outside the contract's length window previewRegistration answers false for a different
+    // reason — .sol:115 mirrors registration's InvalidLength gate — and the derivation below
+    // discards the value, so skip the read instead of spending an RPC on a verdict nothing consumes
+    if (!quoteOnGovExecChain || !probeInWindow) {
+      setSymbolProbe(null)
+      return
+    }
+    let cancelled = false
+    const timer = setTimeout(() => {
+      void (async () => {
+        const hub = createHubReader(execChainId)
+        if (hub == null) return
+        const probed = symbol.trim()
+        const available = await readSymbolAvailable(hub.reader, hub.center, probed)
+        if (!cancelled) setSymbolProbe({ symbol: probed, available })
+      })()
+    }, 400)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [quoteOnGovExecChain, probeInWindow, execChainId, symbol])
 
   async function buildAndStart(): Promise<void> {
-    if (!executionReady || resolving || execChainId == null || govChainOption == null) return
+    if (confirmGated || execChainId == null || govChainOption == null) return
+    const myEpoch = resolveEpochRef.current
     const provider = getActiveEip1193Provider()
     const eoa = center.address as Hex | null
     if (!provider || !eoa) return
@@ -331,23 +517,17 @@ export function CreateForm({
     // RegistrarOmnichain.registerAtCenter (same param, forwarded to the hub).
     const centerAddr = contracts.MemeverseRegistrationCenter as Hex | undefined
     const spokeAddr = contracts.MemeverseRegistrarOmnichain as Hex | undefined
-    const hook = contracts.MemeverseUniswapHook as Hex
+    const hook = contracts.MemeverseUniswapHook as Hex | undefined
     const kernel = resolved.config.kernel7702Implementation as Hex
     const uAsset = contracts[uAssetKey] as Hex | undefined
-    if (!uAsset || (!centerAddr && !spokeAddr)) {
-      setResolveFailed(true)
+    if (!hook || !uAsset || (!centerAddr && !spokeAddr)) {
+      setResolveFailed('unavailable')
       return
     }
-    const omnichainIds: number[] = []
-    for (const id of [govChainId, ...selectedChains.map((chain) => chain.chainId)]) {
-      if (id == null) continue
-      const entry = getClientChainConfig(id)
-      if (entry.status === 'ok') omnichainIds.push(entry.config.layerZeroEid)
-    }
+    const omnichainIds = registrationTargets()
     setResolving(true)
-    setResolveFailed(false)
+    setResolveFailed(null)
     try {
-      const value = crossChainFee > 0 ? parseEther(String(crossChainFee)) : 0n
       const param = {
         name: name.trim(),
         symbol: symbol.trim(),
@@ -359,11 +539,43 @@ export function CreateForm({
         uAsset,
         flashGenesis: fast,
       }
-      const action =
-        centerAddr != null
-          ? registerAtCenterCall(centerAddr, param, value)
-          : registerAtSpokeCall(spokeAddr as Hex, param, value)
-      const targetContract = (centerAddr ?? spokeAddr) as Hex
+      if (centerAddr == null) {
+        // Spoke-origin submission sits behind the same gov-exec-chain gate; a registrar-only
+        // deployment has no quotable path, so fail closed instead of sending an unpriced tx.
+        setResolveFailed('unavailable')
+        return
+      }
+      const client = createPublicClient({
+        chain: resolved.config.viemChain,
+        transport: custom({ request: provider.request }),
+      })
+      const reader: ContractReader = {
+        read: (readParams) => client.readContract(readParams) as Promise<unknown>,
+      }
+      // Fresh occupancy probe at submit: the debounced hint may predate the last edit, and
+      // registration() reverts with SymbolNotUnlock, so fail closed rather than price and send
+      const symbolFree = await readSymbolAvailable(reader, centerAddr, param.symbol)
+      // A Revise/re-Launch while the probe was in flight superseded this round: bail before any
+      // write — a stale verdict would refill the slot handleSubmit just cleared
+      if (resolveEpochRef.current !== myEpoch) return
+      if (symbolFree === false) {
+        setSymbolProbe({ symbol: param.symbol, available: false })
+        setResolveFailed('occupied')
+        return
+      }
+      // Fresh quote at submit prices both the review card and msg.value — a stale display quote
+      // never funds the send
+      const totalFee = await quoteRegistrationFanOut(reader, centerAddr, param)
+      // No yield between here and executeSession, so this check also covers the send — a
+      // superseded round must not start the wallet flow for the abandoned parameters
+      if (resolveEpochRef.current !== myEpoch) return
+      if (totalFee == null) {
+        setResolveFailed('unavailable')
+        return
+      }
+      setFanOutFee(totalFee)
+      const action = registerAtCenterCall(centerAddr, param, totalFee)
+      const targetContract = centerAddr
       const { calls, calldata: batch } = buildSessionWrite({ hook, action })
       const spec: WriteSpec = {
         review: {
@@ -373,7 +585,7 @@ export function CreateForm({
           functionName: centerAddr != null ? 'registration' : 'registerAtCenter',
           inputs: `${name.trim()} (${symbol.trim()})`,
           minOutput: '—',
-          fee: crossChainFee > 0 ? `${crossChainFee} ${nativeSymbol}` : '—',
+          fee: totalFee > 0n ? `${formatBaseUnits(totalFee, 18, locale)} ${nativeSymbol}` : '—',
           gasPayer: eoa,
           authorizationChange: '—',
           estimatedGas: '—',
@@ -383,7 +595,7 @@ export function CreateForm({
         expectedChainId: execChainId,
         batchCallData: batch,
         calls,
-        value,
+        value: totalFee,
         quoteId: `register:${symbol.trim()}:${govChain}:${selectedChainIds.join(',')}`,
         minOutput: '—',
         slippageBps: 0,
@@ -394,7 +606,7 @@ export function CreateForm({
       setRealFlow(true)
       void tx.executeSession(spec)
     } catch {
-      setResolveFailed(true)
+      if (resolveEpochRef.current === myEpoch) setResolveFailed('unavailable')
     } finally {
       setResolving(false)
     }
@@ -452,21 +664,28 @@ export function CreateForm({
     setName(cleanName)
     setSymbol(cleanSymbol)
     setDesc(cleanDesc)
-    const ok =
-      logoUrl != null &&
-      cleanName.length >= 1 &&
-      byteLength(cleanName) <= NAME_SYMBOL_MAX_BYTES &&
-      cleanSymbol.length >= 1 &&
-      byteLength(cleanSymbol) <= NAME_SYMBOL_MAX_BYTES &&
-      !occupiedSymbols.includes(cleanSymbol) &&
-      cleanDesc.length >= 1 &&
-      byteLength(cleanDesc) <= DESC_MAX_BYTES &&
-      durationRangeOk
+    const ok = registrationInputsOk({
+      hasLogo: logoUrl != null,
+      name: cleanName,
+      symbol: cleanSymbol,
+      desc: cleanDesc,
+      occupiedSymbols,
+      symbolAvailable: probeVerdict,
+      duration: numericDuration,
+      config,
+    })
     if (!ok) {
       setInvalid(true)
       return
     }
     setInvalid(false)
+    // Re-entry clears the previous resolve verdict: the review card renders resolveFailed
+    // unconditionally, so a stale 'occupied' from an earlier Confirm would show before the
+    // next one runs (handleSubmit is the only entry into reviewing). The epoch bump also
+    // retires any resolve round still in flight — its continuation must not refill this
+    // slot or send for the old parameters.
+    resolveEpochRef.current += 1
+    setResolveFailed(null)
     setReviewing(true)
   }
 
@@ -489,20 +708,20 @@ export function CreateForm({
         ) : null}
         {showFee ? (
           <>
-            {/* quoteRegister returns only the cross-chain fee total,
+            {/* quoteSend returns only the cross-chain fee total,
                 not a per-chain breakdown — the UI shows a single total
                 row */}
             <dl className="create-quote">
               <div className="create-quote__row create-quote__row--total">
                 <dt>{copy.create.quoteTotal}</dt>
                 <dd data-numeric>
-                  {formatAmount(crossChainFee, locale)} {nativeSymbol}
+                  {formatBaseUnits(fanOutFee ?? 0n, 18, locale)} {nativeSymbol}
                 </dd>
               </div>
             </dl>
             {/* Payment semantics: paid in one payment with the registration tx's
-                msg.value (local chain = governance chain native; off-chain origin = origin chain
-                native); the amount = quoteRegister's live on-chain quote */}
+                msg.value (governance exec chain native); the amount = quoteSend's
+                live on-chain quote */}
             <FieldDescription>{copy.create.quotePaidNote}</FieldDescription>
           </>
         ) : !config || !govChainOption ? (
@@ -612,7 +831,7 @@ export function CreateForm({
                 <div className="create-quote__total">
                   <dt>{copy.create.quoteTotal}</dt>
                   <dd data-numeric>
-                    {formatAmount(crossChainFee, locale)} {nativeSymbol}
+                    {formatBaseUnits(fanOutFee ?? 0n, 18, locale)} {nativeSymbol}
                   </dd>
                 </div>
               ) : null}
@@ -625,6 +844,7 @@ export function CreateForm({
                 <Button
                   variant="outline"
                   onClick={() => {
+                    resolveEpochRef.current += 1
                     setReviewing(false)
                     tx.reset()
                   }}
@@ -632,13 +852,25 @@ export function CreateForm({
                   <RotateCcw data-icon="inline-start" aria-hidden="true" />
                   {copy.create.revise}
                 </Button>
-                <Button
-                  className="ax-ghost-cta"
-                  disabled={resolving || tx.running || (center.source === 'real' && !executionReady)}
-                  onClick={() => void buildAndStart()}
-                >
-                  {copy.verse.confirm}
-                </Button>
+                {/* execChainId != null is implied by reviewWrongChain (offGovChain requires a
+                    resolved gov chain); spelled out for the narrowing. */}
+                {reviewWrongChain && execChainId != null ? (
+                  <SwitchChainCta
+                    className="ax-ghost-cta"
+                    locale={locale}
+                    execChain={execChainId}
+                    chainName={govChainOption?.name ?? ''}
+                    onSwitch={center.switchChainAction}
+                  />
+                ) : (
+                  <Button
+                    className="ax-ghost-cta"
+                    disabled={confirmGated || tx.running}
+                    onClick={() => void buildAndStart()}
+                  >
+                    {copy.verse.confirm}
+                  </Button>
+                )}
               </div>
             ) : tx.display === 'confirmed' ? (
               <>
@@ -659,7 +891,13 @@ export function CreateForm({
             ) : (
               <TxStatus locale={locale} state={tx.display} />
             )}
-            {resolveFailed ? <FieldError>{copy.common.degrade.errorBody}</FieldError> : null}
+            {resolveFailed ? (
+              <FieldError>
+                {resolveFailed === 'occupied'
+                  ? copy.create.symbolTaken
+                  : copy.common.degrade.errorBody}
+              </FieldError>
+            ) : null}
             
           </div>
         </div>

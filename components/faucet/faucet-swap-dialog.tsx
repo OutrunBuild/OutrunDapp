@@ -27,6 +27,7 @@ import { getClientChainConfig } from '@/lib/web3/chains'
 import { getActiveEip1193Provider } from '@/lib/web3/active-provider'
 
 import { ActionDialogShell, AmountField, DetailRows, DialogCta } from '../global/action-dialogs'
+import { evaluateAmountBalance, typedAmountPositive } from '../global/amount-input'
 import { TxProgressDialog } from '../global/tx-progress-dialog'
 import { TxSuccessDialog } from '../global/tx-success-dialog'
 import { useTxSuccessGate } from '../global/use-tx-success'
@@ -42,7 +43,10 @@ import { FieldError } from '@/components/ui/field'
 
 export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Faucet['swap'] }) {
   const copy = getCopy(locale).faucet
-  const psm = usePsmSwap(locale, swap.uAssetSymbol)
+  // Unresolved uAsset (address outside the deployment tables): symbol slots render empty and
+  // the PSM hook misses its key — every swap action fails closed, no borrowed symbol
+  const uAssetLabel = swap.uAssetSymbol ?? ''
+  const psm = usePsmSwap(locale, uAssetLabel)
   const {
     connected,
     toggle,
@@ -79,10 +83,9 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fauce
   }, [open, tx.reset])
   useClearOnConfirmed(tx.display, () => setAmount(''))
   const parsed = Number(amount)
-  const valid = Number.isFinite(parsed) && parsed > 0
   const fee = mode === 'get' ? swap.feeIn : swap.feeOut
-  const paySymbol = mode === 'get' ? swap.reserveSymbol : swap.uAssetSymbol
-  const outSymbol = mode === 'get' ? swap.uAssetSymbol : swap.reserveSymbol
+  const paySymbol = mode === 'get' ? swap.reserveSymbol : uAssetLabel
+  const outSymbol = mode === 'get' ? uAssetLabel : swap.reserveSymbol
 
   const center = useAccountCenter()
   const lockTrigger = center.source === 'real' && !connected
@@ -103,21 +106,33 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fauce
     uAsset: { base: bigint; decimals: number }
     reserve: { base: bigint; decimals: number }
   } | null>(null)
+  // Execution-chain mint headroom (stockCap−netUAssetMinted): the SSR `swap.headroom`
+  // belongs to the faucet config chain, so a mint executed on another wallet chain must
+  // gate on that chain's own PSM — never on the config chain's number.
+  const [chainHeadroom, setChainHeadroom] = useState<bigint | null>(null)
   // Exact quote when the chain wads + decimals landed (Get = mint, Back = redeem); the
   // fixture sample keeps the ratio math so recorded baselines stay byte-identical.
   const feeWad = mode === 'get' ? swap.feeInWad : swap.feeOutWad
   const payDecimals = tokenDecimals == null ? null : mode === 'get' ? tokenDecimals.reserve : tokenDecimals.uAsset
   const outDecimals = tokenDecimals == null ? null : mode === 'get' ? tokenDecimals.uAsset : tokenDecimals.reserve
+  // Sub-unit typed amounts (they parse to 0n base units of the paying token) fail valid and
+  // can no longer arm the CTA — the verse trade dialogs' shared predicate; with the exact
+  // probe unlanded the float half decides and execution re-checks against fresh decimals.
+  const valid = typedAmountPositive(amount, payDecimals ? { decimals: payDecimals } : null)
+  // Net uAsset output of the Get (mint) quote in 18-dec base units: the chain's stockCap
+  // check compares THIS fee-net output, never the typed reserve amount. Shared with the
+  // receive row so the cap gate and the displayed quote cannot diverge.
+  const mintOutBase =
+    mode === 'get' && valid && feeWad != null && payDecimals != null
+      ? psmMintQuote(toBaseUnits(amount, payDecimals), payDecimals, BigInt(feeWad)).amountOut
+      : null
   const exactReceive: string | null = (() => {
-    if (!valid || feeWad == null || payDecimals == null) return null
-    const inputBase = toBaseUnits(amount, payDecimals)
-    const wad = BigInt(feeWad)
     if (mode === 'get') {
       // The PSM mints 18-dec uAsset: payout in the uAsset's own base units.
-      return formatBaseUnits(psmMintQuote(inputBase, payDecimals, wad).amountOut, 18, locale)
+      return mintOutBase == null ? null : formatBaseUnits(mintOutBase, 18, locale)
     }
-    if (outDecimals == null) return null
-    const payout = psmRedeemQuote(inputBase, outDecimals, wad).amountOut
+    if (!valid || feeWad == null || payDecimals == null || outDecimals == null) return null
+    const payout = psmRedeemQuote(toBaseUnits(amount, payDecimals), outDecimals, BigInt(feeWad)).amountOut
     return formatBaseUnits(payout, outDecimals, locale)
   })()
   const feePercentText =
@@ -131,6 +146,8 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fauce
   // refresh re-runs the balances effect — never a full reset, never on every render.
   const [settledTick, setSettledTick] = useState(0)
   const prevDisplayRef = useRef<string | null>(null)
+  // Scope key of the landed balances/decimals reads (compared at the balances effect entry).
+  const balanceScopeRef = useRef<string | null>(null)
   useEffect(() => {
     if (tx.display === 'confirmed' && prevDisplayRef.current !== 'confirmed') {
       setSettledTick((tick) => tick + 1)
@@ -138,12 +155,29 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fauce
     prevDisplayRef.current = tx.display
   }, [tx.display])
   useEffect(() => {
+    // A chain/account switch invalidates the previous chain's headroom before the read
+    // lands: the cap gate must never act on another chain's number.
+    setChainHeadroom(null)
+    // Balances/decimals are chain+account scoped the same way: a switch drops the previous
+    // scope's landed values so the balance gate fails closed (balanceUnknown) instead of
+    // judging on another chain/account's numbers until the fresh read lands. The
+    // settledTick re-read keeps its landed values — same scope.
+    const balanceScope =
+      center.chainId == null || center.address == null
+        ? null
+        : `${center.chainId}:${center.address}`
+    if (balanceScopeRef.current !== balanceScope) {
+      balanceScopeRef.current = balanceScope
+      setBalances(null)
+      setTokenDecimals(null)
+      setExactBalances(null)
+    }
     if (!open || !liveBalances || center.chainId == null || center.address == null) return
     const provider = getActiveEip1193Provider()
     const eoa = center.address as Hex
     const resolved = getClientChainConfig(center.chainId)
     if (!provider || resolved.status !== 'ok' || resolved.config.contracts.status !== 'deployed') return
-    const psmAddr = resolved.config.contracts.addresses[`OutrunPSM.${swap.uAssetSymbol}`] as Hex | undefined
+    const psmAddr = resolved.config.contracts.addresses[`OutrunPSM.${uAssetLabel}`] as Hex | undefined
     if (!psmAddr) return
     let cancelled = false
     const client = createPublicClient({
@@ -167,15 +201,30 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fauce
           reader.read({ address: psmAddr, abi: psmAbi, functionName: 'uAsset' }),
           reader.read({ address: psmAddr, abi: psmAbi, functionName: 'reserveToken' }),
         ])) as [Hex, Hex]
-        const [myUAsset, myReserve] = await Promise.all([readBalance(uAsset), readBalance(reserve)])
-        if (!cancelled) {
-          setBalances({ uAsset: myUAsset.value, reserve: myReserve.value })
-          setTokenDecimals({ uAsset: myUAsset.decimals, reserve: myReserve.decimals })
-          setExactBalances({
-            uAsset: { base: myUAsset.base, decimals: myUAsset.decimals },
-            reserve: { base: myReserve.base, decimals: myReserve.decimals },
+        // Execution-chain headroom runs parallel with the balances; a failed read leaves the
+        // cap gate silent (null 不门控) instead of borrowing the config chain's SSR value.
+        const headroom = Promise.all([
+          reader.read({ address: psmAddr, abi: psmAbi, functionName: 'stockCap' }),
+          reader.read({ address: psmAddr, abi: psmAbi, functionName: 'netUAssetMinted' }),
+        ])
+          .then(([stockCap, netMinted]) => {
+            const stock = BigInt(String(stockCap))
+            const minted = BigInt(String(netMinted))
+            return stock > minted ? stock - minted : 0n
           })
-        }
+          .catch(() => null)
+        const [myUAsset, myReserve] = await Promise.all([readBalance(uAsset), readBalance(reserve)])
+        if (cancelled) return
+        // Balances land before the headroom read settles: a slow cap read must not hold the
+        // balance gate hostage (the CTA would stay disabled on an unknown balance).
+        setBalances({ uAsset: myUAsset.value, reserve: myReserve.value })
+        setTokenDecimals({ uAsset: myUAsset.decimals, reserve: myReserve.decimals })
+        setExactBalances({
+          uAsset: { base: myUAsset.base, decimals: myUAsset.decimals },
+          reserve: { base: myReserve.base, decimals: myReserve.decimals },
+        })
+        const chainHeadroomValue = await headroom
+        if (!cancelled) setChainHeadroom(chainHeadroomValue)
       } catch {
         // silent degrade: AmountField keeps '--'
       }
@@ -200,6 +249,12 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fauce
       : mode === 'get'
         ? exactBalances.reserve
         : exactBalances.uAsset
+
+  // Submit gate: the same shared predicate as AmountField's error row (over-balance) plus
+  // the unknown-balance block; the mint direction also refuses an amount whose fee-net
+  // output exceeds the execution chain's remaining stockCap headroom.
+  const amountGate = evaluateAmountBalance(amount, balance, exactBalance)
+  const overMintCap = chainHeadroom != null && mintOutBase != null && mintOutBase > chainHeadroom
 
   return (
     <>
@@ -240,8 +295,8 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fauce
               copy.rate,
               <span key="rate" data-numeric>
                 {mode === 'get'
-                  ? `1 ${swap.reserveSymbol} = 1 ${swap.uAssetSymbol}`
-                  : `1 ${swap.uAssetSymbol} = 1 ${swap.reserveSymbol}`}
+                  ? `1 ${swap.reserveSymbol} = 1 ${uAssetLabel}`
+                  : `1 ${uAssetLabel} = 1 ${swap.reserveSymbol}`}
               </span>,
             ],
             [
@@ -274,7 +329,7 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fauce
                       '--'
                     ) : (
                       <span key="headroom" data-numeric>
-                        {formatAmount(swap.headroom, locale)} {swap.uAssetSymbol}
+                        {formatAmount(swap.headroom, locale)} {uAssetLabel}
                       </span>
                     ),
                   ],
@@ -311,6 +366,8 @@ export function FaucetSwapDialog({ locale, swap }: { locale: Locale; swap: Fauce
           label={mode === 'get' ? copy.ctaGet : copy.ctaBack}
           disabled={
             !valid ||
+            amountGate.blocked ||
+            overMintCap ||
             !executionReady ||
             resolving ||
             tx.running ||

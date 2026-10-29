@@ -28,13 +28,22 @@ function nullableNumberOrder(direction: 1 | -1, a: number | null, b: number | nu
   return direction * (a - b)
 }
 
+/** Date key for sorting: an absent/out-of-range timestamp sinks like the nullable numeric
+ *  keys instead of poisoning the comparator with NaN */
+function dateValue(value: string | null) {
+  if (value == null) return null
+  const ms = Date.parse(value)
+  return Number.isNaN(ms) ? null : ms
+}
+
 /** List sort: 10 keys × asc/desc (`size` and unknown keys share the participationSize fallback) */
 export function sortVerses(verses: Verse[], sort: string, order: 'asc' | 'desc') {
   const direction = order === 'asc' ? 1 : -1
   return verses.toSorted((a, b) => {
-    if (sort === 'endtime') return direction * (Date.parse(a.endsAt) - Date.parse(b.endsAt))
+    if (sort === 'endtime')
+      return nullableNumberOrder(direction, dateValue(a.endsAt), dateValue(b.endsAt))
     if (sort === 'unlocktime')
-      return direction * (Date.parse(a.unlockTimeAt) - Date.parse(b.unlockTimeAt))
+      return nullableNumberOrder(direction, dateValue(a.unlockTimeAt), dateValue(b.unlockTimeAt))
     if (sort === 'volume') return nullableNumberOrder(direction, a.volume24h, b.volume24h)
     if (sort === 'marketcap')
       return nullableNumberOrder(direction, a.marketCapUsd, b.marketCapUsd)
@@ -45,7 +54,7 @@ export function sortVerses(verses: Verse[], sort: string, order: 'asc' | 'desc')
       return direction * (a.participantCount - b.participantCount)
     if (sort === 'progress') return direction * (progressValue(a) - progressValue(b))
     if (sort === 'createtime')
-      return direction * (Date.parse(a.createdAt) - Date.parse(b.createdAt))
+      return nullableNumberOrder(direction, dateValue(a.createdAt), dateValue(b.createdAt))
     return direction * (a.participationSize - b.participationSize)
   })
 }

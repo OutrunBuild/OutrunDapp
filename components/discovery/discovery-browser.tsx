@@ -75,9 +75,40 @@ export function DiscoveryBrowser({
   const [queryInput, setQueryInput] = useState(initialQuery)
   const [pending, startTransition] = useTransition()
   const [filtersOpen, setFiltersOpen] = useState(false)
+  // Accumulated rows across ?page=+1 navigations: the remount key stays stable while
+  // only the page advances, so prior windows survive instead of being replaced.
+  const [prevPage, setPrevPage] = useState(initialPage)
+  const [prevVerses, setPrevVerses] = useState(verses)
+  const [keptVerses, setKeptVerses] = useState<Verse[]>([])
   const [visibleCount, setVisibleCount] = useState(GRID_BATCH_SIZE)
   const [showBackToTop, setShowBackToTop] = useState(false)
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null)
+
+  // Fold the outgoing window into the kept rows when a new page arrives (render-phase
+  // state update, so the commit never flashes the replacement). Only the contiguous
+  // next page continues the accumulation; a gap (e.g. a manually edited ?page=) or a
+  // move back resets to the served window so the content still matches the URL.
+  if (initialPage !== prevPage) {
+    setPrevPage(initialPage)
+    setPrevVerses(verses)
+    if (initialPage === prevPage + 1) {
+      const incomingIds = new Set(verses.map((verse) => verse.id))
+      setKeptVerses((kept) =>
+        [...kept, ...prevVerses].filter(
+          (verse, index, list) =>
+            !incomingIds.has(verse.id) &&
+            list.findIndex((candidate) => candidate.id === verse.id) === index,
+        ),
+      )
+    } else {
+      setKeptVerses([])
+      setVisibleCount(GRID_BATCH_SIZE)
+    }
+  } else if (verses !== prevVerses) {
+    setPrevVerses(verses)
+    setKeptVerses([])
+  }
+  const accumulatedVerses = [...keptVerses, ...verses]
 
   const currentParams = {
     stage: initialStage,
@@ -113,8 +144,8 @@ export function DiscoveryBrowser({
   }
 
   // Server-side filtering is already applied (stage/chain/mode/query at the data layer);
-  // the client only sorts the loaded page (existing sortVerses semantics, single pass).
-  const visibleVerses = sortVerses(verses, initialSort, initialOrder)
+  // the client only sorts the accumulated rows (existing sortVerses semantics, single pass).
+  const visibleVerses = sortVerses(accumulatedVerses, initialSort, initialOrder)
 
   // Within-page reveal: show the first batches instantly, reveal more on scroll; crossing
   // the page boundary navigates to ?page=+1 (server renders the next window, scroll preserved)

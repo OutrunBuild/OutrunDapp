@@ -29,8 +29,23 @@ const GROUP_ORDER: VerseStage[] = ['genesis', 'locked', 'unlocked']
 
 /** viem multicall with allowFailure wraps every entry as {status, result}: a reverted leg
  *  unwraps to null so one bad verse skips its row instead of poisoning the whole scan */
-function multicallLeg(entry: { status: string; result?: unknown } | undefined): unknown {
+export function multicallLeg(entry: { status: string; result?: unknown } | undefined): unknown {
   return entry?.status === 'success' && entry.result !== undefined ? entry.result : null
+}
+
+/** Ledger row math: three currency legs at one token's decimals; a row summing to zero holds
+ *  nothing and is skipped rather than rendered as an empty position. */
+export function participationTotals(
+  genesisAmount: bigint,
+  preorderAmount: bigint,
+  leveragedDebt: bigint,
+  decimals: number,
+): { normal: number; leverage: number; preorder: number; total: number } | null {
+  const normal = Number(formatUnits(genesisAmount, decimals))
+  const leverage = Number(formatUnits(leveragedDebt, decimals))
+  const preorder = Number(formatUnits(preorderAmount, decimals))
+  const total = normal + leverage + preorder
+  return total > 0 ? { normal, leverage, preorder, total } : null
 }
 
 /** uAsset decimals by token address: token metadata is deployment-stable, so one on-chain read
@@ -84,9 +99,9 @@ function ParticipationRow({ locale, row }: { locale: Locale; row: ParticipationR
     )
 
   // Date subline: locked = projected unlock date (deadline + 365d); none for genesis and
-  // unlocked rows
+  // unlocked rows, and none when the source timestamp is unrepresentable (null slot)
   const dateLine =
-    row.verse.stage === 'locked' ? (
+    row.verse.stage === 'locked' && row.verse.unlockAt != null ? (
       <span className="pf-participation-row__date">
         {copy.unlocksOn.replace('{d}', formatDay(row.verse.unlockAt, locale))}
       </span>
@@ -96,11 +111,11 @@ function ParticipationRow({ locale, row }: { locale: Locale; row: ParticipationR
   const makeup =
     row.holdings != null ? (
       <MakeupLine locale={locale} holdings={row.holdings} />
-    ) : (
+    ) : row.verse.endsAt != null ? (
       <span className="pf-participation-row__note">
         {copy.endsOn.replace('{d}', formatDay(row.verse.endsAt, locale))}
       </span>
-    )
+    ) : null
 
   const cta = claimable > 0 ? copy.claim : copy.manage
 
@@ -207,7 +222,9 @@ export function ParticipationsZone({
           return [
             { address: launcher, abi: launcherAbi, functionName: 'userGenesisData', args: [verseId, account] },
             { address: launcher, abi: launcherAbi, functionName: 'userPreorderData', args: [verseId, account] },
-            { address: polend, abi: polendAbi, functionName: 'totalInterestPaid', args: [verseId, account] },
+            // Leverage leg = the on-chain participation basis (interest → debt principal at
+            // the verse rate); totalInterestPaid is the refund-cost ledger
+            { address: polend, abi: polendAbi, functionName: 'getUserLeveragedDebt', args: [verseId, account] },
             { address: launcher, abi: launcherAbi, functionName: 'getUAssetByVerseId', args: [verseId] },
           ]
         })
@@ -242,21 +259,24 @@ export function ParticipationsZone({
         scoped.forEach(({ head }, index) => {
           const genesis = multicallLeg(ledgerResults[index * 4]) as [bigint, boolean, boolean] | null
           const preorder = multicallLeg(ledgerResults[index * 4 + 1]) as [bigint, bigint, boolean] | null
-          const interest = multicallLeg(ledgerResults[index * 4 + 2]) as bigint | null
+          const leveragedDebt = multicallLeg(ledgerResults[index * 4 + 2]) as bigint | null
           const uAsset = uAssetByVerse[index]
-          if (!genesis || !preorder || interest == null || typeof uAsset !== 'string') return
+          if (!genesis || !preorder || leveragedDebt == null || typeof uAsset !== 'string') return
           const decimals = uAssetDecimalsCache.get(uAsset)
           if (decimals == null) return
-          const normal = Number(formatUnits(genesis[0], decimals))
-          const leverage = Number(formatUnits(interest, decimals))
-          const preorderAmount = Number(formatUnits(preorder[0], decimals))
-          const total = normal + leverage + preorderAmount
-          if (total <= 0) return
+          const totals = participationTotals(genesis[0], preorder[0], leveragedDebt, decimals)
+          if (!totals) return
           next.push({
             verse: head,
             // stakeRoute is not derivable on-chain (the ledger records uAsset regardless of the
             // pay route) — the stake badge stays a fixture-sample marker
-            genesis: { total, normal, leverage, preorder: preorderAmount, stakeRoute: false },
+            genesis: {
+              total: totals.total,
+              normal: totals.normal,
+              leverage: totals.leverage,
+              preorder: totals.preorder,
+              stakeRoute: false,
+            },
             holdings: null,
           })
         })
