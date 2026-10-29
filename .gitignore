@@ -69,6 +69,7 @@ next-env.d.ts
 .next-compare/
 .next-verify/
 .next-4175/
+.next-shots/
 
 docs/review
 docs/runbooks

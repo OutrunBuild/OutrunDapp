@@ -4,13 +4,18 @@ import { defineConfig } from '@playwright/test';
 // - Three viewports = repo convention 1280×800 / 860×900 / 390×844, DPR at the Playwright default of 1 (avoids subpixel drift of chamfer strokes/Worklet)
 // - The server runs from the separate NEXT_DIST_DIR=.next-e2e build, never touching .next (no conflict with a running dev/preview)
 // - The first run writes baseline snapshots automatically (e2e/*-snapshots/, committed); afterwards any style change shows a pixel diff on the next run
-// - Update baselines: pnpm test:e2e -- --update-snapshots (a human must confirm the diff is an intended change)
+// - Update baselines: pnpm test:e2e -- --update-snapshots=all (a human must confirm the diff is an intended change; the bare form defaults to "changed" and silently leaves drift inside maxDiffPixelRatio unrecorded)
 
 const PORT = 4188;
 const BASE = `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
   testDir: 'e2e',
+  // The wallet fork suite needs a forked chain + an onchain server (playwright.wallet.config.ts).
+  // Collected here it can only ever skip, or — with WALLET_E2E left in the shell — drive 27 fork
+  // cases into this fixture build. Excluded at the config layer, so the in-test skip stays the
+  // guard for direct wallet-config runs.
+  testIgnore: 'wallet-*.spec.ts',
   timeout: 60_000,
   // Visual comparison tolerance: up to 1% differing pixels passes (margin for canvas charts and antialiasing; real regressions far exceed this)
   expect: {
@@ -41,7 +46,9 @@ export default defineConfig({
     command:
       'OUTRUN_DATA_SOURCE=fixture NEXT_DIST_DIR=.next-e2e pnpm build && OUTRUN_DATA_SOURCE=fixture NEXT_DIST_DIR=.next-e2e pnpm start -p 4188',
     url: `${BASE}/`,
-    reuseExistingServer: true,
+    // Fail closed on an occupied port: reusing a stale server would skip the build above and run
+    // the visual/axe gate against an old bundle.
+    reuseExistingServer: false,
     timeout: 420_000,
   },
 });

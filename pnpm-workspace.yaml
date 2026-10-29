@@ -9,6 +9,7 @@ overrides:
   fast-uri@<3.1.9: 3.1.9
   source-map-js@<1.2.2: 1.2.2
   decode-uri-component@<0.5.0: 0.5.0
+  zod@<4.6.6: 4.6.7
 allowBuilds:
   '@parcel/watcher': true
   '@reown/appkit': false

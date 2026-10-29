@@ -3,7 +3,7 @@ import type { NextConfig } from 'next';
 // Build-time data-source swap (fixture-boundary-contract OUTRUN_DATA_SOURCE section): onchain
 // builds redirect the fixture repository module to the onchain adapter, so fixtures/** is
 // statically unreachable in the compiled graph (two-build rule; runtime env flips cannot change
-// an already-built artifact). ONCHAIN IS THE DEFAULT (2026-10-26 user ruling): the bare
+// an already-built artifact). ONCHAIN IS THE DEFAULT: the bare
 // `pnpm dev` / `pnpm build` serve on-chain data; fixture is the explicit opt-out via
 // OUTRUN_DATA_SOURCE=fixture (pnpm dev:fixture / build:fixture), which resolves the real
 // module untouched. Client projection of the build-mode switch: non-NEXT_PUBLIC_ vars never
