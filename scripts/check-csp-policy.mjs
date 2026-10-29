@@ -1,7 +1,8 @@
 // CSP nonce policy checker (architecture.md §14, runbook stage 6 step 7).
 // Proves three things against a production preview (default: the 4175 onchain build):
 //   1. two independent document requests carry valid script-src nonces (base64, encoded
-//      length >= 20 per csp-origins.json noncePolicy.minimumEncodedLength) that DIFFER;
+//      length >= csp-origins.json noncePolicy.minimumEncodedLength — the single threshold
+//      source, consumed below) that DIFFER;
 //   2. each response CSP contains exactly one 'nonce-…' occurrence;
 //   3. in a real browser load, every nonce="…" the served markup carries equals the
 //      nonce of that load's own response (live-DOM reads are hiding by design, so the
@@ -9,7 +10,10 @@
 // Refusals (non-zero exit with the failed proof named): JSON-only validation is not
 // performed here by design (there is no JSON to check — the header is the policy);
 // Content-Security-Policy-Report-Only alone fails (the enforcing header is required);
-// a reused nonce fails proof 1; a missing DOM nonce fails proof 3.
+// a reused nonce fails proof 1; a missing DOM nonce fails proof 3. The nonce-shape floor is
+// read from the workspace registry while the proofed artifact is the deployed build — a
+// tree/build skew can only shift that shape floor, never origin decisions (the header is
+// still the sole policy surface).
 // CI wiring lands in stage 8 (§12); this step only builds the script and proves it locally.
 //
 // Run: node scripts/check-csp-policy.mjs --base-url http://localhost:4175 [--path /]
@@ -17,9 +21,14 @@
 import { createServer } from 'node:http';
 import { chromium } from '@playwright/test';
 
+import cspOrigins from '../docs/security/csp-origins.json' with { type: 'json' };
+
 const NONCE_RE = /'nonce-([A-Za-z0-9+/=]+)'/;
 const BASE64_RE = /^[A-Za-z0-9+/]+={0,2}$/;
-const MIN_ENCODED_LENGTH = 20;
+const MIN_ENCODED_LENGTH = cspOrigins.noncePolicy?.minimumEncodedLength;
+if (!Number.isInteger(MIN_ENCODED_LENGTH) || MIN_ENCODED_LENGTH < 1) {
+  throw new Error('csp-origins.json noncePolicy.minimumEncodedLength is not a positive integer');
+}
 
 function isValidNonceShape(value) {
   return typeof value === 'string' && value.length >= MIN_ENCODED_LENGTH && BASE64_RE.test(value);

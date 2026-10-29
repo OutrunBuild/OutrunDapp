@@ -2,16 +2,16 @@
   "note": "fixture frozen manifest; own entry hash=self, no recursion; regenerate: node scripts/write-fixture-manifest.mjs (byte-deterministic output)",
   "items": {
     "fixtures/README.md": {
-      "bytes": 1921,
-      "sha256": "57206dd93c0dfc8e12814ce77b3510fb556670406d81809d43833f6d628fbc9f"
+      "bytes": 2594,
+      "sha256": "3312bdcc49b19b189ab225fa89909462838cbfbcd78590a8e28efb7b9601468b"
     },
     "fixtures/data/accounts.json": {
       "bytes": 1361,
       "sha256": "b1846a2459999591de269a210dad0dc163a719b51151f2da81f0147939a51395"
     },
     "fixtures/data/assets.json": {
-      "bytes": 7321,
-      "sha256": "137ecb82f37b687c3d67010d4e30e608a1dada8db7aebf5465f886120a47da4d"
+      "bytes": 7318,
+      "sha256": "392da96a8b1ba8f7eea9b46173e462c353e3af00833612cd2566e9f5deb4af33"
     },
     "fixtures/data/balances.json": {
       "bytes": 3465,
@@ -22,16 +22,16 @@
       "sha256": "17cf0aa85de618210a9f58f59559eed46e8886350b2259ff8bb2d72de5169b4d"
     },
     "fixtures/data/chains.json": {
-      "bytes": 1154,
-      "sha256": "75579f74c99ccbcd3b5042f94511bf279e423ca2c012c302286e625a2b2fe825"
+      "bytes": 1152,
+      "sha256": "7ba081f9c6eadb305392fd41be45375eb6793bb2c72f9e684464414fd932e039"
     },
     "fixtures/data/create-config.json": {
-      "bytes": 470,
-      "sha256": "fc1bc749e17266cadc6591f8023c9547cad59b89166455150cf78b7cab527a4e"
+      "bytes": 306,
+      "sha256": "cc381275b9e2a6ed955d7f709e9192ca09c2d926aac8a7fe5ab16d77c1e3c30d"
     },
     "fixtures/data/faucet.json": {
-      "bytes": 1576,
-      "sha256": "c4c2eb9d3b7bb09454252ee9503daa2e22907391b1064dbebb94649bcc6094cd"
+      "bytes": 1574,
+      "sha256": "60d3a0f9ddd8819d3da458aa179d84dc450325b092d325735976292fcdd21723"
     },
     "fixtures/data/governance.json": {
       "bytes": 142597,
@@ -50,8 +50,8 @@
       "sha256": "c1f3d20d2b563ae349d486309a6f4f3d6485ba0f18de1425647be085ec68663c"
     },
     "fixtures/data/pol-positions.json": {
-      "bytes": 37271,
-      "sha256": "d3d7977ddf4182e597b206e67cca29d47491f97a18ce968fccef45c825fc556c"
+      "bytes": 38475,
+      "sha256": "4198562b1ae55a87484e84a0d4565cef3b650f30445c605e804f4243e6560ffb"
     },
     "fixtures/data/positions.json": {
       "bytes": 3822,
@@ -74,16 +74,16 @@
       "sha256": "41e3b3c53867902be3d0d018a381db45fd05fa8d31db00062d990d38a8972bfb"
     },
     "fixtures/data/transactions.json": {
-      "bytes": 1758,
-      "sha256": "f62d556711a7993ba9f48acc767eff364ea37681715556d8fb39c3dda30af6eb"
+      "bytes": 1934,
+      "sha256": "9222bf4158784a2bfa987f80cdaef3c120a216ca35f4f6e9c6d8df82124d9859"
     },
     "fixtures/data/usr-vaults.json": {
       "bytes": 1548,
       "sha256": "4f695366c6070107b44266c8eb9395d82f3fe42035b98cbdd92b2ef4958120ed"
     },
     "fixtures/data/verses.json": {
-      "bytes": 66393,
-      "sha256": "3dcdb0b06c92eeedad1066d30be4544721f1ba49c6300acba3b2ef7b2a09f4fc"
+      "bytes": 62925,
+      "sha256": "8771688b0864d7e79cacb1a26bdebd86878bcc59ab84a257a1d5630a1b20f90e"
     },
     "fixtures/data/yield-sources.json": {
       "bytes": 849,
@@ -118,8 +118,8 @@
       "sha256": "58685ea536525913a525b2700875e38c8365c6d799e9fd9a1d658dbebcde2dc4"
     },
     "fixtures/schema.ts": {
-      "bytes": 28633,
-      "sha256": "f93d257d480f5ced2faae1485e222b6715848f21733d7e10d54b103a7db9b166"
+      "bytes": 29415,
+      "sha256": "ba7b18adb80903d653b35e6b6aeb2fc7ec5150fcda3224b2800f1846bdbebb76"
     },
     "fixtures/manifest.json": {
       "bytes": 0,

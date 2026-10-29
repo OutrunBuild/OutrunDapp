@@ -23,6 +23,8 @@
     "check:freeze": "node scripts/check-design-freeze.mjs",
     "build:cjk-font": "node scripts/build-cjk-font.mjs",
     "check:cjk-font": "node scripts/check-cjk-subset.mjs",
+    "check:cjk-copy": "node scripts/check-cjk-copy.mjs",
+    "check:copy-punctuation": "node scripts/check-copy-punctuation.mjs",
     "check:design-docs": "node scripts/check-design-docs.mjs",
     "design:detect": "node .agents/skills/impeccable/scripts/detect.mjs --target"
   },

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Heavy gates: repo-wide typecheck + full vitest (vitest already includes the fixture-boundary gate and
-# the design bare-value/contrast/architecture-compliance/CJK-subset checkers -- see
+# the design bare-value/contrast/design-docs/architecture-compliance/CJK-subset checkers -- see
 # tests/unit/fixtures/boundary.test.ts and tests/unit/contract-gates.test.ts).
 # Verified target = the current worktree (not the pushed commit range) -- keep the worktree clean before
 # pushing (commit or stash); WIP left in the worktree by parallel sessions may block this push

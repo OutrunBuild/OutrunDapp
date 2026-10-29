@@ -1,5 +1,6 @@
 # Minimal CI: a precursor subset of the scope ruled in docs/architecture.md §12 (typecheck/lint/format/full vitest,
-# with the fixture-boundary and design-raw-value/contrast/architecture-compliance checkers bundled in vitest) + ABI/manifest integrity check
+# with the fixture-boundary gate and all contract-gate checkers bundled in vitest — the authoritative list is
+# tests/unit/fixtures/boundary.test.ts and tests/unit/contract-gates.test.ts) + ABI/manifest integrity check
 # (wired in the stage 4 freeze round); production build and Playwright follow with the full §12 compliance round. Gate policy stays consistent with .githooks/pre-push.
 name: ci
 on:

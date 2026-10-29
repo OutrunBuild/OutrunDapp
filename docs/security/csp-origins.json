@@ -1,15 +1,6 @@
 {
-  "version": 3,
+  "version": 4,
   "directives": {
-    "default-src": ["'self'"],
-    "script-src": ["'self'", "'strict-dynamic'", "https://challenges.cloudflare.com"],
-    "style-src": ["'self'", "'unsafe-inline'"],
-    "img-src": ["'self'", "data:", "blob:"],
-    "font-src": ["'self'"],
-    "object-src": ["'none'"],
-    "base-uri": ["'self'"],
-    "form-action": ["'self'"],
-    "frame-ancestors": ["'none'"],
     "child-src": [
       "https://auth.privy.io",
       "https://verify.walletconnect.com",
@@ -31,9 +22,7 @@
       "https://*.rpc.privy.systems",
       "https://explorer-api.walletconnect.com",
       "https://data-seed-prebsc-1-s1.bnbchain.org:8545"
-    ],
-    "worker-src": ["'self'"],
-    "manifest-src": ["'self'"]
+    ]
   },
   "noncePolicy": {
     "directive": "script-src",

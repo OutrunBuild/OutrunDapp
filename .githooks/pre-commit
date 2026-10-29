@@ -10,12 +10,12 @@
 # (same .githooks convention as Memeverse/OutStake).
 # Mount: git config core.hooksPath .githooks (already set in this repo's .git/config; the global
 # ~/.gitconfig also points at the same path).
-# Heavy gates (typecheck + full vitest, which includes the fixture-boundary gate and the four
+# Heavy gates (typecheck + full vitest, which includes the fixture-boundary gate and the five
 # design/CJK checkers) run in pre-push; emergency bypass = git commit
 # --no-verify, then re-run afterwards:
 #   pnpm typecheck && pnpm lint && pnpm format:check && pnpm test \
 #     && pnpm check:design && pnpm check:contrast && pnpm check:cjk-font \
-#     && node scripts/check-architecture-compliance.mjs
+#     && pnpm check:design-docs && node scripts/check-architecture-compliance.mjs
 set -euo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"

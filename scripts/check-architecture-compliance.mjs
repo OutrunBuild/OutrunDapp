@@ -70,14 +70,17 @@ if (existsSync('package.json')) {
     const deps = pkg[section] ?? {};
     for (const [name, expected] of Object.entries(table)) {
       const actual = deps[name];
+      // npm: aliases (typescript7 / direct-pin typescript) encode the exact version after the
+      // alias specifier; strip it so the pin check compares versions instead of substrings.
+      const pinned = actual?.startsWith('npm:')
+        ? actual.slice(actual.lastIndexOf('@') + 1)
+        : actual;
       if (!actual)
         problems.push(`the version allowlist: ${section}.${name} missing (expected ${expected})`);
-      else if (!actual.includes(expected))
+      else if (pinned !== expected)
         problems.push(
           `the version allowlist: ${section}.${name}=${actual} not pinned to ${expected}`,
         );
-      else if (/[\^~]| \||\*/.test(actual.replace(/npm:[^@]+@/, '')))
-        problems.push(`the version allowlist: ${section}.${name}=${actual} contains range symbols`);
     }
     for (const name of Object.keys(deps)) {
       if (!table[name] && !(section === 'devDependencies' && name === 'typescript' && tsBridge))
@@ -152,7 +155,7 @@ if (existsSync('components')) {
     readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
       const path = `${dir}/${entry.name}`;
       if (entry.isDirectory()) return walk(path);
-      return /\.tsx?$/.test(entry.name) ? [path] : [];
+      return /\.(?:tsx?|js)$/.test(entry.name) ? [path] : [];
     });
   for (const file of walk('components')) {
     if (ALLOWED.has(file)) continue;
