@@ -4,7 +4,9 @@
 // Scope: Markdown docs under docs/design-system/ plus the root AGENTS.md
 // Predicates:
 //   1) FAIL  duplicate pattern-name rows in section 6 of the components doc -- guards against the
-//            "append a new row on update without deleting the old one" accident
+//            "append a new row on update without deleting the old one" accident; a missing or
+//            empty section 6 fails closed, so a renamed/renumbered heading cannot silently
+//            disable this predicate
 //   2) FAIL  any single line in any file exceeding MAX_LINE_CHARS (12,000) -- guards against new
 //            giant single lines; the loose ceiling fits the legacy big-table format and can be
 //            tightened as the table is split into per-pattern sections
@@ -51,6 +53,19 @@ function findDuplicatePatterns(rows) {
   return dupes;
 }
 
+// Fail closed on parse-anchor drift: a renamed/renumbered section 6 would otherwise leave this
+// gate silently parsing zero rows and passing forever.
+function section6GateFailures(text) {
+  if (text === undefined) return ['components doc missing from docs/design-system/'];
+  const rows = parseSection6Rows(text);
+  if (rows.length === 0)
+    return ['components doc section 6 not found or empty -- `## 6.` parse anchor drifted'];
+  const dupes = findDuplicatePatterns(rows);
+  if (dupes.length)
+    return [`components doc section 6 duplicate pattern names: ${dupes.join(', ')}`];
+  return [];
+}
+
 function findOverlongLines(files, max) {
   const hits = [];
   for (const [name, text] of files) {
@@ -85,11 +100,7 @@ function runChecks() {
   const failures = [];
 
   const components = files.find(([f]) => f === 'components.md');
-  if (components) {
-    const dupes = findDuplicatePatterns(parseSection6Rows(components[1]));
-    if (dupes.length)
-      failures.push(`components doc section 6 duplicate pattern names: ${dupes.join(', ')}`);
-  }
+  failures.push(...section6GateFailures(components?.[1]));
 
   const overlong = findOverlongLines(files, MAX_LINE_CHARS);
   if (overlong.length)
@@ -117,6 +128,24 @@ function selfTest() {
       findDuplicatePatterns(
         parseSection6Rows('## 6. x\n| a | b |\n| b | c |\n|---|\n| 模式 | x |\n## 7. y'),
       ).length === 0,
+    ],
+    [
+      'components doc section 6 gate fails closed on missing/renumbered section (anchor drift)',
+      section6GateFailures('## 5. x\n| a | b |\n## 7. y').length === 1,
+    ],
+    [
+      'components doc section 6 gate fails closed on missing components doc',
+      section6GateFailures(undefined).length === 1,
+    ],
+    [
+      'components doc section 6 gate passes a healthy table',
+      section6GateFailures('## 6. x\n| a | b |\n| b | c |\n|---|\n| 模式 | x |\n## 7. y').length ===
+        0,
+    ],
+    [
+      'components doc section 6 gate reports duplicates (wiring + message template)',
+      section6GateFailures('## 6. x\n| a | b |\n| a | c |')[0] ===
+        'components doc section 6 duplicate pattern names: a',
     ],
     [
       'overlong line positive case',

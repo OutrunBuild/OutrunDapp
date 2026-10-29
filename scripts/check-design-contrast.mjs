@@ -6,7 +6,10 @@
 //     the pairing table
 //   node scripts/check-design-contrast.mjs --self-test   built-in known-value checks
 //     (black/white 21:1, #767676/white ~4.54:1, the registered text and accent-on-surface doc
-//     values, and 3-digit shorthand)
+//     values, 3-digit shorthand, and the accepted-hex-form contract)
+// Token hex forms: #RGB / #RRGGBB / #RRGGBBAA. The pairing table is measured on an opaque surface,
+// so a translucent token (alpha < FF) fails closed instead of being silently computed as opaque;
+// 4/5/7-digit forms are rejected as uncomputable.
 // Two gates:
 //   1) Regression gate: computed value < minimum threshold (body 4.5:1; large text/graphics 3:1) -> FAIL
 //   2) Drift gate: differs from the registered doc value (the `doc` field in the pairing table)
@@ -29,6 +32,28 @@ function hexToRgb(hex) {
   const h = hex.replace('#', '');
   const full = h.length === 3 ? [...h].map((c) => c + c).join('') : h.slice(0, 6);
   return [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16) / 255);
+}
+// Accepted token hex forms; anything the math above cannot compute is rejected instead of
+// producing a NaN row that would pass both comparison gates silently.
+const GATE_HEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+function isGateHex(value) {
+  return GATE_HEX.test(value);
+}
+function alphaByte(hex) {
+  const h = hex.replace('#', '');
+  return h.length === 8 ? parseInt(h.slice(6, 8), 16) : 255;
+}
+// Pair-level gate contract: a pair is either computable on the opaque basis, or rejected with a
+// reason. Rejections must reach the failure list, never a silently passing row.
+function pairRejection(fg, bg) {
+  if (!fg || !isGateHex(fg) || !bg || !isGateHex(bg)) {
+    return 'token missing or not resolvable to a gatable hex form #RGB/#RRGGBB/#RRGGBBAA';
+  }
+  const alphas = [fg, bg].map(alphaByte);
+  if (alphas.some((a) => a !== 255)) {
+    return `translucent token (alpha ${alphas.join('/')}) cannot be contrast-gated on the opaque surface basis -- register an opaque equivalent or extend the gate with compositing`;
+  }
+  return null;
 }
 function channelLum(c) {
   return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
@@ -53,7 +78,7 @@ function parseTokens(css) {
     const v = map[name];
     if (!v || seen.has(name)) return null;
     seen.add(name);
-    if (/^#[0-9a-fA-F]{3,8}$/.test(v)) return v.slice(0, 7) === v || v.length <= 7 ? v : v;
+    if (isGateHex(v)) return v;
     const ref = /^var\((--[\w-]+)\)$/.exec(v);
     return ref ? resolve(ref[1], seen) : null;
   };
@@ -172,10 +197,9 @@ function run() {
   for (const p of PAIRS) {
     const fg = tokens[p.fg];
     const bg = tokens[p.bg];
-    if (!fg || !/^#[0-9a-fA-F]{3,8}$/.test(fg) || !bg || !/^#[0-9a-fA-F]{3,8}$/.test(bg)) {
-      failures.push(
-        `${p.fg} on ${p.bg}: token missing or not resolvable to hex (fg=${fg} bg=${bg})`,
-      );
+    const rejection = pairRejection(fg, bg);
+    if (rejection) {
+      failures.push(`${p.fg} on ${p.bg}: ${rejection} (fg=${fg} bg=${bg})`);
       continue;
     }
     const ratio = contrast(fg, bg);
@@ -238,6 +262,36 @@ function selfTest() {
   const okShort = Math.abs(short - 21) < 0.01;
   if (!okShort) pass = false;
   console.log(`  ${okShort ? '✓' : '✗'} 3-digit shorthand #fff parsing = ${short.toFixed(2)}`);
+  // accepted hex forms: 4/5/7-digit forms and translucent tokens must not pass silently
+  const forms = [
+    ['#fff', true, 255],
+    ['#FCEE0A', true, 255],
+    ['#FCEE0AFF', true, 255],
+    ['#FCEE0A99', true, 0x99],
+    ['#fc0a', false, null],
+    ['#abcde', false, null],
+  ];
+  for (const [hex, accepted, alpha] of forms) {
+    const ok = isGateHex(hex) === accepted && (!accepted || alphaByte(hex) === alpha);
+    if (!ok) pass = false;
+    console.log(
+      `  ${ok ? '✓' : '✗'} gate form ${hex} = ${accepted ? `accepted (alpha ${alphaByte(hex)})` : 'rejected'}`,
+    );
+  }
+  // pair-level behavior: uncomputable/translucent pairs must be rejected, not silently computed
+  const pairCases = [
+    ['#E6E9F0', '#12141B', null],
+    ['#E6E9F0FF', '#12141B', null],
+    ['#E6E9F099', '#12141B', 'translucent'],
+    ['#fc0a', '#12141B', 'not resolvable'],
+    ['#abcde', '#12141B', 'not resolvable'],
+  ];
+  for (const [fg, bg, expected] of pairCases) {
+    const rejection = pairRejection(fg, bg);
+    const ok = expected === null ? rejection === null : Boolean(rejection?.includes(expected));
+    if (!ok) pass = false;
+    console.log(`  ${ok ? '✓' : '✗'} pair ${fg} on ${bg} = ${rejection ?? 'accepted'}`);
+  }
   if (!pass) exit(1);
   console.log('self-test passed ✓');
 }

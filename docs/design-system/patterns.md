@@ -6,7 +6,7 @@
 
 | 壳 | 触发 | 结构 | 密度 | 模式（impeccable） |
 |---|---|---|---|---|
-| 营销壳 | `current="home"` | `.marketing-header`（字标 + `.marketing-nav` 三入口 ≥1024 + 状态簇/语言/钱包）→ `main.marketing-main.ax-hud-inner` | 可放宽到 T3（56px） | Persuade |
+| 营销壳 | `current="home"` | `.marketing-header`（字标 + `.marketing-nav` 四入口 ≥1024 + 状态簇/语言/钱包）→ `main.marketing-main.ax-hud-inner` | 可放宽到 T3（56px） | Persuade |
 | 产品壳 | 其它 | `.product-sidebar` + `.product-canvas`（`.product-topbar` + `main.product-main`）+ `.mobile-navigation` | T2 默认 44px；/pol、/portfolio 可收 T1 | Operate |
 
 ## 2. 产品页标准骨架
@@ -53,7 +53,7 @@
 | 主 + 侧栏 | Grid `grid-template-columns: minmax(0,1fr) <侧栏宽>`；≤68rem 退单列（参考 `.discovery-layout`） |
 | 卡片网格 | `.economy-grid` 式 `repeat(auto-fill, minmax(<min>, 1fr))`，54rem/30rem 减列 |
 | 工具条 | Flex + `gap: var(--space-3)`，`flex-wrap: wrap`；移动端改抽屉（`data-open`） |
-| KPI 带 | Grid 4 列，切角 `--chamfer-card`，青 inset 顶光；≤30rem 2×2 |
+| KPI 带 | `.pf-kpi` auto-fit `minmax(128px,1fr)` 芯片（`--color-border-signal` 描边、12px 对角双切、无顶光）；≤54rem 整条隐藏让位分区页签角标 |
 | 表格 | `.verse-table-wrap` 容器，`overflow-x: auto`，≤30rem 冻结首列 |
 | 内容宽度 | 正文 `max-inline-size: 66ch`；数字表格不设 ch 限制 |
 

@@ -4,12 +4,11 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  // Disabled = visible grade + ZERO interaction feedback (root cause proven by an in-page
-  // probe on the user's browser): pointerdown/pointerup DO hit disabled
+  // Disabled = visible grade + ZERO interaction feedback: pointerdown/pointerup DO hit disabled
   // controls (spec) and :active follows them, so a raw `active:translate-y-px` nudged disabled
-  // buttons 1px on every press — the reported "jitter" — and raw :hover skin lit them up too.
-  // Press nudge and hover skins are therefore gated on enabled; pointer-events stay on so
-  // hover/title tooltips keep working; interaction is gated by the native disabled attribute.
+  // buttons 1px on every press and raw :hover skin lit them up too. Press nudge and hover
+  // skins are therefore gated on enabled; pointer-events stay on so hover/title tooltips keep
+  // working; interaction is gated by the native disabled attribute.
   "group/button inline-flex shrink-0 cursor-pointer items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-[color,background-color,border-color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 enabled:active:not-aria-[haspopup]:translate-y-px disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {

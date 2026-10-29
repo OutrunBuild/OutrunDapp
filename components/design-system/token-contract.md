@@ -18,7 +18,7 @@
 
 1. **数据层文本零 glow**：`text-shadow`/发光禁止用于数字、表格、正文；glow 仅结构记号与强调层（导航激活条/斜切记号/CTA/卡片青微光），由 `[data-glow=on]` 统一开关，off 全站仍 AA（010 修订——r10 部署实测该开关体系）。
 2. **tabular-nums 强制**：一切数字字段（价格/收益率/余额/数量/百分比/区块/时间戳）必须 `--font-data` + `tabular-nums`（`[data-numeric]` 类或等价机制）。
-3. **品红分层管辖**（决议 015，修订 010/012 适用面）：①品牌铬层（壳/签名/CTA chrome）=回声纪律——1–2px 错位线/内衬、小徽章、≥20px 大字或图形；②数据语义层（`data-stage` 阶段色、图表系列、仪表 datum 等）=数据规则——语义全站一致（locked 恒品红）、对比达标、数据墨水克制、允许面填充、不要求回声配对；③营销叙事层（营销壳/hero/活动）=大字/图形/渐变时刻允许，逐例人工过。全层不变：正文与小字号禁用（对比 5.19~5.89:1 档）、不与黄/青争语义。
+3. **品红分层管辖**（决议 015，修订 010/012 适用面）：①品牌铬层（壳/签名/CTA chrome）=回声纪律——1–2px 错位线/内衬、小徽章、≥20px 大字或图形；②数据语义层（`data-stage` 阶段色、图表系列、仪表 datum 等）=数据规则——语义全站一致（locked 恒品红）、对比达标、数据墨水克制、允许面填充、不要求回声配对；③营销叙事层（营销壳/hero/活动）=大字/图形/渐变时刻允许，逐例人工过。全层不变：不与黄/青争语义。
 4. **青色限界**：链接与 focus ring 专用；禁大面积色块（logo-spec §2）。
 5. **单一 focus 语言**：`:focus-visible` 2px `--or-cyan` 外环，全站唯一，不得自造。
 6. **渐变禁令**（负面清单，010 例外清单收窄）：渐变不得作按钮默认装饰、不得使用日落渐变（D2 桥接物未采纳）；**例外**=010 签名纹理层（HUD 网格线、主区品红 135° 角部洗色 `--echo-wash-magenta`、CRT 扫描线）——仅限 tokens.css `.ax-*` 签名层定义的纹理，组件不得自造渐变。
@@ -31,12 +31,13 @@
 
 - `--color-*` 语义色（bg/surface/text/feedback/border）
 - `--accent-*` 强调语义（primary/echo/link）
-- `--shadow-{raised,header}` 抬升层接触阴影（数据层文本零 glow 边界见 §2.1）
+- `--shadow-{raised,header,dialog}` 抬升层接触阴影（dialog=弹窗/卡片堆叠档；数据层文本零 glow 边界见 §2.1）
 - `--swatch-well` 样张井（design-system showcase 色样恒定背衬，P1-2 修复；亮度窗口实算取值，深色系样张对井 ≥3:1 显形）
 - `--logo-*`/`--or-cyan`/`--site-black` 品牌锚（只读）
 - `--font-{display,body,data}`、`--text-{xs..xl}`、`--space-{1..9}`、`--row-height*`、`--topbar-height`、`--z-*`
 - `--text-num-lg 22`：数字读数语义档（mono 消费；组合页头净值 hero 读数用 `--text-xl`）
 - `--color-surface-{header,navigation,kpi}`：顶栏（≈90%）/侧栏导航（≈95%）/KPI 卡面（≈88%）三个专用半透明面
+- `--color-warning`：警示语义黄（AA 档，value 见 tokens.css）；消费位=状态点 `data-tone='warning'`、价格冲击警示档、<72h 倒计时、state-matrix A8 错误网络（链选择触发器警示+窗内对照说明）
 - `--cta-hover`：主 CTA hover 亮黄
 - `--grid-cyan-{inner,outer}` / `--grid-size-{inner,outer}`：HUD 网格线颜色与线距（内/外两档）
 - `--scanline-white`：CRT 扫描线叠加色（≈2% 白）

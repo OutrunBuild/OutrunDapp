@@ -39,7 +39,7 @@
 1. 只用 token：`var(--color-*)`、`var(--space-*)`、`var(--text-*)`、Tailwind 语义类（`bg-primary`、`text-muted-foreground`）。禁止 `#hex`、`px` 裸值、`bg-blue-500` 之类原始色。
 2. 黄 `--accent-primary` 是唯一主行动色；每个视口内主 CTA 只有一个。
 3. 青 `--or-cyan` 只用于链接、focus、功能信号（live 点、选择线、tinted 描边）；禁大面积青色块。
-4. 品红 `--accent-echo` 分层管辖（决议 015）：品牌铬层（壳/签名/CTA chrome）只做回声——1–2px 错位线、内衬、徽章、≥20px 大字或图形；数据语义层（阶段色/图表系列/仪表 datum）按数据规则用——语义一致、对比达标、可面填充、不要求回声配对；营销叙事层可大用，逐例人工过。正文与小字号全层禁用。
+4. 品红 `--accent-echo` 分层管辖（决议 015）：品牌铬层（壳/签名/CTA chrome）只做回声——1–2px 错位线、内衬、徽章、≥20px 大字或图形；数据语义层（阶段色/图表系列/仪表 datum）按数据规则用——语义一致、对比达标、可面填充、不要求回声配对；营销叙事层可大用，逐例人工过。
 5. 所有数字字段（价格、余额、数量、时间戳、地址、hash）加 `data-numeric`，禁止对数据文本加 glow。
 6. glow 仅通过 `.ax-glow-*` 挂在结构记号上，由 `[data-glow]` 统一开关；关闭后全站仍须 AA。
 7. focus 全站唯一：青 2px 外环（`:focus-visible` 已全局定义），组件不得自定义其它 focus 样式。

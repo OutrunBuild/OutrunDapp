@@ -1,15 +1,15 @@
 # 状态矩阵
 
-> 路径以决议 014 后的现役路由为准（bridge/account 蓝图路由已作废；verse 子功能=详情页 tab）。（Stage-01 步骤 11 · 页面 brief 直接引用）
+> 路径以决议 014 后的现役路由为准（bridge/account 蓝图路由已作废；verse 子功能=详情页 tab）。（Stage-01 步骤 11 产物；状态编号引用以 state-catalog 为准）
 
-> 覆盖 architecture.md §1（原型全状态）、§6.2（账户九态）、§7（交易十一态）、§10（边界状态）、§11.2（测试矩阵账户态）、§15（模块完成状态）。页面 brief（阶段 2）按「路由 × 状态」引用本矩阵编号，不重复定义。
+> 覆盖 architecture.md §1（原型全状态）、§6.2（账户九态）、§7（交易十一态）、§10（边界状态）、§11.2（测试矩阵账户态）、§15（模块完成状态）。页面 brief（阶段 2）的状态词汇与**编号以 `docs/page-briefs/state-catalog.md` 为唯一源**（catalog A 系 15 态忠于 architecture §1 原序）；本矩阵编号是组件层 A/T/D 分类，与 catalog 编号不同、勿按编号互查，同语义对照登记于 state-catalog.md「与视觉/组件层的关系」。
 > 视觉语言全部走 tokens.css；文案消费化（决议 001-A）。
 
 ## 1. 连接与账户状态（§1 + §11.2）
 
 | # | 状态 | 呈现要点 | 载体组件 |
 |---|---|---|---|
-| A1 | 未连接 Disconnected | 只读可浏览（任意查看链）；CTA `Connect wallet`；无自动弹窗 | account-menu / account-dialog |
+| A1 | 未连接 Disconnected | 只读可浏览（任意支持链）；CTA `Connect wallet`；无自动弹窗 | account-menu / account-dialog |
 | A2 | 连接中 Connecting | 钱包列表弹层+选中 spinner | account-menu / account-dialog |
 | A3 | 普通外部 EOA | `Standard wallet`+升级引导（交易前一次性）；能力提示非阻断 | account-menu / account-dialog |
 | A4 | Privy embedded EOA | 同 A3 语义，来源标注 `Outrun wallet`（命名走 §2 术语） | account-menu / account-dialog |
@@ -48,7 +48,7 @@
 | D7 | 成功/失败终态（页面级） | 结果区+后续动作 |
 | D8 | 测试网模式 | 持续可见测试网标识（§5） |
 
-## 4. 路由 × 状态适用表（阶段 2 页面 brief 引用锚）
+## 4. 路由 × 状态适用表（组件层视图；brief 引用以 state-catalog 编号为准）
 
 | 路由 | 必测状态集 |
 |---|---|

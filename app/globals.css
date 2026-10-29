@@ -47,6 +47,8 @@
 }
 
 @theme inline {
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
   --color-background: var(--color-bg);
   --color-foreground: var(--color-text);
   --color-card: var(--color-surface);
@@ -354,6 +356,23 @@ svg {
   color: var(--color-text);
 }
 
+/* A8 wrong network: the wallet sits outside the offered set. Warning chrome must
+   persist across hover/open — it is a state, not a phase — so both tiers restate it. */
+.chain-dialog__trigger[data-warning='true'] {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.chain-dialog__trigger[data-warning='true']:hover,
+.chain-dialog__trigger[data-warning='true'][aria-expanded='true'] {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.chain-dialog__trigger[data-warning='true'] .chain-dialog__trigger-current {
+  color: var(--color-warning);
+}
+
 .chain-dialog__trigger-current {
   color: var(--color-text);
 }
@@ -369,6 +388,27 @@ svg {
   border: 1px solid var(--color-border-signal-strong);
   background: var(--color-surface-navigation);
   box-shadow: var(--shadow-header);
+}
+
+/* A8 wrong-network contrast note: what the wallet is on vs what the selector serves */
+.chain-dialog__notice {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-warning);
+}
+
+.chain-dialog__notice-title {
+  margin: 0;
+  color: var(--color-warning);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--label-tracking);
+}
+
+.chain-dialog__notice-body {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
 }
 
 /* Title row invisible (the removed chain-viewer label) — the accessible
@@ -938,8 +978,8 @@ div > .wallet-select__note:last-child {
    paint-skin.tsx mounted on the root layout) —
    border always a single line with no ghost rows, brightness floor 52% (the clip-path route measured
    28% + ghost rows); form unchanged (bare chamfer).
-   Hover reskin does not exclude disabled — disabled buttons render like enabled ones, so hover
-   feedback matches too; :active still limited to enabled.
+   Hover reskin is :not(:disabled)-gated — disabled buttons carry the cva visible disabled grade
+   (opacity 50), so lighting one up on hover would misread as enabled; :active still limited to enabled.
    Exemption: .back-to-top has different single-corner chamfer geometry; its 0-2-0 !important
    border/background naturally overrides the base-class skin. */
 @property --cb-bg {
@@ -2165,17 +2205,19 @@ div > .wallet-select__note:last-child {
 }
 
 .verse-lifecycle__step--genesis {
-  --stage-color: var(--logo-magenta-bright);
+  --stage-color: var(--accent-primary);
 }
 
 .verse-lifecycle__step--locked {
-  --stage-color: var(--or-cyan);
+  --stage-color: var(--accent-echo);
 }
 
 .verse-lifecycle__step--unlocked {
-  --stage-color: var(--color-warning);
+  --stage-color: var(--or-cyan);
 }
 
+/* The fourth narrative step ("Normal Operation") is not a VerseStage, so the fixed four-stage
+   mapping has no row for it; it keeps the success role as the post-window steady state. */
 .verse-lifecycle__step--normal {
   --stage-color: var(--color-success);
 }
@@ -2241,8 +2283,10 @@ div > .wallet-select__note:last-child {
   inset-inline: auto calc(var(--space-4) * -1);
 }
 
+/* Stage color stops at the node border, connector lines, 4px squares and the 14px signals
+   title; the 12px meta line and node number stay neutral. */
 .verse-lifecycle__meta {
-  color: var(--stage-color);
+  color: var(--color-text-secondary);
   font-family: var(--font-data);
   font-size: var(--text-xs);
   letter-spacing: var(--label-tracking);
@@ -2274,7 +2318,7 @@ div > .wallet-select__note:last-child {
   border: 1px solid var(--stage-color);
   background: var(--color-bg);
   box-shadow: 0 0 var(--space-3) color-mix(in srgb, var(--stage-color) 28%, transparent);
-  color: var(--stage-color);
+  color: var(--color-text-secondary);
   font-size: var(--text-xs);
   transform: rotate(45deg);
 }
@@ -3063,6 +3107,16 @@ div > .wallet-select__note:last-child {
 [data-slot='textarea']:hover:not(:disabled),
 [data-slot='select-trigger']:hover:not(:disabled) {
   border-color: var(--color-border-signal-strong) !important;
+}
+
+/* Chamfer clip-path clips the global focus outline, so keyboard focus goes through the border
+   channel (same precedent as .create-logo__box); this keeps the site's single cyan focus language
+   visible on the three clipped form controls. Declared after the hover rule so focus wins when the
+   pointer is also over the control */
+[data-slot='input']:focus-visible:not(:disabled),
+[data-slot='textarea']:focus-visible:not(:disabled),
+[data-slot='select-trigger']:focus-visible:not(:disabled) {
+  border-color: var(--or-cyan) !important;
 }
 
 [data-slot='input']::placeholder,
@@ -4757,9 +4811,7 @@ div > .wallet-select__note:last-child {
   grid-template-rows: auto minmax(0, 1fr);
   gap: var(--space-4);
   padding: var(--space-5);
-  box-shadow:
-    0 24px 48px rgba(0, 0, 0, 0.45),
-    0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-dialog);
 }
 
 /* Token stats bar (unframed inside the card; layout after the reference page: first row token name
@@ -5120,7 +5172,7 @@ div > .wallet-select__note:last-child {
   padding: var(--space-3);
   border: 1px solid var(--color-border-strong);
   background: var(--color-surface-raised);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.45);
+  box-shadow: var(--shadow-header);
   clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100% 100%, 0 100%);
 }
 
@@ -5222,9 +5274,7 @@ div > .wallet-select__note:last-child {
   /* Header edge tighter than the other three; the difference funds the flip
      button's breathing room below */
   padding: var(--space-4) var(--space-5) var(--space-5);
-  box-shadow:
-    0 24px 48px rgba(0, 0, 0, 0.45),
-    0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-dialog);
 }
 
 .swap-panel__field {
@@ -5490,7 +5540,7 @@ div > .wallet-select__note:last-child {
   font-weight: var(--font-weight-semibold);
 }
 
-/* Confirm dialog body (2026-10-27 ruling: five uniform ledger rows read as a table): the
+/* Confirm dialog body (five uniform ledger rows read as a table): the
    review paints as a two-leg exchange — pay leg → conversion arrow → receive leg with min
    received as its protective sub-line — over a quiet meta band (fee / network cost behind
    one top hairline) */
@@ -5596,7 +5646,15 @@ div > .wallet-select__note:last-child {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
-  margin-block-start: var(--space-4);
+  /* The meta band's 44px row already carries the air under the last readout — the
+     review grid's gap on top of a margin doubled it into a dead band before the CTAs */
+  margin-block-start: calc(-1 * var(--space-2));
+}
+
+/* Gas-invalid error keeps its own step above the CTAs: the pulled-up actions row would
+   otherwise sit flush under it */
+.swap-review__meta + [data-slot='field-error'] {
+  margin-block-end: var(--space-2);
 }
 
 /* CTA full-width slot (.swap-panel__cta is full width within the card;
@@ -5839,8 +5897,12 @@ div > .wallet-select__note:last-child {
    scope limited to the share dialog */
 .verse-share-pop .pol-mint::after {
   background-image:
-    linear-gradient(180deg, rgba(0, 240, 255, 0.07), transparent 26%),
-    linear-gradient(135deg, rgba(255, 6, 181, 0.1), transparent 34%),
+    linear-gradient(180deg, color-mix(in srgb, var(--or-cyan) 7%, transparent), transparent 26%),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-echo) 10%, transparent),
+      transparent 34%
+    ),
     linear-gradient(
       0deg,
       color-mix(in srgb, var(--logo-magenta-dark) 12%, transparent),
@@ -5876,12 +5938,10 @@ div > .wallet-select__note:last-child {
   isolation: isolate;
   display: grid;
   gap: var(--space-3);
-  /* Title head one step closer to the top edge than the sides/bottom (user ruling on the
-     unified dialog shell) */
+  /* Title head one step closer to the top edge than the sides/bottom (unified dialog
+     shell) */
   padding: var(--space-4) var(--space-5) var(--space-5);
-  box-shadow:
-    0 24px 48px rgba(0, 0, 0, 0.45),
-    0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-dialog);
 }
 
 .pol-mint__head {
@@ -5898,7 +5958,7 @@ div > .wallet-select__note:last-child {
 }
 
 /* Title = same spec as the swap card head title (--text-title 17px + secondary color),
-   unified across all site dialogs (user ruling: half-step size) */
+   unified across all site dialogs */
 .pol-mint__title {
   margin: 0;
   font-family: var(--font-body);
@@ -6040,7 +6100,7 @@ div > .wallet-select__note:last-child {
    deliberate step away from body sans (the [data-numeric] mono rule governs numbers, not
    symbols); `font: inherit` on the select chip resets the family, so its strong re-declares.
    Single-cyan misregistration echo = the hero ticker's treatment at chip scale — magenta
-   stays off small text (ruling 015); hard 1px offset, no blur, so it reads as a registration
+   stays off small text; hard 1px offset, no blur, so it reads as a registration
    fault, not glow */
 .swap-panel__token,
 .swap-panel__token--select strong,
@@ -6133,9 +6193,7 @@ div > .wallet-select__note:last-child {
   /* Positioning margin for ?tab= deep-link scrollIntoView: clears the sticky topbar (same value as
     the h1-h3 anchor convention) */
   scroll-margin-block-start: calc(var(--space-8) + var(--space-2));
-  box-shadow:
-    0 24px 48px rgba(0, 0, 0, 0.45),
-    0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-dialog);
 }
 
 /* Desktop-grade card signature surface = "rainy-night material":
@@ -6168,8 +6226,8 @@ div > .wallet-select__note:last-child {
   pointer-events: none;
   background: linear-gradient(
     165deg,
-    rgba(0, 240, 255, 0.5),
-    rgba(0, 240, 255, 0.12) 36%,
+    color-mix(in srgb, var(--or-cyan) 50%, transparent),
+    color-mix(in srgb, var(--or-cyan) 12%, transparent) 36%,
     rgba(255, 255, 255, 0.06) 70%,
     transparent
   );
@@ -6195,8 +6253,12 @@ div > .wallet-select__note:last-child {
   pointer-events: none;
   background-color: var(--color-surface);
   background-image:
-    linear-gradient(180deg, rgba(0, 240, 255, 0.07), transparent 26%),
-    linear-gradient(135deg, rgba(255, 6, 181, 0.1), transparent 34%),
+    linear-gradient(180deg, color-mix(in srgb, var(--or-cyan) 7%, transparent), transparent 26%),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-echo) 10%, transparent),
+      transparent 34%
+    ),
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
   clip-path: polygon(
     0 0,
@@ -6213,8 +6275,8 @@ div > .wallet-select__note:last-child {
 .verse-tabs:hover::before {
   background: linear-gradient(
     165deg,
-    rgba(0, 240, 255, 0.8),
-    rgba(0, 240, 255, 0.2) 36%,
+    color-mix(in srgb, var(--or-cyan) 80%, transparent),
+    color-mix(in srgb, var(--or-cyan) 20%, transparent) 36%,
     rgba(255, 255, 255, 0.08) 70%,
     transparent
   );
@@ -6225,8 +6287,12 @@ div > .wallet-select__note:last-child {
 .pol-mint:hover::after,
 .verse-tabs:hover::after {
   background-image:
-    linear-gradient(180deg, rgba(0, 240, 255, 0.11), transparent 28%),
-    linear-gradient(135deg, rgba(255, 6, 181, 0.13), transparent 34%),
+    linear-gradient(180deg, color-mix(in srgb, var(--or-cyan) 11%, transparent), transparent 28%),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-echo) 13%, transparent),
+      transparent 34%
+    ),
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
 }
 
@@ -7735,7 +7801,8 @@ div > .wallet-select__note:last-child {
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--color-border-signal);
   background:
-    linear-gradient(180deg, rgba(0, 240, 255, 0.05), transparent 62%), var(--color-surface-inset);
+    linear-gradient(180deg, color-mix(in srgb, var(--or-cyan) 5%, transparent), transparent 62%),
+    var(--color-surface-inset);
 }
 
 .dao-fund-pop__hero-main {
@@ -10905,9 +10972,7 @@ div > .wallet-select__note:last-child {
 .pf-panel {
   position: relative;
   isolation: isolate;
-  box-shadow:
-    0 24px 48px rgba(0, 0, 0, 0.45),
-    0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-dialog);
 }
 
 /* Panel nameplate: module nameplate row (mono small-caps tracked uppercase + count); a panel is
@@ -11742,9 +11807,7 @@ button.pf-action__link {
   gap: var(--space-3);
   align-content: start;
   padding: var(--space-4);
-  box-shadow:
-    0 24px 48px rgba(0, 0, 0, 0.45),
-    0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-dialog);
 }
 
 .pf-card__bar {
@@ -14140,8 +14203,9 @@ button.pf-action__link {
   padding-block-end: var(--space-4);
 }
 
-/* Rows read-only (Claim always disabled, same basis as ref-pending): base-class hover
-   neutralized */
+/* Rows read-only: base-class hover neutralized on all builds (static, decoupled from
+   Claim availability — on onchain the Claim button is gated by canClaim; only the
+   harness/fixture build keeps the inert-disabled look) */
 .fc-claims .pf-claim-row:hover {
   background: transparent;
   box-shadow: none;

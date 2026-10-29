@@ -8,7 +8,8 @@ import { FALLBACK_PAGES, FIXED_NOW, PAGES, ZH_PAGES } from './pages';
 // freezing uses reduced-motion + animation:none as a double guard.
 // First run writes the baseline automatically (e2e/*-snapshots/, committed);
 // updating a baseline requires a human-confirmed diff:
-//   pnpm test:e2e -- --update-snapshots
+//   pnpm test:e2e -- --update-snapshots=all
+// (the bare form defaults to "changed", which skips drift inside maxDiffPixelRatio)
 //
 // Full-page screenshots have known capture artifacts for position:fixed/sticky
 // (captureBeyondViewport collects a single frame: fixed freezes at the initial

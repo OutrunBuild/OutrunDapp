@@ -28,7 +28,7 @@
 
 ### 1.2 阶段色（VerseStage）
 
-`data-stage` 驱动，四阶段固定映射，任何组件不得改：
+`data-stage` / `--stage-color` 驱动，四阶段固定映射，任何组件不得改：
 
 | 阶段 | 色 |
 |---|---|
@@ -37,7 +37,7 @@
 | unlocked | `--or-cyan` 青 |
 | refund | `--color-warning` 橙 |
 
-已实现载体：`.stage-badge[data-stage]`、`.lifecycle-tabs a[data-stage]`、`.economy-card[data-stage]`（通过 `--stage-color` 自定义属性传递）。
+已实现载体：`.stage-badge[data-stage]`、`.lifecycle-tabs a[data-stage]`、`.economy-card[data-stage]`、`.verse-lifecycle__step--{genesis,locked,unlocked}`（首页生命周期段前三步，`--stage-color` 传递；第四步 Normal Operation 非 VerseStage，用 `--color-success` 表示保护期结束后稳态）。
 
 ### 1.3 三色分工口诀
 
@@ -74,7 +74,7 @@
 | 切角面板 | `--chamfer-panel 10` | 表格容器、卡片容器单角 |
 | 切角特征 | `--chamfer-card 12` | KPI 带、斜杠记号双角 |
 | 线 | `--line-accent 2` / `--line-echo 1` | 黄主信号线 / 品红回声线 |
-| 结构阴影 | `--shadow-raised` / `--shadow-header` | 深度，纯黑阴影，无彩色 |
+| 结构阴影 | `--shadow-raised` / `--shadow-header` / `--shadow-dialog` | 深度，纯黑阴影，无彩色 |
 | 信号 glow | `--glow-nav-active` / `--glow-cta` / `--glow-card-cyan` / `--glow-echo-rail` | 只经 `.ax-glow-*` + `[data-glow=on]` 使用 |
 
 切角写法示例（来自 `.stage-badge`）：
@@ -108,16 +108,18 @@ clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100%
 
 ## 7. 断点与响应式
 
-`app/globals.css` 使用 `max-width` 四档（移动优先地收敛桌面布局；`1023px` 是代码既有的 lg 收敛档，与 Tailwind 断点边界对齐，不计入新增档位）：
+`app/globals.css` 全局收敛使用 `max-width` 四档（移动优先地收敛桌面布局；`1023px` 是代码既有的 lg 收敛档，与 Tailwind 断点边界对齐，不计入新增档位）：
 
 | 断点 | 像素 | 发生什么 |
 |---|---|---|
 | `68rem` | ≤1088px | 产品壳收窄；`.discovery-layout` 退单列；筛选栏 `.filter-rail` 转横向；`.lifecycle-tabs`/`.discovery-tools` 压缩 |
 | `1023px` | ≤1023px | 营销 header 文字导航隐藏，header 收成品牌 + 右对齐 actions 两列；`.pol-panel__grid`/`.vault-actions` 退单列 |
 | `54rem` | ≤864px | 侧栏隐藏 → `.mobile-navigation` 底部 tab；`.mobile-filter-toggle` 出现，`.discovery-filters[data-open]` 抽屉；`.economy-grid` 减列 |
-| `30rem` | ≤480px | 品牌切 symbol；KPI 2×2；表格横滚冻结首列；`.economy-card__facts` 堆叠；中文 h1 缩放 |
+| `30rem` | ≤480px | 品牌切 symbol；表格横滚冻结首列；`.economy-card__facts` 堆叠；中文 h1 缩放 |
 
-新页面必须在这三档里各截一张图验证（见 agent-workflow.md）。不新增断点值；需要新档位时先讨论。
+另有页面级档位已登记在 components.md 组件索引：`≤640px`（Verse 详情移动端重构）、`≤49rem`（Referral 移动台账）、`≤18.75rem`（极窄档）。
+
+新页面必须在 68rem / 54rem / 30rem 三档各截一张图验证（见 agent-workflow.md）；页面级档位随页面一并验证。新增断点须先在 components.md 登记，再落代码。
 
 ## 8. 层级
 
