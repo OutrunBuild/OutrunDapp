@@ -50,6 +50,15 @@ vi.mock('@/lib/web3/active-provider', () => ({
   useActiveEip1193Provider: () => null,
 }));
 
+// The SwapPanel tree reaches Privy's useWallets through the unmocked modules it keeps
+// (gas quote etc.); without a provider the real hook warns on every call. Return the
+// provider-less shape it degrades to (empty wallet list) so no other privy export
+// changes behavior.
+vi.mock('@privy-io/react-auth', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@privy-io/react-auth')>();
+  return { ...actual, useWallets: () => ({ wallets: [] }) };
+});
+
 vi.mock('next/navigation', () => ({
   useParams: () => ({ verseId: '1' }),
 }));

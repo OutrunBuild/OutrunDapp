@@ -11,10 +11,20 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+// stdio must be piped explicitly: execFileSync's sync-exec default forwards the child's
+// stderr to this process's terminal, so every negative-path FAIL report would leak into
+// the vitest output even though failureStderr() reads it off the thrown error
 const run = (script: string) =>
-  execFileSync(process.execPath, [join(repo, 'scripts', script)], { encoding: 'utf8' });
+  execFileSync(process.execPath, [join(repo, 'scripts', script)], {
+    encoding: 'utf8',
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
 const runIn = (cwd: string, script: string) =>
-  execFileSync(process.execPath, [join(repo, 'scripts', script)], { cwd, encoding: 'utf8' });
+  execFileSync(process.execPath, [join(repo, 'scripts', script)], {
+    cwd,
+    encoding: 'utf8',
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
 const failureStderr = (cwd: string, script: string) => {
   try {
     runIn(cwd, script);

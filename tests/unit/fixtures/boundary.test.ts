@@ -8,7 +8,14 @@ import { cpSync, existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } fro
 import { tmpdir } from 'node:os';
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
-const run = (args: string[]) => execFileSync(process.execPath, [join(repo, 'scripts/check-fixture-boundary.mjs'), ...args], { encoding: 'utf8' });
+// stdio must be piped explicitly: execFileSync's sync-exec default forwards the child's
+// stderr to this process's terminal, so every negative-path FAIL report would leak into
+// the vitest output even though the assertions below read it off the thrown error
+const run = (args: string[]) =>
+  execFileSync(process.execPath, [join(repo, 'scripts/check-fixture-boundary.mjs'), ...args], {
+    encoding: 'utf8',
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
 
 describe('check-fixture-boundary', () => {
   it('--source: no violations in this repo (exit 0)', () => {

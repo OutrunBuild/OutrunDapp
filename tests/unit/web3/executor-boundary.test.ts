@@ -391,6 +391,11 @@ describe('runDirect × frozen 5792 wallet', () => {
   });
 
   it('reports pending when the receipt wait fails (unknown is not failure)', async () => {
+    // The injected receipt rejection surfaces through the executor's [tx] console.error
+    // observability; substitute the sink for this case only so the viem stack trace does
+    // not flood the run output (the outcome assertion carries the signal), and restore it
+    // before the next case.
+    const txLogSink = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const events: TxEvent[] = [];
     const wallet = new Fake5792Wallet();
     wallet.requests.length = 0;
@@ -474,5 +479,6 @@ describe('runDirect × frozen 5792 wallet', () => {
       'tx-signed',
       'receipt-pending',
     ]);
+    txLogSink.mockRestore();
   });
 });

@@ -375,6 +375,11 @@ describe('runSession × wallet replacement', () => {
   });
 
   it('a rejected receipt wait stays pending instead of fabricating a terminal state', async () => {
+    // The injected receipt rejection surfaces through the executor's [tx] console.error
+    // observability; substitute the sink for this case only (the rest of this suite uses
+    // working receipt waits, where a console.error would be a real regression signal) and
+    // restore it before the next case.
+    const txLogSink = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const events: TxEvent[] = [];
     const outcome = await runSession(
       sessionSpec(),
@@ -387,6 +392,7 @@ describe('runSession × wallet replacement', () => {
         ['receipt-success', 'tx-reverted', 'tx-replaced', 'user-rejected'].includes(event.type),
       ),
     ).toBe(false);
+    txLogSink.mockRestore();
   });
 
   it('a speed-up is confirmed on the replacement hash', async () => {

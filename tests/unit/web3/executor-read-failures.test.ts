@@ -3,12 +3,21 @@
 // broadcast nothing, so a plain 'failed' is honest — what must never happen is the
 // rejection escaping the executor into the fire-and-forget call sites (unhandled
 // rejection, machine stuck mid-flow).
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Chain, Hex } from 'viem';
 
 import type { Eip1193ProviderLike } from '../../../lib/web3/active-provider';
 import type { TxEvent } from '../../../lib/web3/tx-center';
 import { runSession, type ExecDeps, type WriteSpec } from '../../../lib/web3/tx-executor';
+
+// Failure-injection suite: the executor's [tx] console.error observability fires on every
+// injected read rejection by design; substitute the sink so the viem stack traces do not
+// flood the run output (the outcome assertions below carry the signal). The suite's own
+// afterEach runs vi.restoreAllMocks(), so the sink is re-armed per test instead of
+// installed once at module scope.
+beforeEach(() => {
+  vi.spyOn(console, 'error').mockImplementation(() => undefined);
+});
 
 const EOA = '0x1111111111111111111111111111111111111111' as Hex;
 const ROUTER = '0x2222222222222222222222222222222222222222' as Hex;
